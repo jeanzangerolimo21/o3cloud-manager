@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtualenv
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+logs/
+*.log
+
+# Flask
+instance/
+
+# Cache
+.pytest_cache/
+.mypy_cache/
+
+# Banco local
+*.db
+*.sqlite3
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Backup
+backups/
+
+# Secrets
+.env
