@@ -1,0 +1,432 @@
+# Modelo Físico de Dados
+
+## O3Cloud Manager V2
+
+**Versão:** 2.0
+
+---
+
+# Objetivo
+
+Este documento define a estrutura física do banco de dados do O3Cloud Manager V2.
+
+Seu objetivo é transformar o Modelo de Domínio e o DER em uma estrutura pronta para implementação no MariaDB.
+
+O banco de dados deverá representar o negócio da O3Cloud e não a estrutura dos sistemas integrados.
+
+---
+
+# Princípios
+
+* Toda informação possui um sistema responsável.
+* Nenhuma tela consulta APIs externas.
+* Todo dado utilizado pela aplicação deve existir no banco local.
+* Toda regra de negócio pertence à camada Services.
+* O banco representa o domínio do negócio.
+* O sistema será preparado para crescimento futuro.
+
+---
+
+# Convenções
+
+## Banco
+
+MariaDB 11
+
+---
+
+## Charset
+
+utf8mb4
+
+---
+
+## Collation
+
+utf8mb4_unicode_ci
+
+---
+
+## Engine
+
+InnoDB
+
+---
+
+## Nome das tabelas
+
+Sempre em português.
+
+Sempre no plural.
+
+Sempre snake_case.
+
+Exemplos
+
+clientes
+
+grupos_economicos
+
+contratos
+
+recursos
+
+licencas
+
+---
+
+## Chave Primária
+
+Todas as tabelas utilizarão:
+
+* id BIGINT AUTO_INCREMENT
+
+---
+
+## UUID
+
+Todas as entidades principais possuirão:
+
+* uuid CHAR(36)
+
+Objetivo:
+
+Preparar a plataforma para APIs, integrações e futuras aplicações móveis.
+
+---
+
+## Auditoria
+
+Sempre que aplicável:
+
+* created_at
+* updated_at
+* created_by
+* updated_by
+* ativo
+
+---
+
+## Soft Delete
+
+Nenhum cadastro será removido fisicamente.
+
+Utilizar:
+
+ativo = 0
+
+---
+
+# Domínio Financeiro
+
+## clientes
+
+Descrição
+
+Empresas atendidas pela O3Cloud.
+
+Origem
+
+* OMIE
+* Manual
+
+Tipo
+
+Cadastro
+
+Campos principais
+
+* id
+* uuid
+* codigo_externo
+* origem
+* nome_fantasia
+* razao_social
+* cnpj
+* email
+* telefone
+* cidade
+* estado
+* ativo
+* created_at
+* updated_at
+* created_by
+* updated_by
+
+Relacionamentos
+
+* Grupo Econômico
+* Contratos
+* Receitas
+* Licenças
+* Recursos
+
+---
+
+## grupos_economicos
+
+Descrição
+
+Agrupamento empresarial utilizado para consolidação financeira.
+
+Origem
+
+O3Cloud
+
+---
+
+## grupo_clientes
+
+Relacionamento N:N entre clientes e grupos econômicos.
+
+---
+
+## contratos
+
+Descrição
+
+Contratos sincronizados do ERP.
+
+Origem
+
+OMIE
+
+Campos
+
+* codigo_externo
+* origem
+* cliente_id
+* numero
+* descricao
+* valor_mensal
+* status
+
+---
+
+## contrato_detalhes
+
+Informações gerenciais mantidas exclusivamente pela O3Cloud.
+
+Exemplos
+
+* observações
+* percentual_comissao
+* observacoes_comerciais
+
+---
+
+## receitas
+
+Descrição
+
+Receitas utilizadas pelos indicadores financeiros.
+
+Origem
+
+* OMIE
+* MANUAL
+
+Relacionamento
+
+Cliente
+
+Contrato (opcional)
+
+---
+
+## licencas
+
+Descrição
+
+Controle de licenciamento administrado pela O3Cloud.
+
+Inicialmente
+
+* O3WEB
+
+Preparado para expansão futura.
+
+---
+
+## parametros_financeiros
+
+Tabela de configuração dos cálculos financeiros.
+
+Campos previstos
+
+* custo_cpu
+* custo_ram
+* custo_disco
+* custo_licenca
+* margem_minima
+
+---
+
+# Domínio Infraestrutura
+
+## datacenters
+
+Origem
+
+Cadastro manual.
+
+---
+
+## clusters
+
+Origem
+
+Proxmox.
+
+---
+
+## hosts
+
+Origem
+
+Proxmox.
+
+---
+
+## storages
+
+Origem
+
+Proxmox.
+
+---
+
+## recursos
+
+Representa qualquer recurso computacional pertencente a um cliente.
+
+Pode representar:
+
+* VM
+* LXC
+
+Origem
+
+* Proxmox
+* NetBox
+
+Relacionamentos
+
+Cliente
+
+Host
+
+Cluster
+
+Storage
+
+---
+
+## backups
+
+Origem
+
+PBS.
+
+---
+
+# Administração
+
+## usuarios
+
+Usuários do sistema.
+
+---
+
+## perfis
+
+Perfis de acesso.
+
+---
+
+## permissoes
+
+Permissões individuais.
+
+---
+
+## perfil_permissoes
+
+Relacionamento entre perfis e permissões.
+
+---
+
+## auditoria
+
+Registro de alterações do sistema.
+
+---
+
+# Integrações
+
+## sync_execucoes
+
+Histórico das sincronizações.
+
+---
+
+## sync_logs
+
+Logs detalhados.
+
+---
+
+# Sistemas Responsáveis
+
+| Informação        | Sistema Oficial |
+| ----------------- | --------------- |
+| Clientes          | OMIE / O3Cloud  |
+| Contratos         | OMIE            |
+| Recursos          | Proxmox         |
+| Inventário        | NetBox          |
+| Backups           | PBS             |
+| Monitoramento     | Zabbix          |
+| Licenças          | O3Cloud         |
+| Grupos Econômicos | O3Cloud         |
+| Indicadores       | O3Cloud         |
+
+---
+
+# Ordem das Migrations
+
+## 001
+
+Financeiro
+
+---
+
+## 002
+
+Administração
+
+---
+
+## 003
+
+Infraestrutura
+
+---
+
+## 004
+
+Integrações
+
+---
+
+# Objetivo Final
+
+O banco de dados deverá servir como base única para:
+
+* Dashboards Executivos
+* Indicadores Financeiros
+* Indicadores Operacionais
+* Relatórios
+* Exportações
+* APIs
+* Futuras funcionalidades da V3
+
