@@ -1,15 +1,13 @@
-from pprint import pprint
-
-from app.integracoes.omie.client import OmieClient
+from app.integracoes.omie.sync import OmieSync
 
 
 def main():
 
-    client = OmieClient()
+    sync = OmieSync()
 
-    resposta = client.listar_contratos()
+    resultado = sync.sincronizar_contratos()
 
-    pprint(resposta)
+    print(resultado)
 
 
 if __name__ == "__main__":

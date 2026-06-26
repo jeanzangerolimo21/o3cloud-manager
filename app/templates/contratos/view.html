@@ -1,0 +1,239 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="mb-3">
+
+    <a href="{{ url_for('contratos.index') }}"
+       class="btn btn-outline-secondary">
+
+        <i class="bi bi-arrow-left"></i>
+
+        Voltar
+
+    </a>
+
+</div>
+
+
+<div class="row">
+
+    <div class="col-md-12">
+
+        <div class="card shadow-sm border-0">
+
+            <div class="card-header bg-white">
+
+                <h3 class="mb-0">
+
+                    Contrato {{ contrato.numero }}
+
+                </h3>
+
+                <small class="text-muted">
+
+                    Cliente: {{ contrato.cliente_nome }}
+
+                </small>
+
+            </div>
+
+            <div class="card-body">
+
+                <div class="row">
+
+                    <div class="col-md-3">
+
+                        <strong>Status</strong><br>
+
+                        {% if contrato.status == "ATIVO" %}
+                            <span class="badge bg-success">Ativo</span>
+                        {% elif contrato.status == "SUSPENSO" %}
+                            <span class="badge bg-warning">Suspenso</span>
+                        {% else %}
+                            <span class="badge bg-danger">
+                                {{ contrato.status }}
+                            </span>
+                        {% endif %}
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <strong>Valor Mensal</strong><br>
+
+                        {{ contrato.valor_mensal|moeda }}
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <strong>Faturamento</strong><br>
+
+                        Dia {{ contrato.dia_faturamento }}
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <strong>Origem</strong><br>
+
+                        {% if contrato.origem == "OMIE" %}
+			<span class ="badge bg-primary">
+			    OMIE
+			</span>
+
+			{% else %}
+
+			<span class="badge bg-secondary">
+			    MANUAL
+			</span>
+
+			{% endif %}
+
+
+                    </div>
+
+                </div>
+
+                <hr>
+
+                <div class="row">
+
+                    <div class="col-md-6">
+
+                        <strong>Início da Vigência</strong>
+
+                        <p>
+
+                            {{ contrato.inicio_vigencia|date_br }}
+
+                        </p>
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <strong>Fim da Vigência</strong>
+
+                        <p>
+
+                            {{ contrato.fim_vigencia|date_br }}
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <hr>
+
+                <h5>
+
+                    Escopo Comercial
+
+                </h5>
+
+                {% if itens %}
+
+                <div class="table-responsive">
+
+                    <table class="table table-sm table-hover">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>Descrição</th>
+                                <th>Qtd</th>
+                                <th>Valor Unit.</th>
+                                <th>Total</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                        {% for item in itens %}
+
+                            <tr>
+
+                                <td>
+
+                                    {{ item.descricao }}
+
+                                </td>
+
+                                <td>
+
+                                    {{ item.quantidade }}
+
+                                </td>
+
+                                <td>
+
+                                    {{ item.valor_unitario|moeda }}
+
+                                </td>
+
+                                <td>
+
+                                    {{ item.valor_total|moeda }}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+                {% else %}
+
+                    <div class="alert alert-light">
+
+                        Nenhum item encontrado.
+
+                    </div>
+
+                {% endif %}
+
+                <hr>
+
+                <h5>
+
+                    Infraestrutura (Sprint 6)
+
+                </h5>
+
+                <div class="alert alert-info mb-0">
+
+                    <i class="bi bi-server"></i>
+
+                    Nenhuma VM vinculada ao contrato.
+
+                    <br>
+
+                    <small>
+
+                        No Sprint 6 esta área exibirá as VMs, Containers,
+                        Backups, Recursos e Monitoramento relacionados ao cliente.
+
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

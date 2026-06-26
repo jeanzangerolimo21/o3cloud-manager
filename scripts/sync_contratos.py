@@ -1,27 +1,14 @@
-from app.integracoes.omie.client import OmieClient
+from app.integracoes.omie.sync import OmieSync
 
-client = OmieClient()
 
-pagina = 1
+def main():
 
-while True:
+    sync = OmieSync()
 
-    resposta = client.listar_contratos(pagina)
+    resultado = sync.sincronizar_contratos()
 
-    contratos = resposta.get("contratoCadastro", [])
+    print(resultado)
 
-    if not contratos:
-        break
 
-    for contrato in contratos:
-
-        cab = contrato["cabecalho"]
-
-        if cab["cNumCtr"] == "2026/00201":
-
-            print(cab)
-
-    if pagina >= resposta.get("total_de_paginas", pagina):
-        break
-
-    pagina += 1
+if __name__ == "__main__":
+    main()

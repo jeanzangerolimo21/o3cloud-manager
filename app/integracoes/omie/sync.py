@@ -3,7 +3,7 @@ from app.integracoes.omie.cliente_mapper import ClienteMapper
 from app.contratos.service import ContratoService
 from app.clientes.service import ClienteService
 from app.repositories.sync_repository import SyncRepository
-
+from app.contratos.item_service import ContratoItemService
 
 class OmieSync:
 
@@ -143,6 +143,16 @@ class OmieSync:
                         contrato
                     )
 
+                    itens = ContratoItemService.sincronizar_itens(
+                        contrato
+                    )
+                    if isinstance(itens, list):
+
+                        print(
+
+                            f"Itens sincronizados: {len(itens)}"
+
+                        )
                     print(resultado)
 
                     status = resultado["status"]

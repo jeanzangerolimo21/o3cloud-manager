@@ -57,11 +57,18 @@ class ContratoRepository(BaseRepository):
 
         cursor.execute("""
 
-        SELECT *
+        SELECT 
 
-            FROM contratos
+            c.*,
 
-            WHERE id=%s
+            cli.nome_fantasia AS cliente_nome
+
+            FROM contratos c
+
+            INNER JOIN clientes cli
+                ON cli.id = c.cliente_id
+
+            WHERE c.id=%s
 
         """, (contrato_id,))
 
@@ -72,18 +79,41 @@ class ContratoRepository(BaseRepository):
         return contrato
 
     @classmethod
-    def total(cls):
+    def total(cls, pesquisa=None):
 
         conn = cls.connection()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("""
+        sql = """
 
             SELECT COUNT(*) AS total
 
-            FROM contratos
+            FROM contratos c
 
-        """)
+            INNER JOIN clientes cli
+                ON cli.id = c.cliente_id
+
+        """
+
+        parametros = []
+
+        if pesquisa:
+
+            sql += """
+
+                WHERE
+
+                    c.numero LIKE %s
+
+                    OR cli.nome_fantasia LIKE %s
+
+            """
+
+            termo = f"%{pesquisa}%"
+
+            parametros.extend([termo, termo])
+
+        cursor.execute(sql, tuple(parametros))
 
         total = cursor.fetchone()["total"]
 
@@ -92,34 +122,65 @@ class ContratoRepository(BaseRepository):
         return total
 
     @classmethod
-    def listar(cls, limit=50, offset=0):
+    def listar(cls, pesquisa=None, limit=50, offset=0):
 
         conn = cls.connection()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("""
+        sql = """
 
             SELECT
 
-                id,
-                uuid,
-                cliente_id,
-                codigo_externo,
-                numero,
-                status,
-                valor_mensal,
-                dia_faturamento,
-                inicio_vigencia,
-                fim_vigencia,
-                ativo
+                c.id,
+                c.uuid,
+                c.cliente_id,
+                c.codigo_externo,
+                c.numero,
+                c.status,
+                c.valor_mensal,
+                c.dia_faturamento,
+                c.inicio_vigencia,
+                c.fim_vigencia,
+                c.ativo,
+                cli.nome_fantasia AS cliente_nome
 
-            FROM contratos
+            FROM contratos c
 
-            ORDER BY id DESC
+            INNER JOIN clientes cli
+                ON cli.id = c.cliente_id
+            
+        """
 
-            LIMIT %s OFFSET %s
+        parametros = []
 
-        """, (limit, offset))
+        if pesquisa:
+
+                sql += """
+
+                    WHERE
+
+                        c.numero LIKE %s
+
+                        OR cli.nome_fantasia LIKE %s
+
+                """
+
+                termo = f"%{pesquisa}%"
+
+                parametros.extend([termo, termo])
+
+        sql += """
+
+        ORDER BY c.id DESC
+
+        LIMIT %s OFFSET %s
+
+        """
+
+        parametros.extend([limit, offset])
+
+        cursor.execute(sql, tuple(parametros))
+            
 
         contratos = cursor.fetchall()
 

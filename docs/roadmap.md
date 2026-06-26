@@ -193,15 +193,13 @@ Concluído
 
 ✅ Cards dos próximos módulos
 
-Pendente
+✅ Editar Cliente
 
-⬜ Editar Cliente
+✅ Editar Implantação
 
-⬜ Editar Implantação
+✅ Salvar Implantação
 
-⬜ Salvar Implantação
-
-⬜ Histórico de Alterações
+✅ Histórico de Alterações
 
 Sprint 5
 Contratos
@@ -247,6 +245,27 @@ Financeiro
 ⬜ EBITDA
 
 ⬜ Margem
+
+Sprint 5
+──────────────
+
+✅ 5.1 Clientes
+
+✅ 5.2 Contratos
+
+✅ 5.3 Itens dos Contratos
+
+🟡 5.4 Consolidação
+    • Revisão dos Repositories
+    • Revisão dos Services
+    • Atualização da documentação
+    • Migrações finais
+    • Testes completos
+
+🟡 5.5 Release Sprint 5
+    • Git Tag
+    • Changelog
+    • Banco consolidado
 
 Sprint 6
 Infraestrutura

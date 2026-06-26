@@ -1,0 +1,286 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+
+        <div>
+
+            <h3 class="mb-0">
+                Contratos
+            </h3>
+
+            <small class="text-muted">
+
+                {{ total }} contrato(s) cadastrados
+
+            </small>
+
+        </div>
+
+	{#
+        <a href="{{ url_for('contratos.novo') }}"
+           class="btn btn-primary">
+
+            <i class="bi bi-plus-circle"></i>
+
+            Novo Contrato
+
+        </a>
+	#}
+
+    </div>
+
+    <div class="card-body">
+
+        <form method="GET">
+
+            <div class="row mb-4">
+
+                <div class="col-md-5">
+
+                    <input
+                        type="text"
+                        class="form-control"
+                        name="q"
+                        value="{{ pesquisa or '' }}"
+                        placeholder="Pesquisar contrato">
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <button class="btn btn-outline-primary w-100">
+
+                        <i class="bi bi-search"></i>
+
+                        Pesquisar
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </form>
+
+        {% if contratos %}
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th>Número</th>
+
+                        <th>Cliente</th>
+
+                        <th>Valor Mensal</th>
+
+                        <th>Status</th>
+
+                        <th>Vigência</th>
+
+                        <th width="130">Ações</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for contrato in contratos %}
+
+                    <tr>
+
+                        <td>
+
+                            <strong>
+
+                                {{ contrato.numero }}
+
+                            </strong>
+
+                        </td>
+
+                        <td>
+
+                            {{ contrato.cliente_nome }}
+
+                        </td>
+
+                        <td>
+
+                            {{ contrato.valor_mensal|moeda }}
+
+                        </td>
+
+                        <td>
+
+                            {% if contrato.status == "ATIVO" %}
+
+                                <span class="badge bg-success">
+
+                                    Ativo
+
+                                </span>
+
+                            {% elif contrato.status == "SUSPENSO" %}
+
+                                <span class="badge bg-warning">
+
+                                    Suspenso
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge bg-danger">
+
+                                    {{ contrato.status }}
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {{ contrato.inicio_vigencia|date_br }}
+
+                            <br>
+
+                            <small class="text-muted">
+
+                                até
+
+                                {{ contrato.fim_vigencia|date_br }}
+
+                            </small>
+
+                        </td>
+
+                        <td>
+                             
+                            <a href="{{ url_for('contratos.view', contrato_id=contrato.id) }}"
+                               class="btn btn-outline-secondary btn-sm">
+
+                                <i class="bi bi-eye"></i>
+
+                            </a>
+                            {#
+                            <a href="{{ url_for('contratos.editar', contrato_id=contrato.id) }}"
+                               class="btn btn-outline-primary btn-sm">
+
+                                <i class="bi bi-pencil"></i>
+
+                            </a>
+                            #}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+        <div class="alert alert-warning">
+
+            Nenhum contrato encontrado.
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-4">
+
+        <div class="text-muted">
+
+            Exibindo
+
+            {{ ((pagina-1)*50)+1 }}
+
+            até
+
+            {{ ((pagina-1)*50)+clientes|length }}
+
+            de
+
+            {{ total }}
+
+            clientes
+
+        </div>
+
+        <nav class="mt-4">
+
+            <ul class="pagination justify-content-end">
+
+                {% if pagina > 1 %}
+
+                <li class="page-item">
+
+                    <a class="page-link"
+                       href="?page={{ pagina-1 }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}">
+
+                        ← Anterior
+
+                    </a>
+
+                </li>
+
+                {% endif %}
+
+                {% for p in range(1, total_paginas + 1) %}
+
+                <li class="page-item {% if p == pagina %}active{% endif %}">
+
+                    <a class="page-link"
+                       href="?page={{ p }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}">
+
+                        {{ p }}
+
+                    </a>
+
+                </li>
+
+                {% endfor %}
+
+                {% if pagina < total_paginas %}
+
+                <li class="page-item">
+
+                    <a class="page-link"
+                       href="?page={{ pagina+1 }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}">
+
+                        Próxima →
+
+                   </a>
+
+                </li>
+
+                {% endif %}
+
+            </ul>
+
+        </nav>
+
+    </div>
+
+</div>
+
+{% endblock %}
