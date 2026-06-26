@@ -1,11 +1,16 @@
-class OmieMapper:
+from app.core.constants.origens import ORIGEM_OMIE
+
+
+class ClienteMapper:
 
     @staticmethod
-    def cliente(cliente):
+    def from_omie(cliente):
 
         return {
 
             "codigo_externo": cliente.get("codigo_cliente_omie"),
+
+            "origem": ORIGEM_OMIE,
 
             "nome_fantasia": cliente.get("nome_fantasia"),
 

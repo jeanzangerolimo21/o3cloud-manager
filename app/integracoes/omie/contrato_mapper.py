@@ -1,0 +1,85 @@
+from datetime import datetime
+from decimal import Decimal
+
+from app.core.constants.origens import ORIGEM_OMIE
+
+
+class ContratoMapper:
+    """
+    Converte um contrato retornado pela API do OMIE
+    para o formato utilizado pelo O3Cloud Manager.
+    """
+    STATUS_MAP = {
+        "10": "ATIVO",
+        "20": "SUSPENSO",
+        "30": "EM_IMPLANTACAO",
+        "40": "ENCERRADO",
+        "50": "CANCELADO"
+    }
+
+    @staticmethod
+    def from_omie(item: dict) -> dict:
+
+        cabecalho = item.get("cabecalho", {})
+        inf_adic = item.get("infAdic", {})
+        observacoes = item.get("observacoes", {})
+
+        return {
+
+            "codigo_externo": cabecalho.get("nCodCtr"),
+
+            "cliente_codigo_externo": cabecalho.get("nCodCli"),
+
+            "numero": cabecalho.get("cNumCtr"),
+
+            "status": ContratoMapper.STATUS_MAP.get(
+                str(cabecalho.get("cCodSit")),
+                "ATIVO"
+            ), 
+
+            "tipo_faturamento": cabecalho.get("cTipoFat"),
+
+            "inicio_vigencia": ContratoMapper._converter_data(
+                cabecalho.get("dVigInicial")
+            ),
+
+            "fim_vigencia": ContratoMapper._converter_data(
+                cabecalho.get("dVigFinal")
+            ),
+
+            "dia_faturamento": cabecalho.get("nDiaFat"),
+
+            "valor_mensal": ContratoMapper._decimal(
+                cabecalho.get("nValTotMes")
+            ),
+
+            "codigo_vendedor": inf_adic.get("nCodVend"),
+
+            "codigo_projeto": inf_adic.get("nCodProj"),
+
+            "codigo_cc": inf_adic.get("nCodCC"),
+
+            "observacoes": observacoes.get("cObsContrato"),
+
+            "origem": ORIGEM_OMIE
+
+        }
+
+    @staticmethod
+    def _converter_data(data):
+
+        if not data:
+            return None
+
+        return datetime.strptime(
+            data,
+            "%d/%m/%Y"
+        ).date()
+
+    @staticmethod
+    def _decimal(valor):
+
+        if valor in (None, ""):
+            return Decimal("0.00")
+
+        return Decimal(str(valor))
