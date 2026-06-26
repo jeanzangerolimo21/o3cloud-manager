@@ -1,0 +1,509 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+
+        <div>
+
+            <h3 class="mb-0">
+
+                {{ cliente.nome_fantasia }}
+
+            </h3>
+
+            <small class="text-muted">
+
+                Cadastro do Cliente
+
+            </small>
+
+        </div>
+
+        <div>
+
+            <a href="{{ url_for('clientes.editar', id=cliente.id) }}" 
+	    
+               class="btn btn-primary">
+
+                <i class="bi bi-pencil-square"></i>
+
+                Editar
+
+            </a>
+
+            <a href="{{ url_for('clientes.index') }}"
+               class="btn btn-secondary">
+
+                <i class="bi bi-arrow-left"></i>
+
+                Voltar
+
+            </a>
+
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        <!-- ===================================================== -->
+        <!-- DADOS GERAIS -->
+        <!-- ===================================================== -->
+
+        <h5 class="mb-4">
+
+            <i class="bi bi-person-vcard"></i>
+
+            Dados Gerais
+
+        </h5>
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+
+                    Nome Fantasia
+
+                </label>
+
+                <input class="form-control"
+                       value="{{ cliente.nome_fantasia }}"
+                       readonly>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+
+                    Razão Social
+
+                </label>
+
+                <input class="form-control"
+                       value="{{ cliente.razao_social }}"
+                       readonly>
+
+            </div>
+
+            <div class="col-md-4">
+
+                <label class="form-label">
+
+                    CNPJ
+
+                </label>
+
+                <input class="form-control"
+                       value="{{ cliente.cnpj }}"
+                       readonly>
+
+            </div>
+
+            <div class="col-md-4">
+
+                <label class="form-label">
+
+                    Cidade
+
+                </label>
+
+                <input class="form-control"
+                       value="{{ cliente.cidade }}"
+                       readonly>
+
+            </div>
+
+            <div class="col-md-2">
+
+                <label class="form-label">
+
+                    UF
+
+                </label>
+
+                <input class="form-control"
+                       value="{{ cliente.estado }}"
+                       readonly>
+
+            </div>
+
+            <div class="col-md-2">
+
+                <label class="form-label">
+
+                    Origem
+
+                </label>
+
+                {% if cliente.origem == "OMIE" %}
+
+                    <div class="mt-2">
+
+                        <span class="badge bg-primary">
+
+                            OMIE
+
+                        </span>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="mt-2">
+
+                        <span class="badge bg-secondary">
+
+                            MANUAL
+
+                        </span>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+
+                    Email
+
+                </label>
+
+                <input class="form-control"
+                       value="{{ cliente.email }}"
+                       readonly>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <label class="form-label">
+
+                    Telefone
+
+                </label>
+
+                <input class="form-control"
+                       value="{{ cliente.telefone }}"
+                       readonly>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <label class="form-label">
+
+                    Status
+
+                </label>
+
+                <div class="mt-2">
+
+                    {% if cliente.ativo %}
+
+                        <span class="badge bg-success">
+
+                            Ativo
+
+                        </span>
+
+                    {% else %}
+
+                        <span class="badge bg-danger">
+
+                            Inativo
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <hr class="my-5">
+
+        <!-- ===================================================== -->
+        <!-- IMPLANTAÇÃO -->
+        <!-- ===================================================== -->
+
+        <h5 class="mb-4">
+
+            <i class="bi bi-hdd-network"></i>
+
+            Implantação
+
+        </h5>
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+
+                    Responsável
+
+                </label>
+
+                <input class="form-control"
+                       value="{{ implantacao.responsavel_implantacao or '' }}"
+                       readonly>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <label class="form-label">
+
+                    Data da Implantação
+
+                </label>
+
+                <input class="form-control"
+                       value="{{ implantacao.data_implantacao or '' }}"
+                       readonly>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <label class="form-label">
+
+                    Status
+
+                </label>
+
+                <div class="mt-2">
+
+                    {% if implantacao.status_implantacao == "Concluído" %}
+
+                        <span class="badge bg-success">
+
+                            Concluído
+
+                        </span>
+
+                    {% elif implantacao.status_implantacao == "Em andamento" %}
+
+                        <span class="badge bg-warning text-dark">
+
+                            Em andamento
+
+                        </span>
+
+                    {% elif implantacao.status_implantacao == "Pausado" %}
+
+                        <span class="badge bg-danger">
+
+                            Pausado
+
+                        </span>
+
+                    {% else %}
+
+                        <span class="badge bg-secondary">
+
+                            Não iniciado
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+
+                    Servidor Principal
+
+                </label>
+
+                <select class="form-select" disabled>
+
+                    <option>
+
+                        {% if implantacao.servidor_principal_id %}
+
+                            {{ implantacao.servidor_principal_id }}
+
+                        {% else %}
+
+                            Não definido
+
+                        {% endif %}
+
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+
+                    Cluster
+
+                </label>
+
+                <input class="form-control"
+                       value="{{ implantacao.cluster or '' }}"
+                       readonly>
+
+            </div>
+
+        </div>
+
+        <div class="card mt-4 border">
+
+            <div class="card-header bg-light">
+
+                <i class="bi bi-journal-text"></i>
+
+                Notas Técnicas
+
+            </div>
+
+            <div class="card-body">
+
+                <textarea
+                    class="form-control"
+                    rows="6"
+                    readonly>{{ implantacao.notas_tecnicas or '' }}</textarea>
+
+            </div>
+
+        </div>
+
+        <hr class="my-5">
+
+        <!-- ===================================================== -->
+        <!-- FUTUROS MÓDULOS -->
+        <!-- ===================================================== -->
+
+        <div class="row text-center">
+
+            <div class="col-md-3">
+
+                <div class="card border-light shadow-sm">
+
+                    <div class="card-body">
+
+                        💰
+
+                        <h6 class="mt-2">
+
+                            Financeiro
+
+                        </h6>
+
+                        <small class="text-muted">
+
+                            Sprint 5
+
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="card border-light shadow-sm">
+
+                    <div class="card-body">
+
+                        📑
+
+                        <h6 class="mt-2">
+
+                            Contratos
+
+                        </h6>
+
+                        <small class="text-muted">
+
+                            Sprint 5
+
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="card border-light shadow-sm">
+
+                    <div class="card-body">
+
+                        🖥
+
+                        <h6 class="mt-2">
+
+                            Infraestrutura
+
+                        </h6>
+
+                        <small class="text-muted">
+
+                            Sprint 6
+
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="card border-light shadow-sm">
+
+                    <div class="card-body">
+
+                        📋
+
+                        <h6 class="mt-2">
+
+                            Auditoria
+
+                        </h6>
+
+                        <small class="text-muted">
+
+                            Sprint 6
+
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="mb-4">
+
+        <h2>
+
+            Dashboard Executivo
+
+        </h2>
+
+        <p class="text-muted">
+
+            Acompanhamento financeiro e operacional da O3Cloud.
+
+        </p>
+
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-xl-3">
+
+            <div class="card dashboard-card">
+
+                <div class="card-body">
+
+                    <div class="card-title">
+
+                        Clientes
+
+                    </div>
+
+                    <div class="card-number">
+
+                        {{ dashboard.clientes }}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-xl-3">
+
+            <div class="card dashboard-card">
+
+                <div class="card-body">
+
+                    <div class="card-title">
+
+                        Contratos
+
+                    </div>
+
+                    <div class="card-number">
+
+                        {{ dashboard.contratos }}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-xl-3">
+
+            <div class="card dashboard-card">
+
+                <div class="card-body">
+
+                    <div class="card-title">
+
+                        Produtos
+
+                    </div>
+
+                    <div class="card-number">
+
+                        {{ dashboard.produtos }}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-xl-3">
+
+            <div class="card dashboard-card">
+
+                <div class="card-body">
+
+                    <div class="card-title">
+
+                        Receita
+
+                    </div>
+
+                    <div class="card-number">
+
+                        R$ {{ dashboard.receita }}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

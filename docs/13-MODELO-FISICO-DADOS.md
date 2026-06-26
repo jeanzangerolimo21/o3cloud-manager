@@ -130,6 +130,54 @@ Origem
 * OMIE
 * Manual
 
+grupos
+
+Representa os grupos econômicos.
+
+produtos
+
+Produtos comercializados pela O3Cloud.
+
+Atualmente:
+
+VPS
+O3CloudShare
+Outros
+
+contratos
+
+Representa o contrato comercial.
+
+Não possui valores financeiros.
+
+faturamentos
+
+Representa o faturamento mensal do contrato.
+
+Possui histórico por competência.
+
+licencas_cliente
+
+Controle das licenças dos produtos.
+
+
+parametros_financeiros
+
+Centraliza todos os custos utilizados para cálculo da rentabilidade.
+
+configuracoes
+
+Configurações gerais do sistema.
+
+sync_execucoes
+
+Histórico das integrações.
+
+schema_migrations
+
+Controle de versões do banco.
+
+
 Tipo
 
 Cadastro

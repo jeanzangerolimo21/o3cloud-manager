@@ -113,3 +113,27 @@ Projeto interno da O3Cloud.
 
 Todos os direitos reservados.
 
+## Status do Projeto
+
+Versão atual:
+
+**v2.0.0-alpha**
+
+### Concluído
+
+- Arquitetura
+- Banco de Dados
+- Documentação
+- Estrutura do Projeto
+
+### Em Desenvolvimento
+
+- Backend Flask
+- Dashboard
+- Integrações
+
+### Roadmap
+
+- Sprint 4 — Interface Web
+- Sprint 5 — Integrações
+- Sprint 6 — Indicadores Executivos

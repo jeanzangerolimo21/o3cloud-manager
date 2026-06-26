@@ -1,38 +1,83 @@
+Arquitetura das Integrações
+
 OMIE
 
-Busca.
+↓
 
-Clientes.
+Clientes
 
-Contratos.
-___________________________________________
+↓
+
+Contratos
+
+↓
+
+Faturamentos
+
+Sincronizações
+
+Clientes
+Contratos
+Valores
+Competências
+
 Proxmox
 
-Busca.
+↓
 
-Clusters.
+Clusters
 
-Hosts.
+↓
 
-Recursos.
-___________________________________________
+Hosts
+
+↓
+
+VMs
+
+↓
+
+LXC
+
 PBS
 
-Busca.
+↓
 
-Backups.
-___________________________________________
+Backups
+
+↓
+
+Última execução
+
+↓
+
+Status
+
 NetBox
 
-Busca.
+↓
 
-Inventário.
-___________________________________________
+Inventário
+
+↓
+
+Clusters
+
+↓
+
+Assets
+
+
 Zabbix
 
-Busca.
+↓
 
-Monitoramento.
-___________________________________________
+Disponibilidade
 
+↓
 
+Monitoramento
+
+↓
+
+Alertas

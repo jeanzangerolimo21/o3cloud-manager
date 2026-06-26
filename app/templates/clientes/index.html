@@ -1,0 +1,311 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+
+        <div>
+
+            <h3 class="mb-0">
+                Clientes
+            </h3>
+
+            <small class="text-muted">
+
+                {{ total }} cliente(s) cadastrados
+
+            </small>
+
+        </div>
+
+        <a href="{{ url_for('clientes.novo') }}"
+           class="btn btn-primary">
+
+            <i class="bi bi-plus-circle"></i>
+
+            Novo Cliente
+
+        </a>
+
+    </div>
+
+    <div class="card-body">
+
+        <form method="GET">
+
+            <div class="row mb-4">
+
+                <div class="col-md-5">
+
+                    <input
+                        type="text"
+                        class="form-control"
+                        name="q"
+                        value="{{ pesquisa or '' }}"
+                        placeholder="Pesquisar por Nome, Razão Social ou CNPJ">
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <button class="btn btn-outline-primary w-100">
+
+                        <i class="bi bi-search"></i>
+
+                        Pesquisar
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </form>
+
+        {% if clientes %}
+
+	<div class="table-responsive">
+
+            <table class="table table-hover align-middle">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th width="60">ID</th>
+
+                        <th>Cliente</th>
+
+                        <th style="width:170px">CNPJ</th>
+
+                        <th>Cidade</th>
+
+                        <th>Origem</th>
+
+                        <th>Status</th>
+
+                        <th width="120">Ações</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for cliente in clientes %}
+
+                    <tr>
+
+                        <td>
+
+                            {{ cliente.id }}
+
+                        </td>
+
+                        <td style="min-widht:350px">
+
+                            <strong>
+
+                                {{ cliente.nome_fantasia }}
+
+                            </strong>
+
+                            <br>
+
+                            <small class="text-muted">
+
+                                {{ cliente.razao_social }}
+
+                            </small>
+
+                        </td>
+
+                        <td class="text-center">
+
+                            {{ cliente.cnpj }}
+
+                        </td>
+                        <td>
+
+                            {{ cliente.cidade }}
+
+                        </td>
+
+                        <td>
+
+                            {% if cliente.origem == "OMIE" %}
+
+                                <span class="badge bg-primary">
+
+                                    OMIE
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge bg-secondary">
+
+                                    Manual
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {% if cliente.ativo %}
+
+                                <span class="badge bg-success">
+
+                                    Ativo
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge bg-danger">
+
+                                    Inativo
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            <a href="{{ url_for('clientes.editar', id=cliente.id) }}"
+
+                               class="btn btn-outline-primary btn-sm">
+
+                                <i class="bi bi-pencil"></i>
+
+                            </a>
+
+			    {% if cliente.origem == "MANUAL" %}
+
+                            <a href="{{ url_for('clientes.excluir', id=cliente.id) }}"
+                                class="btn btn-sm btn-outline-danger"
+                                onclick="return confirm('Deseja realmente excluir este cliente?')">
+
+                                <i class="bi bi-trash"></i>
+
+                            </a>
+
+                            {% endif %}
+
+                            <a href="{{ url_for('clientes.visualizar', id=cliente.id) }}"
+                                class="btn btn-sm btn-outline-secondary">
+
+                                <i class="bi bi-eye"></i>
+
+			    </a>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+        <div class="alert alert-warning">
+
+            <i class="bi bi-search"></i>
+
+            Nenhum cliente encontrado para a pesquisa realizada.
+
+        </div>
+
+       {% endif %}
+
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-4">
+
+        <div class="text-muted">
+
+            Exibindo
+
+            {{ ((pagina-1)*50)+1 }}
+
+            até
+
+            {{ ((pagina-1)*50)+clientes|length }}
+
+            de
+
+            {{ total }}
+
+            clientes
+
+        </div>
+
+        <nav class="mt-4">
+
+            <ul class="pagination justify-content-end">
+
+                {% if pagina > 1 %}
+
+                <li class="page-item">
+
+                    <a class="page-link"
+                       href="?page={{ pagina-1 }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}">
+
+                        ← Anterior
+
+                    </a>
+
+                </li>
+
+                {% endif %}
+
+                {% for p in range(1, total_paginas + 1) %}
+
+                <li class="page-item {% if p == pagina %}active{% endif %}">
+
+                    <a class="page-link"
+                       href="?page={{ p }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}">
+
+                        {{ p }}
+
+                    </a>
+
+                </li>
+
+                {% endfor %}
+
+                {% if pagina < total_paginas %}
+
+                <li class="page-item">
+
+                    <a class="page-link"
+                       href="?page={{ pagina+1 }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}">
+
+                        Próxima →
+
+                   </a>
+
+                </li>
+
+                {% endif %}
+
+            </ul>
+
+        </nav>
+
+    </div>   
+</div>
+
+{% endblock %}

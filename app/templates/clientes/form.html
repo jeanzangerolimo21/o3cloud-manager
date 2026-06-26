@@ -1,0 +1,266 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-header bg-white">
+
+        <h3 class="mb-0">
+
+            {% if modo == "editar" %}
+
+                Editar Cliente
+
+            {% else %}
+
+                Novo Cliente
+
+            {% endif %}
+
+        </h3>
+
+        <small class="text-muted">
+
+            {% if modo == "editar" %}
+
+                Atualização dos dados do cliente
+
+            {% else %}
+
+                Cadastro manual de clientes
+
+            {% endif %}
+
+        </small>
+
+    </div>
+
+    <div class="card-body">
+
+        <form method="POST">
+
+        {% if modo == "editar" and cliente.origem == "OMIE" %}
+
+        <div class="alert alert-warning border-start border-4 border-warning">
+
+            <i class="bi bi-shield-lock"></i>
+
+            <strong>Cliente sincronizado com o OMIE</strong><br>
+
+            Os dados cadastrais deste cliente são gerenciados pelo OMIE e estão bloqueados para edição no O3Cloud Manager.
+
+            Para alterá-los, realize a alteração diretamente no OMIE e aguarde a próxima sincronização.
+
+        </div>
+
+        {% endif %}
+
+        <div class="row">
+
+            <div class="row">
+
+                <div class="col-md-6">
+
+                    <label class="form-label">
+
+                        Nome Fantasia
+
+                    </label>
+
+                    <input
+                        type="text"
+                        name="nome_fantasia"
+                        class="form-control"
+			value="{{ cliente.nome_fantasia if cliente else '' }}"
+			{% if modo == "editar" and cliente.origem == "OMIE" %}readonly{% endif %}
+                        required>
+                        
+                </div>
+
+                <div class="col-md-6">
+
+                    <label class="form-label">
+
+                        Razão Social
+
+                    </label>
+
+                    <input
+                        type="text"
+                        name="razao_social"
+                        class="form-control"
+		        value="{{ cliente.razao_social if cliente else '' }}"
+                        {% if modo == "editar" and cliente.origem == "OMIE" %}readonly{% endif %}
+                        required>
+
+                </div>
+
+            </div>
+
+            <div class="row mt-3">
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+
+                        CNPJ
+
+                    </label>
+
+                    <input
+                        type="text"
+                        name="cnpj"
+                        class="form-control"
+		        value="{{ cliente.cnpj if cliente else '' }}"
+                        {% if modo == "editar" and cliente.origem == "OMIE" %}readonly{% endif %}
+                        required>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+
+                        Email
+
+                    </label>
+
+                    <input
+                        type="email"
+                        name="email"
+                        class="form-control"
+		        value="{{ cliente.email if cliente else '' }}"
+                        {% if modo == "editar" and cliente.origem == "OMIE" %}readonly{% endif %}
+                        required>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+
+                        Telefone
+
+                    </label>
+
+                    <input
+                        type="text"
+                        name="telefone"
+                        class="form-control"
+		        value="{{ cliente.telefone if cliente else '' }}"
+                        {% if modo == "editar" and cliente.origem == "OMIE" %}readonly{% endif %}
+                        required>
+
+                </div>
+
+            </div>
+
+            <div class="row mt-3">
+
+                <div class="col-md-6">
+
+                    <label class="form-label">
+
+                        Cidade
+
+                    </label>
+
+                    <input
+                        type="text"
+                        name="cidade"
+                        class="form-control"
+		        value="{{ cliente.cidade if cliente else '' }}"
+                        {% if modo == "editar" and cliente.origem == "OMIE" %}readonly{% endif %}
+                        required>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label class="form-label">
+
+                        UF
+
+                    </label>
+
+                    <input
+                        type="text"
+                        name="estado"
+                        maxlength="2"
+                        class="form-control"
+		        value="{{ cliente.estado if cliente else '' }}"
+			{% if modo == "editar" and cliente.origem == "OMIE" %}readonly{% endif %}
+                        required>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+
+                        Origem
+
+                    </label>
+
+                    
+                    {% if modo == "editar" %}
+
+                     <input
+                        class="form-control"
+                        value="{{ cliente.origem }}"
+                        readonly>
+
+                     {% else %}
+
+                     <input
+                         type="hidden"
+                         name="origem"
+                         value="MANUAL">
+
+                     <input
+                         class="form-control"
+                         value="MANUAL"
+                         readonly>
+
+                    {% endif %}
+
+
+                </div>
+
+            </div>
+
+            <div class="mt-4">
+
+                <a
+                    href="{{ url_for('clientes.index') }}"
+                    class="btn btn-secondary">
+
+                    Cancelar
+
+                </a>
+
+                <button
+                    class="btn btn-primary">
+
+                    {% if modo == "editar" %}
+
+                        Salvar Alterações
+
+		    {% else %}
+
+		        Salvar Cliente
+
+		    {% endif %}
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

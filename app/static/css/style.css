@@ -1,0 +1,439 @@
+/* =====================================================
+   O3Cloud Manager
+   Enterprise Edition
+   ===================================================== */
+
+body{
+
+    margin:0;
+    padding:0;
+
+    font-family:'Roboto',sans-serif;
+
+    background:#f8f9fa;
+
+    color:#2c3e50;
+
+}
+
+/* =====================================================
+   LAYOUT
+   ===================================================== */
+
+.layout{
+
+    display:flex;
+
+    min-height:100vh;
+
+}
+
+.main{
+
+    flex:1;
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+.content{
+
+    flex:1;
+
+    padding:35px;
+
+}
+
+/* =====================================================
+   SIDEBAR
+   ===================================================== */
+
+.sidebar{
+
+    width:270px;
+
+    background:#4B1685;
+
+    color:#FFF;
+
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:space-between;
+
+    box-shadow:5px 0 20px rgba(0,0,0,.15);
+
+}
+
+/* ===================================================== */
+
+.sidebar-header{
+
+    padding:35px 25px;
+
+    text-align:center;
+
+}
+
+.logo{
+
+    width:130px;
+
+    margin-bottom:20px;
+
+}
+
+.sidebar-header h4{
+
+    margin:0;
+
+    font-size:30px;
+
+    font-weight:700;
+
+}
+
+.sidebar-header p{
+
+    margin-top:15px;
+
+    line-height:1.6;
+
+    color:rgba(255,255,255,.85);
+
+    font-size:15px;
+
+}
+
+/* ===================================================== */
+
+.sidebar-divider{
+
+    height:1px;
+
+    background:rgba(255,255,255,.15);
+
+}
+
+/* ===================================================== */
+
+.sidebar-menu{
+
+    padding:25px 0;
+
+}
+
+/* ===================================================== */
+
+.menu-item{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:15px;
+
+    color:#FFF;
+
+    text-decoration:none;
+
+    padding:16px 30px;
+
+    border-left:4px solid transparent;
+
+    transition:.25s;
+
+}
+
+.menu-item:hover{
+
+    background:rgba(255,255,255,.08);
+
+    border-left:4px solid #FFF;
+
+    color:#FFF;
+
+    padding-left:36px;
+
+}
+
+.menu-item.active{
+
+    background:rgba(255,255,255,.12);
+
+    border-left:4px solid #FFF;
+
+    font-weight:600;
+
+}
+
+/* ===================================================== */
+
+.sidebar-footer{
+
+    border-top:1px solid rgba(255,255,255,.15);
+
+    padding:25px;
+
+    text-align:center;
+
+    font-size:14px;
+
+}
+
+.status-dot{
+
+    width:10px;
+
+    height:10px;
+
+    display:inline-block;
+
+    border-radius:50%;
+
+    background:#1DD75B;
+
+    margin-right:8px;
+
+}
+
+.sidebar-footer small{
+
+    display:block;
+
+    margin-top:10px;
+
+    color:rgba(255,255,255,.75);
+
+}
+
+/* =====================================================
+   NAVBAR
+   ===================================================== */
+
+.navbar{
+
+    height:75px;
+
+    background:#FFF;
+
+    border-bottom:1px solid #E6E6E6;
+
+    padding:0 30px;
+
+}
+
+.page-title{
+
+    margin:0;
+
+    font-size:28px;
+
+    font-weight:700;
+
+}
+
+.user-area{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:25px;
+
+}
+
+.edition{
+
+    color:#777;
+
+}
+
+.user{
+
+    font-weight:600;
+
+}
+
+/* =====================================================
+   DASHBOARD
+   ===================================================== */
+
+.dashboard-title{
+
+    font-size:38px;
+
+    font-weight:700;
+
+    margin-bottom:10px;
+
+}
+
+.dashboard-subtitle{
+
+    color:#888;
+
+    margin-bottom:30px;
+
+}
+
+/* =====================================================
+   CARDS
+   ===================================================== */
+
+.dashboard-card{
+
+    border:none;
+
+    border-radius:14px;
+
+    box-shadow:0 4px 15px rgba(0,0,0,.08);
+
+    transition:.25s;
+
+}
+
+.dashboard-card:hover{
+
+    transform:translateY(-4px);
+
+}
+
+.dashboard-card .card-body{
+
+    padding:25px;
+
+}
+
+.card-title{
+
+    color:#777;
+
+    font-size:15px;
+
+}
+
+.card-number{
+
+    font-size:38px;
+
+    font-weight:700;
+
+    margin-top:10px;
+
+}
+
+.card-info{
+
+    color:#999;
+
+    font-size:13px;
+
+    margin-top:15px;
+
+}
+
+/* =====================================================
+   FOOTER
+   ===================================================== */
+
+.footer{
+
+    background:#FFF;
+
+    border-top:1px solid #E6E6E6;
+
+    text-align:center;
+
+    padding:15px;
+
+    color:#888;
+
+    font-size:14px;
+
+}
+
+/* =====================================================
+   TABLES
+   ===================================================== */
+
+.table{
+
+    background:#FFF;
+
+}
+
+/* =====================================================
+   BUTTONS
+   ===================================================== */
+
+.btn-primary{
+
+    background:#4B1685;
+
+    border-color:#4B1685;
+
+}
+
+.btn-primary:hover{
+
+    background:#5d1ba5;
+
+    border-color:#5d1ba5;
+
+}
+
+.menu-section{
+
+    padding:18px 30px 8px;
+
+    color:#bca7e7;
+
+    font-size:12px;
+
+    font-weight:700;
+
+    text-transform:uppercase;
+
+    letter-spacing:1px;
+
+}
+
+.sidebar-menu a{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+    color:white;
+
+    text-decoration:none;
+
+    padding:12px 30px;
+
+    transition:.25s;
+
+}
+
+.sidebar-menu a:hover{
+
+    background:rgba(255,255,255,.08);
+
+    color:white;
+
+}
+
+.submenu-item{
+
+    padding-left:48px !important;
+
+    font-size:14px;
+
+    opacity:.92;
+
+}
