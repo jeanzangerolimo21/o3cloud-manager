@@ -267,30 +267,362 @@ Sprint 5
     • Changelog
     • Banco consolidado
 
-Sprint 6
-Infraestrutura
 
-Objetivo
+# O3Cloud Manager V2
 
-Integrar totalmente o ambiente Proxmox.
+# Arquitetura do Domínio - Sprint 6
 
-Funcionalidades
+**Versão:** 1.0
+**Status:** Em elaboração
+**Objetivo:** Definir a arquitetura funcional e o modelo de domínio que integrará os módulos Financeiro e Infraestrutura do O3Cloud Manager.
 
-⬜ Hosts
+---
 
-⬜ Clusters
+# 1. Objetivo
 
-⬜ Storage
+O Sprint 6 tem como objetivo integrar os recursos de infraestrutura (Proxmox, PBS, NetBox e futuramente Zabbix) ao módulo Financeiro (OMIE), criando uma visão única do cliente.
 
-⬜ Recursos
+O foco deixa de ser apenas sincronizar informações e passa a representar corretamente o modelo de negócio da O3Cloud.
 
-⬜ Capacidade
+---
 
-⬜ Oversubscription
+# 2. Princípios da Arquitetura
 
-⬜ Health Score
+A arquitetura da V2 será baseada nos seguintes princípios:
 
-⬜ Capacity Planning
+* Uma única fonte de verdade para cada informação.
+* Separação clara entre domínio Financeiro e Infraestrutura.
+* Sincronizações totalmente automáticas sempre que possível.
+* Mínima intervenção manual.
+* Preparação para múltiplos clusters e futuras integrações.
+
+---
+
+# 3. Domínios do Sistema
+
+## Financeiro
+
+Responsável pelas informações comerciais.
+
+Entidades:
+
+* Clientes
+* Contratos
+* Itens de Contrato
+* Licenciamento
+
+Origem:
+
+OMIE
+
+---
+
+## Infraestrutura
+
+Responsável pelos recursos técnicos.
+
+Entidades futuras:
+
+* Clusters
+* Nodes
+* Máquinas Virtuais
+* Containers
+* Storages
+* PBS
+* Redes
+* Templates
+
+Origem:
+
+Proxmox
+
+---
+
+# 4. O Conceito Central da V2
+
+Na versão anterior o relacionamento era baseado em Máquinas Virtuais.
+
+Na V2 o conceito central passa a ser:
+
+## Ambiente
+
+Um Ambiente representa toda a infraestrutura entregue para um cliente.
+
+Um Ambiente pode conter:
+
+* Máquinas Virtuais
+* Containers
+* Storage
+* PBS
+* Firewall
+* Redes
+* Recursos futuros
+
+A Máquina Virtual deixa de representar a unidade de negócio.
+
+---
+
+# 5. Relacionamentos
+
+Cliente
+
+↓
+
+Ambiente
+
+↓
+
+Recursos
+
+e
+
+Contrato
+
+↓
+
+Ambiente
+
+Os contratos deixam de apontar diretamente para recursos.
+
+Os recursos deixam de apontar diretamente para contratos.
+
+O Ambiente torna-se a entidade responsável por integrar os dois domínios.
+
+---
+
+# 6. Tipos de Ambiente
+
+Os tipos de ambiente serão identificados automaticamente pelas Tags do Proxmox.
+
+Tags suportadas:
+
+* prod
+* implan
+* teste
+* template
+
+Mapeamento:
+
+prod → Produção
+
+implan → Implantação
+
+teste → Teste
+
+template → Template
+
+Templates não serão vinculados automaticamente a clientes.
+
+---
+
+# 7. Identificação Automática
+
+Cada Ambiente possuirá um Identificador Técnico.
+
+Exemplo:
+
+CMP
+
+NAVARRO
+
+REDEMAIS
+
+Esse identificador será utilizado para localizar automaticamente os recursos sincronizados do Proxmox.
+
+Fluxo:
+
+Nome VM
+
+↓
+
+Identificador Técnico
+
+↓
+
+Cliente
+
+↓
+
+Ambiente
+
+↓
+
+Vinculação automática
+
+---
+
+# 8. Casos de Uso
+
+## Caso 1
+
+Um Ambiente atendendo vários contratos.
+
+Exemplo:
+
+Cliente:
+
+CompreMais
+
+Ambiente:
+
+Produção
+
+Contratos:
+
+Loja 1
+
+Loja 2
+
+Loja 3
+
+Loja 4
+
+Todos compartilham o mesmo ambiente.
+
+---
+
+## Caso 2
+
+Um Contrato atendendo vários ambientes.
+
+Exemplo:
+
+Parceiro
+
+↓
+
+Contrato único
+
+↓
+
+Ambiente Cliente A
+
+Ambiente Cliente B
+
+Ambiente Cliente C
+
+---
+
+# 9. Modelo Conceitual
+
+Cliente
+
+↓
+
+Ambiente
+
+↓
+
+Recursos
+
+↓
+
+VM
+
+Container
+
+Storage
+
+PBS
+
+Enquanto:
+
+Contrato
+
+↓
+
+Ambiente
+
+↓
+
+Itens Comerciais
+
+---
+
+# 10. Benefícios
+
+Esta arquitetura permite:
+
+* Ambientes compartilhados.
+* Contratos compartilhados.
+* Rateio de custos.
+* Rentabilidade por contrato.
+* Rentabilidade por ambiente.
+* Rentabilidade por cliente.
+* Evolução futura para NetBox.
+* Evolução futura para Zabbix.
+* Evolução futura para Kubernetes.
+
+---
+
+# 11. Próximas Etapas
+
+Sprint 6.1
+
+* Modelagem física do banco de dados.
+
+Sprint 6.2
+
+* Sincronização do Proxmox.
+
+Sprint 6.3
+
+* Vínculo automático dos Ambientes.
+
+Sprint 6.4
+
+* Tela Cliente 360°.
+
+Sprint 6.5
+
+* Dashboard Executivo.
+
+---
+
+# 12. Objetivo Final
+
+Ao término do Sprint 6, o O3Cloud Manager será capaz de apresentar, em uma única tela:
+
+Cliente
+
+↓
+
+Contrato
+
+↓
+
+Escopo Comercial
+
+↓
+
+Ambientes
+
+↓
+
+Máquinas Virtuais
+
+↓
+
+Containers
+
+↓
+
+Backups
+
+↓
+
+Recursos Consumidos
+
+↓
+
+Custos
+
+↓
+
+Rentabilidade
+
+Conectando as áreas Comercial, Financeira, Implantação e Operações em uma única plataforma.
+
 
 Sprint 7
 Implantação

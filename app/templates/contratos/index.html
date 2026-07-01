@@ -20,7 +20,6 @@
 
         </div>
 
-	{#
         <a href="{{ url_for('contratos.novo') }}"
            class="btn btn-primary">
 
@@ -29,7 +28,6 @@
             Novo Contrato
 
         </a>
-	#}
 
     </div>
 
@@ -37,34 +35,9 @@
 
         <form method="GET">
 
-            <div class="row mb-4">
-
-                <div class="col-md-5">
-
-                    <input
-                        type="text"
-                        class="form-control"
-                        name="q"
-                        value="{{ pesquisa or '' }}"
-                        placeholder="Pesquisar contrato">
-
-                </div>
-
-                <div class="col-md-2">
-
-                    <button class="btn btn-outline-primary w-100">
-
-                        <i class="bi bi-search"></i>
-
-                        Pesquisar
-
-                    </button>
-
-                </div>
-
-            </div>
-
-        </form>
+            {% include "components/filter_bar.html" %}
+        
+	</form>
 
         {% if contratos %}
 
@@ -79,6 +52,8 @@
                         <th>Número</th>
 
                         <th>Cliente</th>
+                       
+			<th>Origem</th>
 
                         <th>Valor Mensal</th>
 
@@ -113,6 +88,29 @@
                             {{ contrato.cliente_nome }}
 
                         </td>
+                        
+                        <td>
+
+                            {% if contrato.origem=="OMIE" %}
+
+                            <span class="badge bg-primary">
+
+                                OMIE
+
+                            </span>
+
+                            {% else %}
+
+                            <span class="badge bg-secondary">
+
+                                MANUAL
+
+                            </span>
+
+                            {% endif %}
+
+                        </td>
+
 
                         <td>
 
@@ -174,14 +172,25 @@
                                 <i class="bi bi-eye"></i>
 
                             </a>
-                            {#
+
+			    {% if contrato.origem == "MANUAL" %}
+
                             <a href="{{ url_for('contratos.editar', contrato_id=contrato.id) }}"
                                class="btn btn-outline-primary btn-sm">
 
                                 <i class="bi bi-pencil"></i>
 
                             </a>
-                            #}
+			    <a
+                                class="btn btn-sm btn-outline-danger"
+                                href="{{ url_for('contratos.excluir', contrato_id=contrato.id) }}"
+                                onclick="return confirm('Deseja excluir este contrato?')">
+
+                                <i class="bi bi-trash"></i>
+
+                            </a>
+
+                            {% endif %}
                         </td>
 
                     </tr>

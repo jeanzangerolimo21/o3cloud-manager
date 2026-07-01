@@ -139,6 +139,7 @@ class OmieSync:
 
                 for contrato in contratos:
 
+
                     resultado = ContratoService.sincronizar_contrato(
                         contrato
                     )

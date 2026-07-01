@@ -25,9 +25,17 @@ def index():
 
     pagina = int(request.args.get("page", 1))
 
+    ativo = request.args.get("ativo")
+
+    origem = request.args.get("origem")
+
     clientes, total = ClienteService.listar(
 
         pesquisa=pesquisa,
+
+        ativo=ativo,
+
+        origem=origem,
 
         pagina=pagina
 
@@ -42,12 +50,35 @@ def index():
         "clientes/index.html",
 
         clientes=clientes,
-        total=total,
+
+        pesquisa=pesquisa,
+
+        selected_status=ativo,
+
+        status_field="ativo",
+
+        origem=origem,
+
         pagina=pagina,
+
         total_paginas=total_paginas,
-        pesquisa=pesquisa
+
+        placeholder="Pesquisar por Nome, Razão Social ou CNPJ",
+
+        show_status=True,
+
+        show_origem=True,
+
+        status_options={
+
+            "1": "🟢 Ativo",
+
+            "0": "⚫ Inativo"
+
+        }
 
     )
+    
 
 
 @clientes_bp.route("/novo", methods=["GET", "POST"])

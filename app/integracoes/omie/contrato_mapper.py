@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-
+from html import unescape
 from app.core.constants.origens import ORIGEM_OMIE
 
 
@@ -10,11 +10,13 @@ class ContratoMapper:
     para o formato utilizado pelo O3Cloud Manager.
     """
     STATUS_MAP = {
+        "00": "EM_ELABORACAO",
         "10": "ATIVO",
         "20": "SUSPENSO",
         "30": "EM_IMPLANTACAO",
         "40": "ENCERRADO",
-        "50": "CANCELADO"
+        "50": "CANCELADO",
+        "99": "CANCELADO"
     }
 
     @staticmethod
@@ -23,6 +25,22 @@ class ContratoMapper:
         cabecalho = item.get("cabecalho", {})
         inf_adic = item.get("infAdic", {})
         observacoes = item.get("observacoes", {})
+        codigo_status = str(cabecalho.get("cCodSit"))
+
+        if codigo_status not in ContratoMapper.STATUS_MAP:
+
+            print("=" * 80)
+            print("STATUS OMIE NÃO MAPEADO")
+            print("Contrato :", cabecalho.get("cNumCtr"))
+            print("Código   :", codigo_status)
+            print(cabecalho)
+            print("=" * 80)
+
+        status = ContratoMapper.STATUS_MAP.get(
+            codigo_status,
+            "EM_ELABORACAO"
+        )
+
 
         return {
 
@@ -32,10 +50,13 @@ class ContratoMapper:
 
             "numero": cabecalho.get("cNumCtr"),
 
-            "status": ContratoMapper.STATUS_MAP.get(
-                str(cabecalho.get("cCodSit")),
-                "ATIVO"
-            ), 
+            "status": status,
+
+            #    "ativo": status in (
+            #        "ATIVO",
+            #        "EM_IMPLANTACAO",
+            #        "EM_ELABORACAO"
+            #    ),
 
             "tipo_faturamento": cabecalho.get("cTipoFat"),
 

@@ -21,7 +21,7 @@ class ClienteRepository(BaseRepository):
     )
 
     @classmethod
-    def listar(cls, pesquisa=None, limit=50, offset=0):
+    def listar(cls, pesquisa=None, ativo=None, origem=None, limit=50, offset=0):
 
         conn = cls.connection()
         cursor = conn.cursor(dictionary=True)
@@ -41,20 +41,50 @@ class ClienteRepository(BaseRepository):
             FROM clientes
         """
 
+        condicoes = []
+
         parametros = []
 
         if pesquisa:
 
-            sql += """
-                WHERE
+            condicoes.append("""
+
+                (
+
                     nome_fantasia LIKE %s
+
                     OR razao_social LIKE %s
+
                     OR cnpj LIKE %s
-            """
+
+                )
+
+            """)
 
             termo = f"%{pesquisa}%"
 
             parametros.extend([termo, termo, termo])
+
+
+        if ativo is not None and ativo != "":
+
+            condicoes.append("ativo = %s")
+
+            parametros.append(int(ativo))
+
+
+        if origem:
+
+            condicoes.append("origem = %s")
+
+            parametros.append(origem)
+
+
+        if condicoes:
+
+            sql += " WHERE "
+
+            sql += " AND ".join(condicoes)  
 
         sql += """
             ORDER BY nome_fantasia
@@ -263,29 +293,56 @@ class ClienteRepository(BaseRepository):
 
         cls.close(conn, cursor)    
 
-
+    
     @classmethod
-    def total(cls, pesquisa=None):
- 
+    def total(cls, pesquisa=None, ativo=None, origem=None):
+
         conn = cls.connection()
         cursor = conn.cursor(dictionary=True)
 
         sql = "SELECT COUNT(*) AS total FROM clientes"
 
+        condicoes = []
+
         parametros = []
 
         if pesquisa:
 
-            sql += """
-                WHERE
+            condicoes.append("""
+
+                (
+
                     nome_fantasia LIKE %s
+
                     OR razao_social LIKE %s
+
                     OR cnpj LIKE %s
-            """
+
+                )
+
+            """)
 
             termo = f"%{pesquisa}%"
 
             parametros.extend([termo, termo, termo])
+
+        if ativo is not None and ativo != "":
+
+            condicoes.append("ativo = %s")
+
+            parametros.append(int(ativo))
+
+        if origem:
+
+            condicoes.append("origem = %s")
+
+            parametros.append(origem)
+
+        if condicoes:
+
+            sql += " WHERE "
+
+            sql += " AND ".join(condicoes)
 
         cursor.execute(sql, tuple(parametros))
 
@@ -294,6 +351,7 @@ class ClienteRepository(BaseRepository):
         cls.close(conn, cursor)
 
         return total
+ 
 
     @classmethod
     def upsert_omie(cls, dados):
@@ -361,3 +419,33 @@ class ClienteRepository(BaseRepository):
         cls.close(conn, cursor)
 
         return cliente
+    
+
+    @classmethod
+    def listar_todos(cls):
+
+        conn = cls.connection()
+
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+
+            SELECT
+
+                id,
+
+                nome_fantasia
+
+            FROM clientes
+
+            WHERE ativo = 1
+
+            ORDER BY nome_fantasia
+
+        """)
+
+        clientes = cursor.fetchall()
+
+        cls.close(conn, cursor)
+
+        return clientes

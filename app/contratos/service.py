@@ -71,3 +71,19 @@ class ContratoService:
             )
 
         return resultado
+
+    @classmethod
+    def criar(cls, dados):
+
+        ContratoRepository.inserir_manual(dados)
+
+    @classmethod
+    def atualizar(cls, contrato_id, dados):
+
+        ContratoRepository.atualizar(
+
+            contrato_id,
+
+            dados
+
+        )

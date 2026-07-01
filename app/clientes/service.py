@@ -4,7 +4,7 @@ from app.repositories.cliente_repository import ClienteRepository
 class ClienteService:
 
     @staticmethod
-    def listar(pesquisa=None, pagina=1):
+    def listar(pesquisa=None, ativo=None, origem=None, pagina=1):
 
         limite = 50
 
@@ -14,14 +14,17 @@ class ClienteService:
 
             pesquisa=pesquisa,
             limit=limite,
-
+            origem=origem,
+            ativo=ativo,
             offset=offset
 
         )
 
         
         total = ClienteRepository.total(
-            pesquisa=pesquisa
+            pesquisa=pesquisa,
+            ativo=ativo,
+            origem=origem
         )
 
         return clientes,total
@@ -70,3 +73,8 @@ class ClienteService:
         return ClienteRepository.upsert_omie(
             dados
         )
+
+    @classmethod
+    def listar_todos(cls):
+
+        return ClienteRepository.listar_todos()

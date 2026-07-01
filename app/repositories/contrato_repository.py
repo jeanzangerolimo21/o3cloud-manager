@@ -79,7 +79,12 @@ class ContratoRepository(BaseRepository):
         return contrato
 
     @classmethod
-    def total(cls, pesquisa=None):
+    def total(
+        cls,
+        pesquisa=None,
+        status=None,
+        origem=None
+    ):
 
         conn = cls.connection()
         cursor = conn.cursor(dictionary=True)
@@ -95,23 +100,45 @@ class ContratoRepository(BaseRepository):
 
         """
 
+        condicoes = []
+
         parametros = []
 
         if pesquisa:
 
-            sql += """
+            condicoes.append("""
 
-                WHERE
+               (
 
                     c.numero LIKE %s
 
                     OR cli.nome_fantasia LIKE %s
 
-            """
+               )
+
+            """)
 
             termo = f"%{pesquisa}%"
 
             parametros.extend([termo, termo])
+
+        if status:
+
+            condicoes.append("c.status = %s")
+
+            parametros.append(status)
+
+        if origem:
+
+            condicoes.append("c.origem = %s")
+
+            parametros.append(origem)
+
+        if condicoes:
+
+            sql += " WHERE "
+
+            sql += " AND ".join(condicoes)
 
         cursor.execute(sql, tuple(parametros))
 
@@ -121,8 +148,10 @@ class ContratoRepository(BaseRepository):
 
         return total
 
+
+
     @classmethod
-    def listar(cls, pesquisa=None, limit=50, offset=0):
+    def listar(cls, pesquisa=None, status=None, origem=None, limit=50, offset=0):
 
         conn = cls.connection()
         cursor = conn.cursor(dictionary=True)
@@ -135,6 +164,7 @@ class ContratoRepository(BaseRepository):
                 c.uuid,
                 c.cliente_id,
                 c.codigo_externo,
+                c.origem,
                 c.numero,
                 c.status,
                 c.valor_mensal,
@@ -151,23 +181,45 @@ class ContratoRepository(BaseRepository):
             
         """
 
+        condicoes = []
+
         parametros = []
 
         if pesquisa:
 
-                sql += """
+            condicoes.append("""
 
-                    WHERE
+                (
 
-                        c.numero LIKE %s
+                    c.numero LIKE %s
 
-                        OR cli.nome_fantasia LIKE %s
+                    OR cli.nome_fantasia LIKE %s
 
-                """
+                )
 
-                termo = f"%{pesquisa}%"
+            """)
 
-                parametros.extend([termo, termo])
+            termo = f"%{pesquisa}%"
+
+            parametros.extend([termo, termo])
+
+        if status:
+
+            condicoes.append("c.status = %s")
+
+            parametros.append(status)
+
+        if origem:
+
+            condicoes.append("c.origem = %s")
+
+            parametros.append(origem)
+
+        if condicoes:
+
+            sql += " WHERE "
+
+            sql += " AND ".join(condicoes)
 
         sql += """
 
@@ -187,6 +239,84 @@ class ContratoRepository(BaseRepository):
         cls.close(conn, cursor)
 
         return contratos
+
+    @classmethod
+    def inserir_manual(cls, dados):
+
+        conn = cls.connection()
+        cursor = conn.cursor()
+
+        uuid = cls.generate_uuid()
+
+        cursor.execute("""
+
+            INSERT INTO contratos (
+
+                uuid,
+                cliente_id,
+                codigo_externo,
+                origem,
+                numero,
+                descricao,
+                status,
+                inicio_vigencia,
+                fim_vigencia,
+                observacoes,
+                ativo,
+                valor_mensal,
+                dia_faturamento,
+                tipo_faturamento,
+                synced_at
+
+            )
+
+            VALUES (
+
+                %s,
+                %s,
+                NULL,
+                'MANUAL',
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                1,
+                %s,
+                %s,
+                NULL,
+                NULL
+
+            )
+
+        """, (
+
+            uuid,
+
+            dados["cliente_id"],
+
+            dados["numero"],
+
+            dados.get("descricao"),
+
+            dados["status"],
+
+            dados.get("inicio_vigencia") or None,
+
+            dados.get("fim_vigencia") or None,
+
+            dados.get("observacoes"),
+
+            dados.get("valor_mensal") or None,
+
+            dados.get("dia_faturamento") or None
+
+        ))
+
+        conn.commit()
+
+        cls.close(conn, cursor)
 
     @classmethod
     def inserir(cls, dados):
@@ -274,6 +404,12 @@ class ContratoRepository(BaseRepository):
 
         conn = cls.connection()
         cursor = conn.cursor()
+        
+        print("=" * 80)
+        print("STATUS RECEBIDO:")
+        print(dados["status"])
+        print(type(dados["status"]))
+        print("=" * 80)
 
         cursor.execute("""
 

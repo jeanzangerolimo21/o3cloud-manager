@@ -33,36 +33,7 @@
 
     <div class="card-body">
 
-        <form method="GET">
-
-            <div class="row mb-4">
-
-                <div class="col-md-5">
-
-                    <input
-                        type="text"
-                        class="form-control"
-                        name="q"
-                        value="{{ pesquisa or '' }}"
-                        placeholder="Pesquisar por Nome, Razão Social ou CNPJ">
-
-                </div>
-
-                <div class="col-md-2">
-
-                    <button class="btn btn-outline-primary w-100">
-
-                        <i class="bi bi-search"></i>
-
-                        Pesquisar
-
-                    </button>
-
-                </div>
-
-            </div>
-
-        </form>
+	{% include "components/filter_bar.html" %}
 
         {% if clientes %}
 
@@ -84,7 +55,7 @@
 
                         <th>Origem</th>
 
-                        <th>Status</th>
+                        <th>Situação</th>
 
                         <th width="120">Ações</th>
 

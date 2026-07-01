@@ -1,5 +1,5 @@
 from app.core.constants.origens import ORIGEM_OMIE
-
+from html import unescape
 
 class ClienteMapper:
 
@@ -12,9 +12,9 @@ class ClienteMapper:
 
             "origem": ORIGEM_OMIE,
 
-            "nome_fantasia": cliente.get("nome_fantasia"),
+            "nome_fantasia": unescape(cliente.get("nome_fantasia") or ""),
 
-            "razao_social": cliente.get("razao_social"),
+            "razao_social": unescape(cliente.get("razao_social") or ""),
 
             "cnpj": cliente.get("cnpj_cpf"),
 
