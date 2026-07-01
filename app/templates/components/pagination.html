@@ -1,0 +1,27 @@
+{% if total_paginas > 1 %}
+
+<nav class="mt-4">
+
+    <ul class="pagination justify-content-center">
+
+        {% for p in range(1, total_paginas + 1) %}
+
+        <li class="page-item {% if p == pagina %}active{% endif %}">
+
+            <a
+                class="page-link"
+                href="?page={{ p }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}">
+
+                {{ p }}
+
+            </a>
+
+        </li>
+
+        {% endfor %}
+
+    </ul>
+
+</nav>
+
+{% endif %}

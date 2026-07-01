@@ -1,0 +1,176 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    {% include "components/page_header.html" %}
+
+    {% include "components/card_header.html" %}
+
+        {% include "components/filter_bar.html" %}
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Nome</th>
+
+                        <th>Sigla</th>
+
+                        <th>Tipo</th>
+
+                        <th>Contato</th>
+
+                        <th>Situação</th>
+
+                        <th width="180">Ações</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for parceiro in parceiros %}
+
+                    <tr>
+
+                        <td>
+
+                            <strong>
+
+                                {{ parceiro.nome }}
+
+                            </strong>
+
+                        </td>
+
+                        <td>
+
+                            {{ parceiro.sigla }}
+
+                        </td>
+
+                        <td>
+
+                            {% if parceiro.tipo == "SOFTWARE_HOUSE" %}
+
+                                <span class="badge bg-primary">
+
+                                    Software House
+
+                                </span>
+
+                            {% elif parceiro.tipo == "CANAL" %}
+
+                                <span class="badge bg-warning text-dark">
+
+                                    Canal
+
+                                </span>
+
+                            {% elif parceiro.tipo == "REVENDA" %}
+
+                                <span class="badge bg-info text-dark">
+
+                                    Revenda
+
+                                </span>
+
+                            {% elif parceiro.tipo == "INTERNO" %}
+
+                                <span class="badge bg-success">
+
+                                    Interno
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge bg-secondary">
+
+                                    Outro
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {{ parceiro.contato or "-" }}
+
+                        </td>
+
+                        <td>
+
+                            {% set ativo = parceiro.ativo %}
+
+                            {% include "components/status_badge.html" %}
+
+                        </td>
+
+                        <td>
+
+                            <div class="btn-group btn-group-sm">
+
+                                <a
+                                    href="{{ url_for('parceiros.visualizar', parceiro_id=parceiro.id) }}"
+                                    class="btn btn-outline-secondary">
+
+                                    <i class="bi bi-eye"></i>
+
+                                </a>
+
+                                <a
+                                    href="{{ url_for('parceiros.editar', parceiro_id=parceiro.id) }}"
+                                    class="btn btn-outline-primary">
+
+                                    <i class="bi bi-pencil"></i>
+
+                                </a>
+
+                                <a
+                                    href="{{ url_for('parceiros.excluir', parceiro_id=parceiro.id) }}"
+                                    onclick="return confirm('Deseja realmente excluir este parceiro?')"
+                                    class="btn btn-outline-danger">
+
+                                    <i class="bi bi-trash"></i>
+
+                                </a>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                    {% else %}
+
+                        {% set colspan = 6 %}
+
+                        {% set empty_message = "Nenhum parceiro encontrado." %}
+
+                        {% include "components/empty_state.html" %}
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% include "components/pagination.html" %}
+
+    </div>
+
+</div>
+
+{% endblock %}

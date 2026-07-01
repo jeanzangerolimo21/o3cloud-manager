@@ -284,6 +284,35 @@ O Sprint 6 tem como objetivo integrar os recursos de infraestrutura (Proxmox, PB
 
 O foco deixa de ser apenas sincronizar informações e passa a representar corretamente o modelo de negócio da O3Cloud.
 
+
+Sprint 6.1 - Módulo Parceiros
+
+Objetivo: Criar um cadastro mestre para identificar a origem comercial dos projetos.
+
+Funcionalidades
+✅ Listar parceiros
+✅ Pesquisar
+✅ Novo parceiro
+✅ Visualizar
+✅ Editar
+✅ Excluir (somente se não estiver sendo utilizado)
+✅ Ativar/Inativar
+
+
+Parceiros
+
+├── Repository
+├── Service
+├── Routes
+├── Index
+├── Form
+├── View
+├── Novo
+├── Editar
+├── Excluir
+├── Pesquisa
+└── Paginação
+
 ---
 
 # 2. Princípios da Arquitetura
@@ -622,6 +651,7 @@ Custos
 Rentabilidade
 
 Conectando as áreas Comercial, Financeira, Implantação e Operações em uma única plataforma.
+
 
 
 Sprint 7

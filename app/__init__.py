@@ -3,7 +3,6 @@ from app.core.filters import date_br, moeda
 from app.core.config import Config
 from app.core.database import init_db
 
-
 def create_app():
 
     app = Flask(__name__)
@@ -16,7 +15,7 @@ def create_app():
     app.jinja_env.filters["date_br"] = date_br
     app.jinja_env.filters["moeda"] = moeda
 
-    # Financeiro
+    # Cadastros
     from app.financeiro.routes import financeiro_bp
     app.register_blueprint(financeiro_bp)
 
@@ -28,4 +27,7 @@ def create_app():
     from app.contratos.routes import contratos_bp
     app.register_blueprint(contratos_bp)
 
+    #Parceiros
+    from app.parceiros.routes import parceiros_bp
+    app.register_blueprint(parceiros_bp)
     return app

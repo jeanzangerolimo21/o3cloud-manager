@@ -1,0 +1,200 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    {% set page_title = parceiro.nome %}
+    {% set page_description = "Detalhes do parceiro comercial" %}
+    {% set page_icon = "bi-people-fill" %}
+    {% set page_button_url = url_for("parceiros.editar", parceiro_id=parceiro.id) %}
+    {% set page_button_icon = "bi-pencil" %}
+    {% set page_button_text = "Editar" %}
+
+    {% include "components/page_header.html" %}
+
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            <div class="row">
+
+                <div class="col-md-3 text-center">
+
+                    {% if parceiro.logo %}
+
+                        <img
+                            src="{{ url_for('static', filename='uploads/parceiros/' ~ parceiro.logo) }}"
+                            class="img-fluid img-thumbnail mb-3"
+                            style="max-height:180px;">
+
+                    {% else %}
+
+                        <div class="border rounded p-5 text-muted">
+
+                            <i class="bi bi-image display-4"></i>
+
+                            <br>
+
+                            Sem Logo
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+                <div class="col-md-9">
+
+                    <h3>
+
+                        {{ parceiro.nome }}
+
+                    </h3>
+
+                    <p class="text-muted">
+
+                        {{ parceiro.tipo }}
+
+                    </p>
+
+                    {% set ativo = parceiro.ativo %}
+                    {% include "components/status_badge.html" %}
+
+                </div>
+
+            </div>
+
+            <hr>
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+
+                    <strong>Contato</strong><br>
+
+                    {{ parceiro.contato or "-" }}
+
+                </div>
+
+                <div class="col-md-6 mb-3">
+
+                    <strong>E-mail</strong><br>
+
+                    {{ parceiro.email or "-" }}
+
+                </div>
+
+                <div class="col-md-6 mb-3">
+
+                    <strong>Telefone</strong><br>
+
+                    {{ parceiro.telefone or "-" }}
+
+                </div>
+
+                <div class="col-md-6 mb-3">
+
+                    <strong>Site</strong><br>
+
+                    {{ parceiro.site or "-" }}
+
+                </div>
+
+            </div>
+
+            <hr>
+
+            <h5>
+
+                Descrição
+
+            </h5>
+
+            <p>
+
+                {{ parceiro.descricao or "Nenhuma descrição cadastrada." }}
+
+            </p>
+
+            <hr>
+
+            <div class="row text-center">
+
+                <div class="col-md-3">
+
+                    {% set value = 0 %}
+                    {% set label = "Clientes" %}
+                    {% include "components/info_card.html" %}
+
+                </div>
+
+                <div class="col-md-3">
+
+                    {% set value = 0 %}
+                    {% set label = "Ambientes" %}
+                    {% include "components/info_card.html" %}
+
+                </div>
+
+                <div class="col-md-3">
+
+                    {% set value = 0 %}
+                    {% set label = "Contratos" %}
+                    {% include "components/info_card.html" %}
+
+                </div>
+
+                <div class="col-md-3">
+
+                    {% set value = "R$ 0,00" %}
+                    {% set label = "Receita" %}
+                    {% include "components/info_card.html" %}
+
+                </div>
+
+            </div>
+
+            <hr>
+
+            <div class="row">
+
+                <div class="col-md-6">
+
+                    <strong>Criado em</strong><br>
+
+                    {{ parceiro.created_at }}
+
+                </div>
+
+                <div class="col-md-6">
+
+                    <strong>Última atualização</strong><br>
+
+                    {{ parceiro.updated_at }}
+
+                </div>
+
+            </div>
+
+            <div class="mt-4 text-end">
+
+                <a
+                    href="{{ url_for('parceiros.index') }}"
+                    class="btn btn-secondary">
+
+                    <i class="bi bi-arrow-left"></i>
+
+                    Voltar
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
