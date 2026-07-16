@@ -10,13 +10,13 @@ Status: Oficial
 
 ---
 
-# Sprint Atual
+# Sprint Registrada
 
 ## Sprint 6.4
 
 Status:
 
-🚧 Em Desenvolvimento
+✅ Concluído
 
 ---
 
@@ -24,13 +24,13 @@ Status:
 
 Concluir a segunda fase do módulo Catálogo Técnico.
 
-Esta Sprint tem como objetivo preparar toda a base necessária para o futuro módulo de Dimensionamento e, posteriormente, para o CRM Comercial.
+Esta Sprint teve como objetivo preparar a base necessária para o futuro módulo de Dimensionamento e, posteriormente, para o CRM Comercial.
 
 ---
 
 # Dependências
 
-Esta Sprint depende dos módulos já homologados:
+Esta Sprint dependeu dos módulos já homologados:
 
 - Clientes
 - Contratos
@@ -41,7 +41,7 @@ Todos já encontram-se concluídos.
 
 ---
 
-# Escopo da Sprint
+# Escopo Entregue
 
 ## 1. Modelos
 
@@ -82,242 +82,68 @@ Entregas:
 
 ---
 
-## 3. Servidores
+## 3. Catálogo Comercial
 
 Status:
 
-🚧 Em desenvolvimento
+✅ Concluído
 
 Entregas:
 
-- Repository
-- Service
-- Routes
-- index.html
-- form.html
-- view.html
+- Remoção da duplicação de navegação na home
+- Atalhos diretos para Modelos e Faixas
+- Correção dos contadores de Categorias, Modelos e Faixas
+- Atualização da documentação da sprint
 
 ---
 
-## 4. Dimensionamento
+## 4. Servidores e Dimensionamento
 
 Status:
 
-⏳ Planejado
+🚧 Parcial
 
-Objetivo:
+Situação:
 
-Criar a base que permitirá calcular automaticamente:
-
-- Recursos
-- Custos
-- Precificação
+- Base iniciada no projeto
+- Homologação pendente para a próxima sequência de trabalho
 
 ---
 
-# Sprint 6.3 (Concluída)
-
-Entregas homologadas:
-
-## Categorias
-
-✅ Repository
-
-✅ Service
-
-✅ Routes
-
-✅ Templates
-
-## Produtos
-
-✅ Repository
-
-✅ Service
-
-✅ Routes
-
-✅ Templates
-
-## Componentes
-
-✅ page_header.html
-
-✅ filter_bar.html
-
-✅ crud_actions.html
-
-✅ alert.html
-
-## BaseRepository
-
-Atualizado
-
-- generate_uuid()
-
-- bool_to_int()
-
----
-
-# Arquitetura
-
-Toda implementação deverá seguir:
-
-Repository
-
-↓
-
-Service
-
-↓
-
-Routes
-
-↓
-
-Templates
-
-↓
-
-Homologação
-
-Nunca alterar esta ordem.
-
----
-
-# Processo Oficial
-
-Cada funcionalidade deverá seguir:
-
-1.
-
-Repository
-
-↓
-
-Homologação
-
-↓
-
-2.
-
-Service
-
-↓
-
-Homologação
-
-↓
-
-3.
-
-Routes
-
-↓
-
-Homologação
-
-↓
-
-4.
-
-Templates
-
-↓
-
-Homologação
-
-Nunca implementar múltiplas camadas simultaneamente.
-
----
-
-# Componentes Homologados
-
-Os seguintes componentes encontram-se protegidos pelo Architecture Freeze:
-
-- page_header.html
-- filter_bar.html
-- crud_actions.html
-- alert.html
-- index_base.html
-- form_base.html
-- view_base.html
-
-Qualquer alteração exige autorização do Product Owner.
-
----
-
-# Próxima Tarefa
-
-Implementar:
-
-CRUD de Modelos
-
-Fluxo:
-
-Repository
-
-↓
-
-Service
-
-↓
-
-Routes
-
-↓
-
-Templates
-
-↓
-
-Homologação
-
----
-
-# Critérios de Aceitação
-
-A Sprint será considerada concluída quando:
-
-- CRUD Modelos homologado.
-- CRUD Faixas homologado.
-- CRUD Servidores homologado.
-- Base do Dimensionamento criada.
-- Documentação atualizada.
-- Roadmap atualizado.
+# Critérios de Encerramento
+
+A Sprint 6 foi encerrada com:
+
+- CRUD Modelos homologado
+- CRUD Faixas homologado
+- Home do Catálogo Comercial ajustada
+- Documentação atualizada
+- Publicação no GitHub realizada
 
 ---
 
 # Próxima Sprint
 
-Sprint 7
-
-CRM Comercial
+## Sprint 7
 
 Objetivos:
 
+- CRM Comercial
 - Leads
 - Contatos
 - Oportunidades
 - Pipeline Comercial
 - Integração ClickSign
 
+Status:
+
+⏳ Planejado
+
 ---
 
-# Observações
+# Diretriz
 
-O desenvolvimento do projeto segue a metodologia oficial da O3 Cloud.
-
-Toda implementação deverá obedecer:
-
-- AGENTS.md
-- PROJECT_CONTEXT.md
-- DOMAIN_RULES.md
-- AI_WORKFLOW.md
-- 03-ARQUITETURA.md
-- 04-PADROES.md
-- 15-CHECKLIST.md
-- 16-DEFINITION-OF-DONE.md
+A sequência oficial das próximas etapas deve seguir o `docs/ROADMAP.md`.
 
 ---
 
@@ -327,14 +153,14 @@ Versão:
 
 3.0 Alpha
 
-Sprint Atual:
+Sprint Encerrada:
 
 6.4
 
 Situação:
 
-🚧 Desenvolvimento Ativo
+✅ Concluída
 
 Próxima Implementação:
 
-CRUD de Modelos
+Sprint 7 - CRM Comercial
