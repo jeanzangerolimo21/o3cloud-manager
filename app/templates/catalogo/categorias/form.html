@@ -1,0 +1,134 @@
+{% extends "crud/form_base.html" %}
+
+{% block page_header %}
+
+{% set page_icon = "bi-tags" %}
+{% set page_title = "Categoria" %}
+{% set page_description = "Cadastro de categorias do catálogo técnico." %}
+
+{% include "components/page_header.html" %}
+
+{% endblock %}
+
+
+{% block form_fields %}
+
+<div class="row">
+
+    <div class="col-md-3 mb-3">
+
+        <label class="form-label">
+
+            Código *
+
+        </label>
+
+        <input
+            class="form-control"
+            name="codigo"
+            maxlength="30"
+            required
+            value="{{ categoria.codigo if categoria else '' }}">
+
+    </div>
+
+    <div class="col-md-6 mb-3">
+
+        <label class="form-label">
+
+            Nome *
+
+        </label>
+
+        <input
+            class="form-control"
+            name="nome"
+            maxlength="100"
+            required
+            value="{{ categoria.nome if categoria else '' }}">
+
+    </div>
+
+    <div class="col-md-3 mb-3">
+
+        <label class="form-label">
+
+            Ordem
+
+        </label>
+
+        <input
+            type="number"
+            class="form-control"
+            name="ordem"
+            value="{{ categoria.ordem if categoria else 0 }}">
+
+    </div>
+
+</div>
+
+
+<div class="mb-3">
+
+    <label class="form-label">
+
+        Descrição
+
+    </label>
+
+    <textarea
+        class="form-control"
+        rows="4"
+        name="descricao">{{ categoria.descricao if categoria else '' }}</textarea>
+
+</div>
+
+
+<div class="row">
+
+    <div class="col-md-3">
+
+        <label class="form-label">
+
+            Cor
+
+        </label>
+
+        <input
+            type="color"
+            class="form-control form-control-color"
+            name="cor"
+            value="{{ categoria.cor if categoria else '#0d6efd' }}">
+
+    </div>
+
+    <div class="col-md-3 d-flex align-items-end">
+
+        <div class="form-check">
+
+            <input
+                class="form-check-input"
+                type="checkbox"
+                name="ativo"
+                value="1"
+                {% if categoria %}
+                    {% if categoria.ativo %}
+                        checked
+                    {% endif %}
+                {% else %}
+                    checked
+                {% endif %}>
+
+            <label class="form-check-label">
+
+                Ativa
+
+            </label>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

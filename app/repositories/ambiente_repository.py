@@ -1,5 +1,4 @@
 from app.repositories.base_repository import BaseRepository
-from app.core.constants.origens import ORIGEM_MANUAL
 
 
 class AmbienteRepository(BaseRepository):
@@ -18,17 +17,31 @@ class AmbienteRepository(BaseRepository):
                 a.uuid,
                 a.cliente_id,
                 a.nome,
+                a.origem,
+                a.parceiro_id,
+                a.contrato_id,
                 a.ambiente_tipo,
-                a.tag_proxmox,
+                a.situacao,
+                a.prefixo_proxmox,
                 a.descricao,
                 a.ativo,
                 a.synced_at,
-                c.nome_fantasia AS cliente_nome
+                c.nome_fantasia AS cliente_nome,
+                p.nome AS parceiro_nome,
+                ct.numero AS contrato_numero
 
             FROM ambientes a
-
+            
             INNER JOIN clientes c
                 ON c.id = a.cliente_id
+
+            LEFT JOIN parceiros p
+                ON p.id = a.parceiro_id
+
+            LEFT JOIN contratos ct
+                ON ct.id = a.contrato_id
+            
+            WHERE a.ativo = 1
 
         """
 
@@ -44,20 +57,27 @@ class AmbienteRepository(BaseRepository):
 
                     OR c.nome_fantasia LIKE %s
 
-                    OR a.tag_proxmox LIKE %s
+                    OR a.prefixo_proxmox LIKE %s
+
+                    OR p.nome LIKE %s
+
+                    OR ct.numero LIKE %s
+
+                    OR a.descricao LIKE %s
 
             """
 
             termo = f"%{pesquisa}%"
 
-            parametros.extend([termo, termo, termo])
+            parametros.extend([termo, termo, termo, termo, termo, termo])
 
         sql += """
 
             ORDER BY
 
-                c.nome_fantasia,
-                a.nome
+                c.nome_fantasia ASC,
+                a.ambiente_tipo ASC,
+                a.nome ASC
 
             LIMIT %s OFFSET %s
 
@@ -102,7 +122,7 @@ class AmbienteRepository(BaseRepository):
 
                     OR c.nome_fantasia LIKE %s
 
-                    OR a.tag_proxmox LIKE %s
+                    OR a.prefixo_proxmox LIKE %s
 
             """
 
@@ -187,14 +207,24 @@ class AmbienteRepository(BaseRepository):
                 cliente_id,
                 nome,
                 ambiente_tipo,
-                tag_proxmox,
+                prefixo_proxmox,
+                origem,
+                parceiro_id,
+                contrato_id,
+                situacao,
                 descricao,
+                responsavel_implantacao,
                 ativo
 
             )
 
             VALUES (
 
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
                 %s,
                 %s,
                 %s,
@@ -211,15 +241,24 @@ class AmbienteRepository(BaseRepository):
             dados.get("cliente_id"),
             dados.get("nome"),
             dados.get("ambiente_tipo"),
-            dados.get("tag_proxmox"),
+            dados.get("prefixo_proxmox"),
+            dados.get("origem"),
+            dados.get("parceiro_id"),
+            dados.get("contrato_id"),
+            dados.get("situacao"),
             dados.get("descricao"),
+            dados.get("responsavel_implantacao"),
             dados.get("ativo", 1)
 
         ))
 
         conn.commit()
 
+        novo_id = cursor.lastrowid
+
         cls.close(conn, cursor)
+
+        return novo_id  
 
     @classmethod
     def atualizar(cls, ambiente_id, dados):
@@ -236,8 +275,13 @@ class AmbienteRepository(BaseRepository):
                 cliente_id=%s,
                 nome=%s,
                 ambiente_tipo=%s,
-                tag_proxmox=%s,
+                prefixo_proxmox=%s,
+                origem=%s,
+                parceiro_id=%s,
+                contrato_id=%s,
+                situacao=%s,
                 descricao=%s,
+                responsavel_implantacao,
                 ativo=%s
 
             WHERE id=%s
@@ -247,8 +291,13 @@ class AmbienteRepository(BaseRepository):
             dados.get("cliente_id"),
             dados.get("nome"),
             dados.get("ambiente_tipo"),
-            dados.get("tag_proxmox"),
+            dados.get("prefixo_proxmox"),
+            dados.get("origem"),
+            dados.get("parceiro_id"),
+            dados.get("contrato_id"),
+            dados.get("situacao"),
             dados.get("descricao"),
+            dados.get("responsavel_implantacao"),
             dados.get("ativo"),
             ambiente_id
 
@@ -266,7 +315,11 @@ class AmbienteRepository(BaseRepository):
 
         cursor.execute("""
 
-            DELETE FROM ambientes
+            UPDATE ambientes
+
+            SET ativo=0,
+
+            situacao = 'DESATIVADO'
 
             WHERE id=%s
 
@@ -274,4 +327,13 @@ class AmbienteRepository(BaseRepository):
 
         conn.commit()
 
+        novo_id = cursor.lastrowid
+
+        return novo_id       
+
         cls.close(conn, cursor)
+
+    @classmethod
+    def criar(cls, dados):
+
+        return AmbienteRepository.inserir(dados)

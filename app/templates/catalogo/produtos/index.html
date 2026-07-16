@@ -1,0 +1,74 @@
+{% extends "crud/index_base.html" %}
+
+{% block page_header %}
+
+{% set page_icon = "bi-box-seam" %}
+{% set page_title = "Produtos Fechados" %}
+{% set page_description = "Cadastro dos produtos fechados vendidos por parceiro." %}
+{% set page_button_text = "Novo Produto" %}
+{% set page_button_icon = "bi-plus-circle" %}
+{% set page_button_url = url_for("catalogo.novo_produto") %}
+
+{% include "components/page_header.html" %}
+
+{% endblock %}
+
+{% block filters %}
+
+{% set placeholder = "Pesquisar produto..." %}
+{% set show_status = True %}
+{% set show_origem = False %}
+{% set status_field = "ativo" %}
+{% set status_options = {"1":"Ativo", "0":"Inativo"} %}
+
+{% include "components/filter_bar.html" %}
+
+{% endblock %}
+
+{% block table %}
+
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th width="120">Código</th>
+            <th>Produto</th>
+            <th width="180">Parceiro</th>
+            <th width="180">Categoria</th>
+            <th width="130">Natureza</th>
+            <th width="140" class="text-end">Venda</th>
+            <th width="120">Status</th>
+            <th width="170" class="text-center">Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for produto in produtos %}
+        <tr>
+            <td>{{ produto.codigo }}</td>
+            <td><strong>{{ produto.nome }}</strong></td>
+            <td>{{ produto.parceiro or '—' }}</td>
+            <td>{{ produto.categoria }}</td>
+            <td>{{ produto.tipo_recurso }}</td>
+            <td class="text-end">R$ {{ "%.2f"|format(produto.valor_venda) }}</td>
+            <td>
+                {% if produto.ativo %}
+                    <span class="badge bg-success">Ativo</span>
+                {% else %}
+                    <span class="badge bg-secondary">Inativo</span>
+                {% endif %}
+            </td>
+            <td class="text-center">
+                {% set view_url = url_for("catalogo.visualizar_produto", produto_id=produto.id) %}
+                {% set edit_url = url_for("catalogo.editar_produto", produto_id=produto.id) %}
+                {% set disable_url = url_for("catalogo.desativar_produto", produto_id=produto.id) %}
+                {% include "components/crud_actions.html" %}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="8" class="text-center text-muted py-5">Nenhum produto cadastrado.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

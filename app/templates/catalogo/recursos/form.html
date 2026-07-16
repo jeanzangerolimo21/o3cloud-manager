@@ -1,0 +1,60 @@
+{% extends "crud/form_base.html" %}
+
+{% block page_header %}
+{% set page_icon = "bi-hdd-rack" %}
+{% set page_title = "Recurso de Servidor" %}
+{% set page_description = "Cadastro das opções avulsas de contratação." %}
+{% include "components/page_header.html" %}
+{% endblock %}
+
+{% block form_fields %}
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label class="form-label">Código *</label>
+        <input class="form-control" name="codigo" maxlength="30" required value="{{ recurso.codigo if recurso else '' }}">
+    </div>
+    <div class="col-md-4 mb-3">
+        <label class="form-label">Categoria *</label>
+        <select class="form-select" name="categoria" required>
+            <option value="">Selecione...</option>
+            {% for categoria in categorias_recurso %}
+            <option value="{{ categoria }}" {% if recurso and recurso.categoria == categoria %}selected{% endif %}>{{ categoria }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-5 mb-3">
+        <label class="form-label">Recurso *</label>
+        <input class="form-control" name="nome" maxlength="150" required value="{{ recurso.nome if recurso else '' }}">
+    </div>
+</div>
+<div class="mb-3">
+    <label class="form-label">Descrição</label>
+    <textarea class="form-control" rows="4" name="descricao">{{ recurso.descricao if recurso else '' }}</textarea>
+</div>
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label class="form-label">Tipo de Recurso *</label>
+        <select class="form-select" name="tipo_recurso" required>
+            {% for valor, descricao in tipos_recurso %}
+            <option value="{{ valor }}" {% if recurso and recurso.tipo_recurso == valor %}selected{% elif not recurso and valor == 'SERVICO' %}selected{% endif %}>{{ descricao }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label class="form-label">Mensal</label>
+        <input type="number" step="0.01" min="0" class="form-control" name="valor_mensal" value="{{ recurso.valor_mensal if recurso else '0.00' }}">
+    </div>
+    <div class="col-md-3 mb-3">
+        <label class="form-label">Instalação</label>
+        <input type="number" step="0.01" min="0" class="form-control" name="valor_instalacao" value="{{ recurso.valor_instalacao if recurso else '0.00' }}">
+    </div>
+    <div class="col-md-3 mb-3">
+        <label class="form-label">Ordem</label>
+        <input type="number" min="0" class="form-control" name="ordem" value="{{ recurso.ordem if recurso else 0 }}">
+    </div>
+</div>
+<div class="form-check mt-2">
+    <input class="form-check-input" type="checkbox" name="ativo" value="1" {% if recurso %}{% if recurso.ativo %}checked{% endif %}{% else %}checked{% endif %}>
+    <label class="form-check-label">Ativo</label>
+</div>
+{% endblock %}

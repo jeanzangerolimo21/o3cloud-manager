@@ -24,7 +24,7 @@
                     {% if parceiro.logo %}
 
                         <img
-                            src="{{ url_for('static', filename='uploads/parceiros/' ~ parceiro.logo) }}"
+                            src="{{ url_for('storage',filename='parceiros/' ~ parceiro.logo) }}" 
                             class="img-fluid img-thumbnail mb-3"
                             style="max-height:180px;">
 

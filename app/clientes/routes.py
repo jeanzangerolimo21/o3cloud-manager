@@ -41,9 +41,7 @@ def index():
 
     )
     
-    import math
-
-    total_paginas = math.ceil(total / 50)
+    total_paginas = (total + 49) // 50
 
     return render_template(
 
@@ -51,9 +49,11 @@ def index():
 
         clientes=clientes,
 
+        total=total,
+
         pesquisa=pesquisa,
 
-        selected_status=ativo,
+        status=ativo,
 
         status_field="ativo",
 

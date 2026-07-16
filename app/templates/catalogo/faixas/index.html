@@ -1,0 +1,84 @@
+{% extends "crud/index_base.html" %}
+
+{% block page_header %}
+
+{% set page_icon = "bi-sliders" %}
+{% set page_title = "Faixas de Licenciamento" %}
+{% set page_description = "Cadastro das faixas comerciais por quantidade de usuários." %}
+{% set page_button_text = "Nova Faixa" %}
+{% set page_button_icon = "bi-plus-circle" %}
+{% set page_button_url = url_for("catalogo.nova_faixa") %}
+
+{% include "components/page_header.html" %}
+
+{% endblock %}
+
+{% block filters %}
+
+{% set placeholder = "Pesquisar faixa..." %}
+{% set show_status = True %}
+{% set show_origem = False %}
+{% set status_field = "ativo" %}
+{% set status_options = {"1": "Ativo", "0": "Inativo"} %}
+
+{% include "components/filter_bar.html" %}
+
+{% endblock %}
+
+{% block table %}
+
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th width="160">Produto</th>
+            <th width="160">Modelo</th>
+            <th width="110">Código</th>
+            <th>Nome</th>
+            <th width="130">Faixa</th>
+            <th width="150" class="text-end">Mensal/Usuário</th>
+            <th width="150" class="text-end">Mínimo/Usuário</th>
+            <th width="120" class="text-center">Projeto</th>
+            <th width="130">Status</th>
+            <th width="170" class="text-center">Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for faixa in faixas %}
+        <tr>
+            <td>{{ faixa.produto }}</td>
+            <td>{{ faixa.modelo }}</td>
+            <td><code>{{ faixa.codigo }}</code></td>
+            <td>{{ faixa.nome }}</td>
+            <td><strong>{{ faixa.usuarios_inicio }} a {{ faixa.usuarios_fim }}</strong></td>
+            <td class="text-end">{{ faixa.valor_mensal|moeda if faixa.valor_mensal is not none else '-' }}</td>
+            <td class="text-end">{{ faixa.valor_setup|moeda if faixa.valor_setup is not none else '-' }}</td>
+            <td class="text-center">
+                {% if faixa.tem_projeto %}
+                    <span class="badge bg-success">Sim</span>
+                {% else %}
+                    <span class="text-muted">—</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if faixa.ativo %}
+                    <span class="badge bg-success">Ativo</span>
+                {% else %}
+                    <span class="badge bg-secondary">Inativo</span>
+                {% endif %}
+            </td>
+            <td class="text-center">
+                {% set view_url = url_for("catalogo.visualizar_faixa", faixa_id=faixa.id) %}
+                {% set edit_url = url_for("catalogo.editar_faixa", faixa_id=faixa.id) %}
+                {% set disable_url = url_for("catalogo.desativar_faixa", faixa_id=faixa.id) %}
+                {% include "components/crud_actions.html" %}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="10" class="text-center text-muted py-5">Nenhuma faixa cadastrada.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

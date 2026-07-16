@@ -1,0 +1,86 @@
+{% extends "crud/view_base.html" %}
+
+{% block page_header %}
+
+{% set page_icon = "bi-box-seam" %}
+{% set page_title = "Visualizar Produto Fechado" %}
+{% set page_description = "Detalhes do produto comercial vendido por parceiro." %}
+
+{% include "components/page_header.html" %}
+
+{% endblock %}
+
+{% block view_content %}
+
+<div class="row">
+    {% set label = "Código" %}
+    {% set value = produto.codigo %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Código do Parceiro" %}
+    {% set value = produto.codigo_externo or "-" %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Produto" %}
+    {% set value = produto.nome %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Parceiro" %}
+    {% set value = produto.parceiro or "-" %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Categoria" %}
+    {% set value = produto.categoria %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Natureza Comercial" %}
+    {% set value = produto.tipo_recurso %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Valor de Venda" %}
+    {% set value = "R$ %.2f"|format(produto.valor_venda) %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Valor de Custo" %}
+    {% set value = "R$ %.2f"|format(produto.valor_custo) %}
+    {% include "components/info_item.html" %}
+
+    <div class="col-md-6 mb-3">
+        <div class="border rounded p-3 h-100">
+            <div class="text-muted small mb-1">Status</div>
+            {% if produto.ativo %}
+                <span class="badge bg-success">Ativo</span>
+            {% else %}
+                <span class="badge bg-secondary">Inativo</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="border rounded p-3 h-100">
+            <div class="text-muted small mb-1">Cadastro</div>
+            <div class="fw-semibold">{{ produto.created_at or '-' }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="border rounded p-3">
+    <div class="text-muted small mb-1">Descrição</div>
+    <div class="fw-semibold">{{ produto.descricao or "-" }}</div>
+</div>
+
+{% endblock %}
+
+{% block view_actions %}
+
+<a href="{{ url_for('catalogo.listar_produtos') }}" class="btn btn-secondary">
+    <i class="bi bi-arrow-left"></i>
+    Voltar
+</a>
+
+<a href="{{ url_for('catalogo.editar_produto', produto_id=produto.id) }}" class="btn btn-warning">
+    <i class="bi bi-pencil"></i>
+    Editar
+</a>
+
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "crud/index_base.html" %}
+
+{% block page_header %}
+
+{% set page_icon = "bi-hdd-rack" %}
+{% set page_title = "Recursos de Servidor" %}
+{% set page_description = "Cadastro das opções avulsas de contratação de recursos." %}
+{% set page_button_text = "Adicionar" %}
+{% set page_button_icon = "bi-plus-circle" %}
+{% set page_button_url = url_for("catalogo.novo_recurso_servidor") %}
+
+{% include "components/page_header.html" %}
+
+{% endblock %}
+
+{% block filters %}
+
+{% set placeholder = "Pesquisar recurso..." %}
+{% set show_status = True %}
+{% set show_origem = False %}
+{% set status_field = "ativo" %}
+{% set status_options = {"1": "Ativo", "0": "Inativo"} %}
+
+{% include "components/filter_bar.html" %}
+
+{% endblock %}
+
+{% block table %}
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th width="160">Categoria</th>
+            <th width="130">Código</th>
+            <th width="220">Recurso</th>
+            <th>Descrição</th>
+            <th width="140" class="text-end">Mensal</th>
+            <th width="140" class="text-end">Instalação</th>
+            <th width="120">Status</th>
+            <th width="170" class="text-center">Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for recurso in recursos %}
+        <tr>
+            <td>{{ recurso.categoria }}</td>
+            <td><code>{{ recurso.codigo }}</code></td>
+            <td><strong>{{ recurso.nome }}</strong></td>
+            <td>{{ recurso.descricao or '-' }}</td>
+            <td class="text-end">{{ recurso.valor_mensal|moeda }}</td>
+            <td class="text-end">{{ recurso.valor_instalacao|moeda }}</td>
+            <td>
+                {% if recurso.ativo %}
+                    <span class="badge bg-success">Ativo</span>
+                {% else %}
+                    <span class="badge bg-secondary">Inativo</span>
+                {% endif %}
+            </td>
+            <td class="text-center">
+                {% set view_url = url_for('catalogo.visualizar_recurso_servidor', recurso_id=recurso.id) %}
+                {% set edit_url = url_for('catalogo.editar_recurso_servidor', recurso_id=recurso.id) %}
+                {% set disable_url = url_for('catalogo.desativar_recurso_servidor', recurso_id=recurso.id) %}
+                {% include "components/crud_actions.html" %}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="8" class="text-center text-muted py-5">Nenhum recurso de servidor cadastrado.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

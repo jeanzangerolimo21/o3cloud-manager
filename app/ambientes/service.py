@@ -1,5 +1,9 @@
 from app.repositories.ambiente_repository import AmbienteRepository
+from app.repositories.cliente_repository import ClienteRepository
+from app.repositories.parceiro_repository import ParceiroRepository
+from app.repositories.contrato_repository import ContratoRepository
 
+FORM_LIMIT = 1000
 
 class AmbienteService:
 
@@ -29,7 +33,7 @@ class AmbienteService:
         return ambientes, total
 
     @staticmethod
-    def buscar(ambiente_id):
+    def buscar_por_id(ambiente_id):
 
         return AmbienteRepository.buscar_por_id(
 
@@ -47,7 +51,7 @@ class AmbienteService:
         )
 
     @staticmethod
-    def inserir(dados):
+    def criar( dados):
 
         AmbienteRepository.inserir(
 
@@ -74,3 +78,44 @@ class AmbienteService:
             ambiente_id
 
         )
+
+    @staticmethod
+    def carregar_dependencias_formulario():
+
+            clientes = ClienteRepository.listar(
+                limit=FORM_LIMIT,
+                offset=0
+            )
+
+            parceiros = ParceiroRepository.listar(
+                limit=FORM_LIMIT,
+                offset=0
+            )
+
+            contratos = ContratoRepository.listar(
+                status="ATIVO",    
+                limit=FORM_LIMIT,
+                offset=0
+            )
+
+            return {
+
+                "clientes": clientes,
+
+                "parceiros": parceiros,
+
+                "contratos": contratos,
+
+                # Sprint 7
+                "clusters": [],
+
+                # Sprint 7
+                "nodes": [],
+
+                # Sprint 8
+                "storage": [],
+
+                # Sprint 8
+                "equipes": []
+
+            }

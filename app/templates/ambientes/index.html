@@ -1,0 +1,152 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    {% set page_title = "Ambientes" %}
+    {% set page_description = "Gerenciamento dos ambientes dos clientes." %}
+    {% set page_icon = "bi-hdd-network" %}
+    {% set page_button_url = url_for("ambientes.novo") %}
+    {% set page_button_icon = "bi-plus-circle" %}
+    {% set page_button_text = "Novo Ambiente" %}
+
+    {% include "components/page_header.html" %}
+
+    {% include "components/filter_bar.html" %}
+
+    <div class="card shadow-sm">
+
+        <div class="card-body p-0">
+
+            {% if ambientes %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+
+                            <th>Ambiente</th>
+
+                            <th>Cliente</th>
+
+                            <th>Parceiro</th>
+
+                            <th>Tipo</th>
+
+                            <th>Situação</th>
+
+                            <th>Origem</th>
+
+                            <th>Prefixo</th>
+
+                            <th width="140">Ações</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for ambiente in ambientes %}
+
+                        <tr>
+
+                            <td>
+
+                                <strong>
+
+                                    {{ ambiente.nome }}
+
+                                </strong>
+
+                            </td>
+
+                            <td>
+
+                                {{ ambiente.cliente_nome }}
+
+                            </td>
+
+                            <td>
+
+                                {{ ambiente.parceiro_nome or "-" }}
+
+                            </td>
+
+                            <td>
+
+                                {{ ambiente.ambiente_tipo }}
+
+                            </td>
+
+                            <td>
+
+                                {{ ambiente.situacao }}
+
+                            </td>
+
+                            <td>
+
+                                {{ ambiente.origem }}
+
+                            </td>
+
+                            <td>
+
+                                {{ ambiente.prefixo_proxmox or "-" }}
+
+                            </td>
+
+                            <td>
+
+                                {% set view_url = url_for(
+                                    "ambientes.visualizar",
+                                    ambiente_id=ambiente.id
+                                ) %}
+
+                                {% set edit_url = url_for(
+                                    "ambientes.editar",
+                                    ambiente_id=ambiente.id
+                                ) %}
+
+                                {% set delete_url = url_for(
+                                    "ambientes.excluir",
+                                    ambiente_id=ambiente.id
+                                ) %}
+
+                                {% include "components/table_actions.html" %}
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% else %}
+
+                {% set title = "Nenhum ambiente encontrado" %}
+                {% set message = "Cadastre o primeiro ambiente para começar." %}
+
+                {% include "components/empty_state.html" %}
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    {% include "components/pagination.html" %}
+
+</div>
+
+{% endblock %}

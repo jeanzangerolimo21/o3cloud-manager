@@ -1,0 +1,67 @@
+{% extends "crud/view_base.html" %}
+
+{% block page_header %}
+{% set page_icon = "bi-hdd-rack" %}
+{% set page_title = "Visualizar Recurso de Servidor" %}
+{% set page_description = "Detalhes da opção avulsa de contratação." %}
+{% include "components/page_header.html" %}
+{% endblock %}
+
+{% block view_content %}
+<div class="row">
+    {% set label = "Código" %}
+    {% set value = recurso.codigo %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Categoria" %}
+    {% set value = recurso.categoria %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Recurso" %}
+    {% set value = recurso.nome %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Natureza Comercial" %}
+    {% set value = recurso.tipo_recurso %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Mensal" %}
+    {% set value = recurso.valor_mensal|moeda %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Instalação" %}
+    {% set value = recurso.valor_instalacao|moeda %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Ordem" %}
+    {% set value = recurso.ordem %}
+    {% include "components/info_item.html" %}
+
+    <div class="col-md-6 mb-3">
+        <div class="border rounded p-3 h-100">
+            <div class="text-muted small mb-1">Status</div>
+            {% if recurso.ativo %}
+                <span class="badge bg-success">Ativo</span>
+            {% else %}
+                <span class="badge bg-secondary">Inativo</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="border rounded p-3">
+    <div class="text-muted small mb-1">Descrição</div>
+    <div class="fw-semibold">{{ recurso.descricao or '-' }}</div>
+</div>
+{% endblock %}
+
+{% block view_actions %}
+<a href="{{ url_for('catalogo.listar_recursos_servidor') }}" class="btn btn-secondary">
+    <i class="bi bi-arrow-left"></i>
+    Voltar
+</a>
+<a href="{{ url_for('catalogo.editar_recurso_servidor', recurso_id=recurso.id) }}" class="btn btn-warning">
+    <i class="bi bi-pencil"></i>
+    Editar
+</a>
+{% endblock %}

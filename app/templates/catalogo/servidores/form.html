@@ -1,0 +1,166 @@
+{% extends "crud/form_base.html" %}
+
+{% block page_header %}
+
+{% set page_icon = "bi-hdd-network" %}
+{% set page_title = "Dimensionamento Técnico" %}
+{% set page_description = "Cadastro técnico interno do servidor associado a um produto, modelo e faixa." %}
+
+{% include "components/page_header.html" %}
+
+{% endblock %}
+
+
+{% block form_fields %}
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label class="form-label">Produto *</label>
+        <select class="form-select" id="produto_id" name="produto_id" required>
+            <option value="">Selecione...</option>
+            {% for produto in produtos %}
+            <option value="{{ produto.id }}" {% if servidor and servidor.produto_id == produto.id %}selected{% endif %}>
+                {{ produto.nome }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <label class="form-label">Modelo *</label>
+        <select class="form-select" id="modelo_id" name="modelo_id" required>
+            <option value="">Selecione...</option>
+            {% for modelo in modelos %}
+            <option
+                value="{{ modelo.id }}"
+                data-produto-id="{{ modelo.produto_id }}"
+                {% if servidor and servidor.modelo_id == modelo.id %}selected{% endif %}>
+                {{ modelo.nome }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <label class="form-label">Faixa *</label>
+        <select class="form-select" id="faixa_id" name="faixa_id" required>
+            <option value="">Selecione...</option>
+            {% for faixa in faixas %}
+            <option
+                value="{{ faixa.id }}"
+                data-produto-id="{{ faixa.produto_id }}"
+                data-modelo-id="{{ faixa.modelo_id }}"
+                {% if servidor and servidor.faixa_id == faixa.id %}selected{% endif %}>
+                {{ faixa.nome }} ({{ faixa.usuarios_inicio }} a {{ faixa.usuarios_fim }})
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label class="form-label">Código *</label>
+        <input class="form-control" name="codigo" maxlength="30" required value="{{ servidor.codigo if servidor else '' }}">
+    </div>
+    <div class="col-md-5 mb-3">
+        <label class="form-label">Nome *</label>
+        <input class="form-control" name="nome" maxlength="100" required value="{{ servidor.nome if servidor else '' }}">
+    </div>
+    <div class="col-md-4 mb-3">
+        <label class="form-label">Tipo *</label>
+        <select class="form-select" name="tipo" required>
+            <option value="">Selecione...</option>
+            {% for tipo in tipos %}
+            <option value="{{ tipo.codigo }}" {% if servidor and servidor.tipo == tipo.codigo %}selected{% endif %}>
+                {{ tipo.nome }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label">Sistema Operacional</label>
+        <input class="form-control" name="sistema_operacional" maxlength="100" value="{{ servidor.sistema_operacional if servidor else '' }}">
+    </div>
+    <div class="col-md-3 mb-3">
+        <label class="form-label">Ordem</label>
+        <input type="number" min="0" class="form-control" name="ordem" value="{{ servidor.ordem if servidor else 0 }}">
+    </div>
+    <div class="col-md-3 d-flex align-items-end mb-3">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="ativo" value="1"
+                {% if servidor %}{% if servidor.ativo %}checked{% endif %}{% else %}checked{% endif %}>
+            <label class="form-check-label">Ativo</label>
+        </div>
+    </div>
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Observações</label>
+    <textarea class="form-control" rows="4" name="observacoes">{{ servidor.observacoes if servidor else '' }}</textarea>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const produtoSelect = document.getElementById("produto_id");
+    const modeloSelect = document.getElementById("modelo_id");
+    const faixaSelect = document.getElementById("faixa_id");
+    const modeloOptions = Array.from(modeloSelect.querySelectorAll("option"));
+    const faixaOptions = Array.from(faixaSelect.querySelectorAll("option"));
+
+    function limparSelecionadoSeOculto(selectEl) {
+        const selecionada = selectEl.selectedOptions[0];
+        if (selecionada && selecionada.value && selecionada.hidden) {
+            selectEl.value = "";
+        }
+    }
+
+    function filtrarModelos() {
+        const produtoId = produtoSelect.value;
+
+        modeloOptions.forEach(function (option) {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+
+            option.hidden = produtoId ? option.dataset.produtoId !== produtoId : false;
+        });
+
+        limparSelecionadoSeOculto(modeloSelect);
+    }
+
+    function filtrarFaixas() {
+        const produtoId = produtoSelect.value;
+        const modeloId = modeloSelect.value;
+
+        faixaOptions.forEach(function (option) {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+
+            const mesmoProduto = !produtoId || option.dataset.produtoId === produtoId;
+            const mesmoModelo = !modeloId || option.dataset.modeloId === modeloId;
+            option.hidden = !(mesmoProduto && mesmoModelo);
+        });
+
+        limparSelecionadoSeOculto(faixaSelect);
+    }
+
+    produtoSelect.addEventListener("change", function () {
+        filtrarModelos();
+        filtrarFaixas();
+    });
+
+    modeloSelect.addEventListener("change", filtrarFaixas);
+
+    filtrarModelos();
+    filtrarFaixas();
+});
+</script>
+
+{% endblock %}

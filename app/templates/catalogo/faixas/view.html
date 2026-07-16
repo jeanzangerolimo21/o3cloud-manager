@@ -1,0 +1,116 @@
+{% extends "crud/view_base.html" %}
+
+{% block page_header %}
+
+{% set page_icon = "bi-sliders" %}
+{% set page_title = "Visualizar Faixa de Licenciamento" %}
+{% set page_description = "Detalhes da faixa comercial por quantidade de usuários." %}
+
+{% include "components/page_header.html" %}
+
+{% endblock %}
+
+{% block view_content %}
+
+<div class="row">
+    {% set label = "Produto" %}
+    {% set value = faixa.produto %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Modelo" %}
+    {% set value = faixa.modelo %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Código" %}
+    {% set value = faixa.codigo %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Faixa" %}
+    {% set value = faixa.nome %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Usuários Iniciais" %}
+    {% set value = faixa.usuarios_inicio %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Usuários Finais" %}
+    {% set value = faixa.usuarios_fim %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Mensal/Usuário" %}
+    {% set value = faixa.valor_mensal|moeda if faixa.valor_mensal is not none else '-' %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Mínimo/Usuário" %}
+    {% set value = faixa.valor_setup|moeda if faixa.valor_setup is not none else '-' %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Ordem" %}
+    {% set value = faixa.ordem %}
+    {% include "components/info_item.html" %}
+
+    <div class="col-md-6 mb-3">
+        <div class="border rounded p-3 h-100">
+            <div class="text-muted small mb-1">Permite upgrade manual</div>
+            {% if faixa.permite_upgrade_manual %}
+                <span class="badge bg-primary">Sim</span>
+            {% else %}
+                <span class="text-muted">Não</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="border rounded p-3 h-100">
+            <div class="text-muted small mb-1">Tem projeto</div>
+            {% if faixa.tem_projeto %}
+                <span class="badge bg-success">Sim</span>
+            {% else %}
+                <span class="text-muted">—</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="border rounded p-3 h-100">
+            <div class="text-muted small mb-1">Status da faixa</div>
+            {% if faixa.ativo %}
+                <span class="badge bg-success">Ativo</span>
+            {% else %}
+                <span class="badge bg-secondary">Inativo</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="border rounded p-3 h-100">
+            <div class="text-muted small mb-1">Status do preço</div>
+            {% if faixa.preco_ativo %}
+                <span class="badge bg-success">Ativo</span>
+            {% else %}
+                <span class="text-muted">Sem preço comercial</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="border rounded p-3">
+    <div class="text-muted small mb-1">Descrição</div>
+    <div class="fw-semibold">{{ faixa.descricao or "-" }}</div>
+</div>
+
+{% endblock %}
+
+{% block view_actions %}
+
+<a href="{{ url_for('catalogo.listar_faixas') }}" class="btn btn-secondary">
+    <i class="bi bi-arrow-left"></i>
+    Voltar
+</a>
+
+<a href="{{ url_for('catalogo.editar_faixa', faixa_id=faixa.id) }}" class="btn btn-warning">
+    <i class="bi bi-pencil"></i>
+    Editar
+</a>
+
+{% endblock %}

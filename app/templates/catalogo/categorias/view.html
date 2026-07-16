@@ -1,0 +1,177 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    {% set page_icon = "bi-tag" %}
+    {% set page_title = "Visualizar Categoria" %}
+    {% set page_description = "Detalhes da categoria do catálogo técnico." %}
+    {% include "components/page_header.html" %}
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body">
+
+            <div class="row mb-4">
+
+                <div class="col-md-3">
+
+                    <strong>Código</strong>
+
+                    <div class="mt-1">
+
+                        {{ categoria.codigo }}
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-7">
+
+                    <strong>Nome</strong>
+
+                    <div class="mt-1">
+
+                        {{ categoria.nome }}
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <strong>Ordem</strong>
+
+                    <div class="mt-1">
+
+                        {{ categoria.ordem }}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="mb-4">
+
+                <strong>Descrição</strong>
+
+                <div class="mt-2">
+
+                    {{ categoria.descricao or "-" }}
+
+                </div>
+
+            </div>
+
+            <div class="row">
+
+                <div class="col-md-3">
+
+                    <strong>Cor</strong>
+
+                    <div class="mt-2">
+
+                        <span
+                            style="
+                                display:inline-block;
+                                width:28px;
+                                height:28px;
+                                border-radius:6px;
+                                background:{{ categoria.cor }};
+                                border:1px solid #DDD;
+                            ">
+                        </span>
+
+                        {{ categoria.cor }}
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <strong>Status</strong>
+
+                    <div class="mt-2">
+
+                        {% if categoria.ativo %}
+
+                            <span class="badge bg-success">
+
+                                Ativa
+
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-secondary">
+
+                                Inativa
+
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <strong>Criado em</strong>
+
+                    <div class="mt-2">
+
+                        {{ categoria.created_at }}
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <strong>Atualizado em</strong>
+
+                    <div class="mt-2">
+
+                        {{ categoria.updated_at }}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="card-footer bg-white">
+
+            <a
+                href="{{ url_for('catalogo.listar_categorias') }}"
+                class="btn btn-secondary">
+
+                <i class="bi bi-arrow-left"></i>
+
+                Voltar
+
+            </a>
+
+            <a
+                href="{{ url_for('catalogo.editar_categoria', categoria_id=categoria.id) }}"
+                class="btn btn-warning">
+
+                <i class="bi bi-pencil"></i>
+
+                Editar
+
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

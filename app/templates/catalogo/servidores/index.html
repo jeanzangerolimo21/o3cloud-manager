@@ -1,0 +1,91 @@
+{% extends "crud/index_base.html" %}
+
+{% block page_header %}
+
+{% set page_icon = "bi-hdd-network" %}
+{% set page_title = "Dimensionamento Técnico" %}
+{% set page_description = "Configuração técnica interna dos servidores vinculados a produto, modelo e faixa." %}
+{% set page_button_text = "Novo Dimensionamento" %}
+{% set page_button_icon = "bi-plus-circle" %}
+{% set page_button_url = url_for("catalogo.novo_servidor") %}
+
+{% include "components/page_header.html" %}
+
+{% endblock %}
+
+
+{% block filters %}
+
+{% set placeholder = "Pesquisar dimensionamento..." %}
+{% set show_status = True %}
+{% set show_origem = False %}
+{% set status_field = "ativo" %}
+{% set status_options = {
+    "1": "Ativo",
+    "0": "Inativo"
+} %}
+
+{% include "components/filter_bar.html" %}
+
+{% endblock %}
+
+
+{% block table %}
+
+<table class="table table-hover align-middle"> 
+
+    <thead>
+        <tr>
+            <th width="160">Produto</th>
+            <th width="160">Modelo</th>
+            <th width="180">Faixa</th>
+            <th width="110">Código</th>
+            <th>Servidor</th>
+            <th width="130">Tipo</th>
+            <th width="150">Sistema</th>
+            <th width="120">Status</th>
+            <th width="170" class="text-center">Ações</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for servidor in servidores %}
+        <tr>
+            <td>{{ servidor.produto }}</td>
+            <td>{{ servidor.modelo }}</td>
+            <td>
+                <strong>{{ servidor.faixa_nome }}</strong><br>
+                <small class="text-muted">
+                    {{ servidor.usuarios_inicio }} a {{ servidor.usuarios_fim }} usuários
+                </small>
+            </td>
+            <td><code>{{ servidor.codigo }}</code></td>
+            <td>{{ servidor.nome }}</td>
+            <td>{{ servidor.tipo }}</td>
+            <td>{{ servidor.sistema_operacional or "-" }}</td>
+            <td>
+                {% if servidor.ativo %}
+                    <span class="badge bg-success">Ativo</span>
+                {% else %}
+                    <span class="badge bg-secondary">Inativo</span>
+                {% endif %}
+            </td>
+            <td class="text-center">
+                {% set view_url = url_for("catalogo.visualizar_servidor", servidor_id=servidor.id) %}
+                {% set edit_url = url_for("catalogo.editar_servidor", servidor_id=servidor.id) %}
+                {% set disable_url = url_for("catalogo.desativar_servidor", servidor_id=servidor.id) %}
+                {% include "components/crud_actions.html" %}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="9" class="text-center text-muted py-5">
+                Nenhum dimensionamento técnico cadastrado.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+
+</table>
+
+{% endblock %}

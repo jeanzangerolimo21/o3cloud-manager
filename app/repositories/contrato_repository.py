@@ -166,6 +166,12 @@ class ContratoRepository(BaseRepository):
                 c.codigo_externo,
                 c.origem,
                 c.numero,
+                c.descricao,
+                CONCAT(
+                    c.numero,
+                    ' - ',
+                    cli.nome_fantasia 
+                ) AS nome,    
                 c.status,
                 c.valor_mensal,
                 c.dia_faturamento,
@@ -195,13 +201,15 @@ class ContratoRepository(BaseRepository):
 
                     OR cli.nome_fantasia LIKE %s
 
+                    OR c.descricao LIKE %s
+
                 )
 
             """)
 
             termo = f"%{pesquisa}%"
 
-            parametros.extend([termo, termo])
+            parametros.extend([termo, termo, termo])
 
         if status:
 
@@ -537,3 +545,31 @@ class ContratoRepository(BaseRepository):
         conn.commit()
 
         cls.close(conn, cursor)
+
+    @classmethod
+    def listar_para_select(cls):
+
+        conn = cls.connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+
+            SELECT
+
+                id,
+
+                nome_fantasia
+
+            FROM clientes
+
+            WHERE ativo = 1
+
+            ORDER BY nome_fantasia
+
+        """)
+
+        clientes = cursor.fetchall()
+
+        cls.close(conn, cursor)
+
+        return clientes

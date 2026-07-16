@@ -449,3 +449,31 @@ class ClienteRepository(BaseRepository):
         cls.close(conn, cursor)
 
         return clientes
+    
+    @classmethod
+    def listar_para_select(cls):
+
+        conn = cls.connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+
+            SELECT
+
+                id,
+
+                nome_fantasia
+
+            FROM clientes
+
+            WHERE ativo = 1
+
+            ORDER BY nome_fantasia
+
+        """)
+
+        clientes = cursor.fetchall()
+
+        cls.close(conn, cursor)
+
+        return clientes

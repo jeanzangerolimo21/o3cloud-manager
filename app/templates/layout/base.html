@@ -45,6 +45,20 @@
 
         <div class="content">
 
+            {% if request.path != '/' %}
+            <div class="global-backbar">
+                <a
+                    href="/"
+                    class="btn btn-outline-secondary global-back-button"
+                    onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }">
+                    <i class="bi bi-arrow-left"></i>
+                    Voltar
+                </a>
+            </div>
+            {% endif %}
+
+	    {% include "components/alert.html" %}
+
             {% block content %}
             {% endblock %}
 

@@ -1,6 +1,8 @@
 import os
 
 from dotenv import load_dotenv
+from pathlib import Path
+
 
 load_dotenv()
 
@@ -26,3 +28,5 @@ class Config:
     DB_USER = os.getenv("DB_USER")
 
     DB_PASSWORD = os.getenv("DB_PASSWORD")
+
+    STORAGE_PATH = Path("/opt/o3cloud-manager/storage")

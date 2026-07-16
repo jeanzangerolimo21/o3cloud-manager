@@ -1,0 +1,158 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid tabela-precos-page">
+
+    <div class="base44-hero mb-4">
+        <div>
+            <div class="base44-eyebrow">Catálogo Comercial</div>
+            <h1 class="base44-title">Tabela de Preços</h1>
+            <p class="base44-subtitle">Gerencie seus preços por usuário e por servidor</p>
+        </div>
+        <div class="base44-hero-actions">
+            <a href="{{ url_for('catalogo.exportar_tabela_precos_csv') }}" class="btn btn-light base44-action-secondary">
+                <i class="bi bi-download"></i>
+                Exportar CSV
+            </a>
+            <a href="{{ url_for('catalogo.nova_faixa') }}" class="btn btn-primary base44-action-primary">
+                <i class="bi bi-plus-circle"></i>
+                Adicionar Licenciamento
+            </a>
+            <a href="{{ url_for('catalogo.novo_recurso_servidor') }}" class="btn btn-outline-light base44-action-secondary">
+                <i class="bi bi-hdd-rack"></i>
+                Adicionar Recurso
+            </a>
+        </div>
+    </div>
+
+    <section class="base44-section mb-4">
+        <div class="base44-section-header">
+            <div>
+                <h2 class="base44-section-title">Licenciamento por Usuário</h2>
+                <p class="base44-section-subtitle">Preços mensais por faixa de usuários</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ url_for('catalogo.nova_faixa') }}" class="btn btn-sm btn-primary base44-inline-action">
+                    <i class="bi bi-plus-circle"></i>
+                    Nova Faixa
+                </a>
+                <a href="{{ url_for('catalogo.listar_faixas') }}" class="btn btn-sm btn-outline-secondary base44-inline-action">
+                    <i class="bi bi-list-ol"></i>
+                    Gerenciar Faixas
+                </a>
+            </div>
+        </div>
+
+        <div class="base44-table-shell">
+            <div class="table-responsive">
+                <table class="table base44-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Software</th>
+                            <th>Descrição</th>
+                            <th class="text-end">Mensal/Usuário</th>
+                            <th class="text-end">Mínimo/Usuário</th>
+                            <th class="text-center">Qtd Mín</th>
+                            <th class="text-center">Tem Projeto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for licenca in licencas %}
+                        <tr>
+                            <td>
+                                <div class="base44-main-cell">
+                                    <strong>{{ licenca.software }}</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="base44-muted-text">{{ licenca.descricao or '-' }}</span>
+                            </td>
+                            <td class="text-end base44-money">{{ licenca.valor_mensal|moeda }}</td>
+                            <td class="text-end base44-money">{{ licenca.valor_setup|moeda }}</td>
+                            <td class="text-center">{{ licenca.qtd_minima }}</td>
+                            <td class="text-center">
+                                {% if licenca.tem_projeto %}
+                                    <span class="base44-check-pill">
+                                        <i class="bi bi-check2"></i>
+                                        Sim
+                                    </span>
+                                {% else %}
+                                    <span class="base44-empty-pill">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-5">
+                                Nenhum preço de licenciamento cadastrado.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="base44-section">
+        <div class="base44-section-header">
+            <div>
+                <h2 class="base44-section-title">Recursos de Servidor</h2>
+                <p class="base44-section-subtitle">Componentes e serviços adicionais faturáveis</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ url_for('catalogo.novo_recurso_servidor') }}" class="btn btn-sm btn-primary base44-inline-action">
+                    <i class="bi bi-plus-circle"></i>
+                    Novo Recurso
+                </a>
+                <a href="{{ url_for('catalogo.listar_recursos_servidor') }}" class="btn btn-sm btn-outline-secondary base44-inline-action">
+                    <i class="bi bi-box-seam"></i>
+                    Gerenciar Recursos
+                </a>
+            </div>
+        </div>
+
+        <div class="base44-table-shell">
+            <div class="table-responsive">
+                <table class="table base44-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Categoria</th>
+                            <th>Recurso</th>
+                            <th>Descrição</th>
+                            <th class="text-end">Mensal</th>
+                            <th class="text-end">Instalação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for recurso in recursos %}
+                        <tr>
+                            <td>
+                                <span class="base44-category-chip">{{ recurso.categoria }}</span>
+                            </td>
+                            <td>
+                                <div class="base44-main-cell">
+                                    <strong>{{ recurso.nome }}</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="base44-muted-text">{{ recurso.descricao or '-' }}</span>
+                            </td>
+                            <td class="text-end base44-money">{{ recurso.valor_mensal|moeda }}</td>
+                            <td class="text-end base44-money">{{ recurso.valor_instalacao|moeda }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-5">
+                                Nenhum recurso de servidor cadastrado.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}

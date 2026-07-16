@@ -1,0 +1,100 @@
+{% extends "crud/view_base.html" %}
+
+{% block page_header %}
+
+{% set page_icon = "bi-hdd-network" %}
+{% set page_title = "Visualizar Dimensionamento Técnico" %}
+{% set page_description = "Detalhes do cadastro técnico interno do servidor." %}
+
+{% include "components/page_header.html" %}
+
+{% endblock %}
+
+
+{% block view_content %}
+
+<div class="row">
+    {% set label = "Produto" %}
+    {% set value = servidor.produto %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Modelo" %}
+    {% set value = servidor.modelo %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Faixa" %}
+    {% set value = servidor.faixa_nome %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Código" %}
+    {% set value = servidor.codigo %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Nome" %}
+    {% set value = servidor.nome %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Tipo" %}
+    {% set value = servidor.tipo %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Sistema Operacional" %}
+    {% set value = servidor.sistema_operacional %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Ordem" %}
+    {% set value = servidor.ordem %}
+    {% include "components/info_item.html" %}
+
+    <div class="col-md-6 mb-3">
+        <div class="border rounded p-3 h-100">
+            <div class="text-muted small mb-1">Faixa de usuários</div>
+            <div class="fw-semibold">{{ servidor.usuarios_inicio }} a {{ servidor.usuarios_fim }}</div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="border rounded p-3 h-100">
+            <div class="text-muted small mb-1">Status</div>
+            {% if servidor.ativo %}
+                <span class="badge bg-success">Ativo</span>
+            {% else %}
+                <span class="badge bg-secondary">Inativo</span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% set label = "UUID" %}
+    {% set value = servidor.uuid %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Criado em" %}
+    {% set value = servidor.created_at %}
+    {% include "components/info_item.html" %}
+
+    {% set label = "Atualizado em" %}
+    {% set value = servidor.updated_at %}
+    {% include "components/info_item.html" %}
+</div>
+
+<div class="border rounded p-3">
+    <div class="text-muted small mb-1">Observações</div>
+    <div class="fw-semibold">{{ servidor.observacoes or "-" }}</div>
+</div>
+
+{% endblock %}
+
+
+{% block view_actions %}
+
+<a href="{{ url_for('catalogo.listar_servidores') }}" class="btn btn-secondary">
+    <i class="bi bi-arrow-left"></i>
+    Voltar
+</a>
+
+<a href="{{ url_for('catalogo.editar_servidor', servidor_id=servidor.id) }}" class="btn btn-warning">
+    <i class="bi bi-pencil"></i>
+    Editar
+</a>
+
+{% endblock %}

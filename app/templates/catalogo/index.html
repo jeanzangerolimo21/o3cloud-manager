@@ -1,0 +1,203 @@
+{% extends "layout/base.html" %}
+
+{% block title %}
+Catálogo Comercial
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="page-header mb-4">
+
+        <h2>
+            <i class="bi bi-grid"></i>
+            Catálogo Comercial
+        </h2>
+
+        <p class="text-muted">
+            Gestão simplificada dos produtos, preços e recursos usados pelo time comercial.
+        </p>
+
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <h1>{{ total_categorias }}</h1>
+
+                    <small>Categorias</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <h1>{{ total_produtos }}</h1>
+
+                    <small>Produtos Fechados</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <h1>{{ total_modelos }}</h1>
+
+                    <small>Modelos</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <h1>{{ total_faixas }}</h1>
+
+                    <small>Faixas</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <hr class="my-5">
+
+    <div class="row g-4 align-items-stretch">
+
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <h4 class="mb-3">Visão Geral do Catálogo</h4>
+
+                    <p class="text-muted mb-4">
+                        Os acessos principais do catálogo ficam concentrados aqui, sem repetir toda a navegação lateral.
+                    </p>
+
+                    <div class="row g-3">
+
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                    <h5 class="mb-0">Categorias</h5>
+                                    <span class="badge text-bg-secondary">{{ total_categorias }}</span>
+                                </div>
+                                <p class="text-muted mb-3">Acompanhe e organize as categorias do catálogo.</p>
+                                <a href="{{ url_for('catalogo.listar_categorias') }}" class="btn btn-outline-primary">
+                                    <i class="bi bi-tags"></i>
+                                    Ver Categorias
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                    <h5 class="mb-0">Modelos</h5>
+                                    <span class="badge text-bg-secondary">{{ total_modelos }}</span>
+                                </div>
+                                <p class="text-muted mb-3">Gerencie os modelos comerciais e crie novos cadastros.</p>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <a href="{{ url_for('catalogo.listar_modelos') }}" class="btn btn-outline-primary">
+                                        <i class="bi bi-diagram-2"></i>
+                                        Ver Modelos
+                                    </a>
+                                    <a href="{{ url_for('catalogo.novo_modelo') }}" class="btn btn-primary">
+                                        <i class="bi bi-plus-lg"></i>
+                                        Novo
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                    <h5 class="mb-0">Faixas</h5>
+                                    <span class="badge text-bg-secondary">{{ total_faixas }}</span>
+                                </div>
+                                <p class="text-muted mb-3">Acesse diretamente a listagem e o cadastro das faixas comerciais.</p>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <a href="{{ url_for('catalogo.listar_faixas') }}" class="btn btn-outline-primary">
+                                        <i class="bi bi-list-ol"></i>
+                                        Gerenciar
+                                    </a>
+                                    <a href="{{ url_for('catalogo.nova_faixa') }}" class="btn btn-primary">
+                                        <i class="bi bi-plus-lg"></i>
+                                        Nova
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body d-flex flex-column">
+
+                    <h4 class="mb-3">Ação Rápida</h4>
+
+                    <p class="text-muted">
+                        A importação continua disponível aqui por ser uma ação eventual, e não um item de navegação recorrente.
+                    </p>
+
+                    <a href="{{ url_for('catalogo.importar_catalogo') }}"
+                       class="btn btn-success mt-auto">
+
+                        <i class="bi bi-upload"></i>
+
+                        Importar Catálogo
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

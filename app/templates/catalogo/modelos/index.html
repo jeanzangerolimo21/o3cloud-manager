@@ -1,0 +1,218 @@
+{% extends "crud/index_base.html" %}
+
+{% block page_header %}
+
+{% set page_icon = "bi-diagram-3" %}
+{% set page_title = "Modelos" %}
+{% set page_description = "Cadastro de modelos do Catálogo Técnico." %}
+{% set page_button_text = "Novo Modelo" %}
+{% set page_button_icon = "bi-plus-circle" %}
+{% set page_button_url = url_for("catalogo.novo_modelo") %}
+
+{% include "components/page_header.html" %}
+
+{% endblock %}
+
+
+{% block filters %}
+
+{% set placeholder = "Pesquisar modelo..." %}
+{% set show_status = True %}
+{% set show_origem = False %}
+{% set status_field = "ativo" %}
+{% set status_options = {
+    "1": "Ativo",
+    "0": "Inativo"
+} %}
+
+{% include "components/filter_bar.html" %}
+
+{% endblock %}
+
+
+{% block table %}
+
+<table class="table table-hover align-middle">
+
+    <thead>
+
+        <tr>
+
+            <th width="180">
+
+                Produto
+
+            </th>
+
+            <th width="120">
+
+                Código
+
+            </th>
+
+            <th>
+
+                Modelo
+
+            </th>
+
+            <th width="110">
+
+                Versão
+
+            </th>
+
+            <th width="100">
+
+                Padrão
+
+            </th>
+
+            <th width="80" class="text-center">
+
+                Ordem
+
+            </th>
+
+            <th width="120">
+
+                Status
+
+            </th>
+
+            <th width="170" class="text-center">
+
+                Ações
+
+            </th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+        {% for modelo in modelos %}
+
+        <tr>
+
+            <td>
+
+                {{ modelo.produto }}
+
+            </td>
+
+            <td>
+
+                {{ modelo.codigo }}
+
+            </td>
+
+            <td>
+
+                <strong>
+
+                    {{ modelo.nome }}
+
+                </strong>
+
+            </td>
+
+            <td>
+
+                {{ modelo.versao or "-" }}
+
+            </td>
+
+            <td>
+
+                {% if modelo.padrao %}
+
+                    <span class="badge bg-primary">
+
+                        Sim
+
+                    </span>
+
+                {% else %}
+
+                    <span class="text-muted">
+
+                        Não
+
+                    </span>
+
+                {% endif %}
+
+            </td>
+
+            <td class="text-center">
+
+                {{ modelo.ordem }}
+
+            </td>
+
+            <td>
+
+                {% if modelo.ativo %}
+
+                    <span class="badge bg-success">
+
+                        Ativo
+
+                    </span>
+
+                {% else %}
+
+                    <span class="badge bg-secondary">
+
+                        Inativo
+
+                    </span>
+
+                {% endif %}
+
+            </td>
+
+            <td class="text-center">
+
+                {% set view_url = url_for(
+                    "catalogo.visualizar_modelo",
+                    modelo_id=modelo.id
+                ) %}
+
+                {% set edit_url = url_for(
+                    "catalogo.editar_modelo",
+                    modelo_id=modelo.id
+                ) %}
+
+                {% set disable_url = url_for(
+                    "catalogo.desativar_modelo",
+                    modelo_id=modelo.id
+                ) %}
+
+                {% include "components/crud_actions.html" %}
+
+            </td>
+
+        </tr>
+
+        {% else %}
+
+        <tr>
+
+            <td colspan="8" class="text-center text-muted py-5">
+
+                Nenhum modelo cadastrado.
+
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </tbody>
+
+</table>
+
+{% endblock %}

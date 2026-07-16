@@ -437,3 +437,364 @@ body{
     opacity:.92;
 
 }
+
+
+/* =====================================================
+   TABELA DE PRECOS
+   ===================================================== */
+
+.tabela-precos-page{
+
+    max-width:1400px;
+
+}
+
+.base44-hero{
+
+    background:linear-gradient(135deg,#ffffff 0%,#f4f0fb 100%);
+
+    border:1px solid #e8ddf8;
+
+    border-radius:22px;
+
+    padding:28px 30px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:flex-start;
+
+    gap:20px;
+
+    box-shadow:0 14px 40px rgba(75,22,133,.08);
+
+}
+
+.base44-eyebrow{
+
+    font-size:12px;
+
+    font-weight:700;
+
+    letter-spacing:1.2px;
+
+    text-transform:uppercase;
+
+    color:#7d63ab;
+
+    margin-bottom:8px;
+
+}
+
+.base44-title{
+
+    font-size:34px;
+
+    line-height:1.05;
+
+    font-weight:700;
+
+    margin:0;
+
+    color:#231634;
+
+}
+
+.base44-subtitle{
+
+    margin:10px 0 0;
+
+    color:#6f6680;
+
+    font-size:15px;
+
+}
+
+.base44-hero-actions{
+
+    display:flex;
+
+    gap:12px;
+
+    flex-wrap:wrap;
+
+}
+
+.base44-action-secondary{
+
+    border:1px solid #ddd4ec;
+
+    color:#3b2e4f;
+
+    background:#fff;
+
+}
+
+.base44-action-secondary:hover{
+
+    background:#f8f4ff;
+
+    border-color:#c8b8e7;
+
+}
+
+.base44-action-primary{
+
+    min-width:132px;
+
+}
+
+.base44-section{
+
+    background:#fff;
+
+    border:1px solid #ebe7f2;
+
+    border-radius:20px;
+
+    box-shadow:0 10px 26px rgba(32,22,53,.05);
+
+    overflow:hidden;
+
+}
+
+.base44-section-header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    gap:16px;
+
+    padding:24px 26px 14px;
+
+}
+
+.base44-section-title{
+
+    margin:0;
+
+    font-size:24px;
+
+    font-weight:700;
+
+    color:#1f1730;
+
+}
+
+.base44-section-subtitle{
+
+    margin:6px 0 0;
+
+    color:#7d748b;
+
+    font-size:14px;
+
+}
+
+.base44-inline-action{
+
+    white-space:nowrap;
+
+}
+
+.base44-table-shell{
+
+    padding:0 12px 12px;
+
+}
+
+.base44-table{
+
+    --bs-table-bg:transparent;
+
+    margin:0;
+
+}
+
+.base44-table thead th{
+
+    border-top:none;
+
+    border-bottom:1px solid #ece7f4;
+
+    color:#7f7790;
+
+    font-size:12px;
+
+    font-weight:700;
+
+    text-transform:uppercase;
+
+    letter-spacing:.5px;
+
+    padding:14px 14px;
+
+    background:#fcfbfe;
+
+}
+
+.base44-table tbody td{
+
+    border-bottom:1px solid #f0edf6;
+
+    padding:15px 14px;
+
+    vertical-align:middle;
+
+}
+
+.base44-table tbody tr:last-child td{
+
+    border-bottom:none;
+
+}
+
+.base44-table tbody tr:hover{
+
+    background:#faf7ff;
+
+}
+
+.base44-main-cell{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:2px;
+
+}
+
+.base44-muted-text{
+
+    color:#645d74;
+
+}
+
+.base44-money{
+
+    font-weight:700;
+
+    color:#2f2442;
+
+    white-space:nowrap;
+
+}
+
+.base44-check-pill{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:6px;
+
+    padding:5px 10px;
+
+    border-radius:999px;
+
+    background:#e8f8ee;
+
+    color:#198754;
+
+    font-weight:600;
+
+    font-size:13px;
+
+}
+
+.base44-empty-pill{
+
+    color:#a39ab3;
+
+    font-weight:600;
+
+}
+
+.base44-category-chip{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    padding:5px 10px;
+
+    border-radius:999px;
+
+    background:#f1ebfb;
+
+    color:#5d3d96;
+
+    font-size:13px;
+
+    font-weight:600;
+
+}
+
+@media (max-width: 991px){
+
+    .base44-hero,
+    .base44-section-header{
+
+        flex-direction:column;
+
+        align-items:stretch;
+
+    }
+
+    .base44-title{
+
+        font-size:28px;
+
+    }
+
+    .tabela-precos-page{
+
+        max-width:none;
+
+    }
+
+}
+
+
+.global-backbar{
+
+    display:flex;
+
+    justify-content:flex-start;
+
+    margin-bottom:18px;
+
+}
+
+.global-back-button{
+
+    border-color:#d9d2e7;
+
+    color:#4b1685;
+
+    background:#fff;
+
+    border-radius:999px;
+
+    padding:8px 16px;
+
+    font-weight:600;
+
+    box-shadow:0 6px 16px rgba(75,22,133,.06);
+
+}
+
+.global-back-button:hover{
+
+    color:#4b1685;
+
+    background:#f7f2ff;
+
+    border-color:#c8b8e7;
+
+}

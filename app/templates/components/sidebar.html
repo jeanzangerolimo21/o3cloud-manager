@@ -26,8 +26,13 @@
             </a>
 
             <div class="menu-section">
-                Cadastros 
+                Cadastros
             </div>
+
+            <a href="{{ url_for('ambientes.index') }}" class="submenu-item">
+                <i class="bi bi-hdd-network"></i>
+                Ambientes
+            </a>
 
             <a href="/clientes" class="submenu-item">
                 <i class="bi bi-people"></i>
@@ -38,17 +43,36 @@
                 <i class="bi bi-file-earmark-text"></i>
                 Contratos
             </a>
-           
-            <a
-                class="submenu-item"
-                href="{{ url_for('parceiros.index') }}">
+
+            <a class="submenu-item"
+               href="{{ url_for('parceiros.index') }}">
                 <i class="bi bi-building"></i>
                 Parceiros
             </a>
 
-            <a href="/produtos" class="submenu-item">
+            <a href="{{ url_for('catalogo.index') }}" class="submenu-item">
+                <i class="bi bi-box-seam"></i>
+                Catálogo Comercial
+            </a>
+
+            <a href="{{ url_for('catalogo.listar_tabela_precos') }}" class="submenu-item">
+                <i class="bi bi-cash-stack"></i>
+                Tabela de Preços
+            </a>
+
+            <a href="{{ url_for('catalogo.listar_recursos_servidor') }}" class="submenu-item">
+                <i class="bi bi-hdd-rack"></i>
+                Recursos de Servidor
+            </a>
+
+            <a href="{{ url_for('catalogo.listar_produtos') }}" class="submenu-item">
                 <i class="bi bi-box"></i>
-                Produtos
+                Produtos Fechados
+            </a>
+
+            <a href="{{ url_for('catalogo.listar_servidores') }}" class="submenu-item">
+                <i class="bi bi-tools"></i>
+                Dimensionamento Técnico
             </a>
 
             <div class="menu-section">

@@ -1,0 +1,174 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    {% set page_title = ambiente.nome %}
+    {% set page_description = "Detalhes do ambiente" %}
+    {% set page_icon = "bi-hdd-network" %}
+    {% set page_button_url = url_for("ambientes.editar", ambiente_id=ambiente.id) %}
+    {% set page_button_icon = "bi-pencil" %}
+    {% set page_button_text = "Editar" %}
+
+    {% include "components/page_header.html" %}
+
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            <div class="d-flex gap-2 mb-4">
+
+                <span class="badge bg-success">
+
+                    {{ ambiente.situacao }}
+
+                </span>
+
+                <span class="badge bg-primary">
+
+                    {{ ambiente.ambiente_tipo }}
+
+                </span>
+
+                <span class="badge bg-secondary">
+
+                    {{ ambiente.origem }}
+
+                </span>
+
+            </div>
+
+            <h5 class="mb-3">
+
+                Informações Gerais
+
+            </h5>
+
+            <div class="row">
+
+                {% set label = "Cliente" %}
+                {% set value = ambiente.cliente_nome %}
+                {% include "components/info_item.html" %}
+
+                {% set label = "Parceiro" %}
+                {% set value = ambiente.parceiro_nome %}
+                {% include "components/info_item.html" %}
+
+                {% set label = "Contrato" %}
+                {% set value = ambiente.contrato_numero %}
+                {% include "components/info_item.html" %}
+
+                {% set label = "Prefixo Proxmox" %}
+                {% set value = ambiente.prefixo_proxmox %}
+                {% include "components/info_item.html" %}
+
+                {% set label = "Responsável" %}
+                {% set value = ambiente.responsavel_implantacao %}
+                {% include "components/info_item.html" %}
+
+                {% set label = "Origem" %}
+                {% set value = ambiente.origem %}
+                {% include "components/info_item.html" %}
+
+            </div>
+
+            <hr>
+
+            <h5>
+
+                Descrição
+
+            </h5>
+
+            <p>
+
+                {{ ambiente.descricao or "Nenhuma descrição cadastrada." }}
+
+            </p>
+
+            <hr>
+
+            <h5>
+
+                Observações
+
+            </h5>
+
+            <p>
+
+                {{ ambiente.observacoes or "Nenhuma observação cadastrada." }}
+
+            </p>
+
+            <hr>
+
+            <h5>
+
+                Infraestrutura
+
+            </h5>
+
+            <div class="row">
+
+                {% set value = "--" %}
+                {% set label = "CPU" %}
+                {% include "components/info_card.html" %}
+
+                {% set value = "--" %}
+                {% set label = "RAM" %}
+                {% include "components/info_card.html" %}
+
+                {% set value = "--" %}
+                {% set label = "Disco" %}
+                {% include "components/info_card.html" %}
+
+                {% set value = "--" %}
+                {% set label = "Node" %}
+                {% include "components/info_card.html" %}
+
+                {% set value = "--" %}
+                {% set label = "Cluster" %}
+                {% include "components/info_card.html" %}
+
+                {% set value = "--" %}
+                {% set label = "Storage" %}
+                {% include "components/info_card.html" %}
+
+            </div>
+
+            <hr>
+
+            <div class="row">
+
+                {% set label = "Criado em" %}
+                {% set value = ambiente.created_at %}
+                {% include "components/info_item.html" %}
+
+                {% set label = "Última atualização" %}
+                {% set value = ambiente.updated_at %}
+                {% include "components/info_item.html" %}
+
+            </div>
+
+            <div class="mt-4 text-end">
+
+                <a
+                    href="{{ url_for('ambientes.index') }}"
+                    class="btn btn-secondary">
+
+                    <i class="bi bi-arrow-left"></i>
+
+                    Voltar
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

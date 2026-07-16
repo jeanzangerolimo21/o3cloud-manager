@@ -1,0 +1,43 @@
+<div class="btn-group btn-group-sm">
+
+    {% if view_url %}
+
+        <a
+            href="{{ view_url }}"
+            class="btn btn-outline-primary"
+            title="Visualizar">
+
+            <i class="bi bi-eye"></i>
+
+        </a>
+
+    {% endif %}
+
+    {% if edit_url %}
+
+        <a
+            href="{{ edit_url }}"
+            class="btn btn-outline-warning"
+            title="Editar">
+
+            <i class="bi bi-pencil"></i>
+
+        </a>
+
+    {% endif %}
+
+    {% if delete_url %}
+
+        <a
+            href="{{ delete_url }}"
+            class="btn btn-outline-danger"
+            title="Excluir"
+            onclick="return confirm('Deseja realmente excluir este registro?')">
+
+            <i class="bi bi-trash"></i>
+
+        </a>
+
+    {% endif %}
+
+</div>
