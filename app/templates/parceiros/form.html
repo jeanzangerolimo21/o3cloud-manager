@@ -13,286 +13,220 @@
 
     {% include "components/page_header.html" %}
 
-    <div class="card">
+    {% if clientes_importacao %}
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <h5 class="mb-2">Importar de Cliente</h5>
+            <p class="text-muted mb-3">Selecione um cliente ja cadastrado para preencher os dados do parceiro sem criar vinculo permanente.</p>
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-9">
+                    <label class="form-label">Cliente</label>
+                    <select class="form-select" id="clienteImportadoSelect" name="cliente_importado_id" form="parceiro-form">
+                        <option value="">Selecione um cliente para importar</option>
+                        {% for cliente_item in clientes_importacao %}
+                        <option
+                            value="{{ cliente_item.id }}"
+                            data-nome-fantasia="{{ cliente_item.nome_fantasia or '' }}"
+                            data-razao-social="{{ cliente_item.razao_social or '' }}"
+                            data-cnpj="{{ cliente_item.cnpj or '' }}"
+                            data-email="{{ cliente_item.email or '' }}"
+                            data-telefone="{{ cliente_item.telefone or '' }}"
+                            data-cidade="{{ cliente_item.cidade or '' }}"
+                            data-uf="{{ cliente_item.estado or '' }}"
+                            {% if parceiro and parceiro.cliente_importado_id and parceiro.cliente_importado_id|string == cliente_item.id|string %}selected{% endif %}>
+                            {{ cliente_item.nome_fantasia or cliente_item.razao_social or ('Cliente #' ~ cliente_item.id) }}{% if cliente_item.cnpj %} - {{ cliente_item.cnpj }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-3 d-grid">
+                    <button type="button" class="btn btn-outline-primary" id="aplicarImportacaoCliente">
+                        <i class="bi bi-arrow-down-circle"></i>
+                        Importar Dados
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm border-0">
 
         <div class="card-body">
 
-            <form method="POST" enctype="multipart/form-data">
+            <form method="POST" enctype="multipart/form-data" id="parceiro-form">
 
-                <div class="row">
+                <h5 class="mb-3">Dados da Empresa</h5>
 
-                    <div class="col-md-8 mb-3">
+                <div class="row g-3 mb-4">
 
-                        <label class="form-label">
-
-                            Nome
-
-                        </label>
-
-                        <input
-                            class="form-control"
-                            name="nome"
-                            required
-                            value="{{ parceiro.nome if parceiro else '' }}">
-
+                    <div class="col-md-4">
+                        <label class="form-label">CNPJ</label>
+                        <input class="form-control" name="cnpj" placeholder="00.000.000/0000-00" value="{{ parceiro.cnpj if parceiro else '' }}">
                     </div>
 
-                    <div class="col-md-4 mb-3">
-
-                        <label class="form-label">
-
-                            Sigla
-
-                        </label>
-
-                        <input
-                            class="form-control"
-                            name="sigla"
-                            value="{{ parceiro.sigla if parceiro else '' }}">
-
+                    <div class="col-md-4">
+                        <label class="form-label">Segmento</label>
+                        <input class="form-control" name="segmento" placeholder="Ex: ERP, RH, Contabilidade" value="{{ parceiro.segmento if parceiro else '' }}">
                     </div>
 
-                </div>
-
-                <div class="row">
-
-                    <div class="col-md-4 mb-3">
-
-                        <label class="form-label">
-
-                            Tipo
-
-                        </label>
-
-                        <select
-                            class="form-select"
-                            name="tipo">
-
-                            <option
-                                value="SOFTWARE_HOUSE"
-                                {% if parceiro and parceiro.tipo=="SOFTWARE_HOUSE" %}
-                                    selected
-                                {% endif %}>
-
-                                Software House
-
-                            </option>
-
-
-                            <option
-                                value="CANAL"
-                                {% if parceiro and parceiro.tipo=="SOFTWARE_HOUSE" %}
-                                    selected
-                                {% endif %}>
-
-                                Canal
-
-                            </option>
-
-
-                            <option
-                                value="REVENDA"
-                                {% if parceiro and parceiro.tipo=="SOFTWARE_HOUSE" %}
-                                    selected
-                                {% endif %}>
-
-                                Revenda
-
-                            </option>
-
-
-                            <option
-                                value="INTERNO"
-                                {% if parceiro and parceiro.tipo=="SOFTWARE_HOUSE" %}
-                                    selected
-                                {% endif %}>
-
-                                O3Cloud
-
-                            </option>
-
-
-                            <option
-                                value="OUTRO"
-                                {% if parceiro and parceiro.tipo=="SOFTWARE_HOUSE" %}
-                                    selected
-                                {% endif %}>
-
-                                Outro
-
-                            </option>
-
-                        </select>
-
+                    <div class="col-md-4">
+                        <label class="form-label">UF</label>
+                        <input class="form-control text-uppercase" maxlength="2" name="uf" placeholder="SP" value="{{ parceiro.uf if parceiro else '' }}">
                     </div>
 
-                    <div class="col-md-4 mb-3">
-
-                        <label class="form-label">
-
-                            Contato
-
-                        </label>
-
-                        <input
-                            class="form-control"
-                            name="contato"
-                            value="{{ parceiro.contato if parceiro else '' }}">
-
+                    <div class="col-md-6">
+                        <label class="form-label">Razão Social *</label>
+                        <input class="form-control" name="razao_social" required placeholder="Razão social" value="{{ parceiro.razao_social if parceiro else '' }}">
                     </div>
 
-                    <div class="col-md-4 mb-3">
-
-                        <label class="form-label">
-
-                            Telefone
-
-                        </label>
-
-                        <input
-                            class="form-control"
-                            name="telefone"
-                            value="{{ parceiro.telefone if parceiro else '' }}">
-
+                    <div class="col-md-6">
+                        <label class="form-label">Nome Fantasia</label>
+                        <input class="form-control" name="nome_fantasia" placeholder="Nome fantasia" value="{{ parceiro.nome_fantasia if parceiro else '' }}">
                     </div>
 
-                </div>
-
-                <div class="row">
-
-                    <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
-
-                            E-mail
-
-                        </label>
-
-                        <input
-                            class="form-control"
-                            type="email"
-                            name="email"
-                            value="{{ parceiro.email if parceiro else '' }}">
-
+                    <div class="col-md-8">
+                        <label class="form-label">Endereço</label>
+                        <input class="form-control" name="endereco" placeholder="Rua, número, complemento" value="{{ parceiro.endereco if parceiro else '' }}">
                     </div>
 
-                    <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
-
-                            Site
-
-                        </label>
-
-                        <input
-                            class="form-control"
-                            name="site"
-                            value="{{ parceiro.site if parceiro else '' }}">
-
+                    <div class="col-md-4">
+                        <label class="form-label">Cidade</label>
+                        <input class="form-control" name="cidade" placeholder="Cidade" value="{{ parceiro.cidade if parceiro else '' }}">
                     </div>
-		    <div class="row">
-                        <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
+                    <div class="col-md-4">
+                        <label class="form-label">Telefone</label>
+                        <input class="form-control" name="telefone" placeholder="(11) 3333-3333" value="{{ parceiro.telefone if parceiro else '' }}">
+                    </div>
 
-                                Logo do Parceiro
+                    <div class="col-md-4">
+                        <label class="form-label">E-mail</label>
+                        <input class="form-control" type="email" name="email" placeholder="contato@empresa.com" value="{{ parceiro.email if parceiro else '' }}">
+                    </div>
 
-                            </label>
-                            {% if parceiro and parceiro.logo %}
+                    <div class="col-md-4">
+                        <label class="form-label">Site</label>
+                        <input class="form-control" name="site" placeholder="https://empresa.com.br" value="{{ parceiro.site if parceiro else '' }}">
+                    </div>
 
-                            <div class="mt-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Logo do Parceiro</label>
+                        <input type="file" class="form-control" name="logo" accept=".png,.jpg,.jpeg,.svg">
+                    </div>
 
-                            <label class="form-label">
-
-                                Logo Atual
-
-                            </label>
-
-                            <br>
-
-                            <img
-                                src="{{ url_for('uploads', arquivo='parceiros/' ~ parceiro.logo) }}"
-                                class="img-thumbnail"
-                                style="max-height:120px;">
-
-                            </div>
-
-                            {% endif %}
-                            <input
-                                type="file"
-                                class="form-control"
-                                name="logo"
-                                accept=".png,.jpg,.jpeg,.svg">
-
-                            <small class="text-muted">
-
-                                PNG, JPG, JPEG ou SVG 
-                                Máximo recomendado: 2Mb
-
-                            </small>
+                    {% if parceiro and parceiro.logo %}
+                    <div class="col-12">
+                        <label class="form-label">Logo Atual</label>
+                        <div>
+                            <img src="/storage/parceiros/{{ parceiro.logo }}" alt="Logo de {{ parceiro.nome_fantasia or parceiro.nome or parceiro.razao_social }}" class="img-thumbnail" style="max-height: 140px;">
                         </div>
                     </div>
-
+                    {% endif %}
 
                 </div>
 
-                <div class="mb-3">
+                <hr>
 
-                    <label class="form-label">
+                <h5 class="mb-3">Pessoas Chave</h5>
 
-                        Descrição
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label">Contato 1 — Nome *</label>
+                        <input class="form-control" name="contato_1_nome" required placeholder="Nome completo" value="{{ parceiro.contato_1_nome if parceiro else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">E-mail *</label>
+                        <input class="form-control" type="email" name="contato_1_email" required placeholder="email@empresa.com" value="{{ parceiro.contato_1_email if parceiro else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Cel/WhatsApp *</label>
+                        <input class="form-control" name="contato_1_telefone" required placeholder="(11) 99999-9999" value="{{ parceiro.contato_1_telefone if parceiro else '' }}">
+                    </div>
 
-                    </label>
+                    <div class="col-md-4">
+                        <label class="form-label">Contato 2 — Nome</label>
+                        <input class="form-control" name="contato_2_nome" placeholder="Nome completo" value="{{ parceiro.contato_2_nome if parceiro else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">E-mail</label>
+                        <input class="form-control" type="email" name="contato_2_email" placeholder="email@empresa.com" value="{{ parceiro.contato_2_email if parceiro else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Cel/WhatsApp</label>
+                        <input class="form-control" name="contato_2_telefone" placeholder="(11) 99999-9999" value="{{ parceiro.contato_2_telefone if parceiro else '' }}">
+                    </div>
 
-                    <textarea
-                        class="form-control"
-                        rows="4"
-                        name="descricao">{{ parceiro.descricao if parceiro else '' }}</textarea>
+                    <div class="col-md-4">
+                        <label class="form-label">Contato 3 — Nome</label>
+                        <input class="form-control" name="contato_3_nome" placeholder="Nome completo" value="{{ parceiro.contato_3_nome if parceiro else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">E-mail</label>
+                        <input class="form-control" type="email" name="contato_3_email" placeholder="email@empresa.com" value="{{ parceiro.contato_3_email if parceiro else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Cel/WhatsApp</label>
+                        <input class="form-control" name="contato_3_telefone" placeholder="(11) 99999-9999" value="{{ parceiro.contato_3_telefone if parceiro else '' }}">
+                    </div>
+                </div>
+
+                <hr>
+
+                <h5 class="mb-3">Relacionamento CRM</h5>
+
+                <div class="row g-3 mb-4">
+
+                    <div class="col-md-6">
+                        <label class="form-label">Executivo Responsável</label>
+                        <select class="form-select" name="executivo_responsavel_id">
+                            <option value="">— Sem executivo —</option>
+                            {% for executivo in executivos %}
+                            <option value="{{ executivo.id }}" {% if parceiro and parceiro.executivo_responsavel_id == executivo.id %}selected{% endif %}>
+                                {{ executivo.nome }}{% if executivo.parceiro %} - {{ executivo.parceiro }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Status da Negociação</label>
+                        <select class="form-select" name="status_negociacao">
+                            {% set selected_status = parceiro.status_negociacao if parceiro and parceiro.status_negociacao else 'PRIMEIRO_CONTATO' %}
+                            {% for valor, descricao in status_negociacao_options.items() %}
+                            <option value="{{ valor }}" {% if selected_status == valor %}selected{% endif %}>{{ descricao }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Informações Gerais</label>
+                        <textarea class="form-control" rows="5" name="informacoes_gerais" placeholder="Notas, observações, contexto geral sobre este parceiro...">{{ parceiro.informacoes_gerais if parceiro else '' }}</textarea>
+                    </div>
 
                 </div>
 
                 <div class="form-check mb-4">
-
-                    <input
-                        class="form-check-input"
-                        type="checkbox"
-                        name="ativo"
-                        value="1"
-                        {% if parceiro %}
-                            {% if parceiro.ativo %}
-                                checked
-                            {% endif %}
-                        {% else %}
-                            checked
-                        {% endif %}>
-
-                    <label class="form-check-label">
-
-                        Parceiro Ativo
-
-                    </label>
-
+                    <input class="form-check-input" type="checkbox" name="ativo" value="1" {% if parceiro %}{% if parceiro.ativo %}checked{% endif %}{% else %}checked{% endif %}>
+                    <label class="form-check-label">Parceiro Ativo</label>
                 </div>
 
-                <div class="d-flex justify-content-end">
-
-                    <a
-                        href="{{ url_for('parceiros.index') }}"
-                        class="btn btn-secondary me-2">
-
-                        Cancelar
-
-                    </a>
-
-                    <button
-                        class="btn btn-primary">
-
-                        <i class="bi bi-floppy"></i>
-
-                        Salvar
-
-                    </button>
-
+                <div class="d-flex justify-content-between gap-2 flex-wrap">
+                    <div>
+                        {% if modo == "editar" and parceiro and parceiro.id %}
+                        <a href="{{ url_for('parceiros.excluir', parceiro_id=parceiro.id) }}" onclick="return confirm('Deseja realmente excluir este parceiro do banco de dados?')" class="btn btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                            Excluir Parceiro
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('parceiros.index') }}" class="btn btn-secondary">Cancelar</a>
+                        <button class="btn btn-primary">
+                            <i class="bi bi-floppy"></i>
+                            Salvar
+                        </button>
+                    </div>
                 </div>
 
             </form>
@@ -302,5 +236,77 @@
     </div>
 
 </div>
+
+<script>
+(function () {
+    const select = document.getElementById("clienteImportadoSelect");
+    const button = document.getElementById("aplicarImportacaoCliente");
+
+    if (!select || !button) {
+        return;
+    }
+
+    function setValue(name, value) {
+        const field = document.querySelector(`[name="${name}"]`);
+        if (!field) {
+            return;
+        }
+        field.value = value || "";
+    }
+
+    function normalizarUf(value) {
+        return (value || "").trim().toUpperCase().slice(0, 2);
+    }
+
+    function formatPhone(value) {
+        const digits = (value || "").replace(/\D/g, "");
+
+        if (digits.length === 11) {
+            return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+        }
+
+        if (digits.length === 10) {
+            return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+        }
+
+        return value || "";
+    }
+
+    function aplicarMascaraTelefones() {
+        const campos = ["telefone", "contato_1_telefone", "contato_2_telefone", "contato_3_telefone"];
+
+        campos.forEach(function (name) {
+            const field = document.querySelector(`[name="${name}"]`);
+            if (!field) {
+                return;
+            }
+
+            field.addEventListener("blur", function () {
+                field.value = formatPhone(field.value);
+            });
+
+            field.value = formatPhone(field.value);
+        });
+    }
+
+    function aplicarDadosClienteImportado() {
+        const option = select.options[select.selectedIndex];
+        if (!option || !option.value) {
+            return;
+        }
+
+        setValue("nome_fantasia", option.dataset.nomeFantasia || "");
+        setValue("razao_social", option.dataset.razaoSocial || "");
+        setValue("cnpj", option.dataset.cnpj || "");
+        setValue("email", option.dataset.email || "");
+        setValue("telefone", formatPhone(option.dataset.telefone || ""));
+        setValue("cidade", option.dataset.cidade || "");
+        setValue("uf", normalizarUf(option.dataset.uf || ""));
+    }
+
+    button.addEventListener("click", aplicarDadosClienteImportado);
+    aplicarMascaraTelefones();
+})();
+</script>
 
 {% endblock %}

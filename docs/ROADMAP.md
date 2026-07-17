@@ -32,7 +32,7 @@ O desenvolvimento segue uma metodologia incremental baseada em Sprints, preserva
 | Módulo Clientes | ✅ Concluído |
 | Módulo Contratos | ✅ Concluído |
 | Catálogo Técnico | 🚧 Em Desenvolvimento |
-| CRM Comercial | ⏳ Planejado |
+| CRM Comercial | 🚧 Em Desenvolvimento |
 | Propostas | ⏳ Planejado |
 | Implantação | ⏳ Planejado |
 | Dashboard Executivo | ⏳ Planejado |
@@ -184,7 +184,7 @@ Status:
 
 # Sprint Atual
 
-## Sprint 6.4
+## Sprint 7
 
 Status:
 
@@ -192,36 +192,27 @@ Status:
 
 Objetivo:
 
-Implementar a segunda fase do Catálogo Técnico.
+Iniciar o CRM Comercial.
 
-Escopo:
+Escopo Atual:
 
-- ✅ CRUD Modelos
-- ✅ CRUD Faixas
-- 🚧 CRUD Servidores
-- 🚧 Base do Dimensionamento
+- ✅ Separação do bloco `CRM Comercial` no sidebar
+- ✅ CRUD base de Leads
+- ✅ CRUD base de Contatos
+- ✅ CRUD base de Oportunidades
+- ✅ Pipeline Comercial inicial
+- ✅ CRUD base de Propostas
+- ✅ Migration `crm_leads` criada e aplicada
+- ✅ Home com destaque para o início do CRM
+- ⏳ Integração ClickSign
 
 Próxima atividade:
 
-➡ Homologar CRUD de Servidores e consolidar a base do Dimensionamento
+➡ Evoluir Propostas e preparar a integração futura com ClickSign
 
 ---
 
 # Próximas Sprints
-
-## Sprint 7
-
-CRM Comercial
-
-Objetivos:
-
-- Leads
-- Contatos
-- Oportunidades
-- Pipeline Comercial
-- Integração ClickSign
-
----
 
 ## Sprint 8
 

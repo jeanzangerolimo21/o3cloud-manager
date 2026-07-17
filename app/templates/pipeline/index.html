@@ -1,0 +1,105 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid pipeline-page">
+
+    {% include "components/page_header.html" %}
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end mb-4">
+                <div class="col-lg-10">
+                    <label class="form-label">Pesquisar no funil</label>
+                    <input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Buscar por título, empresa, ERP, cliente, parceiro ou responsável...">
+                </div>
+                <div class="col-lg-2 d-grid">
+                    <button class="btn btn-primary">
+                        <i class="bi bi-search"></i>
+                        Filtrar
+                    </button>
+                </div>
+            </form>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="pipeline-summary-card">
+                        <div class="pipeline-summary-label">Oportunidades no Funil</div>
+                        <div class="pipeline-summary-value">{{ resumo.total }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pipeline-summary-card">
+                        <div class="pipeline-summary-label">Valor Estimado Total</div>
+                        <div class="pipeline-summary-value">{{ resumo.valor_total|moeda }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pipeline-summary-card success">
+                        <div class="pipeline-summary-label">Ganhas</div>
+                        <div class="pipeline-summary-value">{{ resumo.ganhas }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pipeline-summary-card danger">
+                        <div class="pipeline-summary-label">Perdidas</div>
+                        <div class="pipeline-summary-value">{{ resumo.perdidas }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pipeline-board">
+        {% for coluna in colunas %}
+        <section class="pipeline-column status-{{ coluna.status|lower }}">
+            <header class="pipeline-column-header">
+                <div>
+                    <h5 class="mb-1">{{ coluna.titulo }}</h5>
+                    <div class="pipeline-column-meta">{{ coluna.quantidade }} oportunidade(s)</div>
+                </div>
+                <div class="pipeline-column-total">{{ coluna.valor_total|moeda }}</div>
+            </header>
+
+            <div class="pipeline-column-body">
+                {% for oportunidade in coluna.itens %}
+                <article class="pipeline-card">
+                    <div class="pipeline-card-title-row">
+                        <h6 class="mb-1">{{ oportunidade.titulo }}</h6>
+                        {% if oportunidade.probabilidade is not none %}
+                        <span class="pipeline-probabilidade">{{ oportunidade.probabilidade }}%</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="pipeline-card-company">
+                        {{ oportunidade.cliente_exibicao or oportunidade.empresa or oportunidade.parceiro_exibicao or '-' }}
+                    </div>
+
+                    <div class="pipeline-card-meta">
+                        <span><i class="bi bi-person"></i> {{ oportunidade.contato_nome or oportunidade.lead_empresa or '-' }}</span>
+                        <span><i class="bi bi-grid"></i> {{ oportunidade.erp or '-' }}</span>
+                        <span><i class="bi bi-people"></i> {{ oportunidade.quantidade_usuarios if oportunidade.quantidade_usuarios is not none else '-' }}</span>
+                        <span><i class="bi bi-cash-stack"></i> {% if oportunidade.valor_estimado is not none %}{{ oportunidade.valor_estimado|moeda }}{% else %}-{% endif %}</span>
+                        <span><i class="bi bi-person-badge"></i> {{ oportunidade.executivo_responsavel_nome or '—' }}</span>
+                    </div>
+
+                    <div class="pipeline-card-actions">
+                        <a href="{{ url_for('oportunidades.visualizar', oportunidade_id=oportunidade.id) }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{{ url_for('oportunidades.editar', oportunidade_id=oportunidade.id) }}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </div>
+                </article>
+                {% else %}
+                <div class="pipeline-empty">Nenhuma oportunidade nesta etapa.</div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+    </div>
+
+</div>
+
+{% endblock %}

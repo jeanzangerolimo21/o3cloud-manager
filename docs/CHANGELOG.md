@@ -277,6 +277,25 @@ Documentação estruturada para suportar:
 - Adicionados atalhos diretos para Modelos e Faixas.
 - Corrigida a contabilização de Categorias, Modelos e Faixas na visão geral.
 
+### Importação do Catálogo
+
+- A tela `Importar Catálogo` passou a exibir um modelo visual de CSV com exemplos de licenciamento e recursos de servidor.
+- A interface deixou de referenciar exclusivamente o Base44 e passou a orientar a importação de qualquer arquivo CSV aderente ao formato esperado.
+- O fluxo ficou mais claro para validação do cabeçalho e preenchimento dos campos antes da importação.
+
+### CRM Comercial
+
+- O sidebar passou a exibir um separador exclusivo para o módulo `CRM Comercial`.
+- O módulo `Leads` foi iniciado com listagem, cadastro, edição, visualização e exclusão.
+- O módulo `Contatos` foi iniciado com CRUD base e vínculos opcionais com lead, parceiro e executivo.
+- O módulo `Oportunidades` foi iniciado com negociações ativas, estimativa financeira e probabilidade de fechamento.
+- O `Pipeline Comercial` foi iniciado com uma visão visual do funil baseada nos status das oportunidades.
+- O módulo `Propostas` foi iniciado com versionamento por oportunidade, validade, valor total e anexo opcional.
+- A migration `010_create_crm_leads.sql` foi criada e aplicada no banco com vínculos opcionais para parceiros e executivos.
+- A migration `011_create_crm_contatos.sql` foi criada para suportar a agenda comercial do CRM.
+- A migration `012_create_crm_oportunidades.sql` foi criada para suportar a etapa de negociação ativa do funil comercial.
+- A home passou a destacar visualmente o início do CRM com atalho direto para Leads.
+
 ---
 
 ## Segurança
@@ -292,16 +311,18 @@ Implementado:
 
 ## Próxima Versão
 
-### Sprint 6.4
+### Sprint 7
 
 Em desenvolvimento.
 
 Objetivos:
 
-- CRUD Modelos
-- CRUD Faixas
-- CRUD Servidores
-- Base do Dimensionamento
+- CRM Comercial
+- Leads
+- Contatos
+- Oportunidades
+- Pipeline Comercial
+- ClickSign
 
 ---
 

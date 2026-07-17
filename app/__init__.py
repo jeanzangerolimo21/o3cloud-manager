@@ -32,6 +32,26 @@ def create_app():
     from app.parceiros.routes import parceiros_bp
     app.register_blueprint(parceiros_bp)
 
+    # Leads CRM
+    from app.leads.routes import leads_bp
+    app.register_blueprint(leads_bp)
+
+    # Contatos CRM
+    from app.contatos.routes import contatos_bp
+    app.register_blueprint(contatos_bp)
+
+    # Oportunidades CRM
+    from app.oportunidades.routes import oportunidades_bp
+    app.register_blueprint(oportunidades_bp)
+
+    # Pipeline CRM
+    from app.pipeline.routes import pipeline_bp
+    app.register_blueprint(pipeline_bp)
+
+    # Propostas CRM
+    from app.propostas.routes import propostas_bp
+    app.register_blueprint(propostas_bp)
+
     # Ambientes
     from app.ambientes.routes import ambientes_bp
     app.register_blueprint(ambientes_bp)

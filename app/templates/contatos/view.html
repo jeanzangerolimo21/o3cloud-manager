@@ -1,0 +1,92 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    {% set page_title = contato.nome %}
+    {% set page_description = "Detalhes do contato comercial" %}
+    {% set page_icon = "bi-person-lines-fill" %}
+    {% set page_button_url = url_for("contatos.editar", contato_id=contato.id) %}
+    {% set page_button_icon = "bi-pencil" %}
+    {% set page_button_text = "Editar" %}
+
+    {% include "components/page_header.html" %}
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <strong>Nome</strong><br>
+                    {{ contato.nome }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Empresa</strong><br>
+                    {{ contato.empresa or contato.lead_empresa or contato.parceiro_exibicao or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Cargo</strong><br>
+                    {{ contato.cargo or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>E-mail</strong><br>
+                    {{ contato.email or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Telefone</strong><br>
+                    {{ contato.telefone or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>WhatsApp</strong><br>
+                    {{ contato.whatsapp or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Tipo de Contato</strong><br>
+                    {{ tipo_options.get(contato.tipo_contato, contato.tipo_contato) }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Canal Preferido</strong><br>
+                    {{ canal_options.get(contato.canal_preferido, contato.canal_preferido) }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Situação</strong><br>
+                    {% if contato.ativo %}Ativo{% else %}Inativo{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <strong>Cidade</strong><br>
+                    {{ contato.cidade or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>UF</strong><br>
+                    {{ contato.uf or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Lead Vinculado</strong><br>
+                    {{ contato.lead_empresa or '— Sem lead —' }}
+                </div>
+                <div class="col-md-6">
+                    <strong>Parceiro Vinculado</strong><br>
+                    {{ contato.parceiro_exibicao or '— Sem parceiro —' }}
+                </div>
+                <div class="col-md-6">
+                    <strong>Executivo Responsável</strong><br>
+                    {{ contato.executivo_responsavel_nome or '— Sem executivo —' }}
+                </div>
+                <div class="col-12">
+                    <strong>Observações</strong><br>
+                    <div class="mt-2 text-muted" style="white-space: pre-line;">{{ contato.observacoes or 'Nenhuma observação cadastrada.' }}</div>
+                </div>
+            </div>
+
+            <div class="mt-4 text-end">
+                <a href="{{ url_for('contatos.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i>
+                    Voltar
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

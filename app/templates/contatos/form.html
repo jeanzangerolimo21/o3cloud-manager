@@ -1,0 +1,143 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    {% set page_title = "Editar Contato" if modo == "editar" else "Novo Contato" %}
+    {% set page_description = "Cadastro de contatos relacionados ao CRM Comercial." %}
+    {% set page_icon = "bi-person-lines-fill" %}
+    {% set page_button_url = url_for("contatos.index") %}
+    {% set page_button_icon = "bi-arrow-left" %}
+    {% set page_button_text = "Voltar" %}
+
+    {% include "components/page_header.html" %}
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <form method="POST">
+
+                <h5 class="mb-3">Dados do Contato</h5>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Nome *</label>
+                        <input class="form-control" name="nome" required placeholder="Nome completo" value="{{ contato.nome if contato else '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Empresa</label>
+                        <input class="form-control" name="empresa" placeholder="Empresa ou organização" value="{{ contato.empresa if contato else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Cargo</label>
+                        <input class="form-control" name="cargo" placeholder="Cargo ou função" value="{{ contato.cargo if contato else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">E-mail</label>
+                        <input class="form-control" type="email" name="email" placeholder="contato@empresa.com" value="{{ contato.email if contato else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Telefone</label>
+                        <input class="form-control" name="telefone" placeholder="(11) 3333-3333" value="{{ contato.telefone if contato else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">WhatsApp</label>
+                        <input class="form-control" name="whatsapp" placeholder="(11) 99999-9999" value="{{ contato.whatsapp if contato else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Cidade</label>
+                        <input class="form-control" name="cidade" placeholder="Cidade" value="{{ contato.cidade if contato else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">UF</label>
+                        <input class="form-control text-uppercase" maxlength="2" name="uf" placeholder="SP" value="{{ contato.uf if contato else '' }}">
+                    </div>
+                </div>
+
+                <hr>
+
+                <h5 class="mb-3">Relacionamento CRM</h5>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo de Contato</label>
+                        <select class="form-select" name="tipo_contato">
+                            {% set tipo_selecionado = contato.tipo_contato if contato and contato.tipo_contato else 'COMERCIAL' %}
+                            {% for valor, descricao in tipo_options.items() %}
+                            <option value="{{ valor }}" {% if tipo_selecionado == valor %}selected{% endif %}>{{ descricao }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Canal Preferido</label>
+                        <select class="form-select" name="canal_preferido">
+                            {% set canal_selecionado = contato.canal_preferido if contato and contato.canal_preferido else 'WHATSAPP' %}
+                            {% for valor, descricao in canal_options.items() %}
+                            <option value="{{ valor }}" {% if canal_selecionado == valor %}selected{% endif %}>{{ descricao }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="ativo" value="1" {% if contato %}{% if contato.ativo %}checked{% endif %}{% else %}checked{% endif %}>
+                            <label class="form-check-label">Contato Ativo</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Lead Vinculado</label>
+                        <select class="form-select" name="lead_id">
+                            <option value="">— Sem lead —</option>
+                            {% for lead in leads %}
+                            <option value="{{ lead.id }}" {% if contato and contato.lead_id and contato.lead_id|string == lead.id|string %}selected{% endif %}>{{ lead.empresa }} - {{ lead.nome_contato }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Parceiro Vinculado</label>
+                        <select class="form-select" name="parceiro_id">
+                            <option value="">— Sem parceiro —</option>
+                            {% for parceiro in parceiros %}
+                            <option value="{{ parceiro.id }}" {% if contato and contato.parceiro_id and contato.parceiro_id|string == parceiro.id|string %}selected{% endif %}>{{ parceiro.nome_exibicao or parceiro.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Executivo Responsável</label>
+                        <select class="form-select" name="executivo_responsavel_id">
+                            <option value="">— Sem executivo —</option>
+                            {% for executivo in executivos %}
+                            <option value="{{ executivo.id }}" {% if contato and contato.executivo_responsavel_id and contato.executivo_responsavel_id|string == executivo.id|string %}selected{% endif %}>{{ executivo.nome }}{% if executivo.parceiro %} - {{ executivo.parceiro }}{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Observações</label>
+                        <textarea class="form-control" rows="5" name="observacoes" placeholder="Notas de relacionamento, preferências, histórico de conversas...">{{ contato.observacoes if contato else '' }}</textarea>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between gap-2 flex-wrap">
+                    <div>
+                        {% if modo == "editar" and contato and contato.id %}
+                        <a href="{{ url_for('contatos.excluir', contato_id=contato.id) }}" onclick="return confirm('Deseja realmente excluir este contato do banco de dados?')" class="btn btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                            Excluir Contato
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('contatos.index') }}" class="btn btn-secondary">Cancelar</a>
+                        <button class="btn btn-primary">
+                            <i class="bi bi-floppy"></i>
+                            Salvar
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

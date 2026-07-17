@@ -12,38 +12,38 @@ Status: Oficial
 
 # Sprint Registrada
 
-## Sprint 6.4
+## Sprint 7
 
 Status:
 
-✅ Concluído
+🚧 Em andamento
 
 ---
 
 # Objetivo da Sprint
 
-Concluir a segunda fase do módulo Catálogo Técnico.
+Iniciar o módulo CRM Comercial.
 
-Esta Sprint teve como objetivo preparar a base necessária para o futuro módulo de Dimensionamento e, posteriormente, para o CRM Comercial.
+Esta Sprint abre oficialmente a frente comercial do sistema, começando pela gestão de Leads e pela separação visual do CRM no menu lateral.
 
 ---
 
 # Dependências
 
-Esta Sprint dependeu dos módulos já homologados:
+Esta Sprint depende dos módulos já homologados:
 
 - Clientes
 - Contratos
-- Categorias
-- Produtos
+- Parceiros
+- Catálogo Técnico
 
-Todos já encontram-se concluídos.
+Todos já encontram-se disponíveis para integração comercial.
 
 ---
 
-# Escopo Entregue
+# Escopo Atual
 
-## 1. Modelos
+## 1. Estrutura de Navegação CRM
 
 Status:
 
@@ -51,93 +51,154 @@ Status:
 
 Entregas:
 
+- Novo separador `CRM Comercial` no sidebar
+- Separação visual entre Cadastros e CRM
+- Entrada dedicada para `Leads`
+- Entrada dedicada para `Contatos`
+- Entrada dedicada para `Oportunidades`
+- Entrada dedicada para `Pipeline Comercial`
+- Entrada dedicada para `Propostas`
+
+---
+
+## 2. Leads
+
+Status:
+
+✅ Base inicial concluída
+
+Entregas:
+
+- Migration `010_create_crm_leads.sql` criada e aplicada
+- Blueprint registrado no app
 - Repository
 - Service
 - Routes
-- index.html
-- form.html
-- view.html
-- Acesso direto pela home do Catálogo Comercial
-- Contabilização exibida na visão geral do catálogo
+- `index.html`
+- `form.html`
+- `view.html`
+- Filtros por pesquisa, origem, status e situação
+- Vínculo opcional com parceiro e executivo responsável
 
 ---
 
-## 2. Faixas
+## 3. Contatos
 
 Status:
 
-✅ Concluído
+✅ Base inicial concluída
 
 Entregas:
 
-- Repository
-- Service
-- Routes
-- index.html
-- form.html
-- view.html
-- Atalho de gestão pela home do Catálogo Comercial
-- Ação direta para novo cadastro
-- Contabilização exibida na visão geral do catálogo
+- Migration `011_create_crm_contatos.sql` criada
+- CRUD base de contatos comerciais
+- Vínculo opcional com lead, parceiro e executivo responsável
+- Novo acesso pelo sidebar do CRM
 
 ---
 
-## 3. Catálogo Comercial
+## 4. Oportunidades
 
 Status:
 
-✅ Concluído
+✅ Base inicial concluída
 
 Entregas:
 
-- Remoção da duplicação de navegação na home
-- Atalhos diretos para Modelos e Faixas
-- Correção dos contadores de Categorias, Modelos e Faixas
-- Atualização da documentação da sprint
+- Migration `012_create_crm_oportunidades.sql` criada
+- CRUD base de oportunidades comerciais
+- Vínculo opcional com lead, contato, cliente, parceiro e responsável comercial
+- Status alinhados ao fluxo oficial do CRM
 
 ---
 
-## 4. Servidores e Dimensionamento
+## 5. Pipeline Comercial
 
 Status:
 
-🚧 Parcial
+✅ Base inicial concluída
 
-Situação:
+Entregas:
 
-- Base iniciada no projeto
-- Homologação pendente para a próxima sequência de trabalho
-
----
-
-# Critérios de Encerramento
-
-A Sprint 6 foi encerrada com:
-
-- CRUD Modelos homologado
-- CRUD Faixas homologado
-- Home do Catálogo Comercial ajustada
-- Documentação atualizada
-- Publicação no GitHub realizada
+- Visão visual do funil comercial baseada nos status de oportunidades
+- Colunas por etapa do CRM com contagem e valor estimado
+- Filtro por pesquisa no funil
+- Acesso direto pelo sidebar do CRM
 
 ---
 
-# Próxima Sprint
+## 6. Propostas
 
-## Sprint 7
+Status:
 
-Objetivos:
+✅ Base inicial concluída
 
-- CRM Comercial
-- Leads
-- Contatos
-- Oportunidades
-- Pipeline Comercial
-- Integração ClickSign
+Entregas:
+
+- Migration `013_create_crm_propostas.sql` criada
+- CRUD base de propostas comerciais
+- Versionamento automático por oportunidade
+- Snapshot textual da negociação com validade, valor final e anexo opcional
+
+---
+
+## 7. Dashboard e Home
+
+Status:
+
+✅ Ajustado
+
+Entregas:
+
+- Home atualizada com destaque visual para o início do CRM
+- Atalho direto para a tela de Pipeline Comercial
+
+---
+
+## 8. Próximas Entregas da Sprint
 
 Status:
 
 ⏳ Planejado
+
+Itens:
+
+- Integração ClickSign
+- Evolução de Propostas
+- Próximos refinamentos do funil comercial
+
+---
+
+# Critérios Parciais de Avanço
+
+A Sprint 7 já avançou com:
+
+- CRM separado visualmente no menu
+- Módulo Leads iniciado no sistema
+- Módulo Contatos iniciado no sistema
+- Módulo Oportunidades iniciado no sistema
+- Pipeline Comercial iniciado no sistema
+- Módulo Propostas iniciado no sistema
+- Tabelas `crm_leads`, `crm_contatos`, `crm_oportunidades` e `crm_propostas` criadas no banco
+- Documentação atualizada
+
+---
+
+# Próxima Etapa
+
+## Continuação da Sprint 7
+
+Objetivos imediatos:
+
+- Evoluir Leads
+- Consolidar Contatos
+- Evoluir Oportunidades
+- Refinar Pipeline Comercial
+- Evoluir Propostas
+
+Status:
+
+🚧 Em andamento
 
 ---
 
@@ -153,14 +214,14 @@ Versão:
 
 3.0 Alpha
 
-Sprint Encerrada:
+Sprint Atual:
 
-6.4
+7
 
 Situação:
 
-✅ Concluída
+🚧 Em andamento
 
 Próxima Implementação:
 
-Sprint 7 - CRM Comercial
+Sprint 7 - Propostas e próximos refinamentos comerciais

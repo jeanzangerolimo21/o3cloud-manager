@@ -1,0 +1,136 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    {% set page_title = "Editar Lead" if modo == "editar" else "Novo Lead" %}
+    {% set page_description = "Cadastro inicial de oportunidades comerciais." %}
+    {% set page_icon = "bi-bullseye" %}
+    {% set page_button_url = url_for("leads.index") %}
+    {% set page_button_icon = "bi-arrow-left" %}
+    {% set page_button_text = "Voltar" %}
+
+    {% include "components/page_header.html" %}
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+            <form method="POST">
+
+                <h5 class="mb-3">Dados Principais</h5>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Empresa *</label>
+                        <input class="form-control" name="empresa" required placeholder="Nome da empresa" value="{{ lead.empresa if lead else '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Interesse</label>
+                        <input class="form-control" name="interesse" placeholder="Ex: Backup, Cloud, ERP, Licenciamento" value="{{ lead.interesse if lead else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Nome do Contato *</label>
+                        <input class="form-control" name="nome_contato" required placeholder="Nome completo" value="{{ lead.nome_contato if lead else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Cargo</label>
+                        <input class="form-control" name="cargo" placeholder="Cargo ou função" value="{{ lead.cargo if lead else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Telefone</label>
+                        <input class="form-control" name="telefone" placeholder="(11) 99999-9999" value="{{ lead.telefone if lead else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">E-mail</label>
+                        <input class="form-control" type="email" name="email" placeholder="contato@empresa.com" value="{{ lead.email if lead else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Cidade</label>
+                        <input class="form-control" name="cidade" placeholder="Cidade" value="{{ lead.cidade if lead else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">UF</label>
+                        <input class="form-control text-uppercase" maxlength="2" name="uf" placeholder="SP" value="{{ lead.uf if lead else '' }}">
+                    </div>
+                </div>
+
+                <hr>
+
+                <h5 class="mb-3">Relacionamento CRM</h5>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label">Origem do Lead</label>
+                        <select class="form-select" name="origem">
+                            {% set origem_selecionada = lead.origem if lead and lead.origem else 'OUTRO' %}
+                            {% for valor, descricao in origem_options.items() %}
+                            <option value="{{ valor }}" {% if origem_selecionada == valor %}selected{% endif %}>{{ descricao }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status">
+                            {% set status_selecionado = lead.status if lead and lead.status else 'NOVO' %}
+                            {% for valor, descricao in status_options.items() %}
+                            <option value="{{ valor }}" {% if status_selecionado == valor %}selected{% endif %}>{{ descricao }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Parceiro Vinculado</label>
+                        <select class="form-select" name="parceiro_id">
+                            <option value="">— Sem parceiro —</option>
+                            {% for parceiro in parceiros %}
+                            <option value="{{ parceiro.id }}" {% if lead and lead.parceiro_id and lead.parceiro_id|string == parceiro.id|string %}selected{% endif %}>{{ parceiro.nome_exibicao or parceiro.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Executivo Responsável</label>
+                        <select class="form-select" name="executivo_responsavel_id">
+                            <option value="">— Sem executivo —</option>
+                            {% for executivo in executivos %}
+                            <option value="{{ executivo.id }}" {% if lead and lead.executivo_responsavel_id and lead.executivo_responsavel_id|string == executivo.id|string %}selected{% endif %}>{{ executivo.nome }}{% if executivo.parceiro %} - {{ executivo.parceiro }}{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="ativo" value="1" {% if lead %}{% if lead.ativo %}checked{% endif %}{% else %}checked{% endif %}>
+                            <label class="form-check-label">Lead Ativo</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Observações</label>
+                        <textarea class="form-control" rows="5" name="observacoes" placeholder="Notas, histórico de contato, contexto comercial...">{{ lead.observacoes if lead else '' }}</textarea>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between gap-2 flex-wrap">
+                    <div>
+                        {% if modo == "editar" and lead and lead.id %}
+                        <a href="{{ url_for('leads.excluir', lead_id=lead.id) }}" onclick="return confirm('Deseja realmente excluir este lead do banco de dados?')" class="btn btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                            Excluir Lead
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('leads.index') }}" class="btn btn-secondary">Cancelar</a>
+                        <button class="btn btn-primary">
+                            <i class="bi bi-floppy"></i>
+                            Salvar
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

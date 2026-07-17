@@ -1,0 +1,117 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid {% if print_mode %}proposal-print-page{% endif %}">
+    {% if not print_mode %}
+    {% set page_title = proposta.titulo %}
+    {% set page_description = "Detalhes da proposta comercial" %}
+    {% set page_icon = "bi-file-earmark-richtext-fill" %}
+    {% set page_button_url = url_for("propostas.editar", proposta_id=proposta.id) %}
+    {% set page_button_icon = "bi-pencil" %}
+    {% set page_button_text = "Editar" %}
+    {% include "components/page_header.html" %}
+    {% endif %}
+
+    <div class="proposal-view-shell {% if print_mode %}print-ready{% endif %}">
+        {% if not print_mode %}
+        <div class="d-flex justify-content-end gap-2 flex-wrap mb-4 no-print">
+            <a href="{{ url_for('propostas.imprimir', proposta_id=proposta.id) }}" target="_blank" class="btn btn-outline-dark"><i class="bi bi-printer"></i> Imprimir em PDF</a>
+            <a href="{{ url_for('propostas.exportar_docx', proposta_id=proposta.id) }}" class="btn btn-outline-success"><i class="bi bi-file-earmark-word"></i> Exportar DOCX</a>
+            <a href="{{ url_for('propostas.editar', proposta_id=proposta.id) }}" class="btn btn-primary"><i class="bi bi-pencil"></i> Editar</a>
+        </div>
+        {% endif %}
+
+        <section class="proposal-sheet proposal-sheet-cover">
+            <div class="proposal-hero-card">
+                <div class="proposal-orb proposal-orb-top"></div>
+                <div class="proposal-orb proposal-orb-bottom"></div>
+                <div class="proposal-side-label">PROPOSTA COMERCIAL</div>
+                <div class="proposal-header"><img src="{{ url_for('static', filename='img/logo.png') }}" alt="O3 Cloud"><div><div class="proposal-kicker">SOLUÇÃO</div><h1>{{ proposta.titulo }}</h1><div class="proposal-client">{{ proposta.contato_nome or 'Contato não informado' }}</div><div class="proposal-client-details">{% if proposta.cliente_razao_social %}<div><strong>Razão Social:</strong> {{ proposta.cliente_razao_social }}</div>{% endif %}{% if proposta.cliente_nome_fantasia %}<div><strong>Nome Fantasia:</strong> {{ proposta.cliente_nome_fantasia }}</div>{% endif %}{% if proposta.cliente_cnpj %}<div><strong>CNPJ:</strong> {{ proposta.cliente_cnpj }}</div>{% endif %}</div><div class="proposal-code">{{ proposta.codigo_proposta }}{% if proposta.versao %} • Versão {{ proposta.versao }}{% endif %}</div></div></div>
+            </div>
+            <div class="proposal-cover-copy proposal-copy-card">
+                <h2>1. AGRADECIMENTO</h2>
+                <p>Prezado Cliente (a)</p>
+                <p>Temos o prazer de lhe apresentar a nossa proposta de solução em CLOUD.</p>
+                <p>Somos uma empresa especializada em hospedagem de servidores em nuvem e tecnologia da informação, oferecemos soluções que atendem às necessidades tecnológicas das empresas em suas mais diversas áreas.</p>
+                <p>Composta por profissionais qualificados e experientes que buscam soluções para todos os tipos de negócio, dando prioridade à segurança dos dados com tecnologias avançadas. Trabalhamos para que os sistemas estejam protegidos contra ameaças cibernéticas e acessos não autorizados.</p>
+                <p>Nossos serviços são implementados seguindo as melhores práticas do mercado e com metodologias que fazem a experiência do usuário ser única.</p>
+                <p>Queremos escrever ao seu lado uma parceria de sucesso oferecendo o que há de melhor em tecnologia de ponta de forma exclusiva e sob medida.</p>
+                <div class="proposal-signature proposal-signature-light">
+                    <p class="proposal-closing">Atenciosamente,</p>
+                    <strong>{{ proposta.executivo_nome or 'Executivo de vendas' }}</strong><br>
+                    <span>e-mail - {{ proposta.executivo_email or '-' }}</span>
+                    {% if proposta.executivo_telefone %}<br><span>telefone - {{ proposta.executivo_telefone }}</span>{% endif %}
+                </div>
+            </div>
+        </section>
+
+        <section class="proposal-sheet proposal-sheet-investimentos">
+            <div class="proposal-invest-card">
+                <section class="proposal-section">
+                    <h2>2. INVESTIMENTOS CLOUD</h2>
+                    <h3>Das instalações:</h3>
+                    <table class="proposal-table small"><tbody><tr><td>Parametrização do Sistema - Configuração do Software em CLOUD</td><td class="text-end">{{ proposta.parametrizacao_sistema|moeda }}</td></tr><tr><td>Setup do Ambiente Cloud - Parametrização de Servidores CLOUD</td><td class="text-end">{{ proposta.setup_ambiente_cloud|moeda }}</td></tr><tr><td>Recursos adicionais de instalação</td><td class="text-end">{{ proposta.instalacao_servidores|moeda }}</td></tr><tr class="proposal-total-row"><td>TOTAL INSTALAÇÃO</td><td class="text-end">{{ proposta.total_instalacao|moeda }}</td></tr></tbody></table>
+                    <h3 class="mt-4">Das mensalidades:</h3>
+                    <table class="proposal-table"><thead><tr><th>Software</th><th>Usuários</th><th>Unitário</th><th>Total</th></tr></thead><tbody>{% for item in proposta.licencas_items %}<tr><td>{{ item.software }}</td><td>{{ item.quantidade }}</td><td class="text-end">{{ item.valor_unitario|moeda }}</td><td class="text-end">{{ item.total_mensal|moeda }}</td></tr>{% endfor %}{% for item in proposta.servidores_items %}<tr><td>{{ item.nome }}</td><td>{{ item.quantidade }}</td><td class="text-end">{{ item.valor_mensal|moeda }}</td><td class="text-end">{{ item.total_mensal|moeda }}</td></tr>{% endfor %}{% if not proposta.licencas_items and not proposta.servidores_items %}<tr><td colspan="4" class="text-center text-muted">Nenhum item comercial registrado.</td></tr>{% endif %}</tbody><tfoot><tr class="proposal-total-row"><td colspan="3">TOTAL MENSAL</td><td class="text-end">{{ proposta.total_mensal|moeda }}</td></tr><tr class="proposal-total-row proposal-grand-total"><td colspan="3">TOTAL GERAL</td><td class="text-end">{{ proposta.valor_total|moeda }}</td></tr></tfoot></table>
+                    <div class="proposal-extra-block mt-4"><strong>INFORMAÇÕES ADICIONAIS:</strong><p class="mb-1">Setup: {{ proposta.setup_dias }} dias após a entrega do ambiente.</p><p class="mb-1">Mensalidade: {{ proposta.mensalidade_dias }} dias após a entrega do ambiente.</p><p class="mb-0">Prazo contratual: {{ proposta.prazo_contratual_meses }} meses.</p></div>
+                    <div class="proposal-company-footer">
+                        <strong>O3 Cloud Soluções em Tecnologia LTDA</strong><br>
+                        Rua Professora Noêmia de Castro Oliveira, 210 - Jardim Esmeralda - Limeira SP<br>
+                        Telefone: (19) 3142-0232 | contato@o3cloud.com.br
+                    </div>
+                </section>
+                {% if proposta.detalhes_negociacao or proposta.condicoes_comerciais or proposta.observacoes %}
+                <section class="proposal-section no-print mt-4"><h2>3. Complementos</h2>{% if proposta.detalhes_negociacao %}<div class="mb-3"><strong>Negociação</strong><div class="text-muted mt-2" style="white-space: pre-line;">{{ proposta.detalhes_negociacao }}</div></div>{% endif %}{% if proposta.condicoes_comerciais %}<div class="mb-3"><strong>Condições Comerciais</strong><div class="text-muted mt-2" style="white-space: pre-line;">{{ proposta.condicoes_comerciais }}</div></div>{% endif %}{% if proposta.observacoes %}<div><strong>Observações</strong><div class="text-muted mt-2" style="white-space: pre-line;">{{ proposta.observacoes }}</div></div>{% endif %}</section>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</div>
+
+<style>
+.proposal-view-shell{max-width:980px;margin:0 auto}
+.proposal-sheet{padding:18px 0}
+.proposal-sheet + .proposal-sheet{page-break-before:always}
+.proposal-hero-card,.proposal-invest-card,.proposal-copy-card{border-radius:28px;overflow:hidden}
+.proposal-hero-card{position:relative;background:linear-gradient(135deg,#341055 0%,#4f1f78 38%,#65308f 100%);color:#fff;padding:2.1rem 2.25rem 1.85rem;box-shadow:0 24px 48px rgba(31,16,61,.22)}
+.proposal-copy-card{margin-top:.8rem;background:#fff;padding:1.5rem 1.8rem;border:1px solid #e8defb;box-shadow:0 18px 34px rgba(44,28,73,.08)}
+.proposal-invest-card{min-height:980px;background:linear-gradient(180deg,#f6f2ff 0%,#efe7fd 100%);padding:1.85rem 2rem;border:1px solid #e4dafc;box-shadow:0 20px 40px rgba(44,28,73,.10)}
+.proposal-orb{position:absolute;border-radius:999px;pointer-events:none;filter:blur(2px)}
+.proposal-orb-top{width:250px;height:250px;top:-80px;right:-70px;background:radial-gradient(circle,#8e5dc9 0%,rgba(142,93,201,0) 72%)}
+.proposal-orb-bottom{width:320px;height:320px;left:-120px;bottom:-120px;background:radial-gradient(circle,rgba(255,255,255,.16) 0%,rgba(255,255,255,0) 72%)}
+.proposal-side-label{position:absolute;top:140px;right:-58px;transform:rotate(90deg);letter-spacing:.38em;font-size:.72rem;color:rgba(255,255,255,.58)}
+.proposal-header{position:relative;display:grid;grid-template-columns:132px 1fr;gap:1.15rem;align-items:center;padding-bottom:1.15rem;border-bottom:1px solid rgba(255,255,255,.18);margin-bottom:0}
+.proposal-header img{max-width:100%;filter:drop-shadow(0 8px 18px rgba(0,0,0,.18))}
+.proposal-kicker{font-size:.8rem;letter-spacing:.24em;color:#e9dcff;margin-bottom:.55rem}
+.proposal-header h1{font-size:1.78rem;line-height:1.08;margin-bottom:.4rem;color:#fff;max-width:96%}
+.proposal-client{font-size:1rem;color:#fff}
+.proposal-client-details{display:grid;grid-template-columns:1fr;gap:.1rem;margin-top:.55rem;color:#efe7ff;line-height:1.42;font-size:.88rem}
+.proposal-code{display:inline-block;font-size:.82rem;color:#f6edff;margin-top:.72rem;padding:.42rem .72rem;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(255,255,255,.08)}
+.proposal-cover-copy{max-width:100%}
+.proposal-cover-copy h2,.proposal-section h2{font-size:1rem;margin-bottom:.75rem;letter-spacing:.04em}
+.proposal-cover-copy p{color:#4a3d63;margin-bottom:.62rem;line-height:1.56;font-size:.93rem}
+.proposal-signature{margin-top:1.2rem;padding-top:.8rem;page-break-inside:avoid;break-inside:avoid}
+.proposal-signature-light{border-top:1px dashed #d8c9f7;color:#392c54;display:inline-block;width:100%}
+.proposal-closing{font-weight:600;color:#4f3f71;margin-bottom:.35rem}
+.proposal-section h2,.proposal-section h3,.proposal-section h4{color:#24173e}
+.proposal-section h3{font-size:.94rem;margin-bottom:.6rem}
+.proposal-table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border-radius:16px;overflow:hidden}
+.proposal-table th,.proposal-table td{border-bottom:1px solid #eadff9;padding:.62rem .58rem;vertical-align:top}
+.proposal-table th{color:#65548d;font-size:.77rem;text-transform:uppercase;letter-spacing:.09em;background:#f0e7ff}
+.proposal-table tbody tr:nth-child(odd) td{background:#faf7ff}
+.proposal-table tbody td{font-size:.9rem;color:#33264f}
+.proposal-total-row td{font-weight:700}
+.proposal-grand-total td{background:#e9dcff;color:#351c63;font-size:1rem}
+.proposal-extra-block{background:#fff;border:1px solid #eadff9;border-radius:18px;padding:.85rem .95rem}
+.proposal-extra-block p{color:#514368}
+.proposal-company-footer{margin-top:1rem;padding-top:.8rem;border-top:1px solid #d9cdf4;color:#49396a;line-height:1.5;font-size:.88rem}
+.proposal-view-shell.print-ready .proposal-sheet{padding:0}
+.proposal-view-shell.print-ready .proposal-hero-card,.proposal-view-shell.print-ready .proposal-invest-card,.proposal-view-shell.print-ready .proposal-copy-card{box-shadow:none}
+.no-print{display:inherit}
+@page{size:A4;margin:0}
+@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.layout,.main,.content,.container-fluid{display:block !important}.sidebar,.navbar,.footer,.global-backbar,.no-print{display:none !important}body{background:#fff}.proposal-view-shell{max-width:100%}.proposal-sheet{padding:0}.proposal-sheet + .proposal-sheet{margin-top:0;page-break-before:always}.proposal-sheet-investimentos{padding-top:1cm !important;margin-top:1cm !important;box-sizing:border-box}.proposal-hero-card,.proposal-invest-card{box-shadow:none;border-radius:0}.proposal-copy-card{margin-top:0;box-shadow:none;border-radius:0;border-left:0;border-right:0}.proposal-hero-card{padding:28px 30px 16px}.proposal-copy-card{padding:20px 30px 24px}.proposal-invest-card{margin-top:0 !important;padding:16px 28px 24px;min-height:940px}}
+@media(max-width:991px){.proposal-header{grid-template-columns:1fr}.proposal-header h1,.proposal-cover-copy{max-width:100%}.proposal-hero-card,.proposal-invest-card,.proposal-copy-card{padding:1.35rem;border-radius:20px;min-height:auto}.proposal-side-label{display:none}}
+</style>
+
+{% if print_mode %}<script>window.addEventListener('load',()=>window.print());</script>{% endif %}
+{% endblock %}

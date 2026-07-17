@@ -1,0 +1,122 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    {% include "components/page_header.html" %}
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+            <form method="GET" class="mb-4">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label">Pesquisar</label>
+                        <input type="text" class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="{{ placeholder }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status">
+                            <option value="">Todos</option>
+                            {% for valor, descricao in status_options.items() %}
+                            <option value="{{ valor }}" {% if selected_status == valor %}selected{% endif %}>{{ descricao }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Situação</label>
+                        <select class="form-select" name="ativo">
+                            <option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativas</option>
+                            <option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativas</option>
+                            <option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button class="btn btn-primary w-100"><i class="bi bi-search"></i></button>
+                    </div>
+                    <div class="col-md-1">
+                        <a href="{{ request.path }}" class="btn btn-outline-secondary w-100">Limpar</a>
+                    </div>
+                </div>
+            </form>
+
+            <div class="mb-3"><small class="text-muted">{{ total }} oportunidade(s) cadastradas</small></div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Oportunidade</th>
+                            <th>Empresa</th>
+                            <th>ERP</th>
+                            <th>Status</th>
+                            <th>Probabilidade</th>
+                            <th>Valor Estimado</th>
+                            <th>Responsável</th>
+                            <th width="180">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for oportunidade in oportunidades %}
+                        <tr>
+                            <td>
+                                <strong>{{ oportunidade.titulo }}</strong><br>
+                                <small class="text-muted">{{ oportunidade.contato_nome or oportunidade.lead_empresa or '-' }}</small>
+                            </td>
+                            <td>{{ oportunidade.cliente_exibicao or oportunidade.empresa or oportunidade.parceiro_exibicao or '-' }}</td>
+                            <td>{{ oportunidade.erp or '-' }}</td>
+                            <td>
+                                {% if oportunidade.status == 'GANHA' %}
+                                    <span class="badge bg-success">{{ status_options.get(oportunidade.status, oportunidade.status) }}</span>
+                                {% elif oportunidade.status == 'PERDIDA' %}
+                                    <span class="badge bg-danger">{{ status_options.get(oportunidade.status, oportunidade.status) }}</span>
+                                {% elif oportunidade.status in ('PROPOSTA', 'NEGOCIACAO') %}
+                                    <span class="badge bg-primary">{{ status_options.get(oportunidade.status, oportunidade.status) }}</span>
+                                {% elif oportunidade.status in ('LEVANTAMENTO', 'DIMENSIONAMENTO', 'PRECIFICACAO') %}
+                                    <span class="badge bg-warning text-dark">{{ status_options.get(oportunidade.status, oportunidade.status) }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ status_options.get(oportunidade.status, oportunidade.status) }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ oportunidade.probabilidade if oportunidade.probabilidade is not none else '-' }}{% if oportunidade.probabilidade is not none %}%{% endif %}</td>
+                            <td>{% if oportunidade.valor_estimado is not none %}{{ oportunidade.valor_estimado|moeda }}{% else %}-{% endif %}</td>
+                            <td>
+                                {{ oportunidade.executivo_responsavel_nome or '—' }}<br>
+                                <small class="text-muted">{% if oportunidade.ativo %}Ativa{% else %}Inativa{% endif %}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('oportunidades.visualizar', oportunidade_id=oportunidade.id) }}" class="btn btn-outline-secondary" title="Visualizar"><i class="bi bi-eye"></i></a>
+                                    <a href="{{ url_for('oportunidades.editar', oportunidade_id=oportunidade.id) }}" class="btn btn-outline-primary" title="Editar"><i class="bi bi-pencil"></i></a>
+                                    <a href="{{ url_for('oportunidades.excluir', oportunidade_id=oportunidade.id) }}" onclick="return confirm('Deseja realmente excluir esta oportunidade?')" class="btn btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                            {% set colspan = 8 %}
+                            {% set empty_message = "Nenhuma oportunidade encontrada." %}
+                            {% include "components/empty_state.html" %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if total_paginas > 1 %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% for p in range(1, total_paginas + 1) %}
+                    <li class="page-item {% if p == pagina %}active{% endif %}">
+                        <a class="page-link" href="?page={{ p }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_ativo %}&ativo={{ selected_ativo }}{% endif %}">{{ p }}</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </nav>
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

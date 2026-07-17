@@ -4,7 +4,8 @@
 
 <div class="container-fluid">
 
-    {% set page_title = parceiro.nome %}
+    {% set nome_exibicao = parceiro.nome_fantasia or parceiro.nome or parceiro.razao_social %}
+    {% set page_title = nome_exibicao %}
     {% set page_description = "Detalhes do parceiro comercial" %}
     {% set page_icon = "bi-people-fill" %}
     {% set page_button_url = url_for("parceiros.editar", parceiro_id=parceiro.id) %}
@@ -14,185 +15,138 @@
     {% include "components/page_header.html" %}
 
     <div class="card shadow-sm">
-
         <div class="card-body">
 
-            <div class="row">
-
-                <div class="col-md-3 text-center">
-
-                    {% if parceiro.logo %}
-
-                        <img
-                            src="{{ url_for('storage',filename='parceiros/' ~ parceiro.logo) }}" 
-                            class="img-fluid img-thumbnail mb-3"
-                            style="max-height:180px;">
-
-                    {% else %}
-
-                        <div class="border rounded p-5 text-muted">
-
-                            <i class="bi bi-image display-4"></i>
-
-                            <br>
-
-                            Sem Logo
-
-                        </div>
-
-                    {% endif %}
-
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+                <div>
+                    <h3 class="mb-1">{{ nome_exibicao }}</h3>
+                    <div class="text-muted">{{ parceiro.razao_social or '-' }}</div>
                 </div>
-
-                <div class="col-md-9">
-
-                    <h3>
-
-                        {{ parceiro.nome }}
-
-                    </h3>
-
-                    <p class="text-muted">
-
-                        {{ parceiro.tipo }}
-
-                    </p>
-
-                    {% set ativo = parceiro.ativo %}
-                    {% include "components/status_badge.html" %}
-
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('parceiros.listar_executivos', parceiro_id=parceiro.id) }}" class="btn btn-outline-primary">
+                        <i class="bi bi-person-badge"></i>
+                        Executivos
+                    </a>
+                    <a href="{{ url_for('parceiros.novo_executivo', parceiro_id=parceiro.id) }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i>
+                        Novo Executivo
+                    </a>
                 </div>
-
             </div>
 
-            <hr>
+            {% if parceiro.logo %}
+            <div class="mb-4">
+                <strong>Logo</strong><br>
+                <img src="/storage/parceiros/{{ parceiro.logo }}" alt="Logo de {{ nome_exibicao }}" class="img-thumbnail mt-2" style="max-width: 220px; max-height: 180px;">
+            </div>
+            {% endif %}
 
-            <div class="row">
-
-                <div class="col-md-6 mb-3">
-
-                    <strong>Contato</strong><br>
-
-                    {{ parceiro.contato or "-" }}
-
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <strong>CNPJ</strong><br>
+                    {{ parceiro.cnpj or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Segmento</strong><br>
+                    {{ parceiro.segmento or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Status da Negociação</strong><br>
+                    {{ status_negociacao_options.get(parceiro.status_negociacao, 'Primeiro Contato') }}
                 </div>
 
-                <div class="col-md-6 mb-3">
-
-                    <strong>E-mail</strong><br>
-
-                    {{ parceiro.email or "-" }}
-
+                <div class="col-md-6">
+                    <strong>Endereço</strong><br>
+                    {{ parceiro.endereco or '-' }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Cidade</strong><br>
+                    {{ parceiro.cidade or '-' }}
+                </div>
+                <div class="col-md-3">
+                    <strong>UF</strong><br>
+                    {{ parceiro.uf or '-' }}
                 </div>
 
-                <div class="col-md-6 mb-3">
-
+                <div class="col-md-4">
                     <strong>Telefone</strong><br>
-
-                    {{ parceiro.telefone or "-" }}
-
+                    {{ parceiro.telefone or '-' }}
                 </div>
-
-                <div class="col-md-6 mb-3">
-
+                <div class="col-md-4">
+                    <strong>E-mail</strong><br>
+                    {{ parceiro.email or '-' }}
+                </div>
+                <div class="col-md-4">
                     <strong>Site</strong><br>
-
-                    {{ parceiro.site or "-" }}
-
+                    {{ parceiro.site or '-' }}
                 </div>
-
             </div>
 
             <hr>
 
-            <h5>
+            <h5 class="mb-3">Pessoas Chave</h5>
 
-                Descrição
-
-            </h5>
-
-            <p>
-
-                {{ parceiro.descricao or "Nenhuma descrição cadastrada." }}
-
-            </p>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <strong>Contato 1</strong><br>
+                    {{ parceiro.contato_1_nome or '-' }}<br>
+                    <span class="text-muted">{{ parceiro.contato_1_email or '-' }}</span><br>
+                    <span class="text-muted">{{ parceiro.contato_1_telefone or '-' }}</span>
+                </div>
+                <div class="col-md-4">
+                    <strong>Contato 2</strong><br>
+                    {{ parceiro.contato_2_nome or '-' }}<br>
+                    <span class="text-muted">{{ parceiro.contato_2_email or '-' }}</span><br>
+                    <span class="text-muted">{{ parceiro.contato_2_telefone or '-' }}</span>
+                </div>
+                <div class="col-md-4">
+                    <strong>Contato 3</strong><br>
+                    {{ parceiro.contato_3_nome or '-' }}<br>
+                    <span class="text-muted">{{ parceiro.contato_3_email or '-' }}</span><br>
+                    <span class="text-muted">{{ parceiro.contato_3_telefone or '-' }}</span>
+                </div>
+            </div>
 
             <hr>
 
-            <div class="row text-center">
+            <h5 class="mb-3">Relacionamento CRM</h5>
 
-                <div class="col-md-3">
-
-                    {% set value = 0 %}
-                    {% set label = "Clientes" %}
-                    {% include "components/info_card.html" %}
-
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <strong>Executivo Responsável</strong><br>
+                    {{ parceiro.executivo_responsavel_nome or '— Sem executivo —' }}
                 </div>
-
-                <div class="col-md-3">
-
-                    {% set value = 0 %}
-                    {% set label = "Ambientes" %}
-                    {% include "components/info_card.html" %}
-
+                <div class="col-md-6">
+                    <strong>Executivos Cadastrados</strong><br>
+                    {{ total_executivos }}
                 </div>
-
-                <div class="col-md-3">
-
-                    {% set value = 0 %}
-                    {% set label = "Contratos" %}
-                    {% include "components/info_card.html" %}
-
+                <div class="col-12">
+                    <strong>Informações Gerais</strong><br>
+                    <div class="mt-2 text-muted" style="white-space: pre-line;">{{ parceiro.informacoes_gerais or 'Nenhuma observação cadastrada.' }}</div>
                 </div>
-
-                <div class="col-md-3">
-
-                    {% set value = "R$ 0,00" %}
-                    {% set label = "Receita" %}
-                    {% include "components/info_card.html" %}
-
-                </div>
-
             </div>
 
             <hr>
 
             <div class="row">
-
                 <div class="col-md-6">
-
                     <strong>Criado em</strong><br>
-
                     {{ parceiro.created_at }}
-
                 </div>
-
                 <div class="col-md-6">
-
                     <strong>Última atualização</strong><br>
-
                     {{ parceiro.updated_at }}
-
                 </div>
-
             </div>
 
             <div class="mt-4 text-end">
-
-                <a
-                    href="{{ url_for('parceiros.index') }}"
-                    class="btn btn-secondary">
-
+                <a href="{{ url_for('parceiros.index') }}" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i>
-
                     Voltar
-
                 </a>
-
             </div>
 
         </div>
-
     </div>
 
 </div>

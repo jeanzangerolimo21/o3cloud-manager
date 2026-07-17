@@ -1,0 +1,99 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    {% set page_title = lead.empresa %}
+    {% set page_description = "Detalhes do lead comercial" %}
+    {% set page_icon = "bi-bullseye" %}
+    {% set page_button_url = url_for("leads.editar", lead_id=lead.id) %}
+    {% set page_button_icon = "bi-pencil" %}
+    {% set page_button_text = "Editar" %}
+
+    {% include "components/page_header.html" %}
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <strong>Empresa</strong><br>
+                    {{ lead.empresa }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Contato</strong><br>
+                    {{ lead.nome_contato }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Cargo</strong><br>
+                    {{ lead.cargo or '-' }}
+                </div>
+
+                <div class="col-md-4">
+                    <strong>E-mail</strong><br>
+                    {{ lead.email or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Telefone</strong><br>
+                    {{ lead.telefone or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Interesse</strong><br>
+                    {{ lead.interesse or '-' }}
+                </div>
+
+                <div class="col-md-4">
+                    <strong>Origem</strong><br>
+                    {{ origem_options.get(lead.origem, lead.origem) }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Status</strong><br>
+                    {{ status_options.get(lead.status, lead.status) }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Situação</strong><br>
+                    {% if lead.ativo %}Ativo{% else %}Inativo{% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    <strong>Cidade</strong><br>
+                    {{ lead.cidade or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>UF</strong><br>
+                    {{ lead.uf or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Parceiro Vinculado</strong><br>
+                    {{ lead.parceiro_exibicao or '— Sem parceiro —' }}
+                </div>
+
+                <div class="col-md-6">
+                    <strong>Executivo Responsável</strong><br>
+                    {{ lead.executivo_responsavel_nome or '— Sem executivo —' }}
+                </div>
+                <div class="col-md-6">
+                    <strong>Criado em</strong><br>
+                    {{ lead.created_at }}
+                </div>
+
+                <div class="col-12">
+                    <strong>Observações</strong><br>
+                    <div class="mt-2 text-muted" style="white-space: pre-line;">{{ lead.observacoes or 'Nenhuma observação cadastrada.' }}</div>
+                </div>
+            </div>
+
+            <div class="mt-4 text-end">
+                <a href="{{ url_for('leads.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i>
+                    Voltar
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

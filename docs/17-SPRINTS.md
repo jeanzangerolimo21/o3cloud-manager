@@ -161,7 +161,7 @@ Status:
 
 ---
 
-# Próxima Sprint
+# Sprint Atual
 
 ## Sprint 7
 
@@ -174,9 +174,20 @@ Objetivos:
 - Pipeline Comercial
 - Integração ClickSign
 
+Entregas iniciais:
+
+- Separador exclusivo de CRM no sidebar
+- Módulo Leads iniciado
+- Módulo Contatos iniciado
+- Módulo Oportunidades iniciado
+- Pipeline Comercial iniciado
+- Módulo Propostas iniciado
+- Migration `crm_leads` aplicada no banco
+- Home com atalho para Leads
+
 Status:
 
-⏳ Planejado
+🚧 Em andamento
 
 ---
 

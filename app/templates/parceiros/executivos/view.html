@@ -1,0 +1,74 @@
+{% extends "crud/view_base.html" %}
+
+{% block page_header %}
+
+{% set page_title = executivo.nome %}
+{% set page_description = "Detalhes do executivo de vendas." %}
+{% set page_icon = "bi-person-badge" %}
+
+{% include "components/page_header.html" %}
+
+{% endblock %}
+
+{% block view_content %}
+
+<div class="row g-4">
+
+    <div class="col-md-6">
+        <strong>E-mail</strong><br>
+        {{ executivo.email or "-" }}
+    </div>
+
+    <div class="col-md-6">
+        <strong>WhatsApp</strong><br>
+        {{ executivo.telefone or "-" }}
+    </div>
+
+    <div class="col-md-6">
+        <strong>Parceiro Vinculado</strong><br>
+        {{ executivo.parceiro or "Sem parceiro" }}
+    </div>
+
+    <div class="col-md-6">
+        <strong>Status</strong><br>
+        {% if executivo.ativo %}
+            <span class="badge bg-success">Ativo</span>
+        {% else %}
+            <span class="badge bg-secondary">Inativo</span>
+        {% endif %}
+    </div>
+
+    <div class="col-12">
+        <strong>Chave Pix</strong><br>
+        {{ executivo.chave_pix or "-" }}
+    </div>
+
+    <div class="col-12">
+        <strong>Informações para Pagamento de Comissões</strong><br>
+        <div class="mt-2 text-muted" style="white-space: pre-line;">{{ executivo.informacoes_pagamento or "Nenhuma informação cadastrada." }}</div>
+    </div>
+
+    <div class="col-md-6">
+        <strong>Criado em</strong><br>
+        {{ executivo.created_at }}
+    </div>
+
+    <div class="col-md-6">
+        <strong>Última atualização</strong><br>
+        {{ executivo.updated_at }}
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block view_actions %}
+<a href="{{ cancel_url }}" class="btn btn-secondary">
+    <i class="bi bi-arrow-left"></i>
+    Voltar
+</a>
+<a href="{{ url_for('parceiros.editar_executivo', executivo_id=executivo.id) }}" class="btn btn-primary">
+    <i class="bi bi-pencil"></i>
+    Editar
+</a>
+{% endblock %}

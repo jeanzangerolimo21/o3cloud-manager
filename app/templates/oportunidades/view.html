@@ -1,0 +1,84 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    {% set page_title = oportunidade.titulo %}
+    {% set page_description = "Detalhes da oportunidade comercial" %}
+    {% set page_icon = "bi-briefcase-fill" %}
+    {% set page_button_url = url_for("oportunidades.editar", oportunidade_id=oportunidade.id) %}
+    {% set page_button_icon = "bi-pencil" %}
+    {% set page_button_text = "Editar" %}
+
+    {% include "components/page_header.html" %}
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <strong>Título</strong><br>
+                    {{ oportunidade.titulo }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Status</strong><br>
+                    {{ status_options.get(oportunidade.status, oportunidade.status) }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Situação</strong><br>
+                    {% if oportunidade.ativo %}Ativa{% else %}Inativa{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <strong>Empresa</strong><br>
+                    {{ oportunidade.cliente_exibicao or oportunidade.empresa or oportunidade.parceiro_exibicao or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>ERP</strong><br>
+                    {{ oportunidade.erp or '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Quantidade de Usuários</strong><br>
+                    {{ oportunidade.quantidade_usuarios if oportunidade.quantidade_usuarios is not none else '-' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Probabilidade</strong><br>
+                    {{ oportunidade.probabilidade if oportunidade.probabilidade is not none else '-' }}{% if oportunidade.probabilidade is not none %}%{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <strong>Valor Estimado</strong><br>
+                    {% if oportunidade.valor_estimado is not none %}{{ oportunidade.valor_estimado|moeda }}{% else %}-{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <strong>Responsável Comercial</strong><br>
+                    {{ oportunidade.executivo_responsavel_nome or '— Sem responsável —' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Lead Vinculado</strong><br>
+                    {{ oportunidade.lead_empresa or '— Sem lead —' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Contato Vinculado</strong><br>
+                    {{ oportunidade.contato_nome or '— Sem contato —' }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Parceiro Vinculado</strong><br>
+                    {{ oportunidade.parceiro_exibicao or '— Sem parceiro —' }}
+                </div>
+                <div class="col-12">
+                    <strong>Observações</strong><br>
+                    <div class="mt-2 text-muted" style="white-space: pre-line;">{{ oportunidade.observacoes or 'Nenhuma observação cadastrada.' }}</div>
+                </div>
+            </div>
+
+            <div class="mt-4 text-end">
+                <a href="{{ url_for('oportunidades.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i>
+                    Voltar
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

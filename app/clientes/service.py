@@ -1,4 +1,5 @@
 from app.repositories.cliente_repository import ClienteRepository
+from app.utils.telefone import formatar_telefone
 
 
 class ClienteService:
@@ -20,7 +21,8 @@ class ClienteService:
 
         )
 
-        
+        clientes = [ClienteService._formatar_telefone(cliente) for cliente in clientes]
+
         total = ClienteRepository.total(
             pesquisa=pesquisa,
             ativo=ativo,
@@ -40,7 +42,7 @@ class ClienteService:
     def criar(dados):
 
         return ClienteRepository.inserir(
-            dados
+            ClienteService._normalizar_dados(dados)
         )
 
 
@@ -53,28 +55,52 @@ class ClienteService:
     @staticmethod
     def buscar_por_id(cliente_id):
 
-        return ClienteRepository.buscar_por_id(cliente_id)
+        cliente = ClienteRepository.buscar_por_id(cliente_id)
+        return ClienteService._formatar_telefone(cliente)
 
-    
+
     @staticmethod
     def atualizar(cliente_id, dados):
 
         ClienteRepository.atualizar(
             cliente_id,
-            dados
+            ClienteService._normalizar_dados(dados)
         )
 
-        return ClienteRepository.buscar_por_id(
+        cliente = ClienteRepository.buscar_por_id(
             cliente_id
         )
+        return ClienteService._formatar_telefone(cliente)
+
     @staticmethod
     def sincronizar_omie(dados):
 
         return ClienteRepository.upsert_omie(
-            dados
+            ClienteService._normalizar_dados(dados)
         )
 
     @classmethod
     def listar_todos(cls):
 
         return ClienteRepository.listar_todos()
+
+    @classmethod
+    def listar_para_importacao(cls):
+
+        clientes = ClienteRepository.listar_para_importacao()
+        return [cls._formatar_telefone(cliente) for cliente in clientes]
+
+    @staticmethod
+    def _normalizar_dados(dados):
+        dados = dict(dados)
+        dados["telefone"] = formatar_telefone(dados.get("telefone"))
+        return dados
+
+    @staticmethod
+    def _formatar_telefone(cliente):
+        if not cliente:
+            return cliente
+
+        cliente = dict(cliente)
+        cliente["telefone"] = formatar_telefone(cliente.get("telefone"))
+        return cliente

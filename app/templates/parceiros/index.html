@@ -8,159 +8,102 @@
 
     {% include "components/card_header.html" %}
 
-        {% include "components/filter_bar.html" %}
+        <form method="GET" class="mb-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label">Pesquisar</label>
+                    <input type="text" class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="{{ placeholder }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Negociação</label>
+                    <select class="form-select" name="negociacao">
+                        <option value="">Todas</option>
+                        {% for valor, descricao in negociacao_options.items() %}
+                        <option value="{{ valor }}" {% if selected_negociacao == valor %}selected{% endif %}>{{ descricao }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Situação</label>
+                    <select class="form-select" name="ativo">
+                        <option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativos</option>
+                        <option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativos</option>
+                        <option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todos</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <button class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ request.path }}" class="btn btn-outline-secondary w-100">Limpar</a>
+                </div>
+            </div>
+        </form>
 
         <div class="table-responsive">
 
             <table class="table table-hover align-middle">
 
                 <thead>
-
                     <tr>
-
-                        <th>Nome</th>
-
-                        <th>Sigla</th>
-
-                        <th>Tipo</th>
-
-                        <th>Contato</th>
-
+                        <th>Parceiro</th>
+                        <th>Contato Principal</th>
+                        <th>Telefone</th>
+                        <th>Negociação</th>
                         <th>Situação</th>
-
-                        <th width="180">Ações</th>
-
+                        <th width="220">Ações</th>
                     </tr>
-
                 </thead>
 
                 <tbody>
-
                     {% for parceiro in parceiros %}
-
                     <tr>
-
                         <td>
-
-                            <strong>
-
-                                {{ parceiro.nome }}
-
-                            </strong>
-
+                            <strong>{{ parceiro.nome_exibicao or parceiro.nome }}</strong>
                         </td>
-
+                        <td>{{ parceiro.contato_exibicao or '-' }}</td>
+                        <td>{{ parceiro.telefone_exibicao or '-' }}</td>
                         <td>
-
-                            {{ parceiro.sigla }}
-
-                        </td>
-
-                        <td>
-
-                            {% if parceiro.tipo == "SOFTWARE_HOUSE" %}
-
-                                <span class="badge bg-primary">
-
-                                    Software House
-
-                                </span>
-
-                            {% elif parceiro.tipo == "CANAL" %}
-
-                                <span class="badge bg-warning text-dark">
-
-                                    Canal
-
-                                </span>
-
-                            {% elif parceiro.tipo == "REVENDA" %}
-
-                                <span class="badge bg-info text-dark">
-
-                                    Revenda
-
-                                </span>
-
-                            {% elif parceiro.tipo == "INTERNO" %}
-
-                                <span class="badge bg-success">
-
-                                    Interno
-
-                                </span>
-
+                            {% if parceiro.status_negociacao == 'HOMOLOGADO' %}
+                                <span class="badge bg-success-subtle text-success">Homologado</span>
+                            {% elif parceiro.status_negociacao == 'SUCESSO' %}
+                                <span class="badge bg-primary">Sucesso</span>
+                            {% elif parceiro.status_negociacao == 'PERDIDO' %}
+                                <span class="badge bg-danger">Perdido</span>
+                            {% elif parceiro.status_negociacao == 'AGUARDANDO_PARCEIRO' %}
+                                <span class="badge bg-warning text-dark">Aguardando Parceiro</span>
                             {% else %}
-
-                                <span class="badge bg-secondary">
-
-                                    Outro
-
-                                </span>
-
+                                <span class="badge bg-secondary">Primeiro Contato</span>
                             {% endif %}
-
                         </td>
-
                         <td>
-
-                            {{ parceiro.contato or "-" }}
-
-                        </td>
-
-                        <td>
-
                             {% set ativo = parceiro.ativo %}
-
                             {% include "components/status_badge.html" %}
-
                         </td>
-
                         <td>
-
                             <div class="btn-group btn-group-sm">
-
-                                <a
-                                    href="{{ url_for('parceiros.visualizar', parceiro_id=parceiro.id) }}"
-                                    class="btn btn-outline-secondary">
-
+                                <a href="{{ url_for('parceiros.visualizar', parceiro_id=parceiro.id) }}" class="btn btn-outline-secondary" title="Visualizar">
                                     <i class="bi bi-eye"></i>
-
                                 </a>
-
-                                <a
-                                    href="{{ url_for('parceiros.editar', parceiro_id=parceiro.id) }}"
-                                    class="btn btn-outline-primary">
-
+                                <a href="{{ url_for('parceiros.listar_executivos', parceiro_id=parceiro.id) }}" class="btn btn-outline-info" title="Executivos">
+                                    <i class="bi bi-person-badge"></i>
+                                </a>
+                                <a href="{{ url_for('parceiros.editar', parceiro_id=parceiro.id) }}" class="btn btn-outline-primary" title="Editar">
                                     <i class="bi bi-pencil"></i>
-
                                 </a>
-
-                                <a
-                                    href="{{ url_for('parceiros.excluir', parceiro_id=parceiro.id) }}"
-                                    onclick="return confirm('Deseja realmente excluir este parceiro?')"
-                                    class="btn btn-outline-danger">
-
+                                <a href="{{ url_for('parceiros.excluir', parceiro_id=parceiro.id) }}" onclick="return confirm('Deseja realmente excluir este parceiro?')" class="btn btn-outline-danger" title="Excluir">
                                     <i class="bi bi-trash"></i>
-
                                 </a>
-
                             </div>
-
                         </td>
-
                     </tr>
-
                     {% else %}
-
                         {% set colspan = 6 %}
-
                         {% set empty_message = "Nenhum parceiro encontrado." %}
-
                         {% include "components/empty_state.html" %}
-
                     {% endfor %}
-
                 </tbody>
 
             </table>

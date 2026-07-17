@@ -1,0 +1,146 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    {% include "components/page_header.html" %}
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+            <form method="GET" class="mb-4">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Pesquisar</label>
+                        <input type="text" class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="{{ placeholder }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status">
+                            <option value="">Todos</option>
+                            {% for valor, descricao in status_options.items() %}
+                            <option value="{{ valor }}" {% if selected_status == valor %}selected{% endif %}>{{ descricao }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Origem</label>
+                        <select class="form-select" name="origem">
+                            <option value="">Todas</option>
+                            {% for valor, descricao in origem_options.items() %}
+                            <option value="{{ valor }}" {% if selected_origem == valor %}selected{% endif %}>{{ descricao }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Situação</label>
+                        <select class="form-select" name="ativo">
+                            <option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativos</option>
+                            <option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativos</option>
+                            <option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                    <div class="col-md-1">
+                        <a href="{{ request.path }}" class="btn btn-outline-secondary w-100">Limpar</a>
+                    </div>
+                </div>
+            </form>
+
+            <div class="mb-3">
+                <small class="text-muted">{{ total }} lead(s) cadastrados</small>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Empresa</th>
+                            <th>Contato</th>
+                            <th>Origem</th>
+                            <th>Interesse</th>
+                            <th>Status</th>
+                            <th>Executivo</th>
+                            <th>Situação</th>
+                            <th width="180">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lead in leads %}
+                        <tr>
+                            <td>
+                                <strong>{{ lead.empresa }}</strong>
+                                <br>
+                                <small class="text-muted">{{ lead.cidade or '-' }}{% if lead.uf %}/{{ lead.uf }}{% endif %}</small>
+                            </td>
+                            <td>
+                                {{ lead.nome_contato }}
+                                <br>
+                                <small class="text-muted">{{ lead.email or lead.telefone or '-' }}</small>
+                            </td>
+                            <td>{{ origem_options.get(lead.origem, lead.origem) }}</td>
+                            <td>{{ lead.interesse or '-' }}</td>
+                            <td>
+                                {% if lead.status == 'GANHO' %}
+                                    <span class="badge bg-success">{{ status_options.get(lead.status, lead.status) }}</span>
+                                {% elif lead.status == 'PERDIDO' %}
+                                    <span class="badge bg-danger">{{ status_options.get(lead.status, lead.status) }}</span>
+                                {% elif lead.status == 'PROPOSTA' %}
+                                    <span class="badge bg-primary">{{ status_options.get(lead.status, lead.status) }}</span>
+                                {% elif lead.status == 'QUALIFICACAO' %}
+                                    <span class="badge bg-warning text-dark">{{ status_options.get(lead.status, lead.status) }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ status_options.get(lead.status, lead.status) }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ lead.executivo_responsavel_nome or '—' }}</td>
+                            <td>
+                                {% set ativo = lead.ativo %}
+                                {% include "components/status_badge.html" %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('leads.visualizar', lead_id=lead.id) }}" class="btn btn-outline-secondary" title="Visualizar">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('leads.editar', lead_id=lead.id) }}" class="btn btn-outline-primary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{{ url_for('leads.excluir', lead_id=lead.id) }}" onclick="return confirm('Deseja realmente excluir este lead?')" class="btn btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                            {% set colspan = 8 %}
+                            {% set empty_message = "Nenhum lead encontrado." %}
+                            {% include "components/empty_state.html" %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if total_paginas > 1 %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% for p in range(1, total_paginas + 1) %}
+                    <li class="page-item {% if p == pagina %}active{% endif %}">
+                        <a class="page-link" href="?page={{ p }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_origem %}&origem={{ selected_origem }}{% endif %}{% if selected_ativo %}&ativo={{ selected_ativo }}{% endif %}">{{ p }}</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </nav>
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

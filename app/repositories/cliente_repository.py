@@ -477,3 +477,37 @@ class ClienteRepository(BaseRepository):
         cls.close(conn, cursor)
 
         return clientes
+    
+    @classmethod
+    def listar_para_importacao(cls):
+
+        conn = cls.connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+
+            SELECT
+
+                id,
+                nome_fantasia,
+                razao_social,
+                cnpj,
+                email,
+                telefone,
+                cidade,
+                estado,
+                origem
+
+            FROM clientes
+
+            WHERE ativo = 1
+
+            ORDER BY COALESCE(nome_fantasia, razao_social), razao_social
+
+        """)
+
+        clientes = cursor.fetchall()
+
+        cls.close(conn, cursor)
+
+        return clientes

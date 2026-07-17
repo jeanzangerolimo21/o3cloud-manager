@@ -1,0 +1,94 @@
+{% extends "crud/form_base.html" %}
+
+{% block page_header %}
+
+{% set page_title = "Editar Executivo" if executivo else "Novo Executivo" %}
+{% set page_description = "Cadastro de executivos de vendas." %}
+{% set page_icon = "bi-person-badge" %}
+{% set page_button_text = "Voltar" %}
+{% set page_button_icon = "bi-arrow-left" %}
+{% set page_button_url = cancel_url %}
+
+{% include "components/page_header.html" %}
+
+{% endblock %}
+
+{% block form_fields %}
+
+<div class="row g-3">
+
+    <div class="col-md-8">
+        <label class="form-label">Nome Completo *</label>
+        <input
+            type="text"
+            class="form-control"
+            name="nome"
+            required
+            placeholder="Nome completo"
+            value="{{ executivo.nome if executivo else '' }}">
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label">Status</label>
+        <select class="form-select" name="ativo">
+            <option value="1" {% if not executivo or executivo.ativo %}selected{% endif %}>Ativo</option>
+            <option value="0" {% if executivo and not executivo.ativo %}selected{% endif %}>Inativo</option>
+        </select>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">E-mail</label>
+        <input
+            type="email"
+            class="form-control"
+            name="email"
+            placeholder="email@exemplo.com"
+            value="{{ executivo.email if executivo else '' }}">
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">WhatsApp</label>
+        <input
+            type="text"
+            class="form-control"
+            name="telefone"
+            placeholder="(11) 99999-9999"
+            value="{{ executivo.telefone if executivo else '' }}">
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">Parceiro Vinculado</label>
+        <select class="form-select" name="parceiro_id">
+            <option value="">— Sem parceiro —</option>
+            {% for parceiro in parceiros %}
+            <option
+                value="{{ parceiro.id }}"
+                {% if parceiro.id == parceiro_id %}selected{% endif %}>
+                {{ parceiro.nome }}{% if parceiro.sigla %} ({{ parceiro.sigla }}){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">Chave Pix</label>
+        <input
+            type="text"
+            class="form-control"
+            name="chave_pix"
+            placeholder="CPF, e-mail, telefone..."
+            value="{{ executivo.chave_pix if executivo else '' }}">
+    </div>
+
+    <div class="col-12">
+        <label class="form-label">Informações para Pagamento de Comissões</label>
+        <textarea
+            class="form-control"
+            rows="5"
+            name="informacoes_pagamento"
+            placeholder="Banco, agência, conta, observações...">{{ executivo.informacoes_pagamento if executivo else '' }}</textarea>
+    </div>
+
+</div>
+
+{% endblock %}

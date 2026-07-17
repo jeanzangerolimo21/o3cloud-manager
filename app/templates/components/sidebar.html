@@ -44,12 +44,6 @@
                 Contratos
             </a>
 
-            <a class="submenu-item"
-               href="{{ url_for('parceiros.index') }}">
-                <i class="bi bi-building"></i>
-                Parceiros
-            </a>
-
             <a href="{{ url_for('catalogo.index') }}" class="submenu-item">
                 <i class="bi bi-box-seam"></i>
                 Catálogo Comercial
@@ -73,6 +67,41 @@
             <a href="{{ url_for('catalogo.listar_servidores') }}" class="submenu-item">
                 <i class="bi bi-tools"></i>
                 Dimensionamento Técnico
+            </a>
+
+            <div class="menu-section">
+                CRM Comercial
+            </div>
+
+            <a href="{{ url_for('leads.index') }}" class="submenu-item">
+                <i class="bi bi-bullseye"></i>
+                Leads
+            </a>
+
+            <a href="{{ url_for('contatos.index') }}" class="submenu-item">
+                <i class="bi bi-person-lines-fill"></i>
+                Contatos
+            </a>
+
+            <a href="{{ url_for('oportunidades.index') }}" class="submenu-item">
+                <i class="bi bi-briefcase-fill"></i>
+                Oportunidades
+            </a>
+
+            <a href="{{ url_for('pipeline.index') }}" class="submenu-item">
+                <i class="bi bi-kanban-fill"></i>
+                Pipeline Comercial
+            </a>
+
+            <a href="{{ url_for('propostas.index') }}" class="submenu-item">
+                <i class="bi bi-file-earmark-richtext-fill"></i>
+                Propostas
+            </a>
+
+            <a class="submenu-item"
+               href="{{ url_for('parceiros.index') }}">
+                <i class="bi bi-building"></i>
+                Parceiros
             </a>
 
             <div class="menu-section">

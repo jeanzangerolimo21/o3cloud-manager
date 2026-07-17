@@ -1,0 +1,92 @@
+{% extends "crud/index_base.html" %}
+
+{% block page_header %}
+
+{% include "components/page_header.html" %}
+
+{% endblock %}
+
+{% block filters %}
+
+{% set show_status = True %}
+{% set show_origem = False %}
+{% set status_field = "ativo" %}
+{% set status_options = {
+    "1": "Ativo",
+    "0": "Inativo"
+} %}
+
+{% include "components/filter_bar.html" %}
+
+{% if parceiro %}
+<div class="alert alert-light border mb-4">
+    <strong>Parceiro vinculado:</strong> {{ parceiro.nome }}
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block table %}
+
+<table class="table table-hover align-middle">
+
+    <thead>
+        <tr>
+            <th>Executivo</th>
+            <th>Parceiro</th>
+            <th>E-mail</th>
+            <th>WhatsApp</th>
+            <th>Chave Pix</th>
+            <th>Status</th>
+            <th width="170" class="text-center">Ações</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for executivo in executivos %}
+        <tr>
+            <td>
+                <strong>{{ executivo.nome }}</strong>
+            </td>
+            <td>
+                {{ executivo.parceiro or "Sem parceiro" }}
+            </td>
+            <td>
+                {{ executivo.email or "-" }}
+            </td>
+            <td>
+                {{ executivo.telefone or "-" }}
+            </td>
+            <td>
+                {{ executivo.chave_pix or "-" }}
+            </td>
+            <td>
+                {% if executivo.ativo %}
+                    <span class="badge bg-success">Ativo</span>
+                {% else %}
+                    <span class="badge bg-secondary">Inativo</span>
+                {% endif %}
+            </td>
+            <td class="text-center">
+                {% set view_url = url_for('parceiros.visualizar_executivo', executivo_id=executivo.id) %}
+                {% set edit_url = url_for('parceiros.editar_executivo', executivo_id=executivo.id) %}
+                {% set disable_url = None %}
+                {% include "components/crud_actions.html" %}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="7" class="text-center text-muted py-5">
+                Nenhum executivo cadastrado.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+
+</table>
+
+{% endblock %}
+
+{% block pagination %}
+{% include "components/pagination.html" %}
+{% endblock %}

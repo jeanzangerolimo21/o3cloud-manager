@@ -1,0 +1,144 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    {% set page_title = "Editar Oportunidade" if modo == "editar" else "Nova Oportunidade" %}
+    {% set page_description = "Cadastro de negociações ativas do CRM Comercial." %}
+    {% set page_icon = "bi-briefcase-fill" %}
+    {% set page_button_url = url_for("oportunidades.index") %}
+    {% set page_button_icon = "bi-arrow-left" %}
+    {% set page_button_text = "Voltar" %}
+
+    {% include "components/page_header.html" %}
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <form method="POST">
+
+                <h5 class="mb-3">Dados Principais</h5>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-8">
+                        <label class="form-label">Título *</label>
+                        <input class="form-control" name="titulo" required placeholder="Ex: Expansão ERP para 120 usuários" value="{{ oportunidade.titulo if oportunidade else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">ERP</label>
+                        <input class="form-control" name="erp" placeholder="Nome do ERP ou solução" value="{{ oportunidade.erp if oportunidade else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Empresa</label>
+                        <input class="form-control" name="empresa" placeholder="Empresa de referência" value="{{ oportunidade.empresa if oportunidade else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Quantidade de Usuários</label>
+                        <input class="form-control" type="number" min="0" name="quantidade_usuarios" placeholder="0" value="{{ oportunidade.quantidade_usuarios if oportunidade and oportunidade.quantidade_usuarios is not none else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Probabilidade (%)</label>
+                        <input class="form-control" type="number" min="0" max="100" name="probabilidade" placeholder="0 a 100" value="{{ oportunidade.probabilidade if oportunidade and oportunidade.probabilidade is not none else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Valor Estimado</label>
+                        <input class="form-control" name="valor_estimado" placeholder="0,00" value="{{ oportunidade.valor_estimado if oportunidade and oportunidade.valor_estimado is not none else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status">
+                            {% set status_selecionado = oportunidade.status if oportunidade and oportunidade.status else 'NOVA' %}
+                            {% for valor, descricao in status_options.items() %}
+                            <option value="{{ valor }}" {% if status_selecionado == valor %}selected{% endif %}>{{ descricao }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="ativo" value="1" {% if oportunidade %}{% if oportunidade.ativo %}checked{% endif %}{% else %}checked{% endif %}>
+                            <label class="form-check-label">Oportunidade Ativa</label>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <h5 class="mb-3">Relacionamento CRM</h5>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label">Lead Vinculado</label>
+                        <select class="form-select" name="lead_id">
+                            <option value="">— Sem lead —</option>
+                            {% for lead in leads %}
+                            <option value="{{ lead.id }}" {% if oportunidade and oportunidade.lead_id and oportunidade.lead_id|string == lead.id|string %}selected{% endif %}>{{ lead.empresa }} - {{ lead.nome_contato }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Contato Vinculado</label>
+                        <select class="form-select" name="contato_id">
+                            <option value="">— Sem contato —</option>
+                            {% for contato_item in contatos %}
+                            <option value="{{ contato_item.id }}" {% if oportunidade and oportunidade.contato_id and oportunidade.contato_id|string == contato_item.id|string %}selected{% endif %}>{{ contato_item.nome }}{% if contato_item.empresa %} - {{ contato_item.empresa }}{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Cliente Vinculado</label>
+                        <select class="form-select" name="cliente_id">
+                            <option value="">— Sem cliente —</option>
+                            {% for cliente in clientes %}
+                            <option value="{{ cliente.id }}" {% if oportunidade and oportunidade.cliente_id and oportunidade.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ cliente.nome_fantasia or cliente.razao_social or ('Cliente #' ~ cliente.id) }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Parceiro Vinculado</label>
+                        <select class="form-select" name="parceiro_id">
+                            <option value="">— Sem parceiro —</option>
+                            {% for parceiro in parceiros %}
+                            <option value="{{ parceiro.id }}" {% if oportunidade and oportunidade.parceiro_id and oportunidade.parceiro_id|string == parceiro.id|string %}selected{% endif %}>{{ parceiro.nome_exibicao or parceiro.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Responsável Comercial</label>
+                        <select class="form-select" name="executivo_responsavel_id">
+                            <option value="">— Sem responsável —</option>
+                            {% for executivo in executivos %}
+                            <option value="{{ executivo.id }}" {% if oportunidade and oportunidade.executivo_responsavel_id and oportunidade.executivo_responsavel_id|string == executivo.id|string %}selected{% endif %}>{{ executivo.nome }}{% if executivo.parceiro %} - {{ executivo.parceiro }}{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Observações</label>
+                        <textarea class="form-control" rows="6" name="observacoes" placeholder="Contexto da negociação, histórico, próximos passos, objeções e observações comerciais...">{{ oportunidade.observacoes if oportunidade else '' }}</textarea>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between gap-2 flex-wrap">
+                    <div>
+                        {% if modo == "editar" and oportunidade and oportunidade.id %}
+                        <a href="{{ url_for('oportunidades.excluir', oportunidade_id=oportunidade.id) }}" onclick="return confirm('Deseja realmente excluir esta oportunidade do banco de dados?')" class="btn btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                            Excluir Oportunidade
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('oportunidades.index') }}" class="btn btn-secondary">Cancelar</a>
+                        <button class="btn btn-primary">
+                            <i class="bi bi-floppy"></i>
+                            Salvar
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid proposta-page">
+    {% set page_title = "Editar Proposta" if modo == "editar" else "Nova Proposta" %}
+    {% set page_description = "Monte a proposta comercial com cliente, executivo, licenças, servidores e preview." %}
+    {% set page_icon = "bi-file-earmark-richtext-fill" %}
+    {% set page_button_url = url_for("propostas.index") %}
+    {% set page_button_icon = "bi-arrow-left" %}
+    {% set page_button_text = "Voltar" %}
+    {% include "components/page_header.html" %}
+
+    <form method="POST" id="proposta-form">
+        <input type="hidden" name="parceiro_id" id="parceiro_id" value="{{ proposta.parceiro_id or '' }}">
+        <input type="hidden" name="cliente_nome" id="cliente_nome" value="{{ proposta.cliente_nome or '' }}">
+        <input type="hidden" name="contato_nome" id="contato_nome" value="{{ proposta.contato_nome or '' }}">
+        <input type="hidden" name="contato_email" id="contato_email" value="{{ proposta.contato_email or '' }}">
+        <input type="hidden" name="contato_telefone" id="contato_telefone" value="{{ proposta.contato_telefone or '' }}">
+        <input type="hidden" name="executivo_nome" id="executivo_nome" value="{{ proposta.executivo_nome or '' }}">
+        <input type="hidden" name="executivo_email" id="executivo_email" value="{{ proposta.executivo_email or '' }}">
+        <input type="hidden" name="executivo_telefone" id="executivo_telefone" value="{{ proposta.executivo_telefone or '' }}">
+        <input type="hidden" name="total_mensal" id="total_mensal" value="{{ proposta.total_mensal or '0.00' }}">
+        <input type="hidden" name="total_instalacao" id="total_instalacao" value="{{ proposta.total_instalacao or '0.00' }}">
+        <input type="hidden" name="valor_total" id="valor_total" value="{{ proposta.valor_total or '0.00' }}">
+        <input type="hidden" name="licencas_snapshot" id="licencas_snapshot" value='{{ proposta.licencas_snapshot|default("[]", true) }}'>
+        <input type="hidden" name="servidores_snapshot" id="servidores_snapshot" value='{{ proposta.servidores_snapshot|default("[]", true) }}'>
+
+        <div class="row g-4">
+            <div class="col-xl-8">
+                <div class="card shadow-sm border-0 mb-4"><div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+                        <div>
+                            <h5 class="mb-1">Dados da Proposta</h5>
+                            <p class="text-muted mb-0">Cliente, oportunidade, executivo responsável e regras comerciais.</p>
+                        </div>
+                        <div class="proposal-code-box">
+                            <label class="form-label small text-muted">Código</label>
+                            <input class="form-control form-control-sm" name="codigo_proposta" value="{{ proposta.codigo_proposta or codigo_sugerido }}" readonly>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Cliente *</label>
+                            <select class="form-select" id="cliente_id" name="cliente_id" required>
+                                <option value="">Selecionar Cliente</option>
+                                {% for cliente in clientes %}
+                                <option value="{{ cliente.id }}" {% if proposta.cliente_id and proposta.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ cliente.nome_fantasia or cliente.razao_social }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Da Oportunidade</label>
+                            <select class="form-select" id="oportunidade_id" name="oportunidade_id">
+                                <option value="">Selecionar Oportunidade</option>
+                                {% for oportunidade in oportunidades %}
+                                <option value="{{ oportunidade.id }}" {% if proposta.oportunidade_id and proposta.oportunidade_id|string == oportunidade.id|string %}selected{% endif %}>{{ oportunidade.titulo }}{% if oportunidade.empresa %} • {{ oportunidade.empresa }}{% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Solução *</label>
+                            <select class="form-select" name="titulo" id="titulo" required>
+                                <option value="">Selecionar Produto Fechado</option>
+                                {% for produto in produtos_fechados %}
+                                <option value="{{ produto.nome }}" {% if proposta.titulo and proposta.titulo == produto.nome %}selected{% endif %}>{{ produto.nome }}{% if produto.parceiro %} • {{ produto.parceiro }}{% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" name="status">
+                                {% set selected_status = proposta.status if proposta and proposta.status else 'RASCUNHO' %}
+                                {% for valor, descricao in status_options.items() %}
+                                <option value="{{ valor }}" {% if selected_status == valor %}selected{% endif %}>{{ descricao }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Executivo</label>
+                            <select class="form-select" name="executivo_responsavel_id" id="executivo_responsavel_id">
+                                <option value="">Selecionar Executivo</option>
+                                {% for executivo in executivos %}
+                                <option value="{{ executivo.id }}" {% if proposta.executivo_responsavel_id and proposta.executivo_responsavel_id|string == executivo.id|string %}selected{% elif not proposta.executivo_responsavel_id and executivo_padrao_id and executivo_padrao_id|string == executivo.id|string %}selected{% endif %}>{{ executivo.nome }}{% if executivo.parceiro %} • {{ executivo.parceiro }}{% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Contato</label>
+                            <div class="input-group">
+                                <select class="form-select" name="contato_id" id="contato_id">
+                                    <option value="">Selecionar Contato</option>
+                                    {% for contato in contatos %}
+                                    <option value="{{ contato.id }}" {% if proposta.contato_id and proposta.contato_id|string == contato.id|string %}selected{% endif %}>{{ contato.nome }}{% if contato.empresa %} • {{ contato.empresa }}{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                                <a href="{{ url_for('contatos.novo') }}" class="btn btn-outline-secondary" target="_blank"><i class="bi bi-plus-lg"></i></a>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Validade</label>
+                            <input class="form-control" type="date" name="validade" value="{{ proposta.validade or '' }}">
+                        </div>
+                        <div class="col-md-4"><label class="form-label">E-mail Executivo</label><input class="form-control" id="executivo_email_view" value="{{ proposta.executivo_email or '' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label">Telefone Executivo</label><input class="form-control" id="executivo_telefone_view" value="{{ proposta.executivo_telefone or '' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label">Contato Selecionado</label><input class="form-control" id="contato_nome_view" value="{{ proposta.contato_nome or '' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label">E-mail Contato</label><input class="form-control" id="contato_email_view" value="{{ proposta.contato_email or '' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label">Telefone Contato</label><input class="form-control" id="contato_telefone_view" value="{{ proposta.contato_telefone or '' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label">Setup (dias após entrega)</label><input class="form-control" type="number" min="0" id="setup_dias" name="setup_dias" value="{{ proposta.setup_dias or 7 }}"></div>
+                        <div class="col-md-4"><label class="form-label">Mensalidade (dias após entrega)</label><input class="form-control" type="number" min="0" id="mensalidade_dias" name="mensalidade_dias" value="{{ proposta.mensalidade_dias or 30 }}"></div>
+                        <div class="col-md-4"><label class="form-label">Prazo Contratual (meses)</label><input class="form-control" type="number" min="1" id="prazo_contratual_meses" name="prazo_contratual_meses" value="{{ proposta.prazo_contratual_meses or 24 }}"></div>
+                        <div class="col-12"><label class="form-label">Detalhes / Observações da Negociação</label><textarea class="form-control" rows="4" name="detalhes_negociacao">{{ proposta.detalhes_negociacao or '' }}</textarea></div>
+                    </div>
+                </div></div>
+
+                <div class="card shadow-sm border-0 mb-4"><div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <div><h5 class="mb-1">Licenças por Usuário</h5><p class="text-muted mb-0">Faixas da tabela de preços com edição livre de quantidade e valor.</p></div>
+                        <div class="d-flex gap-2 flex-wrap proposal-actions-inline">
+                            <select class="form-select" id="licenca_select"><option value="">Selecionar da tabela de preços</option>{% for licenca in licencas_catalogo %}<option value="{{ licenca.id }}">{{ licenca.software }} • {{ licenca.valor_mensal|moeda }}</option>{% endfor %}</select>
+                            <button class="btn btn-primary" type="button" id="add_licenca_btn"><i class="bi bi-plus-circle"></i> Adicionar da tabela de preços</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive"><table class="table align-middle" id="licencas_table"><thead><tr><th>Software</th><th>Usuários</th><th>Unitário</th><th>Total</th><th width="80"></th></tr></thead><tbody></tbody></table></div>
+                </div></div>
+
+                <div class="card shadow-sm border-0 mb-4"><div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <div><h5 class="mb-1">Servidores</h5><p class="text-muted mb-0">Adicione quantos recursos de servidor quiser e remova quando necessário.</p></div>
+                        <div class="d-flex gap-2 flex-wrap proposal-actions-inline">
+                            <select class="form-select" id="recurso_select"><option value="">Adicionar Servidor</option>{% for recurso in recursos_servidor %}<option value="{{ recurso.id }}">{{ recurso.nome }} • {{ recurso.valor_mensal|moeda }}</option>{% endfor %}</select>
+                            <button class="btn btn-outline-primary" type="button" id="add_recurso_btn"><i class="bi bi-hdd-network"></i> Adicionar Servidor</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive"><table class="table align-middle" id="servidores_table"><thead><tr><th>Recurso</th><th>Qtd.</th><th>Mensal</th><th>Instalação</th><th>Total Mensal</th><th width="80"></th></tr></thead><tbody></tbody></table></div>
+                </div></div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card shadow-sm border-0 mb-4 proposal-sidebar-card"><div class="card-body">
+                    <h5 class="mb-3">Totalização Geral da Proposta</h5>
+                    <div class="proposal-total-card mb-3"><span class="text-muted d-block">Total Mensal</span><strong id="total_mensal_display">R$ 0,00</strong></div>
+                    <div class="mb-3"><label class="form-label">Parametrização do Sistema</label><input class="form-control money-field" name="parametrizacao_sistema" id="parametrizacao_sistema" value="{{ proposta.parametrizacao_sistema or '0.00' }}"><div class="form-text">Padrão: itens com projeto.</div></div>
+                    <div class="mb-3"><label class="form-label">Setup do Ambiente Cloud</label><input class="form-control money-field" name="setup_ambiente_cloud" id="setup_ambiente_cloud" value="{{ proposta.setup_ambiente_cloud or '0.00' }}"><div class="form-text">Padrão: total da primeira mensalidade.</div></div>
+                    <div class="summary-line"><span>Instalação de recursos</span><strong id="instalacao_servidores_display">R$ 0,00</strong></div>
+                    <div class="summary-line total mt-3"><span>Total das Instalações</span><strong id="total_instalacao_display">R$ 0,00</strong></div>
+                    <div class="summary-line total border-top pt-3 mt-3"><span>Total Geral</span><strong id="valor_total_display">R$ 0,00</strong></div>
+                    <div class="form-check mt-4"><input class="form-check-input" type="checkbox" name="ativo" value="1" {% if proposta.ativo %}checked{% endif %}><label class="form-check-label">Proposta ativa</label></div>
+                    <div class="d-grid gap-2 mt-4">
+                        <button class="btn btn-primary"><i class="bi bi-floppy"></i> Salvar Proposta</button>
+                        {% if modo == 'editar' and proposta.id %}
+                        <a href="{{ url_for('propostas.imprimir', proposta_id=proposta.id) }}" target="_blank" class="btn btn-outline-dark"><i class="bi bi-printer"></i> Imprimir em PDF</a>
+                        <a href="{{ url_for('propostas.exportar_docx', proposta_id=proposta.id) }}" class="btn btn-outline-success"><i class="bi bi-file-earmark-word"></i> Exportar DOCX</a>
+                        <a href="{{ url_for('propostas.excluir', proposta_id=proposta.id) }}" onclick="return confirm('Deseja realmente excluir esta proposta?')" class="btn btn-outline-danger"><i class="bi bi-trash"></i> Excluir Proposta</a>
+                        {% endif %}
+                    </div>
+                </div></div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mt-4"><div class="card-body preview-shell">
+            <div class="proposal-print-layout"><section class="proposal-sheet proposal-sheet-cover"><div class="proposal-hero-card"><div class="proposal-header"><img src="{{ url_for('static', filename='img/logo.png') }}" alt="O3 Cloud"><div><div class="proposal-kicker">SOLUÇÃO</div><h1 id="preview_title">{{ proposta.titulo or 'Nova Solução' }}</h1><div class="proposal-client" id="preview_contato">{{ proposta.contato_nome or 'Contato não informado' }}</div><div class="proposal-client-details" id="preview_cliente_detalhes">{% if proposta.cliente_razao_social %}<div><strong>Razão Social:</strong> {{ proposta.cliente_razao_social }}</div>{% endif %}{% if proposta.cliente_nome_fantasia %}<div><strong>Nome Fantasia:</strong> {{ proposta.cliente_nome_fantasia }}</div>{% endif %}{% if proposta.cliente_cnpj %}<div><strong>CNPJ:</strong> {{ proposta.cliente_cnpj }}</div>{% endif %}</div><div class="proposal-code" id="preview_codigo">{{ proposta.codigo_proposta or codigo_sugerido }}</div></div></div><section class="proposal-cover-copy"><h2>1. AGRADECIMENTO</h2><p>Prezado Cliente (a)</p><p>Temos o prazer de lhe apresentar a nossa proposta de solução em CLOUD.</p><p>Somos uma empresa especializada em hospedagem de servidores em nuvem e tecnologia da informação, oferecemos soluções que atendem às necessidades tecnológicas das empresas em suas mais diversas áreas.</p><p>Composta por profissionais qualificados e experientes que buscam soluções para todos os tipos de negócio, dando prioridade à segurança dos dados com tecnologias avançadas.</p><p>Nossos serviços são implementados seguindo as melhores práticas do mercado e com metodologias que fazem a experiência do usuário ser única.</p><p>Queremos escrever ao seu lado uma parceria de sucesso oferecendo o que há de melhor em tecnologia de ponta de forma exclusiva e sob medida.</p></section><div class="proposal-signature proposal-signature-cover"><strong id="preview_executivo_nome">{{ proposta.executivo_nome or 'Executivo de vendas' }}</strong><br><span id="preview_executivo_email">{{ proposta.executivo_email or '-' }}</span></div></div></section><section class="proposal-sheet proposal-sheet-investimentos"><div class="proposal-invest-card"><section class="proposal-section"><h2>2. INVESTIMENTOS CLOUD</h2><h3>Das instalações:</h3><table class="proposal-table small"><tbody><tr><td>Parametrização do Sistema - Configuração do Software em CLOUD</td><td class="text-end" id="preview_parametrizacao">R$ 0,00</td></tr><tr><td>Setup do Ambiente Cloud - Parametrização de Servidores CLOUD</td><td class="text-end" id="preview_setup_cloud">R$ 0,00</td></tr><tr><td>Recursos adicionais de instalação</td><td class="text-end" id="preview_instalacao_servidores">R$ 0,00</td></tr><tr class="proposal-total-row"><td>TOTAL INSTALAÇÃO</td><td class="text-end" id="preview_total_instalacao">R$ 0,00</td></tr></tbody></table><h3 class="mt-4">Das mensalidades:</h3><table class="proposal-table"><thead><tr><th>Software</th><th>Usuários</th><th>Unitário</th><th>Total</th></tr></thead><tbody id="preview_rows"><tr><td colspan="4" class="text-center text-muted">Nenhum item adicionado.</td></tr></tbody><tfoot><tr class="proposal-total-row"><td colspan="3">TOTAL MENSAL</td><td class="text-end" id="preview_total_mensal">R$ 0,00</td></tr><tr class="proposal-total-row proposal-grand-total"><td colspan="3">TOTAL GERAL</td><td class="text-end" id="preview_valor_total">R$ 0,00</td></tr></tfoot></table><div class="mt-4"><strong>INFORMAÇÕES ADICIONAIS:</strong><p class="mb-1">Setup: <span id="preview_setup_dias">7</span> dias após a entrega do ambiente.</p><p class="mb-1">Mensalidade: <span id="preview_mensalidade_dias">30</span> dias após a entrega do ambiente.</p><p class="mb-0">Prazo contratual: <span id="preview_prazo_contratual">24</span> meses.</p></div></section></div></section></div>
+        </div></div>
+    </form>
+</div>
+
+<style>
+.proposal-code-box{min-width:190px}.proposal-actions-inline .form-select{min-width:260px}.proposal-sidebar-card{position:sticky;top:1.5rem}.proposal-total-card{background:linear-gradient(135deg,#f3f6fb 0%,#e9f2ff 100%);border:1px solid #dbe7f7;border-radius:18px;padding:1rem 1.25rem}.proposal-total-card strong{font-size:1.85rem}.summary-line{display:flex;justify-content:space-between;gap:1rem;padding:.35rem 0}.summary-line.total strong{font-size:1.1rem}.preview-shell{background:linear-gradient(180deg,#fbfcff 0%,#f2f6fb 100%)}.proposal-print-layout{max-width:980px;margin:0 auto}.proposal-sheet{padding:18px 0}.proposal-hero-card,.proposal-invest-card{border-radius:28px;overflow:hidden}.proposal-hero-card{background:linear-gradient(135deg,#3b1263 0%,#5b2d85 100%);color:#fff;padding:2.5rem 2.6rem;box-shadow:0 24px 48px rgba(31,16,61,.22)}.proposal-invest-card{background:linear-gradient(180deg,#f5f3ff 0%,#efe9fe 100%);padding:2.2rem 2.3rem;border:1px solid #e4dafc;box-shadow:0 20px 40px rgba(44,28,73,.10)}.proposal-header{display:grid;grid-template-columns:160px 1fr;gap:1.5rem;align-items:center;padding-bottom:1.6rem;border-bottom:1px solid rgba(255,255,255,.18);margin-bottom:1.6rem}.proposal-header img{max-width:100%;filter:drop-shadow(0 8px 18px rgba(0,0,0,.18))}.proposal-kicker{font-size:.8rem;letter-spacing:.24em;color:#e9dcff;margin-bottom:.55rem}.proposal-header h1{font-size:2.1rem;margin-bottom:.45rem;color:#fff}.proposal-client{font-size:1.12rem;color:#fff}.proposal-client-details{margin-top:.75rem;color:#efe7ff;line-height:1.6}.proposal-code{display:inline-block;font-size:.95rem;color:#f6edff;margin-top:1rem;padding:.48rem .8rem;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(255,255,255,.08)}.proposal-cover-copy h2,.proposal-section h2{font-size:1.1rem;margin-bottom:1rem}.proposal-cover-copy p{color:#f3effb;margin-bottom:.8rem;line-height:1.72}.proposal-signature{margin-top:1.7rem;padding-top:1rem;border-top:1px dashed rgba(255,255,255,.28)}.proposal-signature-cover{color:#fff}.proposal-section h2,.proposal-section h3{color:#24173e}.proposal-section h3{font-size:1rem;margin-bottom:.8rem}.proposal-table{width:100%;border-collapse:collapse;background:#fff;border-radius:16px;overflow:hidden}.proposal-table th,.proposal-table td{border-bottom:1px solid #eadff9;padding:.78rem .65rem;vertical-align:top}.proposal-table th{color:#65548d;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;background:#f8f4ff}.proposal-total-row td{font-weight:700}.proposal-grand-total td{background:#f1e9ff;color:#351c63}.proposal-extra-block{background:#fff;border:1px solid #eadff9;border-radius:18px;padding:1rem 1.1rem}@media(max-width:991px){.proposal-header{grid-template-columns:1fr}.proposal-hero-card,.proposal-invest-card{padding:1.35rem;border-radius:20px}.proposal-sidebar-card{position:static}}
+</style>
+
+<script>
+const DATA={clientes:{{ clientes|tojson }},oportunidades:{{ oportunidades|tojson }},contatos:{{ contatos|tojson }},executivos:{{ executivos|tojson }},licencas:{{ licencas_catalogo|tojson }},recursos:{{ recursos_servidor|tojson }},licencasIniciais:{{ proposta.licencas_items|tojson }},servidoresIniciais:{{ proposta.servidores_items|tojson }},clienteRazaoSocial:{{ proposta.cliente_razao_social|default("", true)|tojson }},clienteNomeFantasia:{{ proposta.cliente_nome_fantasia|default("", true)|tojson }},clienteCnpj:{{ proposta.cliente_cnpj|default("", true)|tojson }}};
+const licencas=[...DATA.licencasIniciais];
+const servidores=[...DATA.servidoresIniciais];
+const moneyFields=["parametrizacao_sistema","setup_ambiente_cloud"];
+function parseMoney(v){if(v===null||v===undefined||v==='')return 0;const t=String(v).replace(/R\$/g,'').trim();if(t.includes(','))return Number(t.replace(/\./g,'').replace(',','.'))||0;return Number(t)||0}
+function moneyString(v){return (Math.round((Number(v)||0)*100)/100).toFixed(2)}
+function moneyBR(v){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0)}
+function getById(list,id){return list.find(i=>String(i.id)===String(id))}
+function syncCliente(){const c=getById(DATA.clientes,document.getElementById('cliente_id').value);document.getElementById('cliente_nome').value=c?(c.nome_fantasia||c.razao_social||''):'';document.getElementById('preview_cliente').textContent=document.getElementById('cliente_nome').value||'Cliente não selecionado';const detalhes=[];if(c&&c.razao_social)detalhes.push(`<div><strong>Razão Social:</strong> ${c.razao_social}</div>`);if(c&&c.nome_fantasia)detalhes.push(`<div><strong>Nome Fantasia:</strong> ${c.nome_fantasia}</div>`);if(c&&c.cnpj)detalhes.push(`<div><strong>CNPJ:</strong> ${c.cnpj}</div>`);document.getElementById('preview_cliente_detalhes').innerHTML=detalhes.join('')} 
+function syncContato(){const c=getById(DATA.contatos,document.getElementById('contato_id').value);document.getElementById('contato_nome').value=c?(c.nome||''):'';document.getElementById('contato_email').value=c?(c.email||''):'';document.getElementById('contato_telefone').value=c?(c.telefone||c.whatsapp||''):'';document.getElementById('contato_nome_view').value=document.getElementById('contato_nome').value;document.getElementById('contato_email_view').value=document.getElementById('contato_email').value;document.getElementById('contato_telefone_view').value=document.getElementById('contato_telefone').value;document.getElementById('preview_contato').textContent=document.getElementById('contato_nome').value||'Contato não informado'}
+function syncExecutivo(){const e=getById(DATA.executivos,document.getElementById('executivo_responsavel_id').value);document.getElementById('executivo_nome').value=e?(e.nome||''):'';document.getElementById('executivo_email').value=e?(e.email||''):'';document.getElementById('executivo_telefone').value=e?(e.telefone||''):'';document.getElementById('parceiro_id').value=e?(e.parceiro_id||''):document.getElementById('parceiro_id').value;document.getElementById('executivo_email_view').value=document.getElementById('executivo_email').value;document.getElementById('executivo_telefone_view').value=document.getElementById('executivo_telefone').value;document.getElementById('preview_executivo_nome').textContent=document.getElementById('executivo_nome').value||'Executivo de vendas';document.getElementById('preview_executivo_email').textContent=document.getElementById('executivo_email').value||'-'}
+function syncOportunidade(){const o=getById(DATA.oportunidades,document.getElementById('oportunidade_id').value);if(!o)return;if(!document.getElementById('cliente_id').value&&o.cliente_id){document.getElementById('cliente_id').value=o.cliente_id;syncCliente()}if(!document.getElementById('contato_id').value&&o.contato_id){document.getElementById('contato_id').value=o.contato_id;syncContato()}if(!document.getElementById('executivo_responsavel_id').value&&o.executivo_responsavel_id){document.getElementById('executivo_responsavel_id').value=o.executivo_responsavel_id;syncExecutivo()}updatePreviewText()}
+function addLicenca(){const s=getById(DATA.licencas,document.getElementById('licenca_select').value);if(!s)return;licencas.push({preco_id:s.id,faixa_id:s.faixa_id,produto:s.produto||'',software:s.software||'',descricao:s.descricao||'',quantidade:Number(s.qtd_minima||s.usuarios_inicio||1),valor_unitario:moneyString(s.valor_mensal||0),valor_setup:moneyString(s.valor_setup||0),tem_projeto:Boolean(s.tem_projeto),usuarios_inicio:s.usuarios_inicio||null,usuarios_fim:s.usuarios_fim||null,total_mensal:moneyString((s.valor_mensal||0)*Number(s.qtd_minima||s.usuarios_inicio||1))});renderLicencas();document.getElementById('licenca_select').value=''}
+function addRecurso(){const s=getById(DATA.recursos,document.getElementById('recurso_select').value);if(!s)return;servidores.push({recurso_id:s.id,codigo:s.codigo||'',categoria:s.categoria||'',nome:s.nome||'',descricao:s.descricao||'',quantidade:1,valor_mensal:moneyString(s.valor_mensal||0),valor_instalacao:moneyString(s.valor_instalacao||0),total_mensal:moneyString(s.valor_mensal||0),total_instalacao:moneyString(s.valor_instalacao||0)});renderServidores();document.getElementById('recurso_select').value=''}
+function renderLicencas(){const tbody=document.querySelector('#licencas_table tbody');tbody.innerHTML='';if(!licencas.length)tbody.innerHTML='<tr><td colspan="5" class="text-center text-muted py-4">Nenhuma licença adicionada.</td></tr>';licencas.forEach((item,index)=>{const total=parseMoney(item.valor_unitario)*Number(item.quantidade||0);item.total_mensal=moneyString(total);const tr=document.createElement('tr');tr.innerHTML=`<td><strong>${item.software||'Licença'}</strong><div class="small text-muted">${item.descricao||''}</div></td><td><input type="number" min="1" class="form-control form-control-sm" value="${item.quantidade}" data-index="${index}" data-kind="licenca-qtd"></td><td><input type="text" class="form-control form-control-sm" value="${item.valor_unitario}" data-index="${index}" data-kind="licenca-unit"></td><td><strong>${moneyBR(total)}</strong></td><td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-index="${index}" data-kind="remove-licenca"><i class="bi bi-trash"></i></button></td>`;tbody.appendChild(tr)});syncSnapshots()}
+function renderServidores(){const tbody=document.querySelector('#servidores_table tbody');tbody.innerHTML='';if(!servidores.length)tbody.innerHTML='<tr><td colspan="6" class="text-center text-muted py-4">Nenhum servidor adicionado.</td></tr>';servidores.forEach((item,index)=>{const totalMensal=parseMoney(item.valor_mensal)*Number(item.quantidade||0);const totalInstalacao=parseMoney(item.valor_instalacao)*Number(item.quantidade||0);item.total_mensal=moneyString(totalMensal);item.total_instalacao=moneyString(totalInstalacao);const tr=document.createElement('tr');tr.innerHTML=`<td><strong>${item.nome||'Recurso'}</strong><div class="small text-muted">${item.categoria||''}</div></td><td><input type="number" min="1" class="form-control form-control-sm" value="${item.quantidade}" data-index="${index}" data-kind="recurso-qtd"></td><td><input type="text" class="form-control form-control-sm" value="${item.valor_mensal}" data-index="${index}" data-kind="recurso-mensal"></td><td><input type="text" class="form-control form-control-sm" value="${item.valor_instalacao}" data-index="${index}" data-kind="recurso-instalacao"></td><td><strong>${moneyBR(totalMensal)}</strong></td><td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-index="${index}" data-kind="remove-recurso"><i class="bi bi-trash"></i></button></td>`;tbody.appendChild(tr)});syncSnapshots()}
+function syncSnapshots(){document.getElementById('licencas_snapshot').value=JSON.stringify(licencas);document.getElementById('servidores_snapshot').value=JSON.stringify(servidores);recalculateTotals();renderPreviewRows()}
+function recalculateTotals(){const totalLic=licencas.reduce((a,i)=>a+parseMoney(i.total_mensal),0);const totalServ=servidores.reduce((a,i)=>a+parseMoney(i.total_mensal),0);const instServ=servidores.reduce((a,i)=>a+parseMoney(i.total_instalacao),0);const totalMensal=totalLic+totalServ;const parametrizacaoPadrao=licencas.filter(i=>i.tem_projeto).reduce((a,i)=>a+parseMoney(i.total_mensal),0);const paramInput=document.getElementById('parametrizacao_sistema');const setupInput=document.getElementById('setup_ambiente_cloud');if(!paramInput.dataset.manual)paramInput.value=moneyString(parametrizacaoPadrao);if(!setupInput.dataset.manual)setupInput.value=moneyString(totalMensal);const parametrizacao=parseMoney(paramInput.value);const setupCloud=parseMoney(setupInput.value);const totalInstalacao=instServ+parametrizacao+setupCloud;const valorTotal=totalMensal+totalInstalacao;document.getElementById('total_mensal').value=moneyString(totalMensal);document.getElementById('total_instalacao').value=moneyString(totalInstalacao);document.getElementById('valor_total').value=moneyString(valorTotal);document.getElementById('total_mensal_display').textContent=moneyBR(totalMensal);document.getElementById('instalacao_servidores_display').textContent=moneyBR(instServ);document.getElementById('total_instalacao_display').textContent=moneyBR(totalInstalacao);document.getElementById('valor_total_display').textContent=moneyBR(valorTotal);document.getElementById('preview_valor_total').textContent=moneyBR(valorTotal);document.getElementById('preview_parametrizacao').textContent=moneyBR(parametrizacao);document.getElementById('preview_setup_cloud').textContent=moneyBR(setupCloud);document.getElementById('preview_instalacao_servidores').textContent=moneyBR(instServ);document.getElementById('preview_total_instalacao').textContent=moneyBR(totalInstalacao);document.getElementById('preview_total_mensal').textContent=moneyBR(totalMensal)}
+function renderPreviewRows(){const tbody=document.getElementById('preview_rows');const rows=[];licencas.forEach(item=>rows.push(`<tr><td>${item.software}</td><td>${item.quantidade}</td><td class="text-end">${moneyBR(parseMoney(item.valor_unitario))}</td><td class="text-end">${moneyBR(parseMoney(item.total_mensal))}</td></tr>`));servidores.forEach(item=>rows.push(`<tr><td>${item.nome}</td><td>${item.quantidade}</td><td class="text-end">${moneyBR(parseMoney(item.valor_mensal))}</td><td class="text-end">${moneyBR(parseMoney(item.total_mensal))}</td></tr>`));tbody.innerHTML=rows.length?rows.join(''):'<tr><td colspan="4" class="text-center text-muted">Nenhum item adicionado.</td></tr>'}
+function updatePreviewText(){document.getElementById('preview_title').textContent=document.getElementById('titulo').value||'Nova Solução';document.getElementById('preview_codigo').textContent=document.querySelector("input[name='codigo_proposta']").value||'';document.getElementById('preview_setup_dias').textContent=document.getElementById('setup_dias').value||'0';document.getElementById('preview_mensalidade_dias').textContent=document.getElementById('mensalidade_dias').value||'0';document.getElementById('preview_prazo_contratual').textContent=document.getElementById('prazo_contratual_meses').value||'0'}
+function handleTableEvent(e){const target=e.target.closest('[data-kind]');if(!target)return;const index=Number(target.dataset.index);const kind=target.dataset.kind;if(kind==='licenca-qtd'){licencas[index].quantidade=Number(target.value||1);renderLicencas();return}if(kind==='licenca-unit'){licencas[index].valor_unitario=moneyString(parseMoney(target.value));renderLicencas();return}if(kind==='recurso-qtd'){servidores[index].quantidade=Number(target.value||1);renderServidores();return}if(kind==='recurso-mensal'){servidores[index].valor_mensal=moneyString(parseMoney(target.value));renderServidores();return}if(kind==='recurso-instalacao'){servidores[index].valor_instalacao=moneyString(parseMoney(target.value));renderServidores();return}if(kind==='remove-licenca'){licencas.splice(index,1);renderLicencas();return}if(kind==='remove-recurso'){servidores.splice(index,1);renderServidores();return}}
+function markManual(e){e.target.dataset.manual='1';e.target.value=moneyString(parseMoney(e.target.value));recalculateTotals()}
+function init(){document.getElementById('cliente_id').addEventListener('change',syncCliente);document.getElementById('contato_id').addEventListener('change',syncContato);document.getElementById('executivo_responsavel_id').addEventListener('change',syncExecutivo);document.getElementById('oportunidade_id').addEventListener('change',syncOportunidade);document.getElementById('add_licenca_btn').addEventListener('click',addLicenca);document.getElementById('add_recurso_btn').addEventListener('click',addRecurso);document.getElementById('licencas_table').addEventListener('input',handleTableEvent);document.getElementById('licencas_table').addEventListener('click',handleTableEvent);document.getElementById('servidores_table').addEventListener('input',handleTableEvent);document.getElementById('servidores_table').addEventListener('click',handleTableEvent);moneyFields.forEach(id=>{const field=document.getElementById(id);if(parseMoney(field.value)>0)field.dataset.manual='1';field.addEventListener('change',markManual)});['titulo','setup_dias','mensalidade_dias','prazo_contratual_meses'].forEach(id=>document.getElementById(id).addEventListener('input',updatePreviewText));syncCliente();syncContato();syncExecutivo();renderLicencas();renderServidores();updatePreviewText()}
+init();
+</script>
+{% endblock %}

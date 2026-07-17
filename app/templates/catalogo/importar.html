@@ -5,15 +5,107 @@
 
     {% set page_icon = "bi-cloud-upload" %}
     {% set page_title = "Importar Catálogo" %}
-    {% set page_description = "Importação de arquivo CSV do Base44 para o Catálogo Técnico." %}
+    {% set page_description = "Importação de arquivo CSV para o Catálogo Técnico." %}
     {% include "components/page_header.html" %}
 
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <form method="POST" enctype="multipart/form-data">
                 <div class="mb-3">
-                    <label class="form-label">Arquivo CSV do Base44 *</label>
+                    <label class="form-label">Arquivo CSV *</label>
                     <input class="form-control" type="file" name="arquivo" accept=".csv" required>
+                </div>
+
+                <div class="card border-info-subtle bg-light mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="bi bi-table text-info"></i>
+                            <h6 class="mb-0">Modelo visual do CSV</h6>
+                        </div>
+                        <p class="text-muted mb-3">
+                            Use qualquer arquivo CSV com cabeçalho na primeira linha, desde que siga o modelo abaixo.
+                        </p>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle mb-3">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Software</th>
+                                        <th>Descrição</th>
+                                        <th>Qtd Mínima</th>
+                                        <th>Preço Mensal (R$)</th>
+                                        <th>Preço Mínimo/Setup (R$)</th>
+                                        <th>Tem Projeto</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Licença por Usuário</td>
+                                        <td>Logus Store 1 a 5</td>
+                                        <td>Licença Logus Store faixa inicial</td>
+                                        <td>1</td>
+                                        <td>49,90</td>
+                                        <td>199,00</td>
+                                        <td>Sim</td>
+                                        <td>Ativo</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Licença por Usuário</td>
+                                        <td>Target 6 a 10</td>
+                                        <td>Licença Target faixa intermediária</td>
+                                        <td>6</td>
+                                        <td>39,90</td>
+                                        <td>0,00</td>
+                                        <td>Não</td>
+                                        <td>Ativo</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle mb-2">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Categoria</th>
+                                        <th>Recurso</th>
+                                        <th>Descrição</th>
+                                        <th>Preço Mensal (R$)</th>
+                                        <th>Preço Mínimo/Setup (R$)</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Recurso de Servidor</td>
+                                        <td>Infraestrutura</td>
+                                        <td>vCPUs</td>
+                                        <td>Processamento adicional</td>
+                                        <td>29,90</td>
+                                        <td>0,00</td>
+                                        <td>Ativo</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Recurso de Servidor</td>
+                                        <td>Armazenamento</td>
+                                        <td>NVME</td>
+                                        <td>Armazenamento de alta performance</td>
+                                        <td>19,90</td>
+                                        <td>0,00</td>
+                                        <td>Ativo</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="small text-muted">
+                            Campos aceitos pelo importador incluem variações como <strong>Descrição/Descricao</strong>,
+                            <strong>Preço Mensal (R$)</strong> e <strong>Preço Mínimo/Setup (R$)</strong>.
+                        </div>
+                    </div>
                 </div>
 
                 <div class="alert alert-warning mb-4">
