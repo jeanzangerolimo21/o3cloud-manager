@@ -52,11 +52,7 @@ class ContratoMapper:
 
             "status": status,
 
-            #    "ativo": status in (
-            #        "ATIVO",
-            #        "EM_IMPLANTACAO",
-            #        "EM_ELABORACAO"
-            #    ),
+            "ativo": status != "CANCELADO",
 
             "tipo_faturamento": cabecalho.get("cTipoFat"),
 

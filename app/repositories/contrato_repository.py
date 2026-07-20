@@ -269,7 +269,7 @@ class ContratoRepository(BaseRepository):
                 codigo_projeto, codigo_cc
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, 1, NOW(),
+                %s, %s, %s, %s, NOW(),
                 %s, %s, %s, %s,
                 %s, %s
             )
@@ -285,6 +285,7 @@ class ContratoRepository(BaseRepository):
                 dados.get("inicio_vigencia"),
                 dados.get("fim_vigencia"),
                 dados.get("observacoes"),
+                1 if dados.get("ativo", True) else 0,
                 dados.get("valor_mensal"),
                 dados.get("dia_faturamento"),
                 dados.get("tipo_faturamento"),
@@ -318,6 +319,7 @@ class ContratoRepository(BaseRepository):
                 codigo_vendedor=%s,
                 codigo_projeto=%s,
                 codigo_cc=%s,
+                ativo=%s,
                 synced_at=NOW()
             WHERE id=%s
             """,
@@ -336,6 +338,7 @@ class ContratoRepository(BaseRepository):
                 dados.get("codigo_vendedor"),
                 dados.get("codigo_projeto"),
                 dados.get("codigo_cc"),
+                1 if dados.get("ativo", True) else 0,
                 contrato_id,
             ),
         )
