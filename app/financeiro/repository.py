@@ -64,9 +64,10 @@ class FinanceiroRepository(BaseRepository):
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT COALESCE(SUM(valor_liquido),0)
-            FROM faturamentos
+            SELECT COALESCE(SUM(COALESCE(NULLIF(valor_promocional, 0), valor_mensal, 0)), 0)
+            FROM contratos
             WHERE ativo = 1
+              AND status = 'ATIVO'
         """)
 
         total = cursor.fetchone()[0]
