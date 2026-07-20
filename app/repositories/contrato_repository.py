@@ -298,6 +298,21 @@ class ContratoRepository(BaseRepository):
         cls.close(conn, cursor)
 
     @classmethod
+    def atualizar_quantidade_usuarios(cls, contrato_id, quantidade_usuarios):
+        conn = cls.connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE contratos
+            SET quantidade_usuarios=%s
+            WHERE id=%s
+            """,
+            (quantidade_usuarios, contrato_id),
+        )
+        conn.commit()
+        cls.close(conn, cursor)
+
+    @classmethod
     def atualizar_sync(cls, contrato_id, dados):
         conn = cls.connection()
         cursor = conn.cursor()

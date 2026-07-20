@@ -1,3 +1,6 @@
+import re
+from decimal import Decimal
+
 from app.integracoes.omie.contrato_item_mapper import ContratoItemMapper
 
 from app.repositories.contrato_repository import ContratoRepository
@@ -33,16 +36,14 @@ class ContratoItemService:
 
         itens = contrato_omie.get("itensContrato", [])
 
+        quantidade_usuarios = Decimal("0")
+
         for item in itens:
 
             dados = ContratoItemMapper.from_omie(item)
 
             dados["contrato_id"] = contrato["id"]
-            
-            print("=" * 80)
-            print(dados["descricao"])
-            print(len(dados["descricao"]))
-            print("=" * 80)
+            quantidade_usuarios += cls._quantidade_usuarios_item(dados)
 
             status = ContratoItemRepository.upsert_omie(dados)
 
@@ -56,4 +57,22 @@ class ContratoItemService:
 
             })
 
+        ContratoRepository.atualizar_quantidade_usuarios(
+            contrato["id"],
+            int(quantidade_usuarios) if quantidade_usuarios else None,
+        )
+
         return resultado
+
+    @classmethod
+    def _quantidade_usuarios_item(cls, dados):
+        descricao = (dados.get("descricao") or "").lower()
+        if not cls._item_usuario(descricao):
+            return Decimal("0")
+        return dados.get("quantidade") or Decimal("0")
+
+    @staticmethod
+    def _item_usuario(descricao):
+        return bool(
+            re.search(r"\busuario(s)?\b|\busuario\b|licenciamento de uso|licen[çc]a", descricao)
+        )
