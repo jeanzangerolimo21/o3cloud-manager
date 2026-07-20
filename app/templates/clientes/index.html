@@ -13,6 +13,10 @@
 
     {% include "components/page_header.html" %}
 
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{{ url_for('clientes.sincronizar_omie') }}" class="btn btn-outline-info btn-sm" onclick="return confirm('Sincronizar clientes com o Omie agora?')"><i class="bi bi-arrow-repeat"></i> Sincronizar Omie</a>
+    </div>
+
     <div class="mb-3">
             <small class="text-muted">
 

@@ -1,10 +1,12 @@
 from flask import Blueprint
 from flask import render_template
+from flask import flash
 from flask import request
 from flask import redirect
 from flask import url_for
 from app.clientes.implantacao_service import ImplantacaoService
 from app.clientes.service import ClienteService
+from app.integracoes.omie.sync import OmieSync
 
 
 clientes_bp = Blueprint(
@@ -16,6 +18,17 @@ clientes_bp = Blueprint(
     url_prefix="/clientes"
 
 )
+
+
+@clientes_bp.route("/sincronizar-omie")
+def sincronizar_omie():
+    try:
+        OmieSync().sincronizar_clientes()
+    except Exception as erro:
+        flash(f"Erro ao sincronizar clientes Omie: {erro}", "danger")
+    else:
+        flash("Sincronização de clientes Omie concluída com sucesso.", "success")
+    return redirect(url_for("clientes.index"))
 
 
 @clientes_bp.route("/")

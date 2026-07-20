@@ -15,6 +15,7 @@
         <a class="btn btn-sm btn-outline-primary" href="{{ url_for('contratos.index') }}"><i class="bi bi-list-ul"></i> Lista</a>
         <a class="btn btn-sm btn-primary" href="{{ url_for('contratos.dashboard') }}"><i class="bi bi-bar-chart"></i> Dashboard</a>
         <a class="btn btn-sm btn-outline-success" href="{{ url_for('contratos.novo') }}"><i class="bi bi-plus-circle"></i> Novo Contrato</a>
+        <a class="btn btn-sm btn-outline-info" href="{{ url_for('contratos.sincronizar_omie') }}" onclick="return confirm('Sincronizar contratos com o Omie agora?')"><i class="bi bi-arrow-repeat"></i> Sincronizar Omie</a>
     </div>
 
     <form method="GET" class="card border-0 shadow-sm mb-3">

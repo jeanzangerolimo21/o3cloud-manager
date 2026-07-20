@@ -1,6 +1,7 @@
 from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 
 from app.contratos.service import ContratoService
+from app.integracoes.omie.sync import OmieSync
 from app.repositories.contrato_item_repository import ContratoItemRepository
 from app.repositories.contrato_repository import ContratoRepository
 
@@ -45,6 +46,24 @@ def _form_data():
         "dia_faturamento": request.form.get("dia_faturamento"),
         "observacoes": request.form.get("observacoes"),
     }
+
+
+@contratos_bp.route("/sincronizar-omie")
+def sincronizar_omie():
+    try:
+        resultado = OmieSync().sincronizar_contratos()
+    except Exception as erro:
+        flash(f"Erro ao sincronizar contratos Omie: {erro}", "danger")
+    else:
+        flash(
+            "Sincronização de contratos Omie concluída: "
+            f"{resultado.get('processados', 0)} processados, "
+            f"{resultado.get('novos', 0)} novos, "
+            f"{resultado.get('atualizados', 0)} atualizados, "
+            f"{resultado.get('ignorados', 0)} ignorados.",
+            "success",
+        )
+    return redirect(url_for("contratos.index"))
 
 
 @contratos_bp.route("/")
