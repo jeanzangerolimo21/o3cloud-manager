@@ -63,7 +63,7 @@
 {% endblock %}
 
 {% block view_actions %}
-<a href="{{ cancel_url }}" class="btn btn-secondary">
+<a href="{{ cancel_url }}" class="btn btn-secondary" onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }">
     <i class="bi bi-arrow-left"></i>
     Voltar
 </a>

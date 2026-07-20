@@ -5,7 +5,7 @@ class PropostaRepository(BaseRepository):
     TABLE = "crm_propostas"
 
     @classmethod
-    def total(cls, pesquisa=None, status=None, ativo=None):
+    def total(cls, pesquisa=None, status=None, ativo=None, clicksign_status=None):
         sql = f"""
             SELECT COUNT(*)
             FROM {cls.TABLE} p
@@ -32,10 +32,13 @@ class PropostaRepository(BaseRepository):
         if ativo in (0, 1):
             sql += "\n  AND p.ativo = %s"
             params.append(ativo)
+        if clicksign_status:
+            sql += "\n  AND p.clicksign_status = %s"
+            params.append(clicksign_status)
         return cls.scalar(sql, tuple(params)) or 0
 
     @classmethod
-    def listar(cls, pesquisa=None, status=None, ativo=None, limit=50, offset=0):
+    def listar(cls, pesquisa=None, status=None, ativo=None, clicksign_status=None, limit=50, offset=0):
         sql = f"""
             SELECT
                 p.id,
@@ -53,6 +56,7 @@ class PropostaRepository(BaseRepository):
                 p.total_mensal,
                 p.total_instalacao,
                 p.ativo,
+                p.clicksign_status,
                 p.created_at,
                 p.updated_at,
                 p.cliente_nome,
@@ -82,6 +86,9 @@ class PropostaRepository(BaseRepository):
         if ativo in (0, 1):
             sql += "\n  AND p.ativo = %s"
             params.append(ativo)
+        if clicksign_status:
+            sql += "\n  AND p.clicksign_status = %s"
+            params.append(clicksign_status)
         sql += """
             ORDER BY p.updated_at DESC, p.versao DESC, p.id DESC
             LIMIT %s OFFSET %s
@@ -186,3 +193,50 @@ class PropostaRepository(BaseRepository):
     @classmethod
     def excluir(cls, proposta_id):
         return cls.execute(f"DELETE FROM {cls.TABLE} WHERE id = %s", (proposta_id,))
+
+    @classmethod
+    def listar_clicksign_pendentes(cls):
+        conn = cls.connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            f"""
+            SELECT id, codigo_proposta, clicksign_status, clicksign_envelope_id
+            FROM {cls.TABLE}
+            WHERE ativo = 1
+              AND clicksign_envelope_id IS NOT NULL
+              AND clicksign_envelope_id <> ''
+              AND clicksign_status IN ('ENVIADO', 'AGUARDANDO_ASSINATURAS')
+            ORDER BY clicksign_sent_at ASC, id ASC
+            """
+        )
+        propostas = cursor.fetchall()
+        cls.close(conn, cursor)
+        return propostas
+
+    @classmethod
+    def atualizar_clicksign(cls, proposta_id, dados):
+        sql = f"""
+            UPDATE {cls.TABLE}
+            SET clicksign_status = %s,
+                clicksign_document_key = COALESCE(%s, clicksign_document_key),
+                clicksign_document_url = COALESCE(%s, clicksign_document_url),
+                clicksign_envelope_id = COALESCE(%s, clicksign_envelope_id),
+                clicksign_sent_at = COALESCE(%s, clicksign_sent_at),
+                clicksign_signed_at = COALESCE(%s, clicksign_signed_at),
+                clicksign_completed_at = COALESCE(%s, clicksign_completed_at),
+                clicksign_last_sync_at = %s,
+                clicksign_eventos = %s
+            WHERE id = %s
+        """
+        return cls.execute(sql, (
+            dados.get('clicksign_status'),
+            dados.get('clicksign_document_key'),
+            dados.get('clicksign_document_url'),
+            dados.get('clicksign_envelope_id'),
+            dados.get('clicksign_sent_at'),
+            dados.get('clicksign_signed_at'),
+            dados.get('clicksign_completed_at'),
+            dados.get('clicksign_last_sync_at'),
+            dados.get('clicksign_eventos'),
+            proposta_id,
+        ))

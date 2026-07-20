@@ -32,8 +32,8 @@ O desenvolvimento segue uma metodologia incremental baseada em Sprints, preserva
 | Módulo Clientes | ✅ Concluído |
 | Módulo Contratos | ✅ Concluído |
 | Catálogo Técnico | 🚧 Em Desenvolvimento |
-| CRM Comercial | 🚧 Em Desenvolvimento |
-| Propostas | ⏳ Planejado |
+| CRM Comercial | ✅ Base Alpha concluída |
+| Propostas | ✅ Base Alpha concluída |
 | Implantação | ⏳ Planejado |
 | Dashboard Executivo | ⏳ Planejado |
 
@@ -188,27 +188,26 @@ Status:
 
 Status:
 
-🚧 Em Desenvolvimento
+✅ Concluída
 
 Objetivo:
 
-Iniciar o CRM Comercial.
+Consolidar o CRM Comercial Alpha com propostas, contratos pós-assinatura e integração ClickSign.
 
-Escopo Atual:
+Escopo entregue:
 
 - ✅ Separação do bloco `CRM Comercial` no sidebar
-- ✅ CRUD base de Leads
-- ✅ CRUD base de Contatos
-- ✅ CRUD base de Oportunidades
+- ✅ CRUD base de Leads, Contatos, Oportunidades e Propostas
 - ✅ Pipeline Comercial inicial
-- ✅ CRUD base de Propostas
-- ✅ Migration `crm_leads` criada e aplicada
-- ✅ Home com destaque para o início do CRM
-- ⏳ Integração ClickSign
+- ✅ Contratos pós-assinatura com dashboard e vínculos comerciais
+- ✅ Geração de contrato por modelo DOCX editável
+- ✅ Envio real para ClickSign API v3
+- ✅ Sincronização manual em lote de envelopes ClickSign
+- ✅ Download do PDF assinado para `storage/contratos`
 
 Próxima atividade:
 
-➡ Evoluir Propostas e preparar a integração futura com ClickSign
+➡ Iniciar Sprint 8 com consolidação comercial, dashboards e fluxo pós-assinatura.
 
 ---
 
@@ -216,14 +215,14 @@ Próxima atividade:
 
 ## Sprint 8
 
-Propostas
+Consolidação Comercial e Pós-Assinatura
 
 Objetivos:
 
-- Precificação
-- Versionamento
-- PDF
-- Aprovação Comercial
+- Dashboard executivo/comercial
+- Indicadores por parceiro e executivo
+- Rastreabilidade proposta -> ClickSign -> contrato -> Omie
+- Regras de acompanhamento pós-assinatura
 
 ---
 

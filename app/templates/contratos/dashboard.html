@@ -1,0 +1,73 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid">
+    {% set page_title = "Contratos" %}
+    {% set page_description = "Gestao pos-assinatura de contratos" %}
+    {% set page_icon = "bi-file-earmark-text" %}
+    {% set page_button_url = url_for("contratos.novo") %}
+    {% set page_button_icon = "bi-plus-circle" %}
+    {% set page_button_text = "Novo Contrato" %}
+    {% include "components/page_header.html" %}
+
+    <div class="d-flex gap-2 mb-3">
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('contratos.index') }}"><i class="bi bi-list-ul"></i> Lista</a>
+        <a class="btn btn-sm btn-primary" href="{{ url_for('contratos.dashboard') }}"><i class="bi bi-bar-chart"></i> Dashboard</a>
+        <a class="btn btn-sm btn-outline-success" href="{{ url_for('contratos.novo') }}"><i class="bi bi-plus-circle"></i> Novo Contrato</a>
+    </div>
+
+    <form method="GET" class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-4"><label class="form-label">Buscar</label><input class="form-control" name="q" value="{{ filtros.pesquisa or '' }}" placeholder="Buscar por empresa, CNPJ, executivo, parceiro..."></div>
+                <div class="col-lg-2"><label class="form-label">Status</label><select class="form-select" name="status"><option value="">Todos os status</option>{% for valor, label in status_options.items() %}<option value="{{ valor }}" {% if filtros.status == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                <div class="col-lg-2"><label class="form-label">Fechamento</label><input class="form-control" type="date" name="data_de" value="{{ filtros.data_de or '' }}"></div>
+                <div class="col-lg-2"><label class="form-label">Ate</label><input class="form-control" type="date" name="data_ate" value="{{ filtros.data_ate or '' }}"></div>
+                <div class="col-lg-2"><button class="btn btn-primary w-100"><i class="bi bi-search"></i> Filtrar</button></div>
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Contratos</small><h3>{{ dashboard.resumo.total_contratos or 0 }}</h3></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Total Recorrencia</small><h3>{{ dashboard.resumo.total_recorrencia|moeda }}</h3><small class="text-muted">mensal</small></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Total Setup</small><h3>{{ dashboard.resumo.total_setup|moeda }}</h3><small class="text-muted">implantacao + projeto</small></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Total Usuarios</small><h3>{{ dashboard.resumo.total_usuarios or 0 }}</h3><small class="text-muted">licencas ativas</small></div></div></div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Por Executivo</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for item in dashboard.executivos %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div><strong>{{ item.nome }}</strong><br><small class="text-muted">{{ item.total_contratos }} contrato(s)</small></div>
+                            <span>{{ item.total_recorrencia|moeda }}</span>
+                        </div>
+                    {% else %}
+                        <div class="list-group-item text-muted">Sem dados.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Por Parceiro</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for item in dashboard.parceiros %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div><strong>{{ item.nome }}</strong><br><small class="text-muted">{{ item.total_contratos }} contrato(s)</small></div>
+                            <span>{{ item.total_recorrencia|moeda }}</span>
+                        </div>
+                    {% else %}
+                        <div class="list-group-item text-muted">Sem dados.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

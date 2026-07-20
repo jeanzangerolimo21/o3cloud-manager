@@ -1,12 +1,19 @@
 import json
+import os
+import re
+import shutil
+import subprocess
+import tempfile
 from datetime import date
 from datetime import datetime
 from decimal import Decimal
 from decimal import InvalidOperation
 from io import BytesIO
+from pathlib import Path
 from zipfile import ZIP_DEFLATED
 from zipfile import ZipFile
 from xml.sax.saxutils import escape
+
 
 from app.catalogo.precos.repository import PrecoCatalogoRepository
 from app.catalogo.recursos.repository import ProdutoRecursoRepository
@@ -14,7 +21,10 @@ from app.catalogo.produtos.service import ProdutoService
 from app.clientes.service import ClienteService
 from app.contatos.service import ContatoService
 from app.core.storage import StorageService
+from app.integracoes.clicksign.client import ClicksignClient
+from app.integracoes.clicksign.client import ClicksignError
 from app.parceiros.executivo_service import ParceiroExecutivoService
+from app.repositories.contrato_repository import ContratoRepository
 from app.repositories.oportunidade_repository import OportunidadeRepository
 from app.repositories.proposta_repository import PropostaRepository
 
@@ -27,17 +37,38 @@ STATUS_PROPOSTA = {
     "EXPIRADA": "Expirada",
 }
 
+STATUS_CLICKSIGN = {
+    "NAO_ENVIADO": "Não Enviado",
+    "DOCUMENTO_GERADO": "Documento Gerado",
+    "ENVIADO": "Enviado",
+    "AGUARDANDO_ASSINATURAS": "Aguardando Assinaturas",
+    "ASSINADO": "Assinado",
+    "CONCLUIDO": "Concluído",
+    "ERRO": "Erro",
+}
+
+ACAO_CLICKSIGN = {
+    "preparar": "DOCUMENTO_GERADO",
+    "enviar": "ENVIADO",
+    "aguardar": "AGUARDANDO_ASSINATURAS",
+    "assinado": "ASSINADO",
+    "concluir": "CONCLUIDO",
+    "erro": "ERRO",
+}
+
 
 class PropostaService:
     repository = PropostaRepository
+    MODELO_CONTRATO_CLICKSIGN = StorageService.BASE_STORAGE / StorageService.CONTRATOS / "Modelo_de_Contrato_O3CLOUD.pdf"
+    MODELO_CONTRATO_DOCX = StorageService.BASE_STORAGE / StorageService.CONTRATOS / "Modelo_Contrato_O3Cloud.docx"
 
     @classmethod
-    def listar(cls, pesquisa=None, status=None, ativo=None, pagina=1):
+    def listar(cls, pesquisa=None, status=None, ativo=None, clicksign_status=None, pagina=1):
         limit = 50
         offset = (pagina - 1) * limit
         ativo_normalizado = cls._normalizar_status_ativo(ativo)
-        propostas = cls.repository.listar(pesquisa=pesquisa, status=status, ativo=ativo_normalizado, limit=limit, offset=offset)
-        total = cls.repository.total(pesquisa=pesquisa, status=status, ativo=ativo_normalizado)
+        propostas = cls.repository.listar(pesquisa=pesquisa, status=status, ativo=ativo_normalizado, clicksign_status=clicksign_status, limit=limit, offset=offset)
+        total = cls.repository.total(pesquisa=pesquisa, status=status, ativo=ativo_normalizado, clicksign_status=clicksign_status)
         return propostas, total
 
     @classmethod
@@ -60,6 +91,7 @@ class PropostaService:
             "recursos_servidor": ProdutoRecursoRepository.listar(),
             "executivo_padrao_id": cls.identificar_executivo_padrao(executivo_email, executivos),
             "codigo_sugerido": cls.gerar_codigo_proposta(),
+            "clicksign_status_options": STATUS_CLICKSIGN,
         }
 
     @classmethod
@@ -105,6 +137,634 @@ class PropostaService:
         return cls.repository.excluir(proposta_id)
 
     @classmethod
+    def atualizar_status_clicksign(cls, proposta_id, acao, usuario_email=None):
+        proposta = cls.buscar_por_id(proposta_id)
+        if not proposta:
+            raise ValueError("Proposta não encontrada.")
+        if acao == "sincronizar":
+            return cls.sincronizar_status_clicksign(proposta, usuario_email)
+        if acao not in ACAO_CLICKSIGN:
+            raise ValueError("Ação de ClickSign inválida.")
+        novo_status = ACAO_CLICKSIGN[acao]
+        agora = datetime.now()
+        eventos = list(proposta.get("clicksign_eventos") or [])
+        descricao = {
+            "DOCUMENTO_GERADO": "Documento preparado para envio ao ClickSign.",
+            "ENVIADO": "Documento enviado ao ClickSign.",
+            "AGUARDANDO_ASSINATURAS": "Documento aguardando assinaturas.",
+            "ASSINADO": "Documento assinado eletronicamente.",
+            "CONCLUIDO": "Fluxo de ClickSign concluído e pronto para contrato.",
+            "ERRO": "Fluxo de ClickSign marcado com pendência/erro.",
+        }[novo_status]
+        eventos.append({
+            "status": novo_status,
+            "descricao": descricao,
+            "autor": usuario_email or "sistema",
+            "data": agora.isoformat(timespec="seconds"),
+        })
+        atualizacao = {
+            "clicksign_status": novo_status,
+            "clicksign_eventos": json.dumps(eventos, ensure_ascii=False),
+            "clicksign_last_sync_at": agora,
+        }
+        if novo_status == "DOCUMENTO_GERADO":
+            documento = cls.gerar_contrato_clicksign(proposta)
+            atualizacao["clicksign_document_key"] = documento["nome"]
+            atualizacao["clicksign_document_url"] = documento["url"]
+        if novo_status == "ENVIADO":
+            if proposta.get("clicksign_envelope_id"):
+                atualizacao["clicksign_sent_at"] = agora
+            else:
+                try:
+                    documento, envio = cls.enviar_contrato_clicksign(proposta)
+                except ClicksignError as erro:
+                    raise ValueError(str(erro)) from erro
+                atualizacao["clicksign_document_key"] = documento["nome"]
+                atualizacao["clicksign_document_url"] = documento["url"]
+                atualizacao["clicksign_envelope_id"] = envio["envelope_id"]
+                atualizacao["clicksign_sent_at"] = agora
+                eventos[-1]["descricao"] = f"Documento enviado ao ClickSign. Envelope: {envio['envelope_id']}."
+                eventos[-1]["clicksign"] = envio
+                atualizacao["clicksign_eventos"] = json.dumps(eventos, ensure_ascii=False)
+        if novo_status == "ASSINADO":
+            atualizacao["clicksign_signed_at"] = agora
+        if novo_status == "CONCLUIDO":
+            if not proposta.get("clicksign_document_key"):
+                documento = cls.gerar_contrato_clicksign(proposta)
+                atualizacao["clicksign_document_key"] = documento["nome"]
+                atualizacao["clicksign_document_url"] = documento["url"]
+                proposta["clicksign_document_key"] = documento["nome"]
+            contrato_id = cls.concluir_contrato_clicksign(proposta)
+            atualizacao["clicksign_completed_at"] = agora
+            atualizacao["clicksign_envelope_id"] = atualizacao.get("clicksign_envelope_id") or proposta.get("clicksign_envelope_id") or f"env-{proposta_id}-{agora.strftime('%Y%m%d%H%M%S')}"
+            eventos[-1]["descricao"] = f"Fluxo concluido e contrato vinculado ao cadastro #{contrato_id}."
+            atualizacao["clicksign_eventos"] = json.dumps(eventos, ensure_ascii=False)
+        cls.repository.atualizar_clicksign(proposta_id, atualizacao)
+        return cls.buscar_por_id(proposta_id)
+
+    @classmethod
+    def sincronizar_status_clicksign(cls, proposta, usuario_email=None):
+        envelope_id = proposta.get("clicksign_envelope_id")
+        if not envelope_id:
+            raise ValueError("Envie o contrato para a ClickSign antes de sincronizar.")
+
+        agora = datetime.now()
+        client = ClicksignClient()
+        try:
+            envelope = client.consultar_envelope(envelope_id)
+        except ClicksignError as erro:
+            raise ValueError(str(erro)) from erro
+
+        atributos = envelope.get("attributes") or {}
+        status_api = (atributos.get("status") or "").lower()
+        novo_status = cls._status_clicksign_por_envelope(status_api)
+        eventos = list(proposta.get("clicksign_eventos") or [])
+        arquivo_assinado = None
+        descricao_evento = f"Status sincronizado com a ClickSign: {status_api or 'nao informado'}."
+        if novo_status == "ASSINADO":
+            arquivo_assinado = cls._baixar_contrato_assinado_clicksign(proposta, client, envelope_id)
+            descricao_evento += f" PDF assinado salvo em storage/contratos/{arquivo_assinado}."
+        eventos.append({
+            "status": novo_status,
+            "descricao": descricao_evento,
+            "autor": usuario_email or "sistema",
+            "data": agora.isoformat(timespec="seconds"),
+            "clicksign": {
+                "envelope_id": envelope_id,
+                "status": status_api,
+                "modified": atributos.get("modified"),
+                "arquivo_assinado": arquivo_assinado,
+            },
+        })
+        atualizacao = {
+            "clicksign_status": novo_status,
+            "clicksign_document_key": arquivo_assinado,
+            "clicksign_document_url": f"/propostas/{proposta.get('id')}/contrato" if arquivo_assinado else None,
+            "clicksign_envelope_id": envelope_id,
+            "clicksign_sent_at": None,
+            "clicksign_signed_at": agora if novo_status == "ASSINADO" else None,
+            "clicksign_completed_at": None,
+            "clicksign_last_sync_at": agora,
+            "clicksign_eventos": json.dumps(eventos, ensure_ascii=False),
+        }
+        cls.repository.atualizar_clicksign(proposta.get("id"), atualizacao)
+        return cls.buscar_por_id(proposta.get("id"))
+
+    @classmethod
+    def _baixar_contrato_assinado_clicksign(cls, proposta, client, envelope_id):
+        download = client.baixar_documento_assinado(envelope_id)
+        destino = StorageService.BASE_STORAGE / StorageService.CONTRATOS
+        destino.mkdir(parents=True, exist_ok=True)
+        nome = cls._nome_arquivo_contrato_assinado(proposta)
+        caminho = destino / nome
+        caminho.write_bytes(download["content"])
+        return nome
+
+    @staticmethod
+    def _nome_arquivo_contrato_assinado(proposta):
+        base = proposta.get("codigo_proposta") or f"proposta-{proposta.get('id')}"
+        base = re.sub(r"[^A-Za-z0-9_-]+", "-", str(base).lower()).strip("-") or f"proposta-{proposta.get('id')}"
+        return f"contrato-o3-{base}-assinado.pdf"
+
+    @staticmethod
+    def _status_clicksign_por_envelope(status_api):
+        if status_api == "closed":
+            return "ASSINADO"
+        if status_api == "running":
+            return "AGUARDANDO_ASSINATURAS"
+        if status_api in ("draft", "created"):
+            return "ENVIADO"
+        return "AGUARDANDO_ASSINATURAS"
+
+    @classmethod
+    def sincronizar_clicksign_pendentes(cls, usuario_email="sistema"):
+        resultados = []
+        for item in cls.repository.listar_clicksign_pendentes():
+            proposta = cls.buscar_por_id(item.get("id"))
+            if not proposta:
+                continue
+            try:
+                atualizada = cls.sincronizar_status_clicksign(proposta, usuario_email)
+                resultados.append({
+                    "id": item.get("id"),
+                    "codigo_proposta": item.get("codigo_proposta"),
+                    "status": "OK",
+                    "clicksign_status": atualizada.get("clicksign_status"),
+                })
+            except Exception as erro:
+                resultados.append({
+                    "id": item.get("id"),
+                    "codigo_proposta": item.get("codigo_proposta"),
+                    "status": "ERRO",
+                    "erro": str(erro),
+                })
+        return resultados
+
+    @classmethod
+    def gerar_contrato_clicksign(cls, proposta):
+        proposta = cls.buscar_por_id(proposta.get("id")) if proposta.get("id") else proposta
+        if not proposta:
+            raise ValueError("Proposta não encontrada.")
+        nome = cls._nome_arquivo_contrato(proposta)
+        destino = StorageService.BASE_STORAGE / StorageService.CONTRATOS
+        destino.mkdir(parents=True, exist_ok=True)
+        caminho = destino / nome
+        cls._gerar_contrato_pdf_modelo(proposta, caminho)
+        return {
+            "nome": nome,
+            "url": f"/propostas/{proposta['id']}/contrato",
+            "caminho": caminho,
+        }
+
+    @classmethod
+    def enviar_contrato_clicksign(cls, proposta):
+        proposta = cls.buscar_por_id(proposta.get("id")) if proposta.get("id") else proposta
+        if not proposta:
+            raise ClicksignError("Proposta nao encontrada para envio ao Clicksign.")
+
+        documento = cls._documento_contrato_para_clicksign(proposta)
+        cliente_nome = (
+            proposta.get("cliente_razao_social")
+            or proposta.get("cliente_nome")
+            or proposta.get("cliente_nome_fantasia")
+            or "Cliente"
+        )
+        envio = ClicksignClient().enviar_contrato(
+            nome_envelope=f"Contrato O3 Cloud - {cliente_nome}"[:255],
+            caminho_documento=documento["caminho"],
+            nome_documento=documento["nome"],
+            signatarios=cls._signatarios_clicksign(proposta),
+        )
+        return documento, envio
+
+    @classmethod
+    def _documento_contrato_para_clicksign(cls, proposta):
+        nome = proposta.get("clicksign_document_key")
+        if nome:
+            caminho = StorageService.caminho(StorageService.CONTRATOS, nome)
+            if caminho.exists() and caminho.suffix.lower() == ".pdf":
+                return {
+                    "nome": nome,
+                    "url": f"/propostas/{proposta['id']}/contrato",
+                    "caminho": caminho,
+                }
+        return cls.gerar_contrato_clicksign(proposta)
+
+    @classmethod
+    def _signatarios_clicksign(cls, proposta):
+        signatarios = [
+            cls._signatario_cliente_clicksign(proposta),
+            cls._signatario_o3cloud_clicksign(),
+        ]
+        executivo = cls._signatario_executivo_clicksign(proposta)
+        if executivo:
+            signatarios.append(executivo)
+        return signatarios
+
+    @staticmethod
+    def _signatario_cliente_clicksign(proposta):
+        return {
+            "name": proposta.get("contato_nome") or proposta.get("cliente_nome") or proposta.get("cliente_razao_social"),
+            "email": proposta.get("contato_email"),
+            "phone_number": proposta.get("contato_telefone") or proposta.get("contato_whatsapp"),
+            "documentation": proposta.get("contato_cpf"),
+        }
+
+    @staticmethod
+    def _signatario_o3cloud_clicksign():
+        return {
+            "name": os.getenv("CLICKSIGN_O3_SIGNER_NAME", "Jean Pierri de Carvalho Zangerolimo"),
+            "email": os.getenv("CLICKSIGN_O3_SIGNER_EMAIL", "jean@o3cloud.com.br"),
+            "phone_number": os.getenv("CLICKSIGN_O3_SIGNER_PHONE", ""),
+            "documentation": os.getenv("CLICKSIGN_O3_SIGNER_DOCUMENTATION", ""),
+        }
+
+    @staticmethod
+    def _signatario_executivo_clicksign(proposta):
+        nome = proposta.get("executivo_nome")
+        email = proposta.get("executivo_email")
+        if not nome or not email:
+            return None
+        return {
+            "name": nome,
+            "email": email,
+            "phone_number": proposta.get("executivo_telefone"),
+            "documentation": "",
+            "role": "witness",
+        }
+
+    @classmethod
+    def caminho_contrato_clicksign(cls, proposta_id):
+        proposta = cls.buscar_por_id(proposta_id)
+        if not proposta or not proposta.get("clicksign_document_key"):
+            return None, None
+        caminho = StorageService.caminho(StorageService.CONTRATOS, proposta.get("clicksign_document_key"))
+        if caminho.exists() and caminho.suffix.lower() == ".pdf":
+            return caminho, proposta.get("clicksign_document_key")
+        documento = cls.gerar_contrato_clicksign(proposta)
+        cls.repository.atualizar_clicksign(proposta_id, {
+            "clicksign_status": proposta.get("clicksign_status") or "DOCUMENTO_GERADO",
+            "clicksign_document_key": documento["nome"],
+            "clicksign_document_url": documento["url"],
+            "clicksign_envelope_id": None,
+            "clicksign_sent_at": None,
+            "clicksign_signed_at": None,
+            "clicksign_completed_at": None,
+            "clicksign_last_sync_at": datetime.now(),
+            "clicksign_eventos": json.dumps(proposta.get("clicksign_eventos") or [], ensure_ascii=False),
+        })
+        return documento["caminho"], documento["nome"]
+
+    @classmethod
+    def concluir_contrato_clicksign(cls, proposta):
+        proposta = cls.buscar_por_id(proposta.get("id")) if proposta.get("id") else proposta
+        if not proposta:
+            raise ValueError("Proposta não encontrada.")
+        documento = proposta.get("clicksign_document_key") or cls.gerar_contrato_clicksign(proposta)["nome"]
+        contrato = ContratoRepository.buscar_por_proposta_id(proposta.get("id"))
+        if contrato:
+            ContratoRepository.atualizar_arquivo_assinado(contrato["id"], documento, documento)
+            return contrato["id"]
+        dados = cls._dados_contrato_da_proposta(proposta, documento)
+        contrato_id = ContratoRepository.inserir_manual(dados)
+        ContratoRepository.atualizar_arquivo_assinado(contrato_id, documento, documento)
+        return contrato_id
+
+    @classmethod
+    def _dados_contrato_da_proposta(cls, proposta, documento):
+        valor_setup = (proposta.get("setup_ambiente_cloud") or Decimal("0.00")) + (proposta.get("instalacao_servidores") or Decimal("0.00"))
+        quantidade_usuarios = sum(cls._normalizar_inteiro(item.get("quantidade")) or 0 for item in proposta.get("licencas_items") or []) or None
+        return {
+            "cliente_id": proposta.get("cliente_id"),
+            "contato_id": proposta.get("contato_id"),
+            "proposta_id": proposta.get("id"),
+            "numero": proposta.get("codigo_proposta") or f"PROP-{proposta.get('id')}",
+            "descricao": proposta.get("titulo"),
+            "status": "CONCLUIDO",
+            "inicio_vigencia": None,
+            "fim_vigencia": None,
+            "contato_nome": proposta.get("contato_nome"),
+            "contato_email": proposta.get("contato_email"),
+            "contato_telefone": proposta.get("contato_telefone"),
+            "data_fechamento": date.today(),
+            "executivo_id": proposta.get("executivo_responsavel_id"),
+            "parceiro_id": proposta.get("parceiro_id"),
+            "tipo_venda": "USUARIO",
+            "valor_mensal": proposta.get("total_mensal"),
+            "valor_setup": valor_setup,
+            "valor_projeto": proposta.get("parametrizacao_sistema"),
+            "valor_promocional": None,
+            "quantidade_usuarios": quantidade_usuarios,
+            "data_inicio_recorrencia": None,
+            "data_ativacao": None,
+            "dia_faturamento": None,
+            "observacoes": proposta.get("condicoes_comerciais") or proposta.get("observacoes"),
+            "arquivo_preparado": documento,
+            "arquivo_preparado_original": documento,
+        }
+
+    @staticmethod
+    def _nome_arquivo_contrato(proposta):
+        codigo = proposta.get("codigo_proposta") or f"proposta-{proposta.get('id')}"
+        seguro = re.sub(r"[^A-Za-z0-9_.-]+", "-", codigo).strip("-._").lower() or f"proposta-{proposta.get('id')}"
+        return f"contrato-{seguro}.pdf"
+
+    @classmethod
+    def _gerar_contrato_pdf_modelo(cls, proposta, caminho_pdf):
+        if cls.MODELO_CONTRATO_DOCX.exists():
+            cls._gerar_contrato_pdf_docx(proposta, caminho_pdf)
+            return
+        cls._gerar_contrato_pdf_fallback(proposta, caminho_pdf)
+
+    @classmethod
+    def _gerar_contrato_pdf_docx(cls, proposta, caminho_pdf):
+        libreoffice = shutil.which("libreoffice")
+        if not libreoffice:
+            raise ValueError("LibreOffice não encontrado no servidor para gerar o PDF do contrato.")
+        with tempfile.TemporaryDirectory(prefix="o3-contrato-docx-") as temporario:
+            temp_path = Path(temporario)
+            home_path = temp_path / "home"
+            home_path.mkdir(parents=True, exist_ok=True)
+            env = os.environ.copy()
+            env["HOME"] = str(home_path)
+            docx_preenchido = temp_path / "contrato-preenchido.docx"
+            cls._preencher_docx(cls.MODELO_CONTRATO_DOCX, docx_preenchido, cls._placeholders_contrato_docx(proposta))
+            cls._executar_libreoffice(
+                [libreoffice, "--headless", "--convert-to", "pdf", "--outdir", str(temp_path), str(docx_preenchido)],
+                env,
+            )
+            pdf_preenchido = docx_preenchido.with_suffix(".pdf")
+            if not pdf_preenchido.exists():
+                raise ValueError("Não foi possível exportar o contrato DOCX preenchido para PDF.")
+            shutil.copyfile(pdf_preenchido, caminho_pdf)
+
+    @classmethod
+    def _preencher_docx(cls, modelo, destino, placeholders):
+        with ZipFile(modelo, "r") as origem, ZipFile(destino, "w", ZIP_DEFLATED) as saida:
+            for item in origem.infolist():
+                conteudo = origem.read(item.filename)
+                if item.filename.endswith(".xml"):
+                    texto = conteudo.decode("utf-8")
+                    if item.filename == "word/document.xml":
+                        texto = cls._ajustar_logo_docx(texto)
+                    for marcador, valor in placeholders.items():
+                        texto = texto.replace(marcador, escape(valor or ""))
+                    conteudo = texto.encode("utf-8")
+                saida.writestr(item, conteudo)
+
+    @staticmethod
+    def _ajustar_logo_docx(texto):
+        tamanho = "684000"
+        texto = re.sub(r'(<wp:inline[^>]*>\s*<wp:extent cx=")[0-9]+(" cy=")[0-9]+("/>)', rf'\g<1>{tamanho}\g<2>{tamanho}\g<3>', texto, count=1)
+        texto = re.sub(r'(<a:ext cx=")[0-9]+(" cy=")[0-9]+("/>\s*</a:xfrm>)', rf'\g<1>{tamanho}\g<2>{tamanho}\g<3>', texto, count=1)
+        return texto
+
+    @classmethod
+    def _gerar_contrato_pdf_fallback(cls, proposta, caminho_pdf):
+        modelo = cls.MODELO_CONTRATO_CLICKSIGN
+        if not modelo.exists():
+            raise ValueError(f"Modelo de contrato não encontrado: {modelo}")
+        libreoffice = shutil.which("libreoffice")
+        if not libreoffice:
+            raise ValueError("LibreOffice não encontrado no servidor para gerar o PDF do contrato.")
+        with tempfile.TemporaryDirectory(prefix="o3-contrato-") as temporario:
+            temp_path = Path(temporario)
+            home_path = temp_path / "home"
+            home_path.mkdir(parents=True, exist_ok=True)
+            env = os.environ.copy()
+            env["HOME"] = str(home_path)
+            cls._executar_libreoffice(
+                [libreoffice, "--headless", "--convert-to", "fodg", "--outdir", str(temp_path), str(modelo)],
+                env,
+            )
+            fodg_modelo = temp_path / f"{modelo.stem}.fodg"
+            if not fodg_modelo.exists():
+                raise ValueError("Não foi possível converter o modelo PDF para edição.")
+            conteudo = fodg_modelo.read_text(encoding="utf-8")
+            conteudo = cls._ajustar_layout_fodg(conteudo)
+            for marcador, valor in cls._placeholders_contrato(proposta).items():
+                conteudo = conteudo.replace(marcador, cls._texto_fodg(valor or ""))
+            fodg_preenchido = temp_path / "contrato-preenchido.fodg"
+            fodg_preenchido.write_text(conteudo, encoding="utf-8")
+            cls._executar_libreoffice(
+                [libreoffice, "--headless", "--convert-to", "pdf", "--outdir", str(temp_path), str(fodg_preenchido)],
+                env,
+            )
+            pdf_preenchido = fodg_preenchido.with_suffix(".pdf")
+            if not pdf_preenchido.exists():
+                raise ValueError("Não foi possível exportar o contrato preenchido para PDF.")
+            shutil.copyfile(pdf_preenchido, caminho_pdf)
+
+    @staticmethod
+    def _executar_libreoffice(comando, env):
+        resultado = subprocess.run(comando, env=env, capture_output=True, text=True, timeout=90)
+        if resultado.returncode != 0:
+            detalhe = (resultado.stderr or resultado.stdout or "").strip()
+            raise ValueError(f"Falha ao executar LibreOffice: {detalhe or resultado.returncode}")
+
+    @classmethod
+    def _ajustar_layout_fodg(cls, conteudo):
+        for marcador, largura, altura in (
+            ("[NOME_DO_CLIENTE]", "8.8cm", None),
+            ("[SOFTWARE_DO_CLIENTE]", "10.4cm", None),
+            ("[ITENS_LICENCA_SERVERS_CUSTOMER_TABLES]", "17.2cm", None),
+            ("[NOME_REPRESENTANTE]", "5.4cm", None),
+            ("[CARGO_REPRESENTANTE]", "5.4cm", None),
+            ("[CPF_REPRESENTANTE]", "5.4cm", None),
+        ):
+            conteudo = cls._redimensionar_frames_placeholder(conteudo, marcador, largura, altura)
+        return conteudo
+
+    @staticmethod
+    def _padronizar_margem_esquerda(conteudo):
+        def ajustar(match):
+            tag = match.group(0)
+            x_match = re.search(r'svg:x="([0-9.]+)cm"', tag)
+            width_match = re.search(r'svg:width="([0-9.]+)cm"', tag)
+            if not x_match or not width_match:
+                return tag
+            x = float(x_match.group(1))
+            width = float(width_match.group(1))
+            margem = 1.95
+            if x >= margem or width <= 1:
+                return tag
+            delta = margem - x
+            nova_largura = max(width - delta, 1.0)
+            tag = re.sub(r'svg:x="[0-9.]+cm"', f'svg:x="{margem:.3f}cm"', tag, count=1)
+            tag = re.sub(r'svg:width="[0-9.]+cm"', f'svg:width="{nova_largura:.3f}cm"', tag, count=1)
+            return tag
+        return re.sub(r'<draw:frame\b[^>]*>', ajustar, conteudo)
+
+    @staticmethod
+    def _redimensionar_frames_placeholder(conteudo, marcador, largura, altura=None):
+        partes = []
+        pos = 0
+        abertura = "<draw:frame"
+        fechamento = "</draw:frame>"
+        while True:
+            inicio = conteudo.find(abertura, pos)
+            if inicio < 0:
+                partes.append(conteudo[pos:])
+                break
+            fim = conteudo.find(fechamento, inicio)
+            if fim < 0:
+                partes.append(conteudo[pos:])
+                break
+            fim += len(fechamento)
+            partes.append(conteudo[pos:inicio])
+            frame = conteudo[inicio:fim]
+            if marcador in frame:
+                texto_frame = re.sub(r"<[^>]+>", " ", frame)
+                if not any(trecho in texto_frame for trecho in ("de outro lado", "doravante", "neste ato representada", "inscrita no CNPJ")):
+                    frame = re.sub(r'svg:width="[^"]+"', f'svg:width="{largura}"', frame, count=1)
+                    if altura:
+                        frame = re.sub(r'svg:height="[^"]+"', f'svg:height="{altura}"', frame, count=1)
+            partes.append(frame)
+            pos = fim
+        return "".join(partes)
+
+    @classmethod
+    def _placeholders_contrato_docx(cls, proposta):
+        placeholders = cls._placeholders_contrato(proposta)
+        return {marcador: re.sub(r"\s+", " ", str(valor or "")).strip() for marcador, valor in placeholders.items()}
+
+    @classmethod
+    def _placeholders_contrato(cls, proposta):
+        nome_cliente = proposta.get("cliente_razao_social") or proposta.get("cliente_nome") or proposta.get("cliente_nome_fantasia") or ""
+        nome_fantasia = proposta.get("cliente_nome_fantasia") or proposta.get("cliente_nome") or nome_cliente
+        contato_nome = proposta.get("contato_nome") or ""
+        cargo = proposta.get("contato_cargo") or "Representante legal"
+        prazo = cls._normalizar_inteiro(proposta.get("prazo_contratual_meses"), 24) or 24
+        software = cls._software_cliente(proposta)
+        return {
+            "[SOFTWARE_DO_CLIENTE]": cls._quebrar_texto(software, 36, 3),
+            "[NUMERO_PROPOSTA]": proposta.get("codigo_proposta") or f"PROP-{proposta.get('id')}",
+            "[NOME_DO_CLIENTE]": nome_cliente,
+            "[CNPJ_DO_CLIENTE]": proposta.get("cliente_cnpj") or "",
+            "[DATA_ASSINATURA]": cls._data_br(date.today()),
+            "[VENDEDOR_NOME]": proposta.get("executivo_nome") or "",
+            "[VENDEDOR_EMAIL]": proposta.get("executivo_email") or "",
+            "[VENDEDOR_TELEFONE]": proposta.get("executivo_telefone") or "",
+            "[ENDERECO_DO_CLIENTE]": cls._endereco_cliente(proposta),
+            "[NOME_REPRESENTANTE]": contato_nome,
+            "[CARGO_REPRESENTANTE]": cargo,
+            "[CPF_REPRESENTANTE]": proposta.get("contato_cpf") or "",
+            "[VALOR_SETUP]": cls._moeda_sem_prefixo(proposta.get("setup_ambiente_cloud")),
+            "[VALOR_PROJETO]": cls._moeda_sem_prefixo(proposta.get("parametrizacao_sistema")),
+            "[TOTAL_INSTALACAO]": cls._moeda_sem_prefixo(proposta.get("total_instalacao")),
+            "[ITENS_LICENCA_SERVERS_CUSTOMER_TABLES]": cls._itens_contrato_texto(proposta),
+            "[TOTAL_MENSAL]": cls._moeda_sem_prefixo(proposta.get("total_mensal")),
+            "[PAYMENT_DAYS]": str(proposta.get("mensalidade_dias") or 30),
+            "[SETUP_DAYS]": str(proposta.get("setup_dias") or 7),
+            "[QTD_MESES]": str(prazo),
+            "[QTD_MESES_POR_EXTENSO]": cls._numero_por_extenso(prazo),
+            "[DETALHES_ADICIONAIS_CLIENTE]": cls._detalhes_adicionais_contrato(proposta),
+            "[NOME_FANTASIA]": nome_fantasia,
+            "[TOTAL_GERAL]": cls._moeda_sem_prefixo(proposta.get("valor_total")),
+        }
+
+    @classmethod
+    def _software_cliente(cls, proposta):
+        softwares = []
+        for item in proposta.get("licencas_items") or []:
+            nome = item.get("software") or item.get("produto") or item.get("descricao")
+            if nome and nome not in softwares:
+                softwares.append(nome)
+        if softwares:
+            return ", ".join(softwares[:3])
+        return proposta.get("titulo") or "Projeto O3 Cloud"
+
+    @classmethod
+    def _itens_contrato_texto(cls, proposta):
+        itens = []
+        for item in proposta.get("licencas_items") or []:
+            nome = re.sub(r"\s+", " ", item.get("software") or item.get("produto") or item.get("descricao") or "Licença").strip()
+            itens.append(f"{nome} ({item.get('quantidade') or 1})")
+        for item in proposta.get("servidores_items") or []:
+            nome = re.sub(r"\s+", " ", item.get("nome") or item.get("descricao") or "Servidor").strip()
+            itens.append(f"{nome} ({item.get('quantidade') or 1})")
+        if not itens:
+            return "Não informado"
+        if len(itens) > 4:
+            return f"{len(itens)} itens recorrentes conforme proposta comercial vinculada."
+        return "; ".join(itens)
+
+    @staticmethod
+    def _limitar_texto(valor, limite):
+        texto = re.sub(r"\s+", " ", str(valor or "")).strip()
+        if len(texto) <= limite:
+            return texto
+        return texto[: max(limite - 3, 0)].rstrip() + "..."
+
+    @staticmethod
+    def _quebrar_texto(valor, largura, max_linhas=None):
+        palavras = re.sub(r"\s+", " ", str(valor or "")).strip().split(" ")
+        linhas = []
+        atual = ""
+        for palavra in palavras:
+            candidato = f"{atual} {palavra}".strip()
+            if len(candidato) <= largura:
+                atual = candidato
+                continue
+            if atual:
+                linhas.append(atual)
+            atual = palavra
+        if atual:
+            linhas.append(atual)
+        if max_linhas and len(linhas) > max_linhas:
+            linhas = linhas[:max_linhas]
+        return "\n".join(linhas)
+
+    @staticmethod
+    def _texto_fodg(valor):
+        linhas = str(valor or "").splitlines() or [""]
+        return "<text:line-break/>".join(escape(linha) for linha in linhas)
+
+    @staticmethod
+    def _detalhes_adicionais_contrato(proposta):
+        partes = [
+            proposta.get("detalhes_negociacao"),
+            proposta.get("condicoes_comerciais"),
+            proposta.get("observacoes"),
+        ]
+        texto = " | ".join(str(parte).strip() for parte in partes if parte and str(parte).strip())
+        return texto or "Não informado"
+
+    @staticmethod
+    def _endereco_cliente(proposta):
+        cidade = proposta.get("cliente_cidade")
+        estado = proposta.get("cliente_estado")
+        if cidade and estado:
+            return f"{cidade}/{estado}"
+        return cidade or estado or "Não informado"
+
+    @staticmethod
+    def _moeda_sem_prefixo(valor):
+        decimal = PropostaService._decimal(valor) or Decimal("0.00")
+        texto = f"{decimal:,.2f}"
+        return texto.replace(",", "X").replace(".", ",").replace("X", ".")
+
+    @staticmethod
+    def _data_br(valor):
+        if hasattr(valor, "strftime"):
+            return valor.strftime("%d/%m/%Y")
+        return str(valor or "")
+
+    @staticmethod
+    def _numero_por_extenso(numero):
+        mapa = {
+            1: "um", 2: "dois", 3: "três", 4: "quatro", 5: "cinco", 6: "seis",
+            7: "sete", 8: "oito", 9: "nove", 10: "dez", 11: "onze", 12: "doze",
+            13: "treze", 14: "quatorze", 15: "quinze", 16: "dezesseis", 17: "dezessete",
+            18: "dezoito", 19: "dezenove", 20: "vinte", 21: "vinte e um", 22: "vinte e dois",
+            23: "vinte e três", 24: "vinte e quatro", 25: "vinte e cinco", 26: "vinte e seis",
+            27: "vinte e sete", 28: "vinte e oito", 29: "vinte e nove", 30: "trinta",
+            31: "trinta e um", 32: "trinta e dois", 33: "trinta e três", 34: "trinta e quatro",
+            35: "trinta e cinco", 36: "trinta e seis", 48: "quarenta e oito", 60: "sessenta",
+        }
+        return mapa.get(numero, str(numero))
+
+    @classmethod
     def preparar_form_payload(cls, dados=None, codigo_sugerido=None):
         dados = dict(dados or {})
         return {
@@ -141,6 +801,16 @@ class PropostaService:
             "valor_total": cls._string_decimal(dados.get("valor_total"), "0.00"),
             "licencas_snapshot": dados.get("licencas_snapshot") or "[]",
             "servidores_snapshot": dados.get("servidores_snapshot") or "[]",
+            "arquivo": dados.get("arquivo") or "",
+            "clicksign_status": dados.get("clicksign_status") or "NAO_ENVIADO",
+            "clicksign_document_key": dados.get("clicksign_document_key") or "",
+            "clicksign_document_url": dados.get("clicksign_document_url") or "",
+            "clicksign_envelope_id": dados.get("clicksign_envelope_id") or "",
+            "clicksign_sent_at": cls._string_datetime(dados.get("clicksign_sent_at")),
+            "clicksign_signed_at": cls._string_datetime(dados.get("clicksign_signed_at")),
+            "clicksign_completed_at": cls._string_datetime(dados.get("clicksign_completed_at")),
+            "clicksign_last_sync_at": cls._string_datetime(dados.get("clicksign_last_sync_at")),
+            "clicksign_eventos": cls._carregar_lista_json(dados.get("clicksign_eventos"), dados.get("clicksign_eventos_items")),
             "licencas_items": cls._carregar_lista_json(dados.get("licencas_snapshot"), dados.get("licencas_items")),
             "servidores_items": cls._carregar_lista_json(dados.get("servidores_snapshot"), dados.get("servidores_items")),
             "ativo": str(dados.get("ativo", "1")) in ("1", "true", "True", "on") or dados.get("ativo") is True,
@@ -178,6 +848,11 @@ class PropostaService:
         dados["itens_snapshot"] = cls._montar_itens_snapshot(dados["licencas_items"], dados["servidores_items"])
         dados["licencas_snapshot"] = json.dumps(dados["licencas_items"], ensure_ascii=False)
         dados["servidores_snapshot"] = json.dumps(dados["servidores_items"], ensure_ascii=False)
+        dados["clicksign_status"] = (dados.get("clicksign_status") or "NAO_ENVIADO").strip().upper()
+        dados["clicksign_document_key"] = (dados.get("clicksign_document_key") or "").strip()
+        dados["clicksign_document_url"] = (dados.get("clicksign_document_url") or "").strip()
+        dados["clicksign_envelope_id"] = (dados.get("clicksign_envelope_id") or "").strip()
+        dados["clicksign_eventos"] = dados.get("clicksign_eventos") or "[]"
         dados["ativo"] = str(dados.get("ativo", "1")) == "1" or dados.get("ativo") is True
         return dados
 
@@ -194,6 +869,8 @@ class PropostaService:
             raise ValueError("Título da solução é obrigatório.")
         if dados.get("status") not in STATUS_PROPOSTA:
             raise ValueError("Status da proposta inválido.")
+        if dados.get("clicksign_status") not in STATUS_CLICKSIGN:
+            raise ValueError("Status de ClickSign inválido.")
         if not dados["licencas_items"] and not dados["servidores_items"]:
             raise ValueError("Adicione ao menos uma licença ou um servidor na proposta.")
         if dados["prazo_contratual_meses"] <= 0:
@@ -237,8 +914,16 @@ class PropostaService:
         proposta["valor_total"] = cls._decimal(proposta.get("valor_total")) or (proposta["total_mensal"] + proposta["total_instalacao"])
         proposta["instalacao_servidores"] = resumo["instalacao_servidores"]
         proposta["status_label"] = STATUS_PROPOSTA.get(proposta.get("status"), proposta.get("status"))
+        proposta["clicksign_status"] = proposta.get("clicksign_status") or "NAO_ENVIADO"
+        proposta["clicksign_status_label"] = STATUS_CLICKSIGN.get(proposta.get("clicksign_status"), proposta.get("clicksign_status"))
+        proposta["clicksign_eventos"] = cls._carregar_lista_json(proposta.get("clicksign_eventos"))
+        proposta["clicksign_sent_at"] = cls._string_datetime(proposta.get("clicksign_sent_at"))
+        proposta["clicksign_signed_at"] = cls._string_datetime(proposta.get("clicksign_signed_at"))
+        proposta["clicksign_completed_at"] = cls._string_datetime(proposta.get("clicksign_completed_at"))
+        proposta["clicksign_last_sync_at"] = cls._string_datetime(proposta.get("clicksign_last_sync_at"))
         proposta["codigo_proposta"] = proposta.get("codigo_proposta") or cls.gerar_codigo_proposta()
         cls._enriquecer_cliente(proposta)
+        cls._enriquecer_contato(proposta)
         return proposta
 
     @classmethod
@@ -288,8 +973,28 @@ class PropostaService:
         dados["cliente_razao_social"] = cliente.get("razao_social") or dados.get("cliente_razao_social") or ""
         dados["cliente_nome_fantasia"] = cliente.get("nome_fantasia") or dados.get("cliente_nome_fantasia") or ""
         dados["cliente_cnpj"] = cliente.get("cnpj") or dados.get("cliente_cnpj") or ""
+        dados["cliente_cidade"] = cliente.get("cidade") or dados.get("cliente_cidade") or ""
+        dados["cliente_estado"] = cliente.get("estado") or dados.get("cliente_estado") or ""
         if not dados.get("cliente_nome"):
             dados["cliente_nome"] = cliente.get("nome_fantasia") or cliente.get("razao_social") or ""
+        return dados
+
+    @classmethod
+    def _enriquecer_contato(cls, dados):
+        dados.setdefault("contato_cargo", "")
+        dados.setdefault("contato_cpf", "")
+        dados.setdefault("contato_whatsapp", "")
+        if not dados.get("contato_id"):
+            return dados
+        contato = ContatoService.buscar_por_id(dados.get("contato_id"))
+        if not contato:
+            return dados
+        dados["contato_nome"] = contato.get("nome") or dados.get("contato_nome") or ""
+        dados["contato_email"] = contato.get("email") or dados.get("contato_email") or ""
+        dados["contato_telefone"] = contato.get("telefone") or contato.get("whatsapp") or dados.get("contato_telefone") or ""
+        dados["contato_cargo"] = contato.get("cargo") or dados.get("contato_cargo") or ""
+        dados["contato_cpf"] = contato.get("cpf") or dados.get("contato_cpf") or ""
+        dados["contato_whatsapp"] = contato.get("whatsapp") or dados.get("contato_whatsapp") or ""
         return dados
 
     @classmethod
@@ -493,6 +1198,12 @@ class PropostaService:
     def _string_data(valor):
         if hasattr(valor, "isoformat"):
             return valor.isoformat()
+        return valor or ""
+
+    @staticmethod
+    def _string_datetime(valor):
+        if hasattr(valor, "strftime"):
+            return valor.strftime("%Y-%m-%d %H:%M:%S")
         return valor or ""
 
     @staticmethod

@@ -28,15 +28,19 @@
                         <label class="form-label">Empresa</label>
                         <input class="form-control" name="empresa" placeholder="Empresa ou organização" value="{{ contato.empresa if contato else '' }}">
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label">Cargo</label>
                         <input class="form-control" name="cargo" placeholder="Cargo ou função" value="{{ contato.cargo if contato else '' }}">
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label class="form-label">CPF</label>
+                        <input class="form-control" name="cpf" placeholder="000.000.000-00" value="{{ contato.cpf if contato else '' }}">
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label">E-mail</label>
                         <input class="form-control" type="email" name="email" placeholder="contato@empresa.com" value="{{ contato.email if contato else '' }}">
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label">Telefone</label>
                         <input class="form-control" name="telefone" placeholder="(11) 3333-3333" value="{{ contato.telefone if contato else '' }}">
                     </div>

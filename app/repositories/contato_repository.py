@@ -61,6 +61,7 @@ class ContatoRepository(BaseRepository):
                 c.empresa,
                 c.nome,
                 c.cargo,
+                c.cpf,
                 c.email,
                 c.telefone,
                 c.whatsapp,
@@ -127,6 +128,7 @@ class ContatoRepository(BaseRepository):
                 id,
                 nome,
                 empresa,
+                cpf,
                 email,
                 telefone,
                 whatsapp
@@ -148,6 +150,7 @@ class ContatoRepository(BaseRepository):
                 c.empresa,
                 c.nome,
                 c.cargo,
+                c.cpf,
                 c.email,
                 c.telefone,
                 c.whatsapp,
@@ -186,6 +189,7 @@ class ContatoRepository(BaseRepository):
                 empresa,
                 nome,
                 cargo,
+                cpf,
                 email,
                 telefone,
                 whatsapp,
@@ -198,7 +202,7 @@ class ContatoRepository(BaseRepository):
             )
             VALUES
             (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
         """
 
@@ -212,6 +216,7 @@ class ContatoRepository(BaseRepository):
                 dados.get("empresa"),
                 dados["nome"],
                 dados.get("cargo"),
+                dados.get("cpf"),
                 dados.get("email"),
                 dados.get("telefone"),
                 dados.get("whatsapp"),
@@ -234,6 +239,7 @@ class ContatoRepository(BaseRepository):
                 empresa = %s,
                 nome = %s,
                 cargo = %s,
+                cpf = %s,
                 email = %s,
                 telefone = %s,
                 whatsapp = %s,
@@ -255,6 +261,7 @@ class ContatoRepository(BaseRepository):
                 dados.get("empresa"),
                 dados["nome"],
                 dados.get("cargo"),
+                dados.get("cpf"),
                 dados.get("email"),
                 dados.get("telefone"),
                 dados.get("whatsapp"),

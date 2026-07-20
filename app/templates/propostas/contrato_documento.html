@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <title>Contrato {{ proposta.codigo_proposta }}</title>
+    <style>
+        body{font-family:Arial,sans-serif;color:#1f2933;margin:0;background:#f5f7fb}.page{max-width:900px;margin:24px auto;background:#fff;padding:42px 52px;box-shadow:0 12px 32px rgba(15,23,42,.12)}
+        h1{font-size:24px;margin:0 0 8px;color:#111827}h2{font-size:16px;margin:28px 0 10px;color:#243b53;border-bottom:1px solid #d9e2ec;padding-bottom:6px}.muted{color:#627d98}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 28px}.item strong{display:block;color:#334e68;font-size:12px;text-transform:uppercase;letter-spacing:.04em}.item span{font-size:15px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #d9e2ec;padding:9px 10px;text-align:left}th{background:#f0f4f8;color:#334e68;font-size:12px;text-transform:uppercase}.text-end{text-align:right}.total-row td{font-weight:700;background:#f8fafc}.terms{white-space:pre-line;line-height:1.55}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:70px}.signature{border-top:1px solid #334e68;text-align:center;padding-top:10px}.footer{margin-top:34px;font-size:12px;color:#829ab1;text-align:center}@media print{body{background:#fff}.page{box-shadow:none;margin:0;max-width:none;min-height:auto}}
+    </style>
+</head>
+<body>
+<div class="page">
+    <h1>Contrato de Prestacao de Servicos O3 Cloud</h1>
+    <div class="muted">Documento gerado a partir da proposta {{ proposta.codigo_proposta }}{% if proposta.versao %} - versao {{ proposta.versao }}{% endif %}</div>
+
+    <h2>Contratante</h2>
+    <div class="grid">
+        <div class="item"><strong>Razao Social</strong><span>{{ proposta.cliente_razao_social or proposta.cliente_nome or '-' }}</span></div>
+        <div class="item"><strong>Nome Fantasia</strong><span>{{ proposta.cliente_nome_fantasia or proposta.cliente_nome or '-' }}</span></div>
+        <div class="item"><strong>CNPJ</strong><span>{{ proposta.cliente_cnpj or '-' }}</span></div>
+        <div class="item"><strong>Contato</strong><span>{{ proposta.contato_nome or '-' }}</span></div>
+        <div class="item"><strong>E-mail</strong><span>{{ proposta.contato_email or '-' }}</span></div>
+        <div class="item"><strong>Telefone</strong><span>{{ proposta.contato_telefone or '-' }}</span></div>
+    </div>
+
+    <h2>Objeto</h2>
+    <p>Contratacao da solucao <strong>{{ proposta.titulo }}</strong>, conforme escopo comercial aprovado na proposta {{ proposta.codigo_proposta }}.</p>
+
+    <h2>Valores Contratados</h2>
+    <table>
+        <tbody>
+            <tr><td>Parametrizacao do Sistema</td><td class="text-end">{{ proposta.parametrizacao_sistema|moeda }}</td></tr>
+            <tr><td>Setup do Ambiente Cloud</td><td class="text-end">{{ proposta.setup_ambiente_cloud|moeda }}</td></tr>
+            <tr><td>Recursos adicionais de instalacao</td><td class="text-end">{{ proposta.instalacao_servidores|moeda }}</td></tr>
+            <tr class="total-row"><td>Total de instalacao</td><td class="text-end">{{ proposta.total_instalacao|moeda }}</td></tr>
+            <tr class="total-row"><td>Total mensal recorrente</td><td class="text-end">{{ proposta.total_mensal|moeda }}</td></tr>
+        </tbody>
+    </table>
+
+    <h2>Itens Recorrentes</h2>
+    <table>
+        <thead><tr><th>Item</th><th>Quantidade</th><th class="text-end">Valor unitario</th><th class="text-end">Total mensal</th></tr></thead>
+        <tbody>
+            {% for item in proposta.licencas_items %}<tr><td>{{ item.software }}</td><td>{{ item.quantidade }}</td><td class="text-end">{{ item.valor_unitario|moeda }}</td><td class="text-end">{{ item.total_mensal|moeda }}</td></tr>{% endfor %}
+            {% for item in proposta.servidores_items %}<tr><td>{{ item.nome }}</td><td>{{ item.quantidade }}</td><td class="text-end">{{ item.valor_mensal|moeda }}</td><td class="text-end">{{ item.total_mensal|moeda }}</td></tr>{% endfor %}
+            {% if not proposta.licencas_items and not proposta.servidores_items %}<tr><td colspan="4" class="muted">Nenhum item recorrente informado.</td></tr>{% endif %}
+        </tbody>
+    </table>
+
+    <h2>Condicoes Comerciais</h2>
+    <div class="terms">Setup: {{ proposta.setup_dias }} dias apos a entrega do ambiente.
+Mensalidade: {{ proposta.mensalidade_dias }} dias apos a entrega do ambiente.
+Prazo contratual: {{ proposta.prazo_contratual_meses }} meses.
+{% if proposta.detalhes_negociacao %}
+Negociacao:
+{{ proposta.detalhes_negociacao }}
+{% endif %}{% if proposta.condicoes_comerciais %}
+Condicoes comerciais:
+{{ proposta.condicoes_comerciais }}
+{% endif %}{% if proposta.observacoes %}
+Observacoes:
+{{ proposta.observacoes }}
+{% endif %}</div>
+
+    <div class="signatures">
+        <div class="signature">{{ proposta.cliente_razao_social or proposta.cliente_nome or 'Contratante' }}</div>
+        <div class="signature">O3 Cloud Solucoes em Tecnologia LTDA</div>
+    </div>
+    <div class="footer">Documento preparado para assinatura eletronica via ClickSign.</div>
+</div>
+</body>
+</html>

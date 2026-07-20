@@ -46,6 +46,31 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-20 - Fechamento Sprint 7
+
+### CRM, Propostas e Contratos
+
+- Sprint 7 concluída com CRM Comercial Alpha, Propostas, Contratos pós-assinatura e integração ClickSign.
+- Propostas passaram a gerar contrato a partir de modelo DOCX editável e visualizar PDF antes do envio.
+- Contratos passaram a aceitar vínculos com contato, proposta, parceiro e executivo, com edição restrita para contratos Omie.
+- Dashboard de Contratos passou a somar valores conforme filtro de status selecionado e agrupar por executivo/parceiro.
+- Quantidade de usuários deixou de ser obrigatória em contratos manuais.
+- Contratos manuais podem ser excluídos logicamente.
+
+### ClickSign
+
+- Adicionado client real da API ClickSign v3.
+- Envio real de contratos para ClickSign com contato do cliente, representante O3 Cloud e executivo como testemunha.
+- Adicionado botão `Sincronizar ClickSign` na tela principal de Propostas para sincronização manual em lote.
+- Sincronização interpreta `running` como `Aguardando Assinaturas` e `closed` como `Assinado`.
+- PDF assinado é baixado da ClickSign e salvo em `storage/contratos`.
+
+### Banco de Dados
+
+- Adicionadas migrations `017`, `018`, `019` e `020` para ClickSign, contratos pós-assinatura, vínculos comerciais e CPF opcional de contatos.
+
+---
+
 # [3.0 Alpha] - Julho/2026
 
 ## Situação
@@ -122,6 +147,11 @@ Concluído:
 - Repository.
 - Service.
 - Routes.
+- Menu próprio de Contratos.
+- Dashboard pós-assinatura com totais por recorrência, setup, usuários, executivo e parceiro.
+- Formulário de novo contrato vinculado ao CNPJ do cliente.
+- Bloqueio de edição para contratos sincronizados do Omie.
+- Upload e download de contrato PDF assinado em `storage/contratos`.
 
 ---
 

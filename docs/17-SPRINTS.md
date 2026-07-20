@@ -172,22 +172,23 @@ Objetivos:
 - Contatos
 - Oportunidades
 - Pipeline Comercial
+- Propostas
+- Contratos pós-assinatura
 - Integração ClickSign
 
-Entregas iniciais:
+Entregas:
 
 - Separador exclusivo de CRM no sidebar
-- Módulo Leads iniciado
-- Módulo Contatos iniciado
-- Módulo Oportunidades iniciado
-- Pipeline Comercial iniciado
-- Módulo Propostas iniciado
-- Migration `crm_leads` aplicada no banco
-- Home com atalho para Leads
+- Módulos Leads, Contatos, Oportunidades, Pipeline e Propostas iniciados
+- Contratos pós-assinatura com dashboard, vínculos comerciais e gestão de PDFs
+- Geração de contrato a partir de proposta usando modelo DOCX
+- Envio real para ClickSign API v3
+- Sincronização manual em lote com ClickSign
+- Download do PDF assinado para `storage/contratos`
 
 Status:
 
-🚧 Em andamento
+✅ Concluído
 
 ---
 
@@ -197,11 +198,11 @@ Status:
 
 Objetivos:
 
-- Propostas
-- Precificação
-- Versionamento
-- PDF
-- Aprovação Comercial
+- Consolidação comercial pós-assinatura
+- Dashboard executivo/comercial
+- Indicadores por parceiro e executivo
+- Rastreabilidade proposta -> ClickSign -> contrato -> Omie
+- Evolução de permissões e auditoria
 
 Status:
 

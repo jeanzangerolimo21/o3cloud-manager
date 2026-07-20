@@ -71,7 +71,7 @@
             </div>
 
             <div class="mt-4 text-end">
-                <a href="{{ url_for('oportunidades.index') }}" class="btn btn-secondary">
+                <a href="{{ url_for('oportunidades.index') }}" class="btn btn-secondary" onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }">
                     <i class="bi bi-arrow-left"></i>
                     Voltar
                 </a>

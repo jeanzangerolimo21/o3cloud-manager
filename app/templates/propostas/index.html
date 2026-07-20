@@ -4,29 +4,34 @@
 <div class="container-fluid">
     {% include "components/page_header.html" %}
     <div class="card shadow-sm border-0"><div class="card-body">
+        <div class="d-flex justify-content-end mb-3">
+            <a href="{{ url_for('propostas.sincronizar_clicksign_todas') }}" class="btn btn-outline-info btn-sm" onclick="return confirm('Sincronizar todas as propostas pendentes com a ClickSign agora?')"><i class="bi bi-arrow-repeat"></i> Sincronizar ClickSign</a>
+        </div>
         <form method="GET" class="mb-4">
             <div class="row g-3 align-items-end">
                 <div class="col-md-6"><label class="form-label">Pesquisar</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="{{ placeholder }}"></div>
                 <div class="col-md-2"><label class="form-label">Status</label><select class="form-select" name="status"><option value="">Todos</option>{% for valor, descricao in status_options.items() %}<option value="{{ valor }}" {% if selected_status == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}</select></div>
                 <div class="col-md-2"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativas</option><option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativas</option><option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todas</option></select></div>
+                <div class="col-md-2"><label class="form-label">ClickSign</label><select class="form-select" name="clicksign_status"><option value="">Todos</option>{% for valor, descricao in clicksign_status_options.items() %}<option value="{{ valor }}" {% if selected_clicksign_status == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}</select></div>
                 <div class="col-md-1"><button class="btn btn-primary w-100"><i class="bi bi-search"></i></button></div>
                 <div class="col-md-1"><a href="{{ request.path }}" class="btn btn-outline-secondary w-100">Limpar</a></div>
             </div>
         </form>
         <div class="mb-3"><small class="text-muted">{{ total }} proposta(s) cadastradas</small></div>
-        <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Proposta</th><th>Cliente</th><th>Executivo</th><th>Status</th><th>Total Mensal</th><th>Total Geral</th><th width="220">Ações</th></tr></thead><tbody>
+        <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Proposta</th><th>Cliente</th><th>Executivo</th><th>Status</th><th>ClickSign</th><th>Total Mensal</th><th>Total Geral</th><th width="220">Ações</th></tr></thead><tbody>
             {% for proposta in propostas %}
             <tr>
                 <td><strong>{{ proposta.titulo }}</strong><br><small class="text-muted">{{ proposta.codigo_proposta or '-' }} • Versão {{ proposta.versao }}</small></td>
                 <td>{{ proposta.cliente_nome or '-' }}</td>
                 <td>{{ proposta.executivo_nome or '-' }}</td>
                 <td><span class="badge bg-secondary">{{ status_options.get(proposta.status, proposta.status) }}</span></td>
+                <td><span class="badge bg-light text-dark border">{{ clicksign_status_options.get(proposta.clicksign_status, proposta.clicksign_status or 'NAO_ENVIADO') }}</span></td>
                 <td>{% if proposta.total_mensal is not none %}{{ proposta.total_mensal|moeda }}{% else %}-{% endif %}</td>
                 <td>{% if proposta.valor_total is not none %}{{ proposta.valor_total|moeda }}{% else %}-{% endif %}</td>
                 <td><div class="btn-group btn-group-sm"><a href="{{ url_for('propostas.visualizar', proposta_id=proposta.id) }}" class="btn btn-outline-secondary"><i class="bi bi-eye"></i></a><a href="{{ url_for('propostas.imprimir', proposta_id=proposta.id) }}" target="_blank" class="btn btn-outline-dark"><i class="bi bi-printer"></i></a><a href="{{ url_for('propostas.exportar_docx', proposta_id=proposta.id) }}" class="btn btn-outline-success"><i class="bi bi-file-earmark-word"></i></a><a href="{{ url_for('propostas.editar', proposta_id=proposta.id) }}" class="btn btn-outline-primary"><i class="bi bi-pencil"></i></a><a href="{{ url_for('propostas.excluir', proposta_id=proposta.id) }}" onclick="return confirm('Deseja realmente excluir esta proposta?')" class="btn btn-outline-danger"><i class="bi bi-trash"></i></a></div></td>
             </tr>
             {% else %}
-                {% set colspan = 7 %}
+                {% set colspan = 8 %}
                 {% set empty_message = "Nenhuma proposta encontrada." %}
                 {% include "components/empty_state.html" %}
             {% endfor %}

@@ -1,249 +1,176 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
+
+from app.contratos.service import ContratoService
 from app.repositories.contrato_item_repository import ContratoItemRepository
 from app.repositories.contrato_repository import ContratoRepository
 
-contratos_bp = Blueprint(
-    "contratos",
-    __name__,
-    url_prefix="/contratos"
-)
+
+contratos_bp = Blueprint("contratos", __name__, url_prefix="/contratos")
+
+
+def _filtros():
+    return {
+        "pesquisa": request.args.get("q") or None,
+        "status": request.args.get("status") or None,
+        "origem": request.args.get("origem") or None,
+        "data_de": request.args.get("data_de") or None,
+        "data_ate": request.args.get("data_ate") or None,
+    }
+
+
+def _form_data():
+    return {
+        "cliente_id": request.form.get("cliente_id"),
+        "contato_id": request.form.get("contato_id"),
+        "proposta_id": request.form.get("proposta_id"),
+        "numero": request.form.get("numero"),
+        "descricao": request.form.get("descricao"),
+        "status": request.form.get("status"),
+        "inicio_vigencia": request.form.get("inicio_vigencia"),
+        "fim_vigencia": request.form.get("fim_vigencia"),
+        "contato_nome": request.form.get("contato_nome"),
+        "contato_email": request.form.get("contato_email"),
+        "contato_telefone": request.form.get("contato_telefone"),
+        "data_fechamento": request.form.get("data_fechamento"),
+        "executivo_id": request.form.get("executivo_id"),
+        "parceiro_id": request.form.get("parceiro_id"),
+        "tipo_venda": request.form.get("tipo_venda"),
+        "valor_mensal": request.form.get("valor_mensal"),
+        "valor_setup": request.form.get("valor_setup"),
+        "valor_projeto": request.form.get("valor_projeto"),
+        "valor_promocional": request.form.get("valor_promocional"),
+        "quantidade_usuarios": request.form.get("quantidade_usuarios"),
+        "data_inicio_recorrencia": request.form.get("data_inicio_recorrencia"),
+        "data_ativacao": request.form.get("data_ativacao"),
+        "dia_faturamento": request.form.get("dia_faturamento"),
+        "observacoes": request.form.get("observacoes"),
+    }
 
 
 @contratos_bp.route("/")
 def index():
-
-    pesquisa = request.args.get("q")
-
-    status = request.args.get("status")
-
-    origem = request.args.get("origem")
-
     pagina = request.args.get("page", 1, type=int)
-
-    limit = 50
-
-    offset = (pagina - 1) * limit
-
-    contratos = ContratoRepository.listar(
-        pesquisa=pesquisa,
-        status=status,
-        origem=origem,
-        limit=limit,
-        offset=offset
-    )
-
-    total = ContratoRepository.total(
-        pesquisa=pesquisa,
-        status=status,
-        origem=origem
-    )
-
-    total_paginas = (total + limit - 1) // limit
+    filtros = _filtros()
+    contratos, total, total_paginas = ContratoService.listar(filtros, pagina=pagina)
+    dashboard = ContratoService.dashboard(filtros)
 
     return render_template(
-
         "contratos/index.html",
-        
         contratos=contratos,
-
-        pesquisa=pesquisa,
-
-        status=status,
-
-        selected_status=status,
-
-        status_field="status",
-
-        origem=origem,
-
-        pagina=pagina,
-
         total=total,
-
+        pagina=pagina,
         total_paginas=total_paginas,
-
-        placeholder="Pesquisar por Número ou Cliente",
-
-        show_status=True,
-
-        show_origem=True,
-
-        status_options={
-
-            "EM_ELABORACAO": "🟡 Em Elaboração",
-
-            "EM_IMPLANTACAO": "🔵 Em Implantação",
-
-            "ATIVO": "🟢 Ativo",
-
-            "SUSPENSO": "🟠 Suspenso",
-
-            "CANCELADO": "🔴 Cancelado",
-
-            "ENCERRADO": "⚫ Encerrado"
-
-        }
-
+        filtros=filtros,
+        dashboard=dashboard,
+        status_options=ContratoService.STATUS_OPTIONS,
+        view_mode="lista",
     )
+
+
+@contratos_bp.route("/dashboard")
+def dashboard():
+    pagina = request.args.get("page", 1, type=int)
+    filtros = _filtros()
+    contratos, total, total_paginas = ContratoService.listar(filtros, pagina=pagina)
+    dashboard_dados = ContratoService.dashboard(filtros)
+
+    return render_template(
+        "contratos/dashboard.html",
+        contratos=contratos,
+        total=total,
+        pagina=pagina,
+        total_paginas=total_paginas,
+        filtros=filtros,
+        dashboard=dashboard_dados,
+        status_options=ContratoService.STATUS_OPTIONS,
+        view_mode="dashboard",
+    )
+
 
 @contratos_bp.route("/novo", methods=["GET", "POST"])
 def novo():
-
-    from app.clientes.service import ClienteService
-    from app.contratos.service import ContratoService
-    from flask import redirect, url_for
-
-    clientes = ClienteService.listar_todos()
+    contexto = ContratoService.contexto_form()
 
     if request.method == "POST":
+        dados = _form_data()
+        try:
+            contrato_id = ContratoService.criar(dados, request.files.get("arquivo_preparado"))
+            flash("Contrato criado como rascunho para assinatura.", "success")
+            return redirect(url_for("contratos.view", contrato_id=contrato_id))
+        except ValueError as exc:
+            for erro in str(exc).split("|"):
+                flash(erro, "danger")
+            contexto["contrato"] = dados
 
-        dados = {
+    return render_template("contratos/form.html", modo="novo", **contexto)
 
-            "cliente_id": request.form.get("cliente_id"),
-
-            "numero": request.form.get("numero"),
-
-            "descricao": request.form.get("descricao"),
-
-            "status": request.form.get("status"),
-
-            "inicio_vigencia": request.form.get("inicio_vigencia"),
-
-            "fim_vigencia": request.form.get("fim_vigencia"),
-
-            "valor_mensal": request.form.get("valor_mensal"),
-
-            "dia_faturamento": request.form.get("dia_faturamento"),
-
-            "observacoes": request.form.get("observacoes")
-
-        }
-
-        ContratoService.criar(dados)
-
-        return redirect(url_for("contratos.index"))
-
-    return render_template(
-
-        "contratos/form.html",
-
-        clientes=clientes,
-
-        modo="novo"
-
-    )
 
 @contratos_bp.route("/<int:contrato_id>/editar", methods=["GET", "POST"])
 def editar(contrato_id):
-
-    from flask import redirect, url_for
-
-    from app.clientes.service import ClienteService
-
-    from app.contratos.service import ContratoService
-
     contrato = ContratoRepository.buscar_por_id(contrato_id)
-
     if not contrato:
-
         return redirect(url_for("contratos.index"))
-
-    if contrato["origem"] != "MANUAL":
-
-        return redirect(url_for("contratos.view", contrato_id=contrato_id))
-
-    clientes = ClienteService.listar_todos()
+    contexto = ContratoService.contexto_form()
 
     if request.method == "POST":
+        dados = _form_data()
+        try:
+            if contrato["origem"] == "OMIE":
+                ContratoService.atualizar_vinculos_comerciais(contrato_id, dados)
+                flash("Vinculos comerciais do contrato Omie atualizados.", "success")
+            else:
+                ContratoService.atualizar(contrato_id, dados, request.files.get("arquivo_preparado"))
+                flash("Contrato atualizado.", "success")
+            return redirect(url_for("contratos.view", contrato_id=contrato_id))
+        except ValueError as exc:
+            for erro in str(exc).split("|"):
+                flash(erro, "danger")
+            contrato = {**contrato, **dados}
 
-        dados = {
+    return render_template("contratos/form.html", contrato=contrato, modo="editar", **contexto)
 
-            "cliente_id": request.form.get("cliente_id"),
 
-            "numero": request.form.get("numero"),
+@contratos_bp.route("/<int:contrato_id>/upload-assinado", methods=["POST"])
+def upload_assinado(contrato_id):
+    try:
+        ContratoService.salvar_assinado(contrato_id, request.files.get("arquivo_assinado"))
+        flash("Contrato assinado vinculado ao cliente.", "success")
+    except ValueError as exc:
+        flash(str(exc), "danger")
+    return redirect(request.referrer or url_for("contratos.view", contrato_id=contrato_id))
 
-            "descricao": request.form.get("descricao"),
 
-            "status": request.form.get("status"),
+@contratos_bp.route("/<int:contrato_id>/download")
+def download(contrato_id):
+    caminho, nome = ContratoService.caminho_assinado(contrato_id)
+    if not caminho:
+        abort(404)
+    return send_file(caminho, as_attachment=True, download_name=nome, mimetype="application/pdf")
 
-            "inicio_vigencia": request.form.get("inicio_vigencia"),
-
-            "fim_vigencia": request.form.get("fim_vigencia"),
-
-            "valor_mensal": request.form.get("valor_mensal"),
-
-            "dia_faturamento": request.form.get("dia_faturamento"),
-
-            "observacoes": request.form.get("observacoes")
-
-        }
-
-        ContratoService.atualizar(
-
-            contrato_id,
-
-            dados
-
-        )
-
-        return redirect(
-
-            url_for(
-
-                "contratos.view",
-
-                contrato_id=contrato_id
-
-            )
-
-        )
-
-    return render_template(
-
-        "contratos/form.html",
-
-        contrato=contrato,
-
-        clientes=clientes,
-
-        modo="editar"
-
-    )
 
 @contratos_bp.route("/<int:contrato_id>/excluir")
 def excluir(contrato_id):
-
-    from flask import redirect, url_for
-
     contrato = ContratoRepository.buscar_por_id(contrato_id)
-
     if not contrato:
         return redirect(url_for("contratos.index"))
-
     if contrato["origem"] != "MANUAL":
+        flash("Contratos sincronizados do Omie nao podem ser excluidos.", "warning")
         return redirect(url_for("contratos.view", contrato_id=contrato_id))
 
     ContratoRepository.excluir(contrato_id)
-
+    flash("Contrato removido.", "success")
     return redirect(url_for("contratos.index"))
 
 
 @contratos_bp.route("/<int:contrato_id>")
 def view(contrato_id):
-
-
-
-    contrato = ContratoRepository.buscar_por_id(
-        contrato_id
-    )
-
-    itens = ContratoItemRepository.listar_por_contrato(
-        contrato_id
-    )
-
+    contrato = ContratoRepository.buscar_por_id(contrato_id)
+    if not contrato:
+        return redirect(url_for("contratos.index"))
+    itens = ContratoItemRepository.listar_por_contrato(contrato_id)
     return render_template(
         "contratos/view.html",
         contrato=contrato,
-        itens=itens
+        itens=itens,
+        status_options=ContratoService.STATUS_OPTIONS,
     )
-

@@ -3,285 +3,144 @@
 {% block content %}
 
 <div class="container-fluid">
-
     {% set page_title = "Contratos" %}
-    {% set page_description = "Gerenciamento dos contratos dos clientes." %}
+    {% set page_description = "Gestao pos-assinatura de contratos" %}
     {% set page_icon = "bi-file-earmark-text" %}
     {% set page_button_url = url_for("contratos.novo") %}
     {% set page_button_icon = "bi-plus-circle" %}
     {% set page_button_text = "Novo Contrato" %}
-
     {% include "components/page_header.html" %}
 
-
-        <div class="mb-3">
-            <small class="text-muted">
-
-                {{ total }} contrato(s) cadastrados
-
-            </small>
-
-        </div>
-
-    <div class="card-body">
-
-        <form method="GET">
-
-            {% include "components/filter_bar.html" %}
-        
-	</form>
-
-        {% if contratos %}
-
-        <div class="table-responsive">
-
-            <table class="table table-hover align-middle">
-
-                <thead class="table-light">
-
-                    <tr>
-
-                        <th>Número</th>
-
-                        <th>Cliente</th>
-                       
-			<th>Origem</th>
-
-                        <th>Valor Mensal</th>
-
-                        <th>Status</th>
-
-                        <th>Vigência</th>
-
-                        <th width="130">Ações</th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-                    {% for contrato in contratos %}
-
-                    <tr>
-
-                        <td>
-
-                            <strong>
-
-                                {{ contrato.numero }}
-
-                            </strong>
-
-                        </td>
-
-                        <td>
-
-                            {{ contrato.cliente_nome }}
-
-                        </td>
-                        
-                        <td>
-
-                            {% if contrato.origem=="OMIE" %}
-
-                            <span class="badge bg-primary">
-
-                                OMIE
-
-                            </span>
-
-                            {% else %}
-
-                            <span class="badge bg-secondary">
-
-                                MANUAL
-
-                            </span>
-
-                            {% endif %}
-
-                        </td>
-
-
-                        <td>
-
-                            {{ contrato.valor_mensal|moeda }}
-
-                        </td>
-
-                        <td>
-
-                            {% if contrato.status == "ATIVO" %}
-
-                                <span class="badge bg-success">
-
-                                    Ativo
-
-                                </span>
-
-                            {% elif contrato.status == "SUSPENSO" %}
-
-                                <span class="badge bg-warning">
-
-                                    Suspenso
-
-                                </span>
-
-                            {% else %}
-
-                                <span class="badge bg-danger">
-
-                                    {{ contrato.status }}
-
-                                </span>
-
-                            {% endif %}
-
-                        </td>
-
-                        <td>
-
-                            {{ contrato.inicio_vigencia|date_br }}
-
-                            <br>
-
-                            <small class="text-muted">
-
-                                até
-
-                                {{ contrato.fim_vigencia|date_br }}
-
-                            </small>
-
-                        </td>
-
-                        <td>
-                             
-                            <a href="{{ url_for('contratos.view', contrato_id=contrato.id) }}"
-                               class="btn btn-outline-secondary btn-sm">
-
-                                <i class="bi bi-eye"></i>
-
-                            </a>
-
-			    {% if contrato.origem == "MANUAL" %}
-
-                            <a href="{{ url_for('contratos.editar', contrato_id=contrato.id) }}"
-                               class="btn btn-outline-primary btn-sm">
-
-                                <i class="bi bi-pencil"></i>
-
-                            </a>
-			    <a
-                                class="btn btn-sm btn-outline-danger"
-                                href="{{ url_for('contratos.excluir', contrato_id=contrato.id) }}"
-                                onclick="return confirm('Deseja excluir este contrato?')">
-
-                                <i class="bi bi-trash"></i>
-
-                            </a>
-
-                            {% endif %}
-                        </td>
-
-                    </tr>
-
-                    {% endfor %}
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-        {% else %}
-
-        <div class="alert alert-warning">
-
-            Nenhum contrato encontrado.
-
-        </div>
-
-        {% endif %}
-
+    <div class="d-flex gap-2 mb-3">
+        <a class="btn btn-sm {{ 'btn-primary' if view_mode == 'lista' else 'btn-outline-primary' }}" href="{{ url_for('contratos.index') }}">
+            <i class="bi bi-list-ul"></i> Lista
+        </a>
+        <a class="btn btn-sm {{ 'btn-primary' if view_mode == 'dashboard' else 'btn-outline-primary' }}" href="{{ url_for('contratos.dashboard') }}">
+            <i class="bi bi-bar-chart"></i> Dashboard
+        </a>
+        <a class="btn btn-sm btn-outline-success" href="{{ url_for('contratos.novo') }}">
+            <i class="bi bi-plus-circle"></i> Novo Contrato
+        </a>
     </div>
+
+    <form method="GET" class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-4">
+                    <label class="form-label">Buscar</label>
+                    <input class="form-control" name="q" value="{{ filtros.pesquisa or '' }}" placeholder="Buscar por empresa, CNPJ, executivo, parceiro...">
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" name="status">
+                        <option value="">Todos os status</option>
+                        {% for valor, label in status_options.items() %}
+                            <option value="{{ valor }}" {% if filtros.status == valor %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Origem</label>
+                    <select class="form-select" name="origem">
+                        <option value="">Todas</option>
+                        <option value="OMIE" {% if filtros.origem == 'OMIE' %}selected{% endif %}>Omie</option>
+                        <option value="MANUAL" {% if filtros.origem == 'MANUAL' %}selected{% endif %}>Manual</option>
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Fechamento</label>
+                    <input class="form-control" type="date" name="data_de" value="{{ filtros.data_de or '' }}">
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Ate</label>
+                    <div class="input-group">
+                        <input class="form-control" type="date" name="data_ate" value="{{ filtros.data_ate or '' }}">
+                        <button class="btn btn-primary" title="Filtrar"><i class="bi bi-search"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Rascunho</small><h3 class="mb-0">{{ dashboard.resumo.total_rascunho or 0 }}</h3></div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Encaminhado para Projeto</small><h3 class="mb-0">{{ dashboard.resumo.total_encaminhado or 0 }}</h3></div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Contratos Ativos</small><h3 class="mb-0">{{ dashboard.resumo.total_ativos or 0 }}</h3></div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Concluido</small><h3 class="mb-0">{{ dashboard.resumo.total_concluido or 0 }}</h3></div></div>
+        </div>
+    </div>
+
+    <div class="mb-3 text-muted">{{ total }} contratos encontrados</div>
+
+    {% if contratos %}
+        <div class="d-grid gap-3">
+            {% for contrato in contratos %}
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                            <div>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                    <h5 class="mb-0">{{ contrato.cliente_razao_social or contrato.cliente_nome }}</h5>
+                                    <span class="badge bg-{{ 'primary' if contrato.origem == 'OMIE' else 'secondary' }}">{{ contrato.origem }}</span>
+                                    <span class="badge bg-light text-dark border">{{ status_options.get(contrato.status, contrato.status) }}</span>
+                                </div>
+                                {% if contrato.cliente_nome %}<div class="text-muted">({{ contrato.cliente_nome }})</div>{% endif %}
+                                <div class="mt-2 text-muted small">
+                                    <span class="me-3">{{ contrato.cliente_cnpj or 'CNPJ nao informado' }}</span>
+                                    <span class="me-3">Executivo: {{ contrato.executivo_nome or 'Nao informado' }}</span>
+                                    <span>Parceiro: {{ contrato.parceiro_nome or 'Sem parceiro' }}</span>
+                                </div>
+                                <div class="mt-2 small">
+                                    <span class="me-3">Fechamento: {{ contrato.data_fechamento|date_br if contrato.data_fechamento else '-' }}</span>
+                                    <span class="me-3">{{ (contrato.valor_promocional or contrato.valor_mensal)|moeda }}/mes</span>
+                                    <span>Usuarios: {{ contrato.quantidade_usuarios or '-' }}</span>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-wrap align-items-start justify-content-lg-end gap-2" style="min-width: 280px;">
+                                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('contratos.view', contrato_id=contrato.id) }}" title="Ver"><i class="bi bi-eye"></i></a>
+                                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('contratos.editar', contrato_id=contrato.id) }}" title="Editar vinculos comerciais"><i class="bi bi-pencil"></i></a>
+                                {% if contrato.origem == 'MANUAL' %}
+                                    <a class="btn btn-sm btn-outline-danger" href="{{ url_for('contratos.excluir', contrato_id=contrato.id) }}" title="Excluir" onclick="return confirm('Deseja excluir este contrato manual?')"><i class="bi bi-trash"></i></a>
+                                {% endif %}
+                                {% if contrato.arquivo_assinado %}
+                                    <a class="btn btn-sm btn-success" href="{{ url_for('contratos.download', contrato_id=contrato.id) }}">
+                                        <i class="bi bi-download"></i> Download
+                                    </a>
+                                {% else %}
+                                    <form method="POST" enctype="multipart/form-data" action="{{ url_for('contratos.upload_assinado', contrato_id=contrato.id) }}" class="d-flex gap-2">
+                                        <input class="form-control form-control-sm" type="file" name="arquivo_assinado" accept="application/pdf,.pdf" required style="max-width: 190px;">
+                                        <button class="btn btn-sm btn-outline-success"><i class="bi bi-upload"></i> Upload</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-warning">Nenhum contrato encontrado.</div>
+    {% endif %}
 
     <div class="d-flex justify-content-between align-items-center mt-4">
-
-        <div class="text-muted">
-
-            Exibindo
-
-            {{ ((pagina-1)*50)+1 }}
-
-            até
-
-            {{ ((pagina-1)*50)+clientes|length }}
-
-            de
-
-            {{ total }}
-
-            clientes
-
-        </div>
-
-        <nav class="mt-4">
-
-            <ul class="pagination justify-content-end">
-
-                {% if pagina > 1 %}
-
-                <li class="page-item">
-
-                    <a class="page-link"
-                       href="?page={{ pagina-1 }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}">
-
-                        ← Anterior
-
-                    </a>
-
-                </li>
-
-                {% endif %}
-
+        <div class="text-muted">Exibindo {{ ((pagina - 1) * 50) + 1 if total else 0 }} ate {{ ((pagina - 1) * 50) + contratos|length }} de {{ total }} contratos</div>
+        <nav>
+            <ul class="pagination mb-0">
                 {% for p in range(1, total_paginas + 1) %}
-
-                <li class="page-item {% if p == pagina %}active{% endif %}">
-
-                    <a class="page-link"
-                       href="?page={{ p }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}">
-
-                        {{ p }}
-
-                    </a>
-
-                </li>
-
+                    <li class="page-item {% if p == pagina %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('contratos.index', page=p, q=filtros.pesquisa, status=filtros.status, origem=filtros.origem, data_de=filtros.data_de, data_ate=filtros.data_ate) }}">{{ p }}</a>
+                    </li>
                 {% endfor %}
-
-                {% if pagina < total_paginas %}
-
-                <li class="page-item">
-
-                    <a class="page-link"
-                       href="?page={{ pagina+1 }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}">
-
-                        Próxima →
-
-                   </a>
-
-                </li>
-
-                {% endif %}
-
             </ul>
-
         </nav>
-
     </div>
-
 </div>
 
 {% endblock %}

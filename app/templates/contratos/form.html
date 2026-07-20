@@ -2,259 +2,168 @@
 
 {% block content %}
 
-<div class="card">
+{% set contrato = contrato or {} %}
+{% set edicao_omie = modo == 'editar' and contrato.origem == 'OMIE' %}
 
-    <div class="card-header d-flex justify-content-between align-items-center">
-
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-
-            <h3>
-
-                {% if modo == "editar" %}
-                    Editar Contrato
-                {% else %}
-                    Novo Contrato
-                {% endif %}
-
-            </h3>
-
-            <small class="text-muted">
-
-                Cadastro Manual de Contrato
-
-            </small>
-
+            <h3 class="mb-0">{{ 'Editar Vinculos do Contrato Omie' if edicao_omie else ('Editar Contrato' if modo == 'editar' else 'Novo Contrato') }}</h3>
+            <small class="text-muted">Gestao pos-assinatura</small>
         </div>
-
-        <a href="{{ url_for('contratos.index') }}"
-           class="btn btn-secondary">
-
-            <i class="bi bi-arrow-left"></i>
-
-            Voltar
-
-        </a>
-
+        <a href="{{ url_for('contratos.index') }}" class="btn btn-outline-secondary" onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }"><i class="bi bi-arrow-left"></i> Voltar</a>
     </div>
 
-    <div class="card-body">
+    <form method="POST" enctype="multipart/form-data" class="card border-0 shadow-sm">
+        <div class="card-body">
+            {% if not edicao_omie %}
+            <h5>Contrato PDF</h5>
+            <div class="border rounded p-3 mb-4 bg-light">
+                <input class="form-control" type="file" name="arquivo_preparado" accept="application/pdf,.pdf" {% if modo == 'novo' %}required{% endif %}>
+                <small class="text-muted">Apenas arquivos .pdf. O modelo base fica em storage/contratos/Modelo_Contrato.pdf.</small>
+                {% if contrato.arquivo_preparado_original %}<div class="small mt-2">PDF atual: {{ contrato.arquivo_preparado_original }}</div>{% endif %}
+            </div>
+            {% else %}
+            <div class="alert alert-info mb-4">Contrato sincronizado do Omie. Apenas contato, executivo, parceiro e observacoes locais podem ser editados.</div>
+            {% endif %}
 
-        <form method="POST">
-
-            <div class="row">
-
-                <div class="col-md-6 mb-3">
-
-                    <label class="form-label">Cliente</label>
-
-                    <select
-                        class="form-select"
-                        name="cliente_id"
-                        required>
-
-                        <option value="">Selecione...</option>
-
-                        {% for cliente in clientes %}
-
-                            <option value="{{ cliente.id }}">
-
-                                {{ cliente.nome_fantasia }}
-
-                            </option>
-
+            <h5>Origem Comercial</h5>
+            <div class="row g-3 mb-4">
+                {% if not edicao_omie %}
+                <div class="col-lg-6">
+                    <label class="form-label">Proposta Salva</label>
+                    <select class="form-select" name="proposta_id" id="proposta_id">
+                        <option value="">Selecionar proposta para puxar valores negociados...</option>
+                        {% for proposta in propostas %}
+                            {% if proposta.id %}
+                                <option value="{{ proposta.id }}" {% if (contrato.proposta_id|string) == (proposta.id|string) %}selected{% endif %}>{{ proposta.codigo or ('Proposta #' ~ proposta.id) }} - {{ proposta.titulo }}</option>
+                            {% endif %}
                         {% endfor %}
-
                     </select>
-
+                    <small class="text-muted">Preenche cliente, contato, executivo, parceiro e valores negociados.</small>
                 </div>
-
-                <div class="col-md-3 mb-3">
-
-                    <label class="form-label">
-
-                        Número
-
-                    </label>
-
-                    <input
-                        class="form-control"
-                        name="numero"
-                        required>
-
-                </div>
-
-                <div class="col-md-3 mb-3">
-
-                    <label class="form-label">
-
-                        Status
-
-                    </label>
-
-                    <select
-                        class="form-select"
-                        name="status">
-
-                        <option value="EM_ELABORACAO" selected>
-
-                            Em Elaboração
-
-                        </option>
-
-                        <option value="ATIVO">
-
-                            Ativo
-
-                        </option>
-
-                        <option value="EM_IMPLANTACAO">
-
-                            Em Implantação
-
-                        </option>
-
-                        <option value="SUSPENSO">
-
-                            Suspenso
-
-                        </option>
-
-                        <option value="CANCELADO">
-
-                            Cancelado
-
-                        </option>
-
-                        <option value="ENCERRADO">
-
-                            Encerrado
-
-                        </option>
-
+                {% endif %}
+                <div class="{{ 'col-lg-12' if edicao_omie else 'col-lg-6' }}">
+                    <label class="form-label">Contato do CRM</label>
+                    <select class="form-select" name="contato_id" id="contato_id">
+                        <option value="">Selecionar contato cadastrado...</option>
+                        {% for contato in contatos %}
+                            <option value="{{ contato.id }}" {% if (contrato.contato_id|string) == (contato.id|string) %}selected{% endif %}>{{ contato.nome }}{% if contato.empresa %} - {{ contato.empresa }}{% endif %}{% if contato.email %} - {{ contato.email }}{% endif %}</option>
+                        {% endfor %}
                     </select>
-
+                    <small class="text-muted">Preenche nome, e-mail e telefone do contato.</small>
                 </div>
-
             </div>
 
-            <div class="row">
-
-                <div class="col-md-3 mb-3">
-
-                    <label class="form-label">
-
-                        Valor Mensal
-
-                    </label>
-
-                    <input
-                        class="form-control"
-                        type="number"
-                        step="0.01"
-                        name="valor_mensal">
-
+            <h5>Dados do Cliente</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-lg-6">
+                    <label class="form-label">Empresa / Cliente *</label>
+                    <select class="form-select" name="cliente_id" id="cliente_id" {% if not edicao_omie %}required{% else %}disabled{% endif %}>
+                        <option value="">Buscar por nome fantasia, razao social ou CNPJ...</option>
+                        {% for cliente in clientes %}
+                            <option value="{{ cliente.id }}" {% if (contrato.cliente_id|string) == (cliente.id|string) %}selected{% endif %}>{{ cliente.nome_fantasia }}{% if cliente.cnpj %} - {{ cliente.cnpj }}{% endif %}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-
-                <div class="col-md-3 mb-3">
-
-                    <label class="form-label">
-
-                        Dia Faturamento
-
-                    </label>
-
-                    <input
-                        class="form-control"
-                        type="number"
-                        min="1"
-                        max="31"
-                        name="dia_faturamento"
-                        value="15">
-
-                </div>
-
-                <div class="col-md-3 mb-3">
-
-                    <label class="form-label">
-
-                        Início Vigência
-
-                    </label>
-
-                    <input
-                        class="form-control"
-                        type="date"
-                        name="inicio_vigencia">
-
-                </div>
-
-                <div class="col-md-3 mb-3">
-
-                    <label class="form-label">
-
-                        Fim Vigência
-
-                    </label>
-
-                    <input
-                        class="form-control"
-                        type="date"
-                        name="fim_vigencia">
-
-                </div>
-
+                <div class="col-lg-2"><label class="form-label">CNPJ</label><input class="form-control" id="cliente_cnpj" value="{{ contrato.cliente_cnpj or '' }}" readonly placeholder="00.000.000/0000-00"></div>
+                <div class="col-lg-4"><label class="form-label">Razao Social</label><input class="form-control" id="cliente_razao" value="{{ contrato.cliente_razao_social or '' }}" readonly placeholder="Razao social"></div>
+                <div class="col-lg-4"><label class="form-label">Nome Fantasia</label><input class="form-control" id="cliente_nome" value="{{ contrato.cliente_nome or '' }}" readonly placeholder="Nome fantasia"></div>
+                <div class="col-lg-4"><label class="form-label">Contato *</label><input class="form-control" name="contato_nome" id="contato_nome" value="{{ contrato.contato_nome or '' }}" {% if not edicao_omie %}required{% endif %} placeholder="Nome do contato"></div>
+                <div class="col-lg-2"><label class="form-label">E-mail *</label><input class="form-control" type="email" name="contato_email" id="contato_email" value="{{ contrato.contato_email or contrato.cliente_email or '' }}" {% if not edicao_omie %}required{% endif %} placeholder="email@empresa.com"></div>
+                <div class="col-lg-2"><label class="form-label">Telefone *</label><input class="form-control" name="contato_telefone" id="contato_telefone" value="{{ contrato.contato_telefone or contrato.cliente_telefone or '' }}" {% if not edicao_omie %}required{% endif %} placeholder="(11) 99999-9999"></div>
             </div>
 
-            <div class="mb-3">
-
-                <label class="form-label">
-
-                    Descrição
-
-                </label>
-
-                <input
-                    class="form-control"
-                    name="descricao">
-
+            <h5>{{ 'Vinculos Comerciais' if edicao_omie else 'Dados da Venda' }}</h5>
+            <div class="row g-3">
+                {% if edicao_omie %}
+                <div class="col-lg-4"><label class="form-label">Executivo Responsavel</label><select class="form-select" name="executivo_id" id="executivo_id"><option value="">Buscar por nome, e-mail ou parceiro...</option>{% for executivo in executivos %}<option value="{{ executivo.id }}" {% if (contrato.executivo_id|string) == (executivo.id|string) %}selected{% endif %}>{{ executivo.nome }}{% if executivo.email %} - {{ executivo.email }}{% endif %}</option>{% endfor %}</select></div>
+                <div class="col-lg-4"><label class="form-label">Parceiro / Canal</label><select class="form-select" name="parceiro_id" id="parceiro_id"><option value="">Nome do parceiro ou canal</option>{% for parceiro in parceiros %}<option value="{{ parceiro.id }}" {% if (contrato.parceiro_id|string) == (parceiro.id|string) %}selected{% endif %}>{{ parceiro.nome }}</option>{% endfor %}</select></div>
+                <div class="col-lg-4"><label class="form-label">Status Omie</label><input class="form-control" value="{{ status_options.get(contrato.status, contrato.status) }}" readonly></div>
+                <div class="col-12"><label class="form-label">Observacoes</label><textarea class="form-control" rows="4" name="observacoes" id="observacoes" placeholder="Observacoes comerciais locais...">{{ contrato.observacoes or '' }}</textarea></div>
+                {% else %}
+                <div class="col-lg-3"><label class="form-label">Data de Fechamento *</label><input class="form-control" type="date" name="data_fechamento" value="{{ contrato.data_fechamento or '' }}" required></div>
+                <div class="col-lg-3"><label class="form-label">Executivo Responsavel</label><select class="form-select" name="executivo_id" id="executivo_id"><option value="">Buscar por nome, e-mail ou parceiro...</option>{% for executivo in executivos %}<option value="{{ executivo.id }}" {% if (contrato.executivo_id|string) == (executivo.id|string) %}selected{% endif %}>{{ executivo.nome }}{% if executivo.email %} - {{ executivo.email }}{% endif %}</option>{% endfor %}</select></div>
+                <div class="col-lg-3"><label class="form-label">Parceiro / Canal</label><select class="form-select" name="parceiro_id" id="parceiro_id"><option value="">Nome do parceiro ou canal</option>{% for parceiro in parceiros %}<option value="{{ parceiro.id }}" {% if (contrato.parceiro_id|string) == (parceiro.id|string) %}selected{% endif %}>{{ parceiro.nome }}</option>{% endfor %}</select></div>
+                <div class="col-lg-3"><label class="form-label">Tipo de Venda *</label><select class="form-select" name="tipo_venda" required>{% for valor, label in tipo_venda_options.items() %}<option value="{{ valor }}" {% if (contrato.tipo_venda or 'USUARIO') == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                <div class="col-lg-2"><label class="form-label">Valor do Setup (R$)</label><input class="form-control" type="number" step="0.01" min="0" name="valor_setup" id="valor_setup" value="{{ contrato.valor_setup or '' }}" placeholder="0,00"></div>
+                <div class="col-lg-2"><label class="form-label">Valor do Projeto (R$)</label><input class="form-control" type="number" step="0.01" min="0" name="valor_projeto" id="valor_projeto" value="{{ contrato.valor_projeto or '' }}" placeholder="0,00"></div>
+                <div class="col-lg-2"><label class="form-label">Valor Recorrente (R$) *</label><input class="form-control" type="number" step="0.01" min="0" name="valor_mensal" id="valor_mensal" value="{{ contrato.valor_mensal or '' }}" required placeholder="0,00"></div>
+                <div class="col-lg-3"><label class="form-label">Valor Promocional (R$)</label><input class="form-control" type="number" step="0.01" min="0" name="valor_promocional" value="{{ contrato.valor_promocional or '' }}" placeholder="0,00"><small class="text-muted">Se preenchido, substitui o recorrente no calculo de comissao.</small></div>
+                <div class="col-lg-3"><label class="form-label">Quantidade de Usuarios</label><input class="form-control" type="number" min="0" name="quantidade_usuarios" id="quantidade_usuarios" value="{{ contrato.quantidade_usuarios or '' }}" placeholder="Numero de usuarios"></div>
+                <div class="col-lg-3"><label class="form-label">Data Inicio Recorrente</label><input class="form-control" type="date" name="data_inicio_recorrencia" value="{{ contrato.data_inicio_recorrencia or '' }}"></div>
+                <div class="col-lg-3"><label class="form-label">Data de Ativacao</label><input class="form-control" type="date" name="data_ativacao" value="{{ contrato.data_ativacao or '' }}"></div>
+                <div class="col-lg-3"><label class="form-label">Status *</label><select class="form-select" name="status" required>{% for valor, label in status_options.items() %}<option value="{{ valor }}" {% if (contrato.status or 'RASCUNHO') == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                <div class="col-lg-3"><label class="form-label">Dia Faturamento</label><input class="form-control" type="number" min="1" max="31" name="dia_faturamento" value="{{ contrato.dia_faturamento or '' }}"></div>
+                <div class="col-12"><label class="form-label">Observacoes</label><textarea class="form-control" rows="4" name="observacoes" id="observacoes" placeholder="Observacoes sobre o contrato...">{{ contrato.observacoes or '' }}</textarea></div>
+                {% endif %}
             </div>
-
-            <div class="mb-4">
-
-                <label class="form-label">
-
-                    Observações
-
-                </label>
-
-                <textarea
-                    class="form-control"
-                    rows="4"
-                    name="observacoes"></textarea>
-
-            </div>
-
-            <button
-                class="btn btn-primary">
-
-                <i class="bi bi-check-circle"></i>
-
-                Salvar
-
-            </button>
-
-            <a
-                href="{{ url_for('contratos.index') }}"
-                class="btn btn-secondary">
-
-                Cancelar
-
-            </a>
-
-        </form>
-
-    </div>
-
+        </div>
+        <div class="card-footer bg-white d-flex justify-content-end gap-2">
+            <a href="{{ url_for('contratos.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+            <button class="btn btn-primary"><i class="bi bi-check-circle"></i> {{ 'Salvar Vinculos' if edicao_omie else ('Salvar Contrato' if modo == 'editar' else 'Criar Contrato') }}</button>
+        </div>
+    </form>
 </div>
+
+<script>
+const clientesContrato = {{ clientes|tojson }};
+const contatosContrato = {{ contatos|tojson }};
+const propostasContrato = {{ propostas|tojson }};
+const clienteSelect = document.getElementById('cliente_id');
+const contatoSelect = document.getElementById('contato_id');
+const propostaSelect = document.getElementById('proposta_id');
+function byId(items, value) {
+    return items.find((item) => String(item.id) === String(value)) || {};
+}
+function setValue(id, value, overwrite = true) {
+    const el = document.getElementById(id);
+    if (!el || (!overwrite && el.value)) return;
+    el.value = value || '';
+}
+function preencherCliente() {
+    const cliente = byId(clientesContrato, clienteSelect.value);
+    setValue('cliente_cnpj', cliente.cnpj || '');
+    setValue('cliente_razao', cliente.razao_social || '');
+    setValue('cliente_nome', cliente.nome_fantasia || '');
+}
+function preencherContato(overwrite = true) {
+    const contato = byId(contatosContrato, contatoSelect.value);
+    if (!contato.id) return;
+    setValue('contato_nome', contato.nome, overwrite);
+    setValue('contato_email', contato.email, overwrite);
+    setValue('contato_telefone', contato.telefone || contato.whatsapp, overwrite);
+}
+function preencherProposta() {
+    if (!propostaSelect) return;
+    const proposta = byId(propostasContrato, propostaSelect.value);
+    if (!proposta.id) return;
+    if (proposta.cliente_id) {
+        clienteSelect.value = proposta.cliente_id;
+        preencherCliente();
+    }
+    if (proposta.contato_id) {
+        contatoSelect.value = proposta.contato_id;
+        preencherContato(true);
+    } else {
+        setValue('contato_nome', proposta.contato_nome);
+        setValue('contato_email', proposta.contato_email);
+        setValue('contato_telefone', proposta.contato_telefone);
+    }
+    setValue('executivo_id', proposta.executivo_id);
+    setValue('parceiro_id', proposta.parceiro_id);
+    setValue('valor_mensal', proposta.valor_mensal);
+    setValue('valor_setup', proposta.valor_setup);
+    setValue('valor_projeto', proposta.valor_projeto);
+    setValue('quantidade_usuarios', proposta.quantidade_usuarios);
+    setValue('observacoes', proposta.observacoes);
+}
+clienteSelect.addEventListener('change', preencherCliente);
+contatoSelect.addEventListener('change', () => preencherContato(true));
+if (propostaSelect) propostaSelect.addEventListener('change', preencherProposta);
+preencherCliente();
+preencherContato(false);
+if (propostaSelect && propostaSelect.value) preencherProposta();
+</script>
 
 {% endblock %}

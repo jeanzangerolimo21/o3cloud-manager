@@ -4,7 +4,7 @@
 
 Versão: 3.0 Alpha
 
-Última atualização: 16/07/2026
+Última atualização: 20/07/2026
 
 Status: Oficial
 
@@ -16,34 +16,21 @@ Status: Oficial
 
 Status:
 
-🚧 Em andamento
+✅ Concluída
 
 ---
 
 # Objetivo da Sprint
 
-Iniciar o módulo CRM Comercial.
+Iniciar e consolidar a frente de CRM Comercial, conectando o fluxo comercial às propostas, contratos pós-assinatura e assinatura eletrônica via ClickSign.
 
-Esta Sprint abre oficialmente a frente comercial do sistema, começando pela gestão de Leads e pela separação visual do CRM no menu lateral.
-
----
-
-# Dependências
-
-Esta Sprint depende dos módulos já homologados:
-
-- Clientes
-- Contratos
-- Parceiros
-- Catálogo Técnico
-
-Todos já encontram-se disponíveis para integração comercial.
+A Sprint 7 saiu da base inicial de CRM e entregou um fluxo operacional Alpha completo para gerar contrato a partir da proposta, enviar para assinatura, sincronizar status e salvar o PDF assinado.
 
 ---
 
-# Escopo Atual
+# Entregas Concluídas
 
-## 1. Estrutura de Navegação CRM
+## 1. CRM Comercial
 
 Status:
 
@@ -51,160 +38,153 @@ Status:
 
 Entregas:
 
-- Novo separador `CRM Comercial` no sidebar
-- Separação visual entre Cadastros e CRM
-- Entrada dedicada para `Leads`
-- Entrada dedicada para `Contatos`
-- Entrada dedicada para `Oportunidades`
-- Entrada dedicada para `Pipeline Comercial`
-- Entrada dedicada para `Propostas`
+- Separador `CRM Comercial` no sidebar.
+- Módulos iniciais de Leads, Contatos, Oportunidades, Pipeline e Propostas.
+- Vínculos comerciais com parceiro e executivo.
+- Ajustes nos botões de navegação, padronizando `Voltar Inicio` no topo e retorno contextual na parte inferior.
 
 ---
 
-## 2. Leads
+## 2. Contatos Comerciais
 
 Status:
 
-✅ Base inicial concluída
+✅ Concluído
 
 Entregas:
 
-- Migration `010_create_crm_leads.sql` criada e aplicada
-- Blueprint registrado no app
-- Repository
-- Service
-- Routes
-- `index.html`
-- `form.html`
-- `view.html`
-- Filtros por pesquisa, origem, status e situação
-- Vínculo opcional com parceiro e executivo responsável
+- Contatos disponíveis para seleção em novos contratos.
+- Campo opcional `cpf` em contatos.
+- CPF usado no preenchimento do contrato quando informado.
+
+Migration:
+
+- `020_add_cpf_to_crm_contatos.sql`
 
 ---
 
-## 3. Contatos
+## 3. Propostas
 
 Status:
 
-✅ Base inicial concluída
+✅ Concluído
 
 Entregas:
 
-- Migration `011_create_crm_contatos.sql` criada
-- CRUD base de contatos comerciais
-- Vínculo opcional com lead, parceiro e executivo responsável
-- Novo acesso pelo sidebar do CRM
+- Propostas usadas como origem para geração de contrato.
+- Valores negociados da proposta usados no contrato.
+- Visualização do contrato antes do envio para ClickSign.
+- Modelo DOCX editável em `storage/contratos/Modelo_Contrato_O3Cloud.docx` usado para gerar PDF final.
+- Correções de layout do contrato, margens, logo e paginação.
+- Botão de sincronização ClickSign em lote na tela principal de Propostas.
 
 ---
 
-## 4. Oportunidades
+## 4. ClickSign
 
 Status:
 
-✅ Base inicial concluída
+✅ Concluído para Alpha
 
 Entregas:
 
-- Migration `012_create_crm_oportunidades.sql` criada
-- CRUD base de oportunidades comerciais
-- Vínculo opcional com lead, contato, cliente, parceiro e responsável comercial
-- Status alinhados ao fluxo oficial do CRM
+- Client real da API ClickSign v3.
+- Validação das credenciais sandbox no `.env`.
+- Envio real de contrato para envelope ClickSign.
+- Signatários automáticos:
+  - contato do cliente como parte assinante;
+  - Jean Pierri de Carvalho Zangerolimo / jean@o3cloud.com.br como representante da O3 Cloud;
+  - executivo da proposta como testemunha.
+- Sincronização manual em lote pela tela principal de Propostas.
+- Mapeamento de status:
+  - `running` -> `Aguardando Assinaturas`;
+  - `closed` -> `Assinado`.
+- Download automático do PDF assinado pela API quando o envelope está finalizado.
+- Cópia do PDF assinado em `storage/contratos`.
+
+Arquivos principais:
+
+- `app/integracoes/clicksign/client.py`
+- `scripts/sync_clicksign_propostas.py`
+
+Migration:
+
+- `017_add_clicksign_to_crm_propostas.sql`
 
 ---
 
-## 5. Pipeline Comercial
+## 5. Contratos Pós-Assinatura
 
 Status:
 
-✅ Base inicial concluída
+✅ Concluído para Alpha
 
 Entregas:
 
-- Visão visual do funil comercial baseada nos status de oportunidades
-- Colunas por etapa do CRM com contagem e valor estimado
-- Filtro por pesquisa no funil
-- Acesso direto pelo sidebar do CRM
+- Evolução do módulo Contratos para gestão pós-assinatura.
+- Dashboard de contratos com filtros por status, origem, busca e datas.
+- Soma financeira respeitando o filtro de status selecionado.
+- Edição restrita de contratos Omie para vínculos comerciais.
+- Exclusão lógica de contratos manuais.
+- Quantidade de usuários deixou de ser obrigatória.
+- Vínculo com contato, proposta, parceiro e executivo.
+- Upload/download de contrato assinado.
+- Sincronização Omie ajustada sem quebrar parâmetros SQL.
+
+Migrations:
+
+- `018_expandir_contratos_pos_assinatura.sql`
+- `019_add_vinculos_comerciais_contratos.sql`
 
 ---
 
-## 6. Propostas
+## 6. Dashboard de Contratos
 
 Status:
 
-✅ Base inicial concluída
+✅ Concluído
 
 Entregas:
 
-- Migration `013_create_crm_propostas.sql` criada
-- CRUD base de propostas comerciais
-- Versionamento automático por oportunidade
-- Snapshot textual da negociação com validade, valor final e anexo opcional
+- Cards por status: Rascunho, Encaminhado para Projeto, Contratos Ativos e Concluído.
+- Agrupamentos por executivo e parceiro.
+- Totais financeiros calculados conforme filtros selecionados.
+- Correção de badge/status para contratos sincronizados do Omie.
 
 ---
 
-## 7. Dashboard e Home
+# Validações Realizadas
 
-Status:
-
-✅ Ajustado
-
-Entregas:
-
-- Home atualizada com destaque visual para o início do CRM
-- Atalho direto para a tela de Pipeline Comercial
+- Sintaxe Python validada nos módulos alterados.
+- Rotas principais de Propostas validadas.
+- Rotas principais de Contratos validadas durante os ajustes.
+- Sincronização real com API ClickSign validada em sandbox.
+- Download real de PDF assinado da ClickSign validado e salvo em `storage/contratos`.
+- Sincronização de contratos Omie validada após correção de SQL.
 
 ---
 
-## 8. Próximas Entregas da Sprint
+# Pendências Conhecidas para Sprint 8
 
-Status:
-
-⏳ Planejado
-
-Itens:
-
-- Integração ClickSign
-- Evolução de Propostas
-- Próximos refinamentos do funil comercial
-
----
-
-# Critérios Parciais de Avanço
-
-A Sprint 7 já avançou com:
-
-- CRM separado visualmente no menu
-- Módulo Leads iniciado no sistema
-- Módulo Contatos iniciado no sistema
-- Módulo Oportunidades iniciado no sistema
-- Pipeline Comercial iniciado no sistema
-- Módulo Propostas iniciado no sistema
-- Tabelas `crm_leads`, `crm_contatos`, `crm_oportunidades` e `crm_propostas` criadas no banco
-- Documentação atualizada
+- Evoluir a experiência de acompanhamento do ClickSign com webhooks ou rotina agendada apenas após estabilização da Alpha.
+- Refinar dashboards comerciais e executivos.
+- Consolidar regras de comissão/indicadores por parceiro e executivo.
+- Ampliar rastreabilidade entre proposta, contrato assinado, contrato Omie e implantação.
+- Evoluir permissões e auditoria do fluxo comercial.
 
 ---
 
 # Próxima Etapa
 
-## Continuação da Sprint 7
+## Sprint 8
 
-Objetivos imediatos:
+Objetivo sugerido:
 
-- Evoluir Leads
-- Consolidar Contatos
-- Evoluir Oportunidades
-- Refinar Pipeline Comercial
-- Evoluir Propostas
+Consolidar o fluxo comercial pós-assinatura e iniciar a visão executiva/operacional para implantação, indicadores comerciais e contratos assinados.
 
 Status:
 
-🚧 Em andamento
-
----
-
-# Diretriz
-
-A sequência oficial das próximas etapas deve seguir o `docs/ROADMAP.md`.
+⏭ Próxima Sprint
 
 ---
 
@@ -220,8 +200,8 @@ Sprint Atual:
 
 Situação:
 
-🚧 Em andamento
+✅ Concluída
 
 Próxima Implementação:
 
-Sprint 7 - Propostas e próximos refinamentos comerciais
+Sprint 8 - Consolidação comercial, dashboards e fluxo pós-assinatura

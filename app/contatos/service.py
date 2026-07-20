@@ -102,6 +102,7 @@ class ContatoService:
         dados["empresa"] = (dados.get("empresa") or "").strip()
         dados["nome"] = (dados.get("nome") or "").strip()
         dados["cargo"] = (dados.get("cargo") or "").strip()
+        dados["cpf"] = cls._formatar_cpf(dados.get("cpf"))
         dados["email"] = (dados.get("email") or "").strip().lower()
         dados["telefone"] = formatar_telefone(dados.get("telefone"))
         dados["whatsapp"] = formatar_telefone(dados.get("whatsapp"))
@@ -132,6 +133,9 @@ class ContatoService:
 
         if dados["cargo"] and len(dados["cargo"]) > 120:
             raise ValueError("Cargo deve possuir no máximo 120 caracteres.")
+
+        if dados["cpf"] and len(dados["cpf"]) > 20:
+            raise ValueError("CPF deve possuir no máximo 20 caracteres.")
 
         if dados["email"] and len(dados["email"]) > 150:
             raise ValueError("E-mail deve possuir no máximo 150 caracteres.")
@@ -169,6 +173,16 @@ class ContatoService:
         return True
 
     @staticmethod
+    def _formatar_cpf(valor):
+        texto = (valor or "").strip()
+        digitos = "".join(char for char in texto if char.isdigit())
+        if not digitos:
+            return ""
+        if len(digitos) == 11:
+            return f"{digitos[:3]}.{digitos[3:6]}.{digitos[6:9]}-{digitos[9:]}"
+        return texto
+
+    @staticmethod
     def _normalizar_inteiro(valor):
         if valor in (None, ""):
             return None
@@ -195,4 +209,5 @@ class ContatoService:
         contato = dict(contato)
         contato["telefone"] = formatar_telefone(contato.get("telefone"))
         contato["whatsapp"] = formatar_telefone(contato.get("whatsapp"))
+        contato["cpf"] = ContatoService._formatar_cpf(contato.get("cpf"))
         return contato

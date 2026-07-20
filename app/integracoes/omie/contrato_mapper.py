@@ -10,7 +10,7 @@ class ContratoMapper:
     para o formato utilizado pelo O3Cloud Manager.
     """
     STATUS_MAP = {
-        "00": "EM_ELABORACAO",
+        "00": "ENCAMINHADO_PROJETO",
         "10": "ATIVO",
         "20": "SUSPENSO",
         "30": "EM_IMPLANTACAO",
@@ -38,7 +38,7 @@ class ContratoMapper:
 
         status = ContratoMapper.STATUS_MAP.get(
             codigo_status,
-            "EM_ELABORACAO"
+            "ENCAMINHADO_PROJETO"
         )
 
 

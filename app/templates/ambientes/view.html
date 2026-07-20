@@ -155,7 +155,7 @@
 
                 <a
                     href="{{ url_for('ambientes.index') }}"
-                    class="btn btn-secondary">
+                    class="btn btn-secondary" onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }">
 
                     <i class="bi bi-arrow-left"></i>
 

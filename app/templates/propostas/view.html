@@ -6,10 +6,21 @@
     {% set page_title = proposta.titulo %}
     {% set page_description = "Detalhes da proposta comercial" %}
     {% set page_icon = "bi-file-earmark-richtext-fill" %}
-    {% set page_button_url = url_for("propostas.editar", proposta_id=proposta.id) %}
-    {% set page_button_icon = "bi-pencil" %}
-    {% set page_button_text = "Editar" %}
+    {% set page_button_url = url_for("propostas.index") %}
+    {% set page_button_icon = "bi-arrow-left" %}
+    {% set page_button_text = "Voltar" %}
     {% include "components/page_header.html" %}
+    {% else %}
+    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-4 no-print">
+        <a href="{{ url_for('propostas.visualizar', proposta_id=proposta.id) }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i>
+            Voltar
+        </a>
+        <button type="button" class="btn btn-outline-dark" onclick="window.print()">
+            <i class="bi bi-printer"></i>
+            Imprimir
+        </button>
+    </div>
     {% endif %}
 
     <div class="proposal-view-shell {% if print_mode %}print-ready{% endif %}">
@@ -17,8 +28,52 @@
         <div class="d-flex justify-content-end gap-2 flex-wrap mb-4 no-print">
             <a href="{{ url_for('propostas.imprimir', proposta_id=proposta.id) }}" target="_blank" class="btn btn-outline-dark"><i class="bi bi-printer"></i> Imprimir em PDF</a>
             <a href="{{ url_for('propostas.exportar_docx', proposta_id=proposta.id) }}" class="btn btn-outline-success"><i class="bi bi-file-earmark-word"></i> Exportar DOCX</a>
+            {% if proposta.arquivo %}<a href="/storage/propostas/{{ proposta.arquivo }}" target="_blank" class="btn btn-outline-secondary"><i class="bi bi-paperclip"></i> Abrir Anexo</a>{% endif %}
             <a href="{{ url_for('propostas.editar', proposta_id=proposta.id) }}" class="btn btn-primary"><i class="bi bi-pencil"></i> Editar</a>
         </div>
+        {% endif %}
+
+
+        {% if not print_mode %}
+        <div class="card shadow-sm border-0 mb-4 no-print"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div>
+                    <div class="small text-uppercase text-muted mb-2">ClickSign</div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                        <span class="badge bg-light text-dark border">{{ proposta.clicksign_status_label }}</span>
+                        {% if proposta.clicksign_last_sync_at %}<span class="text-muted small">Última atualização: {{ proposta.clicksign_last_sync_at }}</span>{% endif %}
+                    </div>
+                    <div class="small text-muted">Fluxo preparado para: Gerar Documento -> Enviar -> Aguardar Assinaturas -> Assinado -> Concluído</div>
+                    {% if proposta.clicksign_document_key or proposta.clicksign_envelope_id %}
+                    <div class="small text-muted mt-2">{% if proposta.clicksign_document_key %}Documento: {{ proposta.clicksign_document_key }}{% endif %}{% if proposta.clicksign_document_key and proposta.clicksign_envelope_id %} • {% endif %}{% if proposta.clicksign_envelope_id %}Envelope: {{ proposta.clicksign_envelope_id }}{% endif %}</div>
+                    {% endif %}
+                    {% if proposta.clicksign_document_url %}
+                    <div class="mt-2"><a href="{{ proposta.clicksign_document_url }}" target="_blank" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-text"></i> Visualizar Contrato</a></div>
+                    {% endif %}
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('propostas.atualizar_clicksign', proposta_id=proposta.id, acao='preparar') }}" class="btn btn-outline-secondary btn-sm">Gerar Documento</a>
+                    <a href="{{ url_for('propostas.atualizar_clicksign', proposta_id=proposta.id, acao='enviar') }}" class="btn btn-outline-primary btn-sm">Enviar</a>
+                    <a href="{{ url_for('propostas.atualizar_clicksign', proposta_id=proposta.id, acao='aguardar') }}" class="btn btn-outline-warning btn-sm">Aguardar</a>
+                    <a href="{{ url_for('propostas.atualizar_clicksign', proposta_id=proposta.id, acao='assinado') }}" class="btn btn-outline-success btn-sm">Assinado</a>
+                    <a href="{{ url_for('propostas.atualizar_clicksign', proposta_id=proposta.id, acao='concluir') }}" class="btn btn-success btn-sm">Concluir</a>
+                </div>
+            </div>
+            {% if proposta.clicksign_eventos %}
+            <div class="mt-3 pt-3 border-top">
+                <div class="small text-uppercase text-muted mb-2">Histórico de ClickSign</div>
+                <div class="clicksign-history">
+                    {% for evento in proposta.clicksign_eventos|reverse %}
+                    <div class="clicksign-history-item">
+                        <strong>{{ clicksign_status_options.get(evento.status, evento.status) }}</strong>
+                        <span>{{ evento.data }}{% if evento.autor %} • {{ evento.autor }}{% endif %}</span>
+                        <div class="text-muted">{{ evento.descricao }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div></div>
         {% endif %}
 
         <section class="proposal-sheet proposal-sheet-cover">
@@ -54,6 +109,7 @@
                     <h3 class="mt-4">Das mensalidades:</h3>
                     <table class="proposal-table"><thead><tr><th>Software</th><th>Usuários</th><th>Unitário</th><th>Total</th></tr></thead><tbody>{% for item in proposta.licencas_items %}<tr><td>{{ item.software }}</td><td>{{ item.quantidade }}</td><td class="text-end">{{ item.valor_unitario|moeda }}</td><td class="text-end">{{ item.total_mensal|moeda }}</td></tr>{% endfor %}{% for item in proposta.servidores_items %}<tr><td>{{ item.nome }}</td><td>{{ item.quantidade }}</td><td class="text-end">{{ item.valor_mensal|moeda }}</td><td class="text-end">{{ item.total_mensal|moeda }}</td></tr>{% endfor %}{% if not proposta.licencas_items and not proposta.servidores_items %}<tr><td colspan="4" class="text-center text-muted">Nenhum item comercial registrado.</td></tr>{% endif %}</tbody><tfoot><tr class="proposal-total-row"><td colspan="3">TOTAL MENSAL</td><td class="text-end">{{ proposta.total_mensal|moeda }}</td></tr><tr class="proposal-total-row proposal-grand-total"><td colspan="3">TOTAL GERAL</td><td class="text-end">{{ proposta.valor_total|moeda }}</td></tr></tfoot></table>
                     <div class="proposal-extra-block mt-4"><strong>INFORMAÇÕES ADICIONAIS:</strong><p class="mb-1">Setup: {{ proposta.setup_dias }} dias após a entrega do ambiente.</p><p class="mb-1">Mensalidade: {{ proposta.mensalidade_dias }} dias após a entrega do ambiente.</p><p class="mb-0">Prazo contratual: {{ proposta.prazo_contratual_meses }} meses.</p></div>
+                    {% if proposta.arquivo %}<div class="proposal-extra-block mt-4 no-print"><strong>Anexo da proposta</strong><div class="mt-2"><a href="/storage/propostas/{{ proposta.arquivo }}" target="_blank">Abrir arquivo anexado</a></div></div>{% endif %}
                     <div class="proposal-company-footer">
                         <strong>O3 Cloud Soluções em Tecnologia LTDA</strong><br>
                         Rua Professora Noêmia de Castro Oliveira, 210 - Jardim Esmeralda - Limeira SP<br>
@@ -90,7 +146,7 @@
 .proposal-cover-copy{max-width:100%}
 .proposal-cover-copy h2,.proposal-section h2{font-size:1rem;margin-bottom:.75rem;letter-spacing:.04em}
 .proposal-cover-copy p{color:#4a3d63;margin-bottom:.62rem;line-height:1.56;font-size:.93rem}
-.proposal-signature{margin-top:1.2rem;padding-top:.8rem;page-break-inside:avoid;break-inside:avoid}
+.proposal-signature{margin-top:1.2rem;padding-top:.8rem;page-break-inside:avoid;break-inside:avoid}.proposal-company-footer p{margin:0}
 .proposal-signature-light{border-top:1px dashed #d8c9f7;color:#392c54;display:inline-block;width:100%}
 .proposal-closing{font-weight:600;color:#4f3f71;margin-bottom:.35rem}
 .proposal-section h2,.proposal-section h3,.proposal-section h4{color:#24173e}
@@ -104,14 +160,14 @@
 .proposal-grand-total td{background:#e9dcff;color:#351c63;font-size:1rem}
 .proposal-extra-block{background:#fff;border:1px solid #eadff9;border-radius:18px;padding:.85rem .95rem}
 .proposal-extra-block p{color:#514368}
-.proposal-company-footer{margin-top:1rem;padding-top:.8rem;border-top:1px solid #d9cdf4;color:#49396a;line-height:1.5;font-size:.88rem}
+.proposal-company-footer{margin-top:1rem;padding-top:.8rem;border-top:1px solid #d9cdf4;color:#49396a;line-height:1.5;font-size:.88rem}.clicksign-history{display:grid;gap:.75rem}.clicksign-history-item{padding:.75rem .9rem;border:1px solid #e5e7eb;border-radius:14px;background:#fafbfc}.clicksign-history-item span{display:block;font-size:.82rem;color:#6b7280}
 .proposal-view-shell.print-ready .proposal-sheet{padding:0}
 .proposal-view-shell.print-ready .proposal-hero-card,.proposal-view-shell.print-ready .proposal-invest-card,.proposal-view-shell.print-ready .proposal-copy-card{box-shadow:none}
 .no-print{display:inherit}
 @page{size:A4;margin:0}
-@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.layout,.main,.content,.container-fluid{display:block !important}.sidebar,.navbar,.footer,.global-backbar,.no-print{display:none !important}body{background:#fff}.proposal-view-shell{max-width:100%}.proposal-sheet{padding:0}.proposal-sheet + .proposal-sheet{margin-top:0;page-break-before:always}.proposal-sheet-investimentos{padding-top:1cm !important;margin-top:1cm !important;box-sizing:border-box}.proposal-hero-card,.proposal-invest-card{box-shadow:none;border-radius:0}.proposal-copy-card{margin-top:0;box-shadow:none;border-radius:0;border-left:0;border-right:0}.proposal-hero-card{padding:28px 30px 16px}.proposal-copy-card{padding:20px 30px 24px}.proposal-invest-card{margin-top:0 !important;padding:16px 28px 24px;min-height:940px}}
+@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.layout,.main,.content,.container-fluid{display:block !important}.sidebar,.navbar,.footer,.global-backbar,.no-print{display:none !important}body{background:#fff}.proposal-view-shell{max-width:100%}.proposal-sheet{padding:0}.proposal-sheet + .proposal-sheet{margin-top:0;page-break-before:always}.proposal-sheet-investimentos{padding-top:1cm !important;margin-top:1cm !important;box-sizing:border-box}.proposal-hero-card,.proposal-invest-card{box-shadow:none;border-radius:0;overflow:visible !important}.proposal-copy-card{margin-top:0;box-shadow:none;border-radius:0;border-left:0;border-right:0;overflow:visible !important}.proposal-hero-card{padding:28px 30px 16px}.proposal-copy-card{padding:20px 30px 24px}.proposal-invest-card{margin-top:0 !important;padding:14px 24px 18px;min-height:auto !important;height:auto !important;break-inside:auto;page-break-inside:auto;background:#fff;border:0}.proposal-section{break-inside:auto;page-break-inside:auto;margin-top:0 !important}.proposal-section h2{margin-bottom:.45rem}.proposal-section h3{margin-bottom:.4rem}.proposal-table{overflow:visible !important;page-break-inside:auto;border-radius:0}.proposal-table th,.proposal-table td{padding:.45rem .45rem}.proposal-table thead{display:table-header-group}.proposal-table tfoot{display:table-footer-group}.proposal-table tr,.proposal-table td,.proposal-table th{break-inside:avoid-page;page-break-inside:avoid}.proposal-extra-block{break-inside:auto;page-break-inside:auto;border:0;background:transparent;padding:0;margin-top:.45rem !important}.proposal-extra-block p,.proposal-company-footer p{margin:0}.proposal-company-footer{break-inside:auto;page-break-inside:auto;margin-top:.45rem;padding-top:.45rem;font-size:.8rem;line-height:1.35}}
 @media(max-width:991px){.proposal-header{grid-template-columns:1fr}.proposal-header h1,.proposal-cover-copy{max-width:100%}.proposal-hero-card,.proposal-invest-card,.proposal-copy-card{padding:1.35rem;border-radius:20px;min-height:auto}.proposal-side-label{display:none}}
 </style>
 
-{% if print_mode %}<script>window.addEventListener('load',()=>window.print());</script>{% endif %}
+{% if print_mode %}<script>window.addEventListener('load',()=>setTimeout(()=>window.print(), 300));</script>{% endif %}
 {% endblock %}

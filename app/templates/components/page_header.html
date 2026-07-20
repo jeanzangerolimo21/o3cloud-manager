@@ -26,7 +26,8 @@
 
     <a
         href="{{ page_button_url }}"
-        class="btn btn-primary">
+        class="btn btn-primary"
+        {% if page_button_text == "Voltar" %}onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }"{% endif %}>
 
         <i class="bi {{ page_button_icon }}"></i>
 
