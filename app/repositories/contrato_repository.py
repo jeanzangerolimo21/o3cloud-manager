@@ -514,7 +514,7 @@ class ContratoRepository(BaseRepository):
 
     @staticmethod
     def _filtros(pesquisa=None, status=None, origem=None, data_de=None, data_ate=None):
-        condicoes = ["c.ativo=1"]
+        condicoes = [] if status == "CANCELADO" else ["c.ativo=1"]
         parametros = []
 
         if pesquisa:
