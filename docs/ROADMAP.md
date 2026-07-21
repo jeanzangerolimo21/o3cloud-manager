@@ -182,7 +182,7 @@ Status:
 
 ---
 
-# Sprint Atual
+# Última Sprint Concluída
 
 ## Sprint 7
 
@@ -205,17 +205,17 @@ Escopo entregue:
 - ✅ Sincronização manual em lote de envelopes ClickSign
 - ✅ Download do PDF assinado para `storage/contratos`
 
-Próxima atividade:
-
-➡ Iniciar Sprint 8 com consolidação comercial, dashboards e fluxo pós-assinatura.
-
 ---
 
-# Próximas Sprints
+# Sprint Atual
 
 ## Sprint 8
 
 Consolidação Comercial e Pós-Assinatura
+
+Status:
+
+🚧 Em andamento
 
 Objetivos:
 
@@ -223,8 +223,15 @@ Objetivos:
 - Indicadores por parceiro e executivo
 - Rastreabilidade proposta -> ClickSign -> contrato -> Omie
 - Regras de acompanhamento pós-assinatura
+- Evolução de permissões e auditoria
+
+Primeira entrega concluída:
+
+- ✅ Dashboard Comercial inicial em `/propostas/dashboard`
 
 ---
+
+# Próximas Sprints
 
 ## Sprint 9
 
@@ -312,7 +319,7 @@ Versão:
 
 Sprint:
 
-6.4
+8 em andamento
 
 Status Geral:
 
@@ -320,7 +327,7 @@ Status Geral:
 
 Próxima Entrega:
 
-CRUD de Modelos do Catálogo Técnico.
+Sprint 8 - Consolidação comercial, dashboards e fluxo pós-assinatura.
 
 
 

@@ -1,9 +1,22 @@
+import logging
+
 from app.integracoes.omie.client import OmieClient
 from app.integracoes.omie.cliente_mapper import ClienteMapper
 from app.contratos.service import ContratoService
 from app.clientes.service import ClienteService
 from app.repositories.sync_repository import SyncRepository
 from app.contratos.item_service import ContratoItemService
+
+
+logger = logging.getLogger(__name__)
+
+
+def _log(mensagem=""):
+    try:
+        logger.info(mensagem)
+    except OSError:
+        pass
+
 
 class OmieSync:
 
@@ -13,9 +26,9 @@ class OmieSync:
 
     def sincronizar_clientes(self):
 
-        print("=" * 60)
-        print("Iniciando sincronização de clientes OMIE...")
-        print("=" * 60)
+        _log("=" * 60)
+        _log("Iniciando sincronização de clientes OMIE...")
+        _log("=" * 60)
 
         sync_id = SyncRepository.iniciar("OMIE")
 
@@ -29,7 +42,7 @@ class OmieSync:
 
             while True:
 
-                print(f"\nLendo página {pagina}...")
+                _log(f"\nLendo página {pagina}...")
 
                 resposta = self.client.listar_clientes(pagina)
 
@@ -42,11 +55,11 @@ class OmieSync:
 
                     dados = ClienteMapper.from_omie(cliente)
 
-                    print(f"Cliente: {dados['nome_fantasia']}")
+                    _log(f"Cliente: {dados['nome_fantasia']}")
 
                     resultado = ClienteService.sincronizar_omie(dados)
 
-                    print(f"Resultado: {resultado}")
+                    _log(f"Resultado: {resultado}")
 
                     if resultado == "INSERT":
                         novos += 1
@@ -58,7 +71,7 @@ class OmieSync:
                 total_paginas = resposta.get("total_de_paginas", pagina)
 
 
-                print(
+                _log(
                     f"[Página {pagina}/{total_paginas}] "
                     f"Processados: {processados} "
                     f"Novos: {novos} "
@@ -67,7 +80,7 @@ class OmieSync:
                 )
                 
                 if pagina >= total_paginas:
-                   break
+                    break
 
                 pagina += 1
 
@@ -83,17 +96,17 @@ class OmieSync:
 
             )
 
-            print("\n=====================================")
-            print("Sincronização concluída com sucesso!")
-            print(f"Processados : {processados}")
-            print(f"Inseridos   : {novos}")
-            print(f"Atualizados : {atualizados}")
-            print("=====================================\n")
+            _log("\n=====================================")
+            _log("Sincronização concluída com sucesso!")
+            _log(f"Processados : {processados}")
+            _log(f"Inseridos   : {novos}")
+            _log(f"Atualizados : {atualizados}")
+            _log("=====================================\n")
 
         except Exception as erro:
 
-            print("\nERRO DURANTE A SINCRONIZAÇÃO")
-            print(str(erro))  
+            _log("\nERRO DURANTE A SINCRONIZAÇÃO")
+            _log(str(erro))
 
             SyncRepository.finalizar(
 
@@ -111,9 +124,9 @@ class OmieSync:
 
     def sincronizar_contratos(self):
 
-        print("=" * 60)
-        print("Iniciando sincronização de contratos OMIE...")
-        print("=" * 60)
+        _log("=" * 60)
+        _log("Iniciando sincronização de contratos OMIE...")
+        _log("=" * 60)
 
         sync_id = SyncRepository.iniciar("OMIE")
 
@@ -128,7 +141,7 @@ class OmieSync:
 
             while True:
 
-                print(f"\nLendo página {pagina}...")
+                _log(f"\nLendo página {pagina}...")
 
                 resposta = self.client.listar_contratos(pagina)
 
@@ -140,21 +153,13 @@ class OmieSync:
                 for contrato in contratos:
 
 
-                    resultado = ContratoService.sincronizar_contrato(
-                        contrato
-                    )
+                    resultado = ContratoService.sincronizar_contrato(contrato)
 
-                    itens = ContratoItemService.sincronizar_itens(
-                        contrato
-                    )
+                    itens = ContratoItemService.sincronizar_itens(contrato)
                     if isinstance(itens, list):
+                        _log(f"Itens sincronizados: {len(itens)}")
 
-                        print(
-
-                            f"Itens sincronizados: {len(itens)}"
-
-                        )
-                    print(resultado)
+                    _log(resultado)
 
                     status = resultado["status"]
 
@@ -174,7 +179,7 @@ class OmieSync:
                     pagina
                 )
 
-                print(
+                _log(
 
                     f"[Página {pagina}/{total_paginas}] "
 
@@ -194,50 +199,32 @@ class OmieSync:
                 pagina += 1
 
             SyncRepository.finalizar(
-
                 sync_id,
-
                 "SUCESSO",
-
                 processados,
-
                 novos,
-
                 atualizados,
-
                 ignorados
-
             )
 
             return {
-
                 "processados": processados,
-
                 "novos": novos,
-
                 "atualizados": atualizados,
-
                 "ignorados": ignorados
-
             }
 
         except Exception as erro:
 
             SyncRepository.finalizar(
-
                 sync_id,
-
                 "ERRO",
-
                 processados,
-
                 novos,
-
                 atualizados,
-
-                ignorados
-
+                ignorados,
+                str(erro)
             )
- 
+
             raise erro
 

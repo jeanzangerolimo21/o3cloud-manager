@@ -4,7 +4,8 @@
 <div class="container-fluid">
     {% include "components/page_header.html" %}
     <div class="card shadow-sm border-0"><div class="card-body">
-        <div class="d-flex justify-content-end mb-3">
+        <div class="d-flex justify-content-end gap-2 mb-3">
+            <a href="{{ url_for('propostas.dashboard') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-bar-chart"></i> Dashboard</a>
             <a href="{{ url_for('propostas.sincronizar_clicksign_todas') }}" class="btn btn-outline-info btn-sm" onclick="return confirm('Sincronizar todas as propostas pendentes com a ClickSign agora?')"><i class="bi bi-arrow-repeat"></i> Sincronizar ClickSign</a>
         </div>
         <form method="GET" class="mb-4">

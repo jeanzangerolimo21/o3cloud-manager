@@ -1,0 +1,113 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Dashboard Comercial" %}
+    {% set page_description = "Indicadores de propostas, assinatura e receita negociada" %}
+    {% set page_icon = "bi-bar-chart-line" %}
+    {% set page_button_url = url_for("propostas.novo") %}
+    {% set page_button_icon = "bi-plus-circle" %}
+    {% set page_button_text = "Nova Proposta" %}
+    {% include "components/page_header.html" %}
+
+    <div class="d-flex gap-2 mb-3">
+        <a class="btn btn-sm btn-primary" href="{{ url_for('propostas.dashboard') }}"><i class="bi bi-bar-chart"></i> Dashboard</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('propostas.index') }}"><i class="bi bi-list-ul"></i> Lista</a>
+        <a class="btn btn-sm btn-outline-info" href="{{ url_for('propostas.sincronizar_clicksign_todas') }}" onclick="return confirm('Sincronizar todas as propostas pendentes com a ClickSign agora?')"><i class="bi bi-arrow-repeat"></i> Sincronizar ClickSign</a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Propostas Ativas</small><h3>{{ dashboard.resumo.total_propostas or 0 }}</h3></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Receita Mensal</small><h3>{{ dashboard.resumo.total_mensal|moeda }}</h3><small class="text-muted">recorrente negociada</small></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Implantacao</small><h3>{{ dashboard.resumo.total_instalacao|moeda }}</h3><small class="text-muted">setup e serviços iniciais</small></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Em Assinatura</small><h3>{{ dashboard.resumo.total_em_assinatura or 0 }}</h3><small class="text-muted">ClickSign pendente</small></div></div></div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Aprovadas</small><h4>{{ dashboard.resumo.total_aprovadas or 0 }}</h4></div></div></div>
+        <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Assinadas</small><h4>{{ dashboard.resumo.total_assinadas or 0 }}</h4></div></div></div>
+        <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Concluidas</small><h4>{{ dashboard.resumo.total_concluidas or 0 }}</h4></div></div></div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Por Executivo</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for item in dashboard.executivos %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div><strong>{{ item.nome }}</strong><br><small class="text-muted">{{ item.total_propostas }} proposta(s)</small></div>
+                            <span>{{ item.total_mensal|moeda }}</span>
+                        </div>
+                    {% else %}
+                        <div class="list-group-item text-muted">Sem dados.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Por Parceiro</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for item in dashboard.parceiros %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div><strong>{{ item.nome }}</strong><br><small class="text-muted">{{ item.total_propostas }} proposta(s)</small></div>
+                            <span>{{ item.total_mensal|moeda }}</span>
+                        </div>
+                    {% else %}
+                        <div class="list-group-item text-muted">Sem dados.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Status Comercial</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for item in dashboard.status %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{{ status_options.get(item.nome, item.nome) }}</span>
+                            <strong>{{ item.total_propostas }}</strong>
+                        </div>
+                    {% else %}
+                        <div class="list-group-item text-muted">Sem dados.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Status ClickSign</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for item in dashboard.clicksign %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{{ clicksign_status_options.get(item.nome, item.nome) }}</span>
+                            <strong>{{ item.total_propostas }}</strong>
+                        </div>
+                    {% else %}
+                        <div class="list-group-item text-muted">Sem dados.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Atualizadas Recentemente</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for proposta in dashboard.recentes %}
+                        <a class="list-group-item list-group-item-action" href="{{ url_for('propostas.visualizar', proposta_id=proposta.id) }}">
+                            <strong>{{ proposta.codigo_proposta or ('Proposta #' ~ proposta.id) }}</strong><br>
+                            <small class="text-muted">{{ proposta.cliente_nome or '-' }} • {{ clicksign_status_options.get(proposta.clicksign_status, proposta.clicksign_status or 'NAO_ENVIADO') }}</small>
+                        </a>
+                    {% else %}
+                        <div class="list-group-item text-muted">Sem dados.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

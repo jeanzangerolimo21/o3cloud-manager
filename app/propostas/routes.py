@@ -49,6 +49,16 @@ def index():
     )
 
 
+@propostas_bp.route("/dashboard")
+def dashboard():
+    return render_template(
+        "propostas/dashboard.html",
+        dashboard=PropostaService.dashboard(),
+        status_options=STATUS_PROPOSTA,
+        clicksign_status_options=STATUS_CLICKSIGN,
+    )
+
+
 @propostas_bp.route("/novo", methods=["GET", "POST"])
 def novo():
     contexto = PropostaService.listar_contexto_form(_email_usuario_logado())

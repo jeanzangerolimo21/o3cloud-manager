@@ -79,6 +79,10 @@ class PropostaService:
         return cls._decorar_proposta(proposta)
 
     @classmethod
+    def dashboard(cls):
+        return cls.repository.dashboard()
+
+    @classmethod
     def listar_contexto_form(cls, executivo_email=None):
         executivos = ParceiroExecutivoService.listar_todos_ativos()
         return {

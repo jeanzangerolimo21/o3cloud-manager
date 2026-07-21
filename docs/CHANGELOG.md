@@ -46,6 +46,18 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-21 - Início Sprint 8
+
+### Dashboard Comercial
+
+- Sprint 8 iniciada com foco em consolidação comercial e pós-assinatura.
+- Adicionado Dashboard Comercial em `/propostas/dashboard`.
+- Dashboard passou a exibir totais de propostas, receita mensal negociada, implantação, propostas em assinatura, assinadas e concluídas.
+- Adicionados agrupamentos por executivo, parceiro, status comercial e status ClickSign.
+- Adicionados atalhos para o Dashboard Comercial no menu lateral e na listagem de Propostas.
+
+---
+
 ## 2026-07-20 - Fechamento Sprint 7
 
 ### CRM, Propostas e Contratos

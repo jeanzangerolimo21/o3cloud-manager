@@ -97,6 +97,100 @@ class PropostaRepository(BaseRepository):
         return cls.fetch_all(sql, tuple(params))
 
     @classmethod
+    def dashboard(cls):
+        conn = cls.connection()
+        cursor = conn.cursor(dictionary=True)
+        joins = """
+            FROM crm_propostas p
+            LEFT JOIN parceiros_executivos exec ON exec.id = p.executivo_responsavel_id
+            LEFT JOIN parceiros par ON par.id = p.parceiro_id
+            WHERE p.ativo = 1
+        """
+
+        cursor.execute(
+            """
+            SELECT
+                COUNT(*) AS total_propostas,
+                COALESCE(SUM(COALESCE(p.total_mensal, 0)), 0) AS total_mensal,
+                COALESCE(SUM(COALESCE(p.total_instalacao, 0)), 0) AS total_instalacao,
+                COALESCE(SUM(COALESCE(p.valor_total, 0)), 0) AS total_geral,
+                SUM(CASE WHEN p.status = 'RASCUNHO' THEN 1 ELSE 0 END) AS total_rascunho,
+                SUM(CASE WHEN p.status = 'ENVIADA' THEN 1 ELSE 0 END) AS total_enviadas,
+                SUM(CASE WHEN p.status = 'APROVADA' THEN 1 ELSE 0 END) AS total_aprovadas,
+                SUM(CASE WHEN COALESCE(p.clicksign_status, 'NAO_ENVIADO') IN ('ENVIADO', 'AGUARDANDO_ASSINATURAS') THEN 1 ELSE 0 END) AS total_em_assinatura,
+                SUM(CASE WHEN COALESCE(p.clicksign_status, 'NAO_ENVIADO') = 'ASSINADO' THEN 1 ELSE 0 END) AS total_assinadas,
+                SUM(CASE WHEN COALESCE(p.clicksign_status, 'NAO_ENVIADO') = 'CONCLUIDO' THEN 1 ELSE 0 END) AS total_concluidas
+            """ + joins
+        )
+        resumo = cursor.fetchone()
+
+        status = cls._dashboard_agrupar(cursor, joins, "p.status")
+        clicksign = cls._dashboard_agrupar(cursor, joins, "COALESCE(p.clicksign_status, 'NAO_ENVIADO')")
+        executivos = cls._dashboard_agrupar(
+            cursor,
+            joins,
+            "COALESCE(exec.nome, p.executivo_nome, 'Sem executivo')",
+            limit=8,
+        )
+        parceiros = cls._dashboard_agrupar(
+            cursor,
+            joins,
+            "COALESCE(par.nome, 'Sem parceiro')",
+            limit=8,
+        )
+
+        cursor.execute(
+            """
+            SELECT
+                p.id,
+                p.codigo_proposta,
+                p.titulo,
+                p.cliente_nome,
+                p.executivo_nome,
+                p.status,
+                p.clicksign_status,
+                p.total_mensal,
+                p.valor_total,
+                p.updated_at
+            FROM crm_propostas p
+            WHERE p.ativo = 1
+            ORDER BY p.updated_at DESC, p.id DESC
+            LIMIT 8
+            """
+        )
+        recentes = cursor.fetchall()
+
+        cls.close(conn, cursor)
+        return {
+            "resumo": resumo,
+            "status": status,
+            "clicksign": clicksign,
+            "executivos": executivos,
+            "parceiros": parceiros,
+            "recentes": recentes,
+        }
+
+    @classmethod
+    def _dashboard_agrupar(cls, cursor, joins, campo, limit=None):
+        sql = f"""
+            SELECT
+                {campo} AS nome,
+                COUNT(*) AS total_propostas,
+                COALESCE(SUM(COALESCE(p.total_mensal, 0)), 0) AS total_mensal,
+                COALESCE(SUM(COALESCE(p.total_instalacao, 0)), 0) AS total_instalacao,
+                COALESCE(SUM(COALESCE(p.valor_total, 0)), 0) AS total_geral
+            {joins}
+            GROUP BY nome
+            ORDER BY total_geral DESC, total_mensal DESC, total_propostas DESC, nome ASC
+        """
+        if limit:
+            sql += "\nLIMIT %s"
+            cursor.execute(sql, (limit,))
+        else:
+            cursor.execute(sql)
+        return cursor.fetchall()
+
+    @classmethod
     def buscar_por_id(cls, proposta_id):
         sql = f"""
             SELECT p.*, o.titulo AS oportunidade_titulo, o.empresa AS oportunidade_empresa
