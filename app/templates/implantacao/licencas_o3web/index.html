@@ -1,0 +1,59 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include "components/page_header.html" %}
+
+    <div class="d-flex justify-content-end gap-2 mb-3">
+        <a href="{{ url_for('implantacao.nova_licenca_o3web') }}" class="btn btn-outline-primary"><i class="bi bi-plus-circle"></i> Nova Licença</a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Licenças</small><h4>{{ dashboard.total or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ativas</small><h4>{{ dashboard.ativas or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Permanentes</small><h4>{{ dashboard.permanentes or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Trials</small><h4>{{ dashboard.trials or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Usuários</small><h4>{{ dashboard.usuarios_total or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Expiradas</small><h4>{{ dashboard.expiradas or 0 }}</h4></div></div></div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="mb-4">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5"><label class="form-label">Pesquisar</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Cliente, chave, ID licença, URL ou observação..."></div>
+                    <div class="col-md-2"><label class="form-label">Tipo</label><select class="form-select" name="tipo"><option value="">Todos</option>{% for valor, label in tipo_options.items() %}<option value="{{ valor }}" {% if selected_tipo == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                    <div class="col-md-2"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativas</option><option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativas</option><option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todas</option></select></div>
+                    <div class="col-md-1"><button class="btn btn-primary w-100"><i class="bi bi-search"></i></button></div>
+                    <div class="col-md-2"><a href="{{ request.path }}" class="btn btn-outline-secondary w-100">Limpar</a></div>
+                </div>
+            </form>
+
+            <div class="mb-3"><small class="text-muted">{{ total }} licença(s) encontrada(s)</small></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>Cliente</th><th>Licença</th><th>Tipo</th><th>Usuários</th><th>Ativação</th><th>Expiração</th><th>URLs</th><th width="130">Ações</th></tr></thead>
+                    <tbody>
+                    {% for licenca in licencas %}
+                        <tr>
+                            <td><strong>{{ licenca.cliente_nome }}</strong><br><small class="text-muted">{{ licenca.edicao or '-' }}</small></td>
+                            <td><code>{{ licenca.chave_ativacao or '-' }}</code><br><small class="text-muted">ID {{ licenca.id_licenca or '-' }}</small></td>
+                            <td><span class="badge bg-{{ 'info' if licenca.tipo == 'trial' else 'success' }}">{{ tipo_options.get(licenca.tipo, licenca.tipo or '-') }}</span>{% if licenca.bkp %}<br><span class="badge bg-light text-dark border mt-1">Bkp</span>{% endif %}</td>
+                            <td><strong>{{ licenca.usuarios or 0 }}</strong><br><small class="text-muted">{{ licenca.dias or 0 }} dia(s)</small></td>
+                            <td>{{ licenca.data_ativacao|date_br if licenca.data_ativacao else (licenca.data_ativacao_raw or '-') }}</td>
+                            <td>{{ licenca.data_expiracao|date_br if licenca.data_expiracao else (licenca.data_expiracao_raw or '-') }}</td>
+                            <td>{% if licenca.url_principal %}<a href="{{ licenca.url_principal }}" target="_blank">{{ licenca.url_principal }}</a>{% else %}-{% endif %}{% if licenca.url_secundaria %}<br><small><a href="{{ licenca.url_secundaria }}" target="_blank">{{ licenca.url_secundaria }}</a></small>{% endif %}</td>
+                            <td><div class="btn-group btn-group-sm"><a class="btn btn-outline-primary" href="{{ url_for('implantacao.editar_licenca_o3web', licenca_id=licenca.id) }}" title="Editar"><i class="bi bi-pencil"></i></a><form method="POST" action="{{ url_for('implantacao.excluir_licenca_o3web', licenca_id=licenca.id) }}" onsubmit="return confirm('Inativar esta licença?');"><button class="btn btn-outline-danger" title="Inativar"><i class="bi bi-trash"></i></button></form></div></td>
+                        </tr>
+                    {% else %}
+                        {% set colspan = 8 %}
+                        {% set empty_message = "Nenhuma licença O3Web encontrada." %}
+                        {% include "components/empty_state.html" %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

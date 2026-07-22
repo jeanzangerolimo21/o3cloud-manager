@@ -34,7 +34,7 @@ O desenvolvimento segue uma metodologia incremental baseada em Sprints, preserva
 | Catálogo Técnico | 🚧 Em Desenvolvimento |
 | CRM Comercial | ✅ Base Alpha concluída |
 | Propostas | ✅ Base Alpha concluída |
-| Implantação | ⏳ Planejado |
+| Implantação | 🚧 Em Desenvolvimento |
 | Dashboard Executivo | ⏳ Planejado |
 
 ---
@@ -207,7 +207,7 @@ Escopo entregue:
 
 ---
 
-# Sprint Atual
+# Última Sprint Concluída
 
 ## Sprint 8
 
@@ -215,7 +215,7 @@ Consolidação Comercial e Pós-Assinatura
 
 Status:
 
-🚧 Em andamento
+✅ Concluída na primeira entrega
 
 Objetivos:
 
@@ -231,18 +231,45 @@ Primeira entrega concluída:
 
 ---
 
-# Próximas Sprints
+# Sprint Atual
 
 ## Sprint 9
 
-Implantação
+Implantação e Provisionamento
 
-Objetivos:
+Status:
 
-- Workflow
-- Checklist
-- Provisionamento
-- Integração Proxmox
+🚧 Em andamento
+
+Objetivo:
+
+Criar a fundação operacional do módulo de Implantação, conectando contratos encaminhados para projeto ao fluxo técnico de entrega, checklist, acompanhamento e preparação para provisionamento.
+
+Escopo revisado:
+
+- Módulo próprio de Implantação com listagem, Kanban, visualização e edição controlada.
+- Geração ou abertura de implantação a partir de contrato encaminhado para projeto, com entrada automática na coluna Fila quando sincronizado do Omie.
+- Workflow de implantação: Aguardando início, Em planejamento, Em execução, Em validação, Entregue, Pausada e Cancelada.
+- Checklist técnico por implantação, com itens obrigatórios, responsáveis, status e evidências.
+- Vínculo com cliente, contrato, proposta, executivo, parceiro e ambiente técnico.
+- Visão de acompanhamento por status, responsável, etapa Kanban e prazo.
+- Notificação de movimentação de etapa para implantador, executivo, parceiro e contatos envolvidos.
+- Preparação para provisionamento rastreável usando catálogo técnico, modelos e recursos.
+- Integração Proxmox apenas como etapa controlada, inicialmente preparada por configuração e rastreabilidade, sem automação destrutiva.
+
+Primeira entrega concluída:
+
+- ✅ Fundação do domínio `implantacao`: migration, repository, service, routes, templates, sidebar, listagem, criação, visualização e dashboard inicial.
+- ✅ Kanban operacional de implantação com sincronização automática de contratos encaminhados para projeto e notificação de mudança de coluna.
+
+Critérios de aceite:
+
+- Nenhuma implantação pode iniciar sem contrato encaminhado para projeto.
+- Toda implantação deve manter vínculo com cliente e contrato.
+- Checklist deve ser rastreável e persistido no banco.
+- Contrato encaminhado para projeto deve entrar na primeira fila do Kanban de implantação.
+- Movimentação de Kanban deve registrar etapa e acionar notificação por e-mail quando SMTP estiver configurado.
+- Provisionamento deve registrar intenção/planejamento antes de qualquer integração Proxmox real.
 
 ---
 
@@ -319,7 +346,7 @@ Versão:
 
 Sprint:
 
-8 em andamento
+9 em andamento
 
 Status Geral:
 
@@ -327,7 +354,7 @@ Status Geral:
 
 Próxima Entrega:
 
-Sprint 8 - Consolidação comercial, dashboards e fluxo pós-assinatura.
+Ação direta em Contratos para iniciar implantação e rastreabilidade proposta -> contrato -> implantação.
 
 
 

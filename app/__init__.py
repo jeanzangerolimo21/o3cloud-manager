@@ -52,6 +52,10 @@ def create_app():
     from app.propostas.routes import propostas_bp
     app.register_blueprint(propostas_bp)
 
+    # Implantação
+    from app.implantacao.routes import implantacao_bp
+    app.register_blueprint(implantacao_bp)
+
     # Ambientes
     from app.ambientes.routes import ambientes_bp
     app.register_blueprint(ambientes_bp)

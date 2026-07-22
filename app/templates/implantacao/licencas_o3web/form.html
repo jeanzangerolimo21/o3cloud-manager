@@ -1,0 +1,38 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Editar Licença O3Web" if modo == "editar" else "Nova Licença O3Web" %}
+    {% set page_description = "Gestão operacional de licenças por usuários." %}
+    {% set page_icon = "bi-key-fill" %}
+    {% set page_button_url = url_for('implantacao.licencas_o3web') %}
+    {% set page_button_icon = "bi-arrow-left" %}
+    {% set page_button_text = "Voltar" %}
+    {% include "components/page_header.html" %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row g-3">
+                    <div class="col-md-4"><label class="form-label">Cliente *</label><input class="form-control" name="cliente_nome" value="{{ licenca.cliente_nome or '' }}" required></div>
+                    <div class="col-md-4"><label class="form-label">Chave de Ativação</label><input class="form-control" name="chave_ativacao" value="{{ licenca.chave_ativacao or '' }}"></div>
+                    <div class="col-md-2"><label class="form-label">ID Licença</label><input class="form-control" name="id_licenca" value="{{ licenca.id_licenca or '' }}"></div>
+                    <div class="col-md-2"><label class="form-label">Tipo</label><select class="form-select" name="tipo"><option value="">Selecionar</option>{% for valor, label in tipo_options.items() %}<option value="{{ valor }}" {% if licenca.tipo == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                    <div class="col-md-2"><label class="form-label">Usuários</label><input class="form-control" type="number" name="usuarios" value="{{ licenca.usuarios or '' }}"></div>
+                    <div class="col-md-2"><label class="form-label">Dias</label><input class="form-control" type="number" name="dias" value="{{ licenca.dias or '' }}"></div>
+                    <div class="col-md-3"><label class="form-label">Edição</label><input class="form-control" name="edicao" value="{{ licenca.edicao or '' }}"></div>
+                    <div class="col-md-2"><label class="form-label">Bkp</label><select class="form-select" name="bkp"><option value="1" {% if licenca.bkp %}selected{% endif %}>Sim</option><option value="0" {% if licenca and not licenca.bkp %}selected{% endif %}>Não</option></select></div>
+                    <div class="col-md-3"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if licenca.ativo is not defined or licenca.ativo %}selected{% endif %}>Ativa</option><option value="0" {% if licenca.ativo is defined and not licenca.ativo %}selected{% endif %}>Inativa</option></select></div>
+                    <div class="col-md-3"><label class="form-label">Data ativação</label><input class="form-control" name="data_ativacao" value="{{ licenca.data_ativacao_raw or licenca.data_ativacao or '' }}" placeholder="dd/mm/aaaa ou aaaa-mm-dd"></div>
+                    <div class="col-md-3"><label class="form-label">Data expiração</label><input class="form-control" name="data_expiracao" value="{{ licenca.data_expiracao_raw or licenca.data_expiracao or '' }}" placeholder="- para permanente"></div>
+                    <div class="col-md-6"><label class="form-label">URL principal</label><input class="form-control" name="url_principal" value="{{ licenca.url_principal or '' }}"></div>
+                    <div class="col-md-6"><label class="form-label">URL secundária</label><input class="form-control" name="url_secundaria" value="{{ licenca.url_secundaria or '' }}"></div>
+                    <div class="col-md-6"><label class="form-label">Comments</label><textarea class="form-control" rows="4" name="comments">{{ licenca.comments or '' }}</textarea></div>
+                    <div class="col-md-6"><label class="form-label">Observação</label><textarea class="form-control" rows="4" name="observacao">{{ licenca.observacao or '' }}</textarea></div>
+                </div>
+                <div class="text-end mt-4"><button class="btn btn-primary"><i class="bi bi-floppy"></i> Salvar</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

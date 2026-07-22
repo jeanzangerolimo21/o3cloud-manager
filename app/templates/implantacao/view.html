@@ -1,0 +1,128 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = implantacao.titulo %}
+    {% set page_description = "Acompanhamento de implantação pós-contrato" %}
+    {% set page_icon = "bi-hdd-network" %}
+    {% set page_button_url = url_for("implantacao.editar", implantacao_id=implantacao.id) %}
+    {% set page_button_icon = "bi-pencil" %}
+    {% set page_button_text = "Editar" %}
+    {% include "components/page_header.html" %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Status</small><h5>{{ status_options.get(implantacao.status, implantacao.status) }}</h5></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Conclusão</small><h5>{{ implantacao.percentual_conclusao or 0 }}%</h5></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Responsável</small><h5>{{ implantacao.responsavel or implantacao.implantador_nome or '-' }}</h5></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Entrega prevista</small><h5>{{ implantacao.data_prevista_entrega|date_br }}</h5></div></div></div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-md-4"><strong>Cliente</strong><br>{{ implantacao.cliente_nome }}<br><small class="text-muted">{{ implantacao.cliente_cnpj or '-' }}</small></div>
+                <div class="col-md-4"><strong>Contrato</strong><br>{{ implantacao.contrato_numero or implantacao.contrato_id }}<br><small class="text-muted">{{ implantacao.contrato_status }}</small><div class="mt-2"><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('implantacao.visualizar_contrato_operacional', contrato_id=implantacao.contrato_id) }}" target="_blank"><i class="bi bi-eye"></i> Visualizar Contrato</a></div></div>
+                <div class="col-md-4"><strong>Comercial</strong><br>{{ implantacao.executivo_nome or '-' }}<br><small class="text-muted">{{ implantacao.parceiro_nome or 'Sem parceiro' }}</small></div>
+                <div class="col-md-4"><strong>Etapa</strong><br>{{ kanban_labels.get(implantacao.etapa_kanban, implantacao.etapa_kanban or '-') }}</div>
+                <div class="col-md-4"><strong>Prioridade</strong><br>{{ prioridade_options.get(implantacao.prioridade, implantacao.prioridade) }}</div>
+                <div class="col-md-4"><strong>Implantador</strong><br>{{ implantacao.implantador_nome or '-' }}<br><small class="text-muted">{{ implantacao.implantador_email or 'Sem e-mail' }}</small></div>
+                <div class="col-md-4"><strong>Provisionamento</strong><br>{{ provisionamento_options.get(implantacao.provisionamento_status, implantacao.provisionamento_status) }}</div>
+                <div class="col-md-4"><strong>Período</strong><br>{{ implantacao.data_prevista_inicio|date_br }} até {{ implantacao.data_prevista_entrega|date_br }}</div>
+                <div class="col-12"><strong>Observações</strong><div class="mt-2 text-muted" style="white-space: pre-line;">{{ implantacao.observacoes or 'Nenhuma observação cadastrada.' }}</div></div>
+                <div class="col-12"><strong>E-mails adicionais</strong><div class="mt-2 text-muted" style="white-space: pre-line;">{{ implantacao.emails_adicionais or 'Nenhum e-mail adicional cadastrado.' }}</div></div>
+                <div class="col-12"><strong>Notas de provisionamento</strong><div class="mt-2 text-muted" style="white-space: pre-line;">{{ implantacao.provisionamento_notas or 'Nenhum planejamento de provisionamento registrado.' }}</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white"><strong>Checklist Técnico</strong></div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Item</th><th>Grupo</th><th>Status</th><th>Responsável</th><th>Evidência</th><th width="120">Ação</th></tr></thead>
+                <tbody>
+                    {% for item in implantacao.checklist %}
+                    <tr>
+                        <td><strong>{{ item.titulo }}</strong><br><small class="text-muted">{{ item.descricao or '' }}</small></td>
+                        <td>{{ item.grupo }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('implantacao.atualizar_checklist', item_id=item.id) }}" class="d-flex gap-2 align-items-center">
+                                <select class="form-select form-select-sm" name="status">
+                                    {% for valor, descricao in checklist_status_options.items() %}<option value="{{ valor }}" {% if item.status == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}
+                                </select>
+                        </td>
+                        <td><input class="form-control form-control-sm" name="responsavel" value="{{ item.responsavel or '' }}" placeholder="Responsável"></td>
+                        <td><input class="form-control form-control-sm" name="evidencia" value="{{ item.evidencia or '' }}" placeholder="Evidência ou observação"></td>
+                        <td><button class="btn btn-sm btn-outline-primary"><i class="bi bi-check2-circle"></i></button></form></td>
+                    </tr>
+                    {% else %}
+                        {% set colspan = 6 %}
+                        {% set empty_message = "Checklist não gerado." %}
+                        {% include "components/empty_state.html" %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white"><strong>Histórico do Projeto</strong></div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('implantacao.adicionar_comentario', implantacao_id=implantacao.id) }}" class="mb-4">
+                <div class="row g-3">
+                    <div class="col-md-4"><label class="form-label">Autor</label><input class="form-control" name="autor" value="{{ implantacao.implantador_nome or implantacao.responsavel or '' }}" placeholder="Nome de quem registrou"></div>
+                    <div class="col-md-8 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" name="enviar_email" id="enviar_email"><label class="form-check-label" for="enviar_email">Enviar comentário por e-mail para os envolvidos do projeto</label></div></div>
+                    <div class="col-12"><label class="form-label">Comentário</label><textarea class="form-control" rows="4" name="comentario" required placeholder="Registre atualização, pendência, decisão ou alinhamento do projeto..."></textarea></div>
+                    <div class="col-12 text-end"><button class="btn btn-primary"><i class="bi bi-chat-left-text"></i> Registrar Comentário</button></div>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead><tr><th width="180">Data/Hora</th><th>Registro</th><th width="160">E-mail</th><th width="130">Ações</th></tr></thead>
+                    <tbody>
+                        {% for item in implantacao.historico %}
+                        <tr>
+                            <td>{{ item.created_at.strftime('%d/%m/%Y %H:%M') if item.created_at else '-' }}<br><small class="text-muted">{{ item.autor or item.tipo }}</small></td>
+                            <td>
+                                <strong>{{ 'Mudança de etapa' if item.tipo == 'ETAPA' else 'Comentário' }}</strong>
+                                {% if item.tipo == 'COMENTARIO' %}
+                                <form id="comentario-edit-{{ item.id }}" method="POST" action="{{ url_for('implantacao.editar_comentario', historico_id=item.id) }}" class="mt-2">
+                                    <textarea class="form-control form-control-sm" rows="3" name="comentario" required>{{ item.comentario }}</textarea>
+                                </form>
+                                {% else %}
+                                <div class="text-muted" style="white-space: pre-line;">{{ item.comentario }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{% if item.email_enviado %}<span class="badge bg-success">Enviado</span>{% elif item.email_resultado %}<span class="badge bg-warning text-dark">Não enviado</span>{% else %}<span class="badge bg-light text-dark border">Não solicitado</span>{% endif %}</td>
+                            <td>
+                                {% if item.tipo == 'COMENTARIO' %}
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" form="comentario-edit-{{ item.id }}" title="Salvar comentário"><i class="bi bi-floppy"></i></button>
+                                    <form method="POST" action="{{ url_for('implantacao.excluir_comentario', historico_id=item.id) }}" onsubmit="return confirm('Excluir este comentário?');">
+                                        <button class="btn btn-outline-danger" title="Excluir comentário"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                            {% set colspan = 4 %}
+                            {% set empty_message = "Nenhum histórico registrado." %}
+                            {% include "components/empty_state.html" %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 text-end">
+        <a href="{{ url_for('implantacao.index') }}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
+    </div>
+</div>
+{% endblock %}

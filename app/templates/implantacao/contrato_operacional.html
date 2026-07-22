@@ -1,0 +1,47 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Contrato Operacional" %}
+    {% set page_description = "Visualização para implantação sem valores de negociação" %}
+    {% set page_icon = "bi-file-earmark-text" %}
+    {% set page_button_url = url_for("implantacao.novo") %}
+    {% set page_button_icon = "bi-arrow-left" %}
+    {% set page_button_text = "Voltar" %}
+    {% include "components/page_header.html" %}
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-md-4"><strong>Cliente</strong><br>{{ contrato.cliente_nome or '-' }}<br><small class="text-muted">{{ contrato.cliente_cnpj or '-' }}</small></div>
+                <div class="col-md-4"><strong>Contrato</strong><br>{{ contrato.numero or ('Contrato #' ~ contrato.id) }}<br><small class="text-muted">{{ contrato.status }}</small></div>
+                <div class="col-md-4"><strong>Origem</strong><br>{{ contrato.origem or '-' }}<br><small class="text-muted">{{ contrato.data_fechamento|date_br }}</small></div>
+                <div class="col-md-4"><strong>Executivo</strong><br>{{ contrato.executivo_nome or '-' }}<br><small class="text-muted">{{ contrato.executivo_email or '' }}</small></div>
+                <div class="col-md-4"><strong>Parceiro</strong><br>{{ contrato.parceiro_nome or '-' }}</div>
+                <div class="col-md-4"><strong>Contato</strong><br>{{ contrato.contato_nome or '-' }}<br><small class="text-muted">{{ contrato.contato_email or contrato.contato_telefone or '' }}</small></div>
+                <div class="col-md-4"><strong>Vigência</strong><br>{{ contrato.inicio_vigencia|date_br }} até {{ contrato.fim_vigencia|date_br }}</div>
+                <div class="col-md-8"><strong>Proposta</strong><br>{{ contrato.codigo_proposta or '-' }}{% if contrato.proposta_titulo %} - {{ contrato.proposta_titulo }}{% endif %}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white"><strong>Descrição do Contrato Omie</strong></div>
+                <div class="card-body text-muted" style="white-space: pre-line;">{{ contrato.contrato_descricao or 'Nenhuma descrição sincronizada.' }}</div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white"><strong>Escopo da Proposta</strong></div>
+                <div class="card-body text-muted" style="white-space: pre-line;">{{ contrato.proposta_escopo or contrato.proposta_observacoes or 'Nenhum escopo vinculado.' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info mt-4 mb-0">
+        Esta visualização omite valores comerciais e financeiros por padrão para uso operacional da implantação.
+    </div>
+</div>
+{% endblock %}

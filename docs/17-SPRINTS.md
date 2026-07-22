@@ -4,7 +4,7 @@
 
 Versão: 3.0 Alpha
 
-Última atualização: 16/07/2026
+Última atualização: 21/07/2026
 
 Status: Oficial
 
@@ -161,38 +161,7 @@ Status:
 
 ---
 
-# Sprint Atual
-
-## Sprint 7
-
-Objetivos:
-
-- CRM Comercial
-- Leads
-- Contatos
-- Oportunidades
-- Pipeline Comercial
-- Propostas
-- Contratos pós-assinatura
-- Integração ClickSign
-
-Entregas:
-
-- Separador exclusivo de CRM no sidebar
-- Módulos Leads, Contatos, Oportunidades, Pipeline e Propostas iniciados
-- Contratos pós-assinatura com dashboard, vínculos comerciais e gestão de PDFs
-- Geração de contrato a partir de proposta usando modelo DOCX
-- Envio real para ClickSign API v3
-- Sincronização manual em lote com ClickSign
-- Download do PDF assinado para `storage/contratos`
-
-Status:
-
-✅ Concluído
-
----
-
-# Sprints Futuras
+# Última Sprint Concluída
 
 ## Sprint 8
 
@@ -204,27 +173,49 @@ Objetivos:
 - Rastreabilidade proposta -> ClickSign -> contrato -> Omie
 - Evolução de permissões e auditoria
 
+Entregas:
+
+- Dashboard Comercial inicial em `/propostas/dashboard`
+- Agrupamentos por executivo, parceiro, status comercial e status ClickSign
+- Atalhos no menu lateral e na tela de Propostas
+
 Status:
 
-⏳ Planejado
+✅ Concluída na primeira entrega
 
 ---
+
+# Sprint Atual
 
 ## Sprint 9
 
+Implantação e Provisionamento
+
 Objetivos:
 
-- Implantação
-- Workflow
-- Checklist
-- Provisionamento
-- Integração Proxmox
+- Módulo próprio de Implantação
+- Workflow pós-contrato assinado
+- Checklist técnico rastreável
+- Acompanhamento por status, responsável e prazo
+- Preparação de provisionamento
+- Base para integração Proxmox segura e auditável
+
+Escopo inicial:
+
+- ✅ Criada migration `021` do domínio de implantação
+- ✅ Criados Repository, Service, Routes e Templates
+- ✅ Criadas listagem, visualização, edição e dashboard de implantações
+- ✅ Criado vínculo obrigatório com contrato encaminhado para projeto
+- ✅ Criado checklist padrão por implantação
+- ✅ Criados estados oficiais do workflow
 
 Status:
 
-⏳ Planejado
+🚧 Em andamento
 
 ---
+
+# Sprints Futuras
 
 ## Sprint 10
 

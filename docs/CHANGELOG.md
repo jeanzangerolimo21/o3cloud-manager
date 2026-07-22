@@ -46,6 +46,67 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-21 - Licenças O3Web
+
+### Implantação e Provisionamento
+
+- Adicionada migration `024_create_o3web_licencas.sql` para gestão operacional de licenças O3Web.
+- Criada tela `/implantacao/licencas-o3web` com dashboard, filtros, cadastro manual, edição e inativação de licenças.
+- Criado importador CSV para campos atuais da planilha de licenças, incluindo chave de ativação, ID licença, tipo, backup, dias, usuários, edição, datas, cliente, URLs, comments e observação.
+- Importação atualiza registros por `ID Licença` quando disponível e preserva datas originais quando o formato não puder ser normalizado.
+
+---
+
+## 2026-07-21 - Histórico de Implantação
+
+### Implantação e Provisionamento
+
+- Adicionada migration `023_add_implantacao_historico_emails.sql` com histórico de implantação e e-mails adicionais.
+- Edição da implantação passou a permitir alteração direta da etapa do Kanban.
+- Visualização da implantação passou a exibir histórico com data/hora, autor, comentário e status de envio de e-mail.
+- Comentários do histórico passaram a ter ações de editar e excluir, mantendo mudanças de etapa como auditoria somente leitura.
+- Comentários podem ser registrados e opcionalmente enviados por e-mail aos envolvidos do projeto.
+- E-mails adicionais podem ser cadastrados na implantação para compor as notificações do projeto.
+
+---
+
+## 2026-07-21 - Kanban de Implantação
+
+### Implantação e Provisionamento
+
+- Adicionada migration `022_add_kanban_implantacao.sql` com etapa Kanban e dados de implantador.
+- Criada tela `/implantacao/kanban` com colunas operacionais de projeto e movimentação por arrastar e soltar.
+- Contratos `ENCAMINHADO_PROJETO` passaram a cair automaticamente na coluna `Fila` como implantação editável.
+- Movimentação de coluna passou a notificar implantador, executivo, parceiro e contatos envolvidos quando SMTP estiver configurado.
+- Formulário de implantação passou a salvar implantador e e-mail do implantador.
+- Implantação criada a partir do Kanban passou a preencher início previsto em 7 dias corridos e entrega prevista 30 dias depois.
+
+---
+
+## 2026-07-21 - Início Sprint 9
+
+### Implantação e Provisionamento
+
+- Sprint 9 iniciada com a fundação do módulo próprio de Implantação.
+- Adicionada migration `021_create_implantacao_workflow.sql` com tabelas `implantacoes` e `implantacao_checklist`.
+- Adicionados repository, service, routes e templates para listagem, criação, visualização, edição e dashboard inicial de implantações.
+- Criação de implantação passou a exigir contrato encaminhado para projeto e gerar checklist técnico padrão.
+- Tela de Nova Implantação passou a preencher título e contexto operacional ao selecionar contrato, sem exibir valores de negociação.
+- Adicionada visualização operacional do contrato para implantação, omitindo valores comerciais/financeiros.
+- Provisionamento foi registrado como etapa planejada/rastreável, sem integração Proxmox automática nesta primeira entrega.
+
+---
+
+## 2026-07-21 - Revisão Sprint 9
+
+### Implantação e Provisionamento
+
+- Sprint 9 revisada para início com foco em módulo próprio de Implantação.
+- Escopo definido para workflow pós-contrato encaminhado para projeto, checklist técnico, acompanhamento e preparação de provisionamento.
+- Integração Proxmox posicionada como etapa controlada e auditável, sem automação destrutiva na primeira entrega.
+
+---
+
 ## 2026-07-21 - Início Sprint 8
 
 ### Dashboard Comercial

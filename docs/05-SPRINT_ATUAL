@@ -12,7 +12,7 @@ Status: Oficial
 
 # Sprint Registrada
 
-## Sprint 8
+## Sprint 9
 
 Status:
 
@@ -22,73 +22,102 @@ Status:
 
 # Objetivo da Sprint
 
-Consolidar o fluxo comercial pós-assinatura, ampliando a visibilidade executiva sobre propostas, ClickSign, contratos e vínculos comerciais.
+Criar a fundação operacional do módulo de Implantação, conectando contratos encaminhados para projeto ao fluxo técnico de entrega, checklist, acompanhamento e preparação para provisionamento.
 
-A Sprint 8 parte da base Alpha concluída na Sprint 7 e prioriza indicadores, rastreabilidade entre etapas e acompanhamento operacional do pós-assinatura.
+A Sprint 9 parte do fluxo comercial pós-assinatura entregue nas Sprints 7 e 8 e estabelece a camada técnica de execução após contrato encaminhado para projeto.
 
 ---
 
 # Entregas Concluídas
 
-## 1. Dashboard Comercial
+## 1. Fundação do Módulo de Implantação
 
 Status:
 
-✅ Concluído na primeira versão
+✅ Primeira versão implementada
 
 Entregas:
 
-- Nova rota `/propostas/dashboard`.
-- Cards de propostas ativas, receita mensal negociada, implantação e propostas em assinatura.
-- Indicadores de propostas aprovadas, assinadas e concluídas.
-- Agrupamentos por executivo e parceiro.
-- Quebras por status comercial e status ClickSign.
-- Lista de propostas atualizadas recentemente.
-- Atalho no menu lateral em `CRM Comercial > Dashboard Comercial`.
-- Atalho na tela principal de Propostas.
+- Migration `021_create_implantacao_workflow.sql`.
+- Tabelas `implantacoes` e `implantacao_checklist`.
+- Módulo Flask `app/implantacao` com routes e service.
+- Repository `implantacao_workflow_repository.py`.
+- Listagem de implantações em `/implantacao/`.
+- Criação de implantação em `/implantacao/novo` somente a partir de contrato encaminhado para projeto.
+- Origem da nova implantação exibe cliente, executivo, parceiro, descrição do contrato Omie e escopo da proposta, sem valores de negociação.
+- Visualização operacional do contrato disponível na origem, renderizada sem valores comerciais/financeiros.
+- Título de planejamento preenchido automaticamente ao selecionar o contrato de origem.
+- Visualização de implantação com dados de cliente, contrato, comercial, provisionamento e checklist.
+- Edição de status, prioridade, responsável, implantador, e-mail do implantador, executivo, parceiro, prazos, observações e provisionamento.
+- Kanban operacional de implantação em `/implantacao/kanban` com as etapas Fila, Criação de Grupo, Kickoff, VPN, Provisionamento, Parametrizações, Homologação, Virada, Revisão, Finalizado e Cancelados.
+- Contratos sincronizados do Omie com status `ENCAMINHADO_PROJETO` são materializados automaticamente como implantação na primeira coluna `Fila`.
+- Ao entrar no Kanban, a implantação recebe `data_prevista_inicio` para 7 dias corridos após a inclusão e `data_prevista_entrega` para 30 dias após o início previsto.
+- Movimentação de card por arrastar e soltar atualiza `etapa_kanban` e dispara notificação para implantador, executivo, parceiro e contatos envolvidos quando houver SMTP configurado.
+- Edição da implantação permite alterar a etapa do projeto diretamente no card.
+- Histórico do projeto registra comentários e mudanças de etapa com data/hora, autor, resultado de e-mail e comentário.
+- Comentários do histórico podem ser editados ou excluídos pela tela da implantação; registros automáticos de etapa permanecem somente leitura.
+- Tela operacional `Licenças O3Web` adicionada em Implantação para gerir licenças por usuário, com dashboard, filtros, cadastro manual, edição, inativação e importação CSV.
+- Importador CSV de licenças O3Web aceita arquivo tabulado, ponto e vírgula ou vírgula, preservando datas originais e atualizando registros por `ID Licença` quando disponível.
+- Cadastro de e-mails adicionais por implantação para incluir outros envolvidos nas notificações do projeto.
+- Comentários podem ser enviados por e-mail aos envolvidos quando o SMTP estiver configurado.
+- Checklist técnico padrão gerado automaticamente ao criar implantação.
+- Atualização individual de itens de checklist com status, responsável e evidência.
+- Dashboard inicial com totais por etapa e atrasos.
+- Atalho no menu lateral em `Operações > Implantação`.
 
 Arquivos principais:
 
-- `app/repositories/proposta_repository.py`
-- `app/propostas/service.py`
-- `app/propostas/routes.py`
-- `app/templates/propostas/dashboard.html`
-- `app/templates/propostas/index.html`
+- `database/migrations/021_create_implantacao_workflow.sql`
+- `database/migrations/022_add_kanban_implantacao.sql`
+- `database/migrations/023_add_implantacao_historico_emails.sql`
+- `database/migrations/024_create_o3web_licencas.sql`
+- `app/repositories/implantacao_workflow_repository.py`
+- `app/implantacao/service.py`
+- `app/implantacao/routes.py`
+- `app/implantacao/o3web_licencas_service.py`
+- `app/repositories/o3web_licenca_repository.py`
+- `app/templates/implantacao/licencas_o3web/`
+- `app/templates/implantacao/index.html`
+- `app/templates/implantacao/kanban.html`
+- `app/templates/implantacao/form.html`
+- `app/templates/implantacao/view.html`
 - `app/templates/components/sidebar.html`
+- `app/__init__.py`
 
 ---
 
-# Base Herdada da Sprint 7
+# Regras Implementadas
 
-Status:
-
-✅ Concluída
-
-Entregas relevantes:
-
-- CRM Comercial Alpha com Leads, Contatos, Oportunidades, Pipeline e Propostas.
-- Geração de contrato a partir de proposta usando modelo DOCX editável.
-- Envio real para ClickSign API v3.
-- Sincronização manual em lote com ClickSign.
-- Download automático do PDF assinado para `storage/contratos`.
-- Contratos pós-assinatura com dashboard, vínculos comerciais e gestão de PDFs.
+- Implantação só pode ser criada a partir de contrato ativo e elegível.
+- Contrato de origem precisa estar com status `ENCAMINHADO_PROJETO`, representando projeto recém-negociado para o implantador.
+- Cada contrato pode ter uma implantação ativa.
+- Checklist padrão é persistido por implantação.
+- Percentual de conclusão é calculado a partir dos itens de checklist concluídos.
+- Proxmox permanece como planejamento de provisionamento, sem automação destrutiva nesta primeira entrega.
+- Etapa `FINALIZADO` ajusta a implantação para status `ENTREGUE`; etapa `CANCELADOS` ajusta para status `CANCELADA`.
+- E-mail de movimentação e de comentário é tolerante a ambiente sem SMTP: a operação continua e retorna `smtp_nao_configurado`.
 
 ---
 
-# Próximas Entregas da Sprint 8
+# Próximas Entregas da Sprint 9
 
-- Refinar dashboard executivo com filtros por período, executivo, parceiro e status.
-- Criar visão de rastreabilidade proposta -> ClickSign -> contrato -> Omie.
-- Evoluir acompanhamento ClickSign com webhook ou rotina agendada.
-- Consolidar regras de comissão/indicadores por parceiro e executivo.
-- Evoluir permissões e auditoria do fluxo comercial.
+- Adicionar ação direta em Contratos para iniciar implantação a partir do contrato.
+- Evoluir edição administrativa de colunas do Kanban, caso as etapas precisem ser configuráveis pelo usuário.
+- Refinar dashboard com filtros por prazo, responsável e status.
+- Evoluir checklist com inclusão manual de itens e modelos por tipo de projeto.
+- Criar visão de rastreabilidade proposta -> contrato -> implantação.
+- Preparar camada de configuração para integração Proxmox futura.
 
 ---
 
 # Validações Realizadas
 
 - Sintaxe Python validada nos módulos alterados.
-- Rota `/propostas/dashboard` validada via Flask test client com retorno HTTP 200.
+- Migrations `021`, `022`, `023` e `024` aplicadas na base local.
+- Rotas `/implantacao/`, `/implantacao/novo` e `/implantacao/kanban` validadas via Flask test client com retorno HTTP 200.
+- Consulta de contratos elegíveis validada na base local.
+- Importação CSV de Licenças O3Web validada com criação e atualização por `ID Licença`, sem erros e com cleanup do registro temporário.
+- Movimentação de card validada via POST `/implantacao/kanban/mover`, com retorno `smtp_nao_configurado` em ambiente sem SMTP.
 
 ---
 
@@ -100,7 +129,7 @@ Versão:
 
 Sprint Atual:
 
-8
+9
 
 Situação:
 
@@ -108,4 +137,4 @@ Situação:
 
 Próxima Implementação:
 
-Refinar indicadores e filtros do Dashboard Comercial ou iniciar rastreabilidade pós-assinatura.
+Evoluir ações diretas de contrato, configuração de colunas e rastreabilidade pós-assinatura.

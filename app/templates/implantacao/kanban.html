@@ -1,0 +1,128 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<style>
+.kanban-shell { overflow-x: auto; padding-bottom: 0.5rem; }
+.kanban-board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(280px, 320px); gap: 1rem; min-height: 68vh; }
+.kanban-column { background: #f6f7f9; border: 1px solid #e6e8ec; border-radius: 8px; display: flex; flex-direction: column; max-height: 72vh; }
+.kanban-column-header { align-items: center; border-bottom: 1px solid #e6e8ec; display: flex; justify-content: space-between; padding: 0.85rem; }
+.kanban-column-title { font-size: 0.92rem; font-weight: 700; margin: 0; }
+.kanban-actions { display: flex; gap: 0.25rem; }
+.kanban-list { flex: 1; min-height: 140px; overflow-y: auto; padding: 0.75rem; }
+.kanban-card { background: #fff; border: 1px solid #e2e6ea; border-radius: 8px; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06); cursor: grab; margin-bottom: 0.75rem; padding: 0.85rem; }
+.kanban-card:active { cursor: grabbing; }
+.kanban-card.dragging { opacity: 0.55; }
+.kanban-list.drag-over { background: #eaf2ff; outline: 2px dashed #4f83cc; outline-offset: -6px; }
+.kanban-card-title { font-size: 0.95rem; font-weight: 700; line-height: 1.25; margin-bottom: 0.4rem; }
+.kanban-meta { color: #5f6b7a; font-size: 0.82rem; line-height: 1.35; }
+.kanban-card-tools { display: flex; gap: 0.35rem; justify-content: flex-end; margin-bottom: 0.55rem; }
+.kanban-toast { bottom: 1rem; position: fixed; right: 1rem; z-index: 1080; }
+</style>
+
+<div class="container-fluid">
+    {% include "components/page_header.html" %}
+
+    <div class="d-flex justify-content-end gap-2 mb-3">
+        <a href="{{ url_for('implantacao.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-list-ul"></i> Lista
+        </a>
+    </div>
+
+    <div class="kanban-shell">
+        <div class="kanban-board">
+            {% for coluna in colunas %}
+            <section class="kanban-column" data-etapa="{{ coluna.codigo }}">
+                <div class="kanban-column-header">
+                    <h2 class="kanban-column-title">{{ coluna.titulo }}</h2>
+                    <div class="kanban-actions">
+                        <span class="badge bg-light text-dark border">{{ coluna.cards|length }}</span>
+                    </div>
+                </div>
+                <div class="kanban-list" data-etapa="{{ coluna.codigo }}">
+                    {% for card in coluna.cards %}
+                    <article class="kanban-card" draggable="true" data-id="{{ card.id }}">
+                        <div class="kanban-card-tools">
+                            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('implantacao.visualizar', implantacao_id=card.id) }}" title="Visualizar"><i class="bi bi-eye"></i></a>
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('implantacao.editar', implantacao_id=card.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
+                        </div>
+                        <div class="kanban-card-title">{{ card.cliente_nome or card.titulo }}</div>
+                        <div class="kanban-meta">
+                            <div>{{ card.parceiro_nome or card.executivo_nome or 'Sem parceiro' }}</div>
+                            <div>{{ card.titulo }}</div>
+                            {% if card.data_prevista_entrega %}
+                            <div><i class="bi bi-calendar-event"></i> {{ card.data_prevista_entrega|date_br }}</div>
+                            {% endif %}
+                            <div>{{ card.implantador_email or card.contato_email or card.cliente_email or 'Sem e-mail cadastrado' }}</div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div id="kanbanToast" class="kanban-toast alert d-none" role="alert"></div>
+
+<script>
+const moverUrl = "{{ url_for('implantacao.mover_kanban') }}";
+let draggedCard = null;
+
+function showToast(message, variant) {
+    const toast = document.getElementById('kanbanToast');
+    toast.className = `kanban-toast alert alert-${variant}`;
+    toast.textContent = message;
+    window.setTimeout(() => toast.classList.add('d-none'), 2800);
+}
+
+document.querySelectorAll('.kanban-card').forEach((card) => {
+    card.addEventListener('dragstart', () => {
+        draggedCard = card;
+        card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        draggedCard = null;
+    });
+});
+
+document.querySelectorAll('.kanban-list').forEach((list) => {
+    list.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        list.classList.add('drag-over');
+    });
+    list.addEventListener('dragleave', () => list.classList.remove('drag-over'));
+    list.addEventListener('drop', async (event) => {
+        event.preventDefault();
+        list.classList.remove('drag-over');
+        if (!draggedCard) return;
+
+        const previousList = draggedCard.parentElement;
+        const previousEtapa = previousList.dataset.etapa;
+        const novaEtapa = list.dataset.etapa;
+        if (previousEtapa === novaEtapa) return;
+
+        list.prepend(draggedCard);
+        try {
+            const response = await fetch(moverUrl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    implantacao_id: draggedCard.dataset.id,
+                    etapa_kanban: novaEtapa
+                })
+            });
+            const result = await response.json();
+            if (!response.ok || !result.ok) {
+                throw new Error(result.erro || 'Falha ao mover implantação.');
+            }
+            showToast('Etapa atualizada. Notificação processada.', 'success');
+        } catch (error) {
+            previousList.prepend(draggedCard);
+            showToast(error.message, 'danger');
+        }
+    });
+});
+</script>
+{% endblock %}

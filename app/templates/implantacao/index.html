@@ -1,0 +1,63 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include "components/page_header.html" %}
+
+    <div class="d-flex justify-content-end gap-2 mb-3">
+        <a href="{{ url_for('implantacao.kanban') }}" class="btn btn-outline-primary">
+            <i class="bi bi-kanban"></i> Kanban
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Implantações</small><h4>{{ dashboard.resumo.total_implantacoes or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Planejamento</small><h4>{{ dashboard.resumo.total_planejamento or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Execução</small><h4>{{ dashboard.resumo.total_execucao or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Validação</small><h4>{{ dashboard.resumo.total_validacao or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Entregues</small><h4>{{ dashboard.resumo.total_entregues or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Atrasadas</small><h4>{{ dashboard.resumo.total_atrasadas or 0 }}</h4></div></div></div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <form method="GET" class="mb-4">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4"><label class="form-label">Pesquisar</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Buscar por cliente, contrato, responsável ou parceiro..."></div>
+                    <div class="col-md-2"><label class="form-label">Status</label><select class="form-select" name="status"><option value="">Todos</option>{% for valor, descricao in status_options.items() %}<option value="{{ valor }}" {% if selected_status == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}</select></div>
+                    <div class="col-md-2"><label class="form-label">Responsável</label><input class="form-control" name="responsavel" value="{{ responsavel or '' }}" placeholder="Nome"></div>
+                    <div class="col-md-2"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativas</option><option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativas</option><option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todas</option></select></div>
+                    <div class="col-md-1"><button class="btn btn-primary w-100"><i class="bi bi-search"></i></button></div>
+                    <div class="col-md-1"><a href="{{ request.path }}" class="btn btn-outline-secondary w-100">Limpar</a></div>
+                </div>
+            </form>
+
+            <div class="mb-3"><small class="text-muted">{{ total }} implantação(ões) cadastrada(s)</small></div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>Implantação</th><th>Cliente</th><th>Status</th><th>Responsável</th><th>Prazo</th><th>Checklist</th><th>Provisionamento</th><th width="120">Ações</th></tr></thead>
+                    <tbody>
+                        {% for implantacao in implantacoes %}
+                        <tr>
+                            <td><strong>{{ implantacao.titulo }}</strong><br><small class="text-muted">Contrato {{ implantacao.contrato_numero or implantacao.contrato_id }}</small></td>
+                            <td>{{ implantacao.cliente_nome or '-' }}<br><small class="text-muted">{{ implantacao.executivo_nome or implantacao.parceiro_nome or '-' }}</small></td>
+                            <td><span class="badge bg-secondary">{{ status_options.get(implantacao.status, implantacao.status) }}</span></td>
+                            <td>{{ implantacao.responsavel or '-' }}</td>
+                            <td>{{ implantacao.data_prevista_entrega|date_br }}</td>
+                            <td>{{ implantacao.total_concluidos or 0 }}/{{ implantacao.total_itens or 0 }}<br><small class="text-muted">{{ implantacao.percentual_conclusao or 0 }}%</small></td>
+                            <td><span class="badge bg-light text-dark border">{{ implantacao.provisionamento_status or 'NAO_PLANEJADO' }}</span></td>
+                            <td><div class="btn-group btn-group-sm"><a class="btn btn-outline-secondary" href="{{ url_for('implantacao.visualizar', implantacao_id=implantacao.id) }}"><i class="bi bi-eye"></i></a><a class="btn btn-outline-primary" href="{{ url_for('implantacao.editar', implantacao_id=implantacao.id) }}"><i class="bi bi-pencil"></i></a></div></td>
+                        </tr>
+                        {% else %}
+                            {% set colspan = 8 %}
+                            {% set empty_message = "Nenhuma implantação encontrada." %}
+                            {% include "components/empty_state.html" %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
