@@ -1,12 +1,19 @@
 from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 
 from app.contratos.service import ContratoService
+from app.implantacao.service import ImplantacaoService
 from app.integracoes.omie.sync import OmieSync
 from app.repositories.contrato_item_repository import ContratoItemRepository
 from app.repositories.contrato_repository import ContratoRepository
 
 
 contratos_bp = Blueprint("contratos", __name__, url_prefix="/contratos")
+
+
+def _anexar_implantacoes(contratos):
+    for contrato in contratos:
+        implantacao = ImplantacaoService.buscar_por_contrato_id(contrato.get("id"))
+        contrato["implantacao_id"] = implantacao.get("id") if implantacao else None
 
 
 def _filtros():
@@ -71,6 +78,7 @@ def index():
     pagina = request.args.get("page", 1, type=int)
     filtros = _filtros()
     contratos, total, total_paginas = ContratoService.listar(filtros, pagina=pagina)
+    _anexar_implantacoes(contratos)
     dashboard = ContratoService.dashboard(filtros)
 
     return render_template(
@@ -91,6 +99,7 @@ def dashboard():
     pagina = request.args.get("page", 1, type=int)
     filtros = _filtros()
     contratos, total, total_paginas = ContratoService.listar(filtros, pagina=pagina)
+    _anexar_implantacoes(contratos)
     dashboard_dados = ContratoService.dashboard(filtros)
 
     return render_template(
@@ -149,6 +158,17 @@ def editar(contrato_id):
     return render_template("contratos/form.html", contrato=contrato, modo="editar", **contexto)
 
 
+@contratos_bp.route("/<int:contrato_id>/iniciar-implantacao", methods=["POST"])
+def iniciar_implantacao(contrato_id):
+    try:
+        implantacao_id, criada = ImplantacaoService.iniciar_por_contrato(contrato_id)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+        return redirect(request.referrer or url_for("contratos.view", contrato_id=contrato_id))
+    flash("Implantação criada." if criada else "Este contrato já possui implantação ativa.", "success" if criada else "info")
+    return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
+
+
 @contratos_bp.route("/<int:contrato_id>/upload-assinado", methods=["POST"])
 def upload_assinado(contrato_id):
     try:
@@ -186,6 +206,8 @@ def view(contrato_id):
     contrato = ContratoRepository.buscar_por_id(contrato_id)
     if not contrato:
         return redirect(url_for("contratos.index"))
+    implantacao = ImplantacaoService.buscar_por_contrato_id(contrato_id)
+    contrato["implantacao_id"] = implantacao.get("id") if implantacao else None
     itens = ContratoItemRepository.listar_por_contrato(contrato_id)
     return render_template(
         "contratos/view.html",

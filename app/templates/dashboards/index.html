@@ -123,19 +123,23 @@
     <div class="card shadow-sm border-0 mt-4">
         <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-                <h5 class="mb-1">CRM Comercial Finalizado</h5>
-                <p class="text-muted mb-2">A Sprint 8 esta pronta para ser iniciada.</p>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge text-bg-warning">Sprint 9 em implantacao</span>
+                    <span class="text-muted small">Implantacao e Provisionamento</span>
+                </div>
+                <h5 class="mb-1">Fundacao operacional de implantacao em andamento</h5>
+                <p class="text-muted mb-2">Entregas recentes e pendencias principais da Sprint 9.</p>
                 <ul class="text-muted mb-0 ps-3">
-                    <li>Consolidação comercial pós-assinatura</li>
-                    <li>Dashboard executivo/comercial</li>
-                    <li>Indicadores por parceiro e executivo</li>
-                    <li>Rastreabilidade proposta -> ClickSign -> contrato -> Omie</li>
-                    <li>Evolução de permissões e auditoria</li>
+                    <li>Licencas O3Web, Faixas de Rede e Cofre de Senhas ja disponiveis em Implantacao.</li>
+                    <li>Pendente: refinar dashboard de Implantacao com filtros por prazo, responsavel e status.</li>
+                    <li>Pendente: evoluir checklist com itens manuais e modelos por tipo de projeto.</li>
+                    <li>Pendente: revisar colunas administrativas do Kanban e rastreabilidade proposta -> contrato -> implantacao.</li>
+                    <li>Pendente: preparar configuracao base para integracoes Proxmox, PBS e Zabbix.</li>
                 </ul>
             </div>
-            <a href="{{ url_for('propostas.index') }}" class="btn btn-primary">
-                <i class="bi bi-file-earmark-richtext-fill"></i>
-                Acessar Propostas
+            <a href="{{ url_for('implantacao.index') }}" class="btn btn-primary">
+                <i class="bi bi-kanban-fill"></i>
+                Acessar Implantacao
             </a>
         </div>
     </div>

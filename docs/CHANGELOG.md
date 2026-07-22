@@ -46,6 +46,68 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-22 - Dashboard Principal da Sprint 9
+
+### Implantação e Provisionamento
+
+- Dashboard Executivo passou a informar que a Sprint 9 está em implantação.
+- Adicionado resumo das entregas recentes de Implantação e das pendências principais da Sprint 9.
+- Atalho do card principal passa a direcionar para o módulo de Implantação.
+
+---
+
+## 2026-07-22 - Ação Direta Contrato para Implantação
+
+### Implantação e Provisionamento
+
+- Adicionada ação direta em Contratos para iniciar implantação quando o contrato está `ENCAMINHADO_PROJETO`.
+- Contratos que já possuem implantação ativa passam a exibir atalho para abrir a implantação existente, sem criar duplicidade.
+
+---
+
+## 2026-07-22 - Cofre de Senhas de Implantação
+
+### Implantação e Provisionamento
+
+- Adicionada migration `028_create_implantacao_cofre_senhas.sql` para armazenar credenciais criptografadas e auditoria de ações.
+- Criada tela `Cofre de Senhas` em Implantação com listagem, filtros, cadastro, edição, inativação e revelação controlada de senha.
+- Credenciais passaram a vincular cliente, faixa de rede e opcionalmente licença O3Web, com campos futuros para Proxmox, PBS e Zabbix.
+- Revelação de senha é feita sob demanda pela interface e registrada em auditoria com usuário e IP de origem quando disponíveis.
+- Adicionados botões para copiar senha, usuário, URL e Host/IP na tela do Cofre de Senhas.
+- Adicionado gerador local de senha complexa no formulário do Cofre, com política padrão preparada para futura tela de Configurações.
+- Formulário do Cofre passa a importar a URL salva em Licenças O3Web quando uma licença é vinculada, deixando o campo editável quando não há vínculo.
+- Adicionada migration `029_create_implantacao_cofre_pastas.sql` com pastas do cofre por parceiro, cliente ou usuário logado.
+- Tela principal do Cofre passou a permitir criação, edição, seleção e filtro por pastas, com metadados de dono e compartilhamento preparados para futura política de acesso.
+
+---
+
+## 2026-07-22 - Gerenciamento de Faixas de Rede
+
+### Implantação e Provisionamento
+
+- Adicionada migration `026_create_implantacao_faixas_rede.sql` para controle de faixas de rede por cliente.
+- Criada tela `Faixas de Rede` em Implantação com listagem, filtros, cadastro, edição, inativação e vínculo com cliente sincronizado do Omie.
+- Adicionado cálculo da próxima faixa disponível dentro de uma rede base, escolhendo máscara `/29`, `/28` ou `/27` conforme a quantidade de servidores.
+- Cadastro de faixa registra `Rede`, `FW - WAN`, `FW - LAN`, `Cliente`, `VPN`, range de `Portas`, `PVE` e `Observações`.
+- Adicionada migration `027_add_port_range_implantacao_faixas_rede.sql` para estruturar `porta_inicio` e `porta_fim`.
+- Cadastro de Faixas de Rede bloqueia conflito de range de portas quando o `FW - WAN` é o mesmo em outro cadastro ativo.
+
+---
+
+## 2026-07-22 - Vínculo de Licenças O3Web com Clientes
+
+### Implantação e Provisionamento
+
+- Adicionada migration `025_add_cliente_vinculo_o3web_licencas.sql` com vínculo opcional entre licenças O3Web e clientes cadastrados.
+- Cadastro manual de Licenças O3Web passou a selecionar cliente ativo da base de clientes e preencher CNPJ automaticamente.
+- Listagem de Licenças O3Web passou a exibir o CNPJ vinculado ao cliente quando disponível.
+- Tela de Licenças O3Web passou a exibir paginação quando houver mais de 50 registros, preservando filtros aplicados.
+- Adicionado filtro de validade para listar licenças O3Web vencidas ou vigentes.
+- Adicionado alerta na tela de Licenças O3Web quando houver licenças vencidas ativas, com atalho para a listagem filtrada.
+- Importação CSV permanece compatível com cliente em texto e passa a aceitar CNPJ quando presente.
+
+---
+
 ## 2026-07-21 - Licenças O3Web
 
 ### Implantação e Provisionamento

@@ -1,0 +1,213 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include "components/page_header.html" %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Credenciais</small><h4>{{ dashboard.total or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ativas</small><h4>{{ dashboard.ativas or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Firewall</small><h4>{{ dashboard.firewall or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">VPN</small><h4>{{ dashboard.vpn or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">O3Web</small><h4>{{ dashboard.o3web or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Integrações</small><h4>{{ dashboard.integracoes_futuras or 0 }}</h4></div></div></div>
+    </div>
+
+    <div class="alert alert-secondary d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-shield-lock-fill"></i>
+        <span>As senhas ficam criptografadas no banco e toda revelação é registrada na auditoria.</span>
+    </div>
+
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+                <div>
+                    <h6 class="mb-1">Pastas</h6>
+                    <small class="text-muted">Organização por parceiro, cliente ou usuário logado, com compartilhamento preparado para a política de acesso futura.</small>
+                </div>
+                <a class="btn btn-outline-primary" href="{{ url_for('implantacao.nova_pasta_cofre') }}"><i class="bi bi-folder-plus"></i> Nova Pasta</a>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-sm {% if not selected_pasta_id %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="{{ url_for('implantacao.cofre_senhas') }}">Todas</a>
+                {% for pasta in pastas %}
+                    <div class="btn-group btn-group-sm">
+                        <a class="btn {% if selected_pasta_id == pasta.id %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="{{ url_for('implantacao.cofre_senhas', pasta_id=pasta.id) }}">
+                            <i class="bi bi-folder"></i> {{ pasta.nome }}
+                        </a>
+                        <a class="btn btn-outline-secondary" href="{{ url_for('implantacao.editar_pasta_cofre', pasta_id=pasta.id) }}" title="Editar pasta"><i class="bi bi-pencil"></i></a>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="mb-4">
+                <div class="row g-3 align-items-end">
+                    <input type="hidden" name="pasta_id" value="{{ selected_pasta_id or '' }}">
+                    <div class="col-md-5"><label class="form-label">Pesquisar</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Cliente, título, usuário, host, URL, pasta, faixa ou observação..."></div>
+                    <div class="col-md-3"><label class="form-label">Categoria</label><select class="form-select" name="categoria"><option value="">Todas</option>{% for valor, label in categoria_options.items() %}<option value="{{ valor }}" {% if selected_categoria == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                    <div class="col-md-2"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativas</option><option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativas</option><option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todas</option></select></div>
+                    <div class="col-md-1"><button class="btn btn-primary w-100"><i class="bi bi-search"></i></button></div>
+                    <div class="col-md-1"><a href="{{ request.path }}{% if selected_pasta_id %}?pasta_id={{ selected_pasta_id }}{% endif %}" class="btn btn-outline-secondary w-100">Limpar</a></div>
+                </div>
+            </form>
+
+            <div class="mb-3"><small class="text-muted">{{ total }} credencial(is) encontrada(s)</small></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>Cliente</th><th>Categoria</th><th>Credencial</th><th>Acesso</th><th>Senha</th><th>Vínculos</th><th width="130">Ações</th></tr></thead>
+                    <tbody>
+                    {% for item in senhas %}
+                        <tr>
+                            <td><strong>{{ item.cliente_nome }}</strong><br><small class="text-muted">{{ item.cliente_cnpj or 'CNPJ não vinculado' }}</small></td>
+                            <td><span class="badge bg-secondary">{{ categoria_options.get(item.categoria, item.categoria) }}</span></td>
+                            <td><strong>{{ item.titulo }}</strong>{% if item.pasta_nome %}<br><small class="text-muted"><i class="bi bi-folder"></i> {{ item.pasta_nome }}</small>{% endif %}<br><small class="text-muted">{{ item.observacoes or '-' }}</small></td>
+                            <td>
+                                <div class="d-flex flex-column gap-1">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">Usuário</span>
+                                        <input class="form-control" value="{{ item.usuario }}" readonly>
+                                        <button class="btn btn-outline-secondary cofre-copy-value" type="button" data-copy-value="{{ item.usuario }}" title="Copiar usuário"><i class="bi bi-clipboard"></i></button>
+                                    </div>
+                                    {% if item.host %}
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">Host/IP</span>
+                                            <input class="form-control" value="{{ item.host }}{% if item.porta %}:{{ item.porta }}{% endif %}" readonly>
+                                            <button class="btn btn-outline-secondary cofre-copy-value" type="button" data-copy-value="{{ item.host }}" title="Copiar Host/IP"><i class="bi bi-clipboard"></i></button>
+                                        </div>
+                                    {% endif %}
+                                    {% if item.url %}
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">URL</span>
+                                            <input class="form-control" value="{{ item.url }}" readonly>
+                                            <a class="btn btn-outline-secondary" href="{{ item.url }}" target="_blank" title="Abrir URL"><i class="bi bi-box-arrow-up-right"></i></a>
+                                            <button class="btn btn-outline-secondary cofre-copy-value" type="button" data-copy-value="{{ item.url }}" title="Copiar URL"><i class="bi bi-clipboard"></i></button>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm cofre-reveal-group" data-reveal-url="{{ url_for('implantacao.revelar_senha_cofre', senha_id=item.id) }}">
+                                    <input class="form-control" type="password" value="********" readonly>
+                                    <button class="btn btn-outline-secondary cofre-reveal-button" type="button" title="Revelar senha"><i class="bi bi-eye"></i></button>
+                                    <button class="btn btn-outline-secondary cofre-copy-password" type="button" title="Copiar senha"><i class="bi bi-clipboard"></i></button>
+                                </div>
+                            </td>
+                            <td><small class="text-muted">Rede</small><br>{{ item.faixa_rede }}{% if item.licenca_o3web_id %}<br><small class="text-muted">O3Web {{ item.licenca_o3web_codigo or item.licenca_o3web_id }}</small>{% endif %}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a class="btn btn-outline-primary" href="{{ url_for('implantacao.editar_senha_cofre', senha_id=item.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
+                                    <form method="POST" action="{{ url_for('implantacao.excluir_senha_cofre', senha_id=item.id) }}" onsubmit="return confirm('Inativar esta credencial?');"><button class="btn btn-outline-danger" title="Inativar"><i class="bi bi-trash"></i></button></form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        {% set colspan = 7 %}
+                        {% set empty_message = "Nenhuma credencial encontrada no cofre." %}
+                        {% include "components/empty_state.html" %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if total_paginas > 1 %}
+                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mt-4">
+                    <small class="text-muted">Exibindo {{ ((pagina - 1) * 50) + 1 if total else 0 }} até {{ ((pagina - 1) * 50) + senhas|length }} de {{ total }} credencial(is)</small>
+                    <nav aria-label="Paginação do cofre de senhas">
+                        <ul class="pagination mb-0">
+                            <li class="page-item {% if pagina <= 1 %}disabled{% endif %}"><a class="page-link" href="?page={{ pagina - 1 }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if selected_categoria %}&categoria={{ selected_categoria }}{% endif %}{% if selected_pasta_id %}&pasta_id={{ selected_pasta_id }}{% endif %}{% if selected_ativo %}&ativo={{ selected_ativo }}{% endif %}">Anterior</a></li>
+                            {% for p in range(1, total_paginas + 1) %}
+                                <li class="page-item {% if p == pagina %}active{% endif %}"><a class="page-link" href="?page={{ p }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if selected_categoria %}&categoria={{ selected_categoria }}{% endif %}{% if selected_pasta_id %}&pasta_id={{ selected_pasta_id }}{% endif %}{% if selected_ativo %}&ativo={{ selected_ativo }}{% endif %}">{{ p }}</a></li>
+                            {% endfor %}
+                            <li class="page-item {% if pagina >= total_paginas %}disabled{% endif %}"><a class="page-link" href="?page={{ pagina + 1 }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if selected_categoria %}&categoria={{ selected_categoria }}{% endif %}{% if selected_pasta_id %}&pasta_id={{ selected_pasta_id }}{% endif %}{% if selected_ativo %}&ativo={{ selected_ativo }}{% endif %}">Próxima</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    function copiarTexto(valor) {
+        if (!valor) {
+            return Promise.resolve(false);
+        }
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(valor).then(function () { return true; });
+        }
+        const area = document.createElement('textarea');
+        area.value = valor;
+        area.setAttribute('readonly', 'readonly');
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(area);
+        return Promise.resolve(ok);
+    }
+
+    function marcarCopiado(button) {
+        const original = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-check2"></i>';
+        setTimeout(function () { button.innerHTML = original; }, 1200);
+    }
+
+    function revelarSenha(group) {
+        return fetch(group.dataset.revealUrl, {method: 'POST'})
+            .then(function (response) { return response.json(); })
+            .then(function (payload) {
+                if (!payload.ok) {
+                    throw new Error(payload.erro || 'Não foi possível revelar a senha.');
+                }
+                return payload.senha;
+            });
+    }
+
+    document.querySelectorAll('.cofre-copy-value').forEach(function (button) {
+        button.addEventListener('click', function () {
+            copiarTexto(button.dataset.copyValue || '').then(function (ok) {
+                if (ok) {
+                    marcarCopiado(button);
+                }
+            });
+        });
+    });
+
+    document.querySelectorAll('.cofre-reveal-group').forEach(function (group) {
+        const input = group.querySelector('input');
+        const revealButton = group.querySelector('.cofre-reveal-button');
+        const copyButton = group.querySelector('.cofre-copy-password');
+        revealButton.addEventListener('click', function () {
+            if (input.type === 'text') {
+                input.type = 'password';
+                input.value = '********';
+                revealButton.innerHTML = '<i class="bi bi-eye"></i>';
+                return;
+            }
+            revelarSenha(group)
+                .then(function (senha) {
+                    input.type = 'text';
+                    input.value = senha;
+                    revealButton.innerHTML = '<i class="bi bi-eye-slash"></i>';
+                })
+                .catch(function (erro) { alert(erro.message); });
+        });
+        copyButton.addEventListener('click', function () {
+            revelarSenha(group)
+                .then(function (senha) { return copiarTexto(senha); })
+                .then(function (ok) {
+                    if (ok) {
+                        marcarCopiado(copyButton);
+                    }
+                })
+                .catch(function (erro) { alert(erro.message); });
+        });
+    });
+})();
+</script>
+{% endblock %}

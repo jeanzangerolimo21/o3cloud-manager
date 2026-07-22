@@ -4,6 +4,7 @@ from flask import jsonify
 from flask import redirect
 from flask import render_template
 from flask import request
+from flask import session
 from flask import url_for
 
 from app.implantacao.service import ImplantacaoService
@@ -13,8 +14,14 @@ from app.implantacao.service import PRIORIDADE_IMPLANTACAO
 from app.implantacao.service import STATUS_CHECKLIST
 from app.implantacao.service import STATUS_IMPLANTACAO
 from app.implantacao.service import STATUS_PROVISIONAMENTO
+from app.clientes.service import ClienteService
 from app.implantacao.o3web_licencas_service import O3WebLicencaService
 from app.implantacao.o3web_licencas_service import TIPOS_LICENCA_O3WEB
+from app.implantacao.faixas_rede_service import FaixaRedeService
+from app.implantacao.cofre_senhas_service import CATEGORIAS_COFRE_SENHAS
+from app.implantacao.cofre_pastas_service import CofrePastaService
+from app.implantacao.cofre_pastas_service import TIPOS_COFRE_PASTA
+from app.implantacao.cofre_senhas_service import CofreSenhaService
 
 
 implantacao_bp = Blueprint("implantacao", __name__, url_prefix="/implantacao")
@@ -57,16 +64,246 @@ def index():
 
 
 
+@implantacao_bp.route("/faixas-rede")
+def faixas_rede():
+    pesquisa = request.args.get("q")
+    ativo = request.args.get("ativo", "1")
+    pagina = request.args.get("page", 1, type=int)
+    rede_base = request.args.get("rede_base")
+    quantidade_servidores = request.args.get("quantidade_servidores")
+    sugestao = None
+    if rede_base or quantidade_servidores:
+        try:
+            sugestao = FaixaRedeService.calcular_proxima(rede_base, quantidade_servidores)
+        except ValueError as erro:
+            flash(str(erro), "danger")
+    faixas, total = FaixaRedeService.listar(
+        pesquisa=pesquisa,
+        ativo=ativo,
+        pagina=pagina,
+    )
+    total_paginas = (total + 49) // 50
+    return render_template(
+        "implantacao/faixas_rede/index.html",
+        faixas=faixas,
+        total=total,
+        pagina=pagina,
+        total_paginas=total_paginas,
+        pesquisa=pesquisa,
+        selected_ativo=ativo,
+        rede_base=rede_base,
+        quantidade_servidores=quantidade_servidores,
+        sugestao=sugestao,
+        dashboard=FaixaRedeService.dashboard(),
+        page_title="Faixas de Rede",
+        page_description="Gerenciamento das faixas reservadas para novos ambientes de clientes.",
+        page_icon="bi-diagram-3-fill",
+        page_button_text="Nova Faixa",
+        page_button_icon="bi-plus-circle",
+        page_button_url=url_for("implantacao.nova_faixa_rede"),
+    )
+
+
+@implantacao_bp.route("/faixas-rede/novo", methods=["GET", "POST"])
+def nova_faixa_rede():
+    clientes = ClienteService.listar_para_importacao()
+    faixa = {
+        "rede": request.args.get("rede"),
+        "quantidade_servidores": request.args.get("quantidade_servidores"),
+        "fw_wan": request.args.get("fw_wan"),
+        "fw_lan": request.args.get("fw_lan"),
+        "pve": request.args.get("pve"),
+        "ativo": 1,
+    }
+    if request.method == "POST":
+        try:
+            faixa_id = FaixaRedeService.criar(_faixa_rede_form_data())
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            return render_template("implantacao/faixas_rede/form.html", faixa=request.form, clientes=clientes, modo="novo")
+        flash("Faixa de rede cadastrada.", "success")
+        return redirect(url_for("implantacao.editar_faixa_rede", faixa_id=faixa_id))
+    return render_template("implantacao/faixas_rede/form.html", faixa=faixa, clientes=clientes, modo="novo")
+
+
+@implantacao_bp.route("/faixas-rede/<int:faixa_id>/editar", methods=["GET", "POST"])
+def editar_faixa_rede(faixa_id):
+    faixa = FaixaRedeService.buscar_por_id(faixa_id)
+    if not faixa:
+        flash("Faixa de rede não encontrada.", "danger")
+        return redirect(url_for("implantacao.faixas_rede"))
+    clientes = ClienteService.listar_para_importacao()
+    if request.method == "POST":
+        try:
+            FaixaRedeService.atualizar(faixa_id, _faixa_rede_form_data())
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            faixa = {**faixa, **request.form}
+        else:
+            flash("Faixa de rede atualizada.", "success")
+            return redirect(url_for("implantacao.faixas_rede"))
+    return render_template("implantacao/faixas_rede/form.html", faixa=faixa, clientes=clientes, modo="editar")
+
+
+@implantacao_bp.route("/faixas-rede/<int:faixa_id>/excluir", methods=["POST"])
+def excluir_faixa_rede(faixa_id):
+    try:
+        FaixaRedeService.excluir(faixa_id)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Faixa de rede inativada.", "success")
+    return redirect(url_for("implantacao.faixas_rede"))
+
+
+@implantacao_bp.route("/cofre-senhas")
+def cofre_senhas():
+    pesquisa = request.args.get("q")
+    categoria = request.args.get("categoria")
+    pasta_id = request.args.get("pasta_id", type=int)
+    ativo = request.args.get("ativo", "1")
+    pagina = request.args.get("page", 1, type=int)
+    senhas, total = CofreSenhaService.listar(
+        pesquisa=pesquisa,
+        categoria=categoria,
+        ativo=ativo,
+        pasta_id=pasta_id,
+        pagina=pagina,
+    )
+    total_paginas = (total + 49) // 50
+    return render_template(
+        "implantacao/cofre_senhas/index.html",
+        senhas=senhas,
+        total=total,
+        pagina=pagina,
+        total_paginas=total_paginas,
+        pesquisa=pesquisa,
+        selected_categoria=categoria,
+        selected_pasta_id=pasta_id,
+        selected_ativo=ativo,
+        pastas=CofrePastaService.listar_ativas(),
+        pasta_tipo_options=TIPOS_COFRE_PASTA,
+        categoria_options=CATEGORIAS_COFRE_SENHAS,
+        dashboard=CofreSenhaService.dashboard(),
+        page_title="Cofre de Senhas",
+        page_description="Credenciais operacionais vinculadas a clientes e faixas de rede.",
+        page_icon="bi-shield-lock-fill",
+        page_button_text="Nova Credencial",
+        page_button_icon="bi-plus-circle",
+        page_button_url=url_for("implantacao.nova_senha_cofre"),
+    )
+
+
+@implantacao_bp.route("/cofre-senhas/pastas/novo", methods=["GET", "POST"])
+def nova_pasta_cofre():
+    contexto = CofrePastaService.contexto_form()
+    if request.method == "POST":
+        try:
+            CofrePastaService.criar(_cofre_pasta_form_data(), _email_usuario_logado())
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            return render_template("implantacao/cofre_senhas/pasta_form.html", pasta=request.form, modo="novo", owner_email=_email_usuario_logado(), **contexto)
+        flash("Pasta criada no cofre.", "success")
+        return redirect(url_for("implantacao.cofre_senhas"))
+    return render_template("implantacao/cofre_senhas/pasta_form.html", pasta={"tipo": "usuario", "ativo": 1}, modo="novo", owner_email=_email_usuario_logado(), **contexto)
+
+
+@implantacao_bp.route("/cofre-senhas/pastas/<int:pasta_id>/editar", methods=["GET", "POST"])
+def editar_pasta_cofre(pasta_id):
+    pasta = CofrePastaService.buscar_por_id(pasta_id)
+    if not pasta:
+        flash("Pasta não encontrada.", "danger")
+        return redirect(url_for("implantacao.cofre_senhas"))
+    contexto = CofrePastaService.contexto_form()
+    if request.method == "POST":
+        try:
+            CofrePastaService.atualizar(pasta_id, _cofre_pasta_form_data(), _email_usuario_logado())
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            pasta = {**pasta, **request.form}
+        else:
+            flash("Pasta atualizada.", "success")
+            return redirect(url_for("implantacao.cofre_senhas", pasta_id=pasta_id))
+    return render_template("implantacao/cofre_senhas/pasta_form.html", pasta=pasta, modo="editar", owner_email=pasta.get("owner_email") or _email_usuario_logado(), **contexto)
+
+
+@implantacao_bp.route("/cofre-senhas/pastas/<int:pasta_id>/excluir", methods=["POST"])
+def excluir_pasta_cofre(pasta_id):
+    try:
+        CofrePastaService.excluir(pasta_id)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Pasta inativada.", "success")
+    return redirect(url_for("implantacao.cofre_senhas"))
+
+
+@implantacao_bp.route("/cofre-senhas/novo", methods=["GET", "POST"])
+def nova_senha_cofre():
+    contexto = CofreSenhaService.contexto_form()
+    if request.method == "POST":
+        try:
+            senha_id = CofreSenhaService.criar(_cofre_senha_form_data(), _email_usuario_logado(), request.remote_addr)
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            return render_template("implantacao/cofre_senhas/form.html", senha=request.form, modo="novo", **contexto)
+        flash("Credencial cadastrada no cofre.", "success")
+        return redirect(url_for("implantacao.editar_senha_cofre", senha_id=senha_id))
+    return render_template("implantacao/cofre_senhas/form.html", senha={"ativo": 1}, modo="novo", **contexto)
+
+
+@implantacao_bp.route("/cofre-senhas/<int:senha_id>/editar", methods=["GET", "POST"])
+def editar_senha_cofre(senha_id):
+    senha = CofreSenhaService.buscar_por_id(senha_id)
+    if not senha:
+        flash("Credencial não encontrada.", "danger")
+        return redirect(url_for("implantacao.cofre_senhas"))
+    contexto = CofreSenhaService.contexto_form()
+    auditoria = CofreSenhaService.listar_auditoria(senha_id)
+    if request.method == "POST":
+        try:
+            CofreSenhaService.atualizar(senha_id, _cofre_senha_form_data(), _email_usuario_logado(), request.remote_addr)
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            senha = {**senha, **request.form}
+        else:
+            flash("Credencial atualizada.", "success")
+            return redirect(url_for("implantacao.cofre_senhas"))
+    return render_template("implantacao/cofre_senhas/form.html", senha=senha, modo="editar", auditoria=auditoria, **contexto)
+
+
+@implantacao_bp.route("/cofre-senhas/<int:senha_id>/revelar", methods=["POST"])
+def revelar_senha_cofre(senha_id):
+    try:
+        senha = CofreSenhaService.revelar_senha(senha_id, _email_usuario_logado(), request.remote_addr)
+    except ValueError as erro:
+        return jsonify({"ok": False, "erro": str(erro)}), 400
+    return jsonify({"ok": True, "senha": senha})
+
+
+@implantacao_bp.route("/cofre-senhas/<int:senha_id>/excluir", methods=["POST"])
+def excluir_senha_cofre(senha_id):
+    try:
+        CofreSenhaService.excluir(senha_id, _email_usuario_logado(), request.remote_addr)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Credencial inativada.", "success")
+    return redirect(url_for("implantacao.cofre_senhas"))
+
+
 @implantacao_bp.route("/licencas-o3web")
 def licencas_o3web():
     pesquisa = request.args.get("q")
     tipo = request.args.get("tipo")
+    validade = request.args.get("validade")
     ativo = request.args.get("ativo", "1")
     pagina = request.args.get("page", 1, type=int)
     licencas, total = O3WebLicencaService.listar(
         pesquisa=pesquisa,
         tipo=tipo,
         ativo=ativo,
+        validade=validade,
         pagina=pagina,
     )
     total_paginas = (total + 49) // 50
@@ -78,6 +315,7 @@ def licencas_o3web():
         total_paginas=total_paginas,
         pesquisa=pesquisa,
         selected_tipo=tipo,
+        selected_validade=validade,
         selected_ativo=ativo,
         tipo_options=TIPOS_LICENCA_O3WEB,
         dashboard=O3WebLicencaService.dashboard(),
@@ -117,15 +355,16 @@ def importar_licencas_o3web():
 
 @implantacao_bp.route("/licencas-o3web/novo", methods=["GET", "POST"])
 def nova_licenca_o3web():
+    clientes = ClienteService.listar_para_importacao()
     if request.method == "POST":
         try:
             licenca_id = O3WebLicencaService.criar(_licenca_o3web_form_data())
         except ValueError as erro:
             flash(str(erro), "danger")
-            return render_template("implantacao/licencas_o3web/form.html", licenca=request.form, tipo_options=TIPOS_LICENCA_O3WEB, modo="novo")
+            return render_template("implantacao/licencas_o3web/form.html", licenca=request.form, tipo_options=TIPOS_LICENCA_O3WEB, clientes=clientes, modo="novo")
         flash("Licença O3Web cadastrada.", "success")
         return redirect(url_for("implantacao.editar_licenca_o3web", licenca_id=licenca_id))
-    return render_template("implantacao/licencas_o3web/form.html", licenca={}, tipo_options=TIPOS_LICENCA_O3WEB, modo="novo")
+    return render_template("implantacao/licencas_o3web/form.html", licenca={}, tipo_options=TIPOS_LICENCA_O3WEB, clientes=clientes, modo="novo")
 
 
 @implantacao_bp.route("/licencas-o3web/<int:licenca_id>/editar", methods=["GET", "POST"])
@@ -134,6 +373,7 @@ def editar_licenca_o3web(licenca_id):
     if not licenca:
         flash("Licença O3Web não encontrada.", "danger")
         return redirect(url_for("implantacao.licencas_o3web"))
+    clientes = ClienteService.listar_para_importacao()
     if request.method == "POST":
         try:
             O3WebLicencaService.atualizar(licenca_id, _licenca_o3web_form_data())
@@ -143,7 +383,7 @@ def editar_licenca_o3web(licenca_id):
         else:
             flash("Licença O3Web atualizada.", "success")
             return redirect(url_for("implantacao.licencas_o3web"))
-    return render_template("implantacao/licencas_o3web/form.html", licenca=licenca, tipo_options=TIPOS_LICENCA_O3WEB, modo="editar")
+    return render_template("implantacao/licencas_o3web/form.html", licenca=licenca, tipo_options=TIPOS_LICENCA_O3WEB, clientes=clientes, modo="editar")
 
 
 @implantacao_bp.route("/licencas-o3web/<int:licenca_id>/excluir", methods=["POST"])
@@ -332,8 +572,73 @@ def atualizar_checklist(item_id):
     return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
 
 
+def _cofre_pasta_form_data():
+    return {
+        "nome": request.form.get("nome"),
+        "tipo": request.form.get("tipo"),
+        "parceiro_id": request.form.get("parceiro_id"),
+        "cliente_id": request.form.get("cliente_id"),
+        "owner_email": request.form.get("owner_email") or _email_usuario_logado(),
+        "compartilhada": request.form.get("compartilhada", "0"),
+        "compartilhada_com": request.form.get("compartilhada_com"),
+        "observacoes": request.form.get("observacoes"),
+        "ativo": request.form.get("ativo", "1"),
+    }
+
+
+def _cofre_senha_form_data():
+    return {
+        "pasta_id": request.form.get("pasta_id"),
+        "cliente_id": request.form.get("cliente_id"),
+        "faixa_rede_id": request.form.get("faixa_rede_id"),
+        "licenca_o3web_id": request.form.get("licenca_o3web_id"),
+        "categoria": request.form.get("categoria"),
+        "titulo": request.form.get("titulo"),
+        "host": request.form.get("host"),
+        "porta": request.form.get("porta"),
+        "url": request.form.get("url"),
+        "usuario": request.form.get("usuario"),
+        "senha": request.form.get("senha"),
+        "observacoes": request.form.get("observacoes"),
+        "proxmox_node_id": request.form.get("proxmox_node_id"),
+        "proxmox_vm_id": request.form.get("proxmox_vm_id"),
+        "pbs_server_id": request.form.get("pbs_server_id"),
+        "zabbix_host_id": request.form.get("zabbix_host_id"),
+        "ativo": request.form.get("ativo", "1"),
+    }
+
+
+def _email_usuario_logado():
+    for chave in ("user_email", "email", "usuario_email", "login_email"):
+        valor = session.get(chave)
+        if valor:
+            return valor
+    return "sistema"
+
+
+def _faixa_rede_form_data():
+    return {
+        "rede": request.form.get("rede"),
+        "quantidade_servidores": request.form.get("quantidade_servidores"),
+        "fw_wan": request.form.get("fw_wan"),
+        "fw_lan": request.form.get("fw_lan"),
+        "cliente_id": request.form.get("cliente_id"),
+        "cliente_nome": request.form.get("cliente_nome"),
+        "cliente_cnpj": request.form.get("cliente_cnpj"),
+        "vpn": request.form.get("vpn"),
+        "porta_inicio": request.form.get("porta_inicio"),
+        "porta_fim": request.form.get("porta_fim"),
+        "portas": request.form.get("portas"),
+        "pve": request.form.get("pve"),
+        "observacoes": request.form.get("observacoes"),
+        "ativo": request.form.get("ativo", "1"),
+    }
+
+
 def _licenca_o3web_form_data():
     return {
+        "cliente_id": request.form.get("cliente_id"),
+        "cliente_cnpj": request.form.get("cliente_cnpj"),
         "chave_ativacao": request.form.get("chave_ativacao"),
         "id_licenca": request.form.get("id_licenca"),
         "tipo": request.form.get("tipo"),

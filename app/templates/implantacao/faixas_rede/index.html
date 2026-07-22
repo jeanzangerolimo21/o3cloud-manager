@@ -1,0 +1,102 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include "components/page_header.html" %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Faixas</small><h4>{{ dashboard.total or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ativas</small><h4>{{ dashboard.ativas or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">/29</small><h4>{{ dashboard.redes_29 or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">/28</small><h4>{{ dashboard.redes_28 or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">/27</small><h4>{{ dashboard.redes_27 or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Servidores</small><h4>{{ dashboard.servidores_total or 0 }}</h4></div></div></div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Rede base</label>
+                        <input class="form-control" name="rede_base" value="{{ rede_base or '' }}" placeholder="Ex.: 10.10.0.0/16">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Quantidade de servidores</label>
+                        <input class="form-control" type="number" min="1" name="quantidade_servidores" value="{{ quantidade_servidores or '' }}" placeholder="Ex.: 5">
+                    </div>
+                    <div class="col-md-2"><button class="btn btn-primary w-100"><i class="bi bi-calculator"></i> Calcular</button></div>
+                    <div class="col-md-3"><a class="btn btn-outline-primary w-100" href="{{ url_for('implantacao.nova_faixa_rede') }}"><i class="bi bi-plus-circle"></i> Cadastrar manualmente</a></div>
+                </div>
+            </form>
+            {% if sugestao %}
+                <div class="alert alert-info mt-4 mb-0 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3" role="alert">
+                    <div>
+                        <strong>Próxima faixa disponível: {{ sugestao.rede }}</strong><br>
+                        <span>Máscara /{{ sugestao.mascara }} para {{ sugestao.quantidade_servidores }} servidor(es). FW WAN {{ sugestao.fw_wan or '-' }}, FW LAN {{ sugestao.fw_lan or '-' }}.</span>
+                    </div>
+                    <a class="btn btn-sm btn-outline-dark" href="{{ url_for('implantacao.nova_faixa_rede', rede=sugestao.rede, quantidade_servidores=sugestao.quantidade_servidores, fw_wan=sugestao.fw_wan, fw_lan=sugestao.fw_lan, pve=sugestao.pve) }}">Usar esta faixa</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="mb-4">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-7"><label class="form-label">Pesquisar</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Rede, cliente, IP, portas, VPN, PVE ou observação..."></div>
+                    <div class="col-md-2"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativas</option><option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativas</option><option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todas</option></select></div>
+                    <div class="col-md-1"><button class="btn btn-primary w-100"><i class="bi bi-search"></i></button></div>
+                    <div class="col-md-2"><a href="{{ request.path }}" class="btn btn-outline-secondary w-100">Limpar</a></div>
+                </div>
+            </form>
+
+            <div class="mb-3"><small class="text-muted">{{ total }} faixa(s) encontrada(s)</small></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>Rede</th><th>FW - WAN</th><th>FW - LAN</th><th>Cliente</th><th>VPN</th><th>Portas</th><th>PVE</th><th>Observações</th><th width="120">Ações</th></tr></thead>
+                    <tbody>
+                    {% for faixa in faixas %}
+                        <tr>
+                            <td><strong>{{ faixa.rede }}</strong><br><small class="text-muted">/{{ faixa.mascara }} - {{ faixa.quantidade_servidores or 0 }} servidor(es)</small></td>
+                            <td>{{ faixa.fw_wan or '-' }}</td>
+                            <td>{{ faixa.fw_lan or '-' }}</td>
+                            <td><strong>{{ faixa.cliente_nome }}</strong><br><small class="text-muted">{{ faixa.cliente_cnpj or 'CNPJ não vinculado' }}</small></td>
+                            <td>{{ faixa.vpn or '-' }}</td>
+                            <td>{% if faixa.porta_inicio and faixa.porta_fim %}{{ faixa.porta_inicio }}-{{ faixa.porta_fim }}{% else %}{{ faixa.portas or '-' }}{% endif %}</td>
+                            <td>{{ faixa.pve or '-' }}</td>
+                            <td>{{ faixa.observacoes or '-' }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a class="btn btn-outline-primary" href="{{ url_for('implantacao.editar_faixa_rede', faixa_id=faixa.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
+                                    <form method="POST" action="{{ url_for('implantacao.excluir_faixa_rede', faixa_id=faixa.id) }}" onsubmit="return confirm('Inativar esta faixa de rede?');"><button class="btn btn-outline-danger" title="Inativar"><i class="bi bi-trash"></i></button></form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        {% set colspan = 9 %}
+                        {% set empty_message = "Nenhuma faixa de rede encontrada." %}
+                        {% include "components/empty_state.html" %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if total_paginas > 1 %}
+                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mt-4">
+                    <small class="text-muted">Exibindo {{ ((pagina - 1) * 50) + 1 if total else 0 }} até {{ ((pagina - 1) * 50) + faixas|length }} de {{ total }} faixa(s)</small>
+                    <nav aria-label="Paginação de faixas de rede">
+                        <ul class="pagination mb-0">
+                            <li class="page-item {% if pagina <= 1 %}disabled{% endif %}"><a class="page-link" href="?page={{ pagina - 1 }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if selected_ativo %}&ativo={{ selected_ativo }}{% endif %}">Anterior</a></li>
+                            {% for p in range(1, total_paginas + 1) %}
+                                <li class="page-item {% if p == pagina %}active{% endif %}"><a class="page-link" href="?page={{ p }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if selected_ativo %}&ativo={{ selected_ativo }}{% endif %}">{{ p }}</a></li>
+                            {% endfor %}
+                            <li class="page-item {% if pagina >= total_paginas %}disabled{% endif %}"><a class="page-link" href="?page={{ pagina + 1 }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if selected_ativo %}&ativo={{ selected_ativo }}{% endif %}">Próxima</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

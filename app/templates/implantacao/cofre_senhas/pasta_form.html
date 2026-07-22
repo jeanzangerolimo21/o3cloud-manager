@@ -1,0 +1,49 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Editar Pasta" if modo == "editar" else "Nova Pasta" %}
+    {% set page_description = "Organização do cofre por parceiro, cliente ou usuário logado." %}
+    {% set page_icon = "bi-folder-fill" %}
+    {% set page_button_url = url_for('implantacao.cofre_senhas') %}
+    {% set page_button_icon = "bi-arrow-left" %}
+    {% set page_button_text = "Voltar" %}
+    {% include "components/page_header.html" %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label">Nome *</label><input class="form-control" name="nome" value="{{ pasta.nome or '' }}" required></div>
+                    <div class="col-md-3"><label class="form-label">Tipo *</label><select class="form-select" name="tipo" id="tipo_pasta" required>{% for valor, label in tipo_options.items() %}<option value="{{ valor }}" {% if pasta.tipo == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                    <div class="col-md-3"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if pasta.ativo is not defined or pasta.ativo %}selected{% endif %}>Ativa</option><option value="0" {% if pasta.ativo is defined and not pasta.ativo %}selected{% endif %}>Inativa</option></select></div>
+                    <div class="col-md-6 pasta-contexto" data-tipo="parceiro"><label class="form-label">Parceiro</label><select class="form-select" name="parceiro_id"><option value="">Selecionar parceiro</option>{% for parceiro in parceiros %}<option value="{{ parceiro.id }}" {% if pasta.parceiro_id|string == parceiro.id|string %}selected{% endif %}>{{ parceiro.nome_exibicao or parceiro.nome }}</option>{% endfor %}</select></div>
+                    <div class="col-md-6 pasta-contexto" data-tipo="cliente"><label class="form-label">Cliente</label><select class="form-select" name="cliente_id"><option value="">Selecionar cliente</option>{% for cliente in clientes %}{% set nome_cliente = cliente.nome_fantasia or cliente.razao_social %}<option value="{{ cliente.id }}" {% if pasta.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj }}{% endif %}</option>{% endfor %}</select></div>
+                    <div class="col-md-6"><label class="form-label">Dono</label><input class="form-control" name="owner_email" value="{{ pasta.owner_email or owner_email or 'sistema' }}"></div>
+                    <div class="col-md-3"><label class="form-label">Compartilhar</label><select class="form-select" name="compartilhada"><option value="0" {% if not pasta.compartilhada %}selected{% endif %}>Não</option><option value="1" {% if pasta.compartilhada %}selected{% endif %}>Sim</option></select></div>
+                    <div class="col-md-9"><label class="form-label">Compartilhar com</label><input class="form-control" name="compartilhada_com" value="{{ pasta.compartilhada_com or '' }}" placeholder="E-mails ou grupos separados por vírgula"></div>
+                    <div class="col-12"><label class="form-label">Observações</label><textarea class="form-control" rows="4" name="observacoes">{{ pasta.observacoes or '' }}</textarea></div>
+                </div>
+                <div class="text-end mt-4"><button class="btn btn-primary"><i class="bi bi-floppy"></i> Salvar</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const tipo = document.getElementById('tipo_pasta');
+    const blocos = document.querySelectorAll('.pasta-contexto');
+    function atualizarContexto() {
+        const valor = tipo ? tipo.value : 'usuario';
+        blocos.forEach(function (bloco) {
+            bloco.style.display = bloco.dataset.tipo === valor ? '' : 'none';
+        });
+    }
+    if (tipo) {
+        tipo.addEventListener('change', atualizarContexto);
+        atualizarContexto();
+    }
+})();
+</script>
+{% endblock %}

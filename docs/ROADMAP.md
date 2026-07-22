@@ -300,6 +300,30 @@ Objetivos:
 
 ---
 
+## Sprint futura — Identidade e Controle de Acesso com FreeIPA
+
+**Objetivo:** integrar o O3Cloud Manager ao FreeIPA para autenticação centralizada, sincronização de usuários e grupos, gerenciamento de hosts Linux, políticas HBAC, regras sudo e automação de acessos durante o provisionamento Proxmox.
+
+### Fases previstas
+
+1. Laboratório e arquitetura FreeIPA.
+2. Login do O3Cloud Manager via FreeIPA.
+3. Sincronização de usuários e grupos.
+4. Interface administrativa de identidade.
+5. Integração de hosts Linux.
+6. Gerenciamento de HBAC e sudo.
+7. Integração com provisionamento Proxmox e cloud-init.
+8. Alta disponibilidade, backup e Disaster Recovery.
+
+### Regras de arquitetura
+
+- O FreeIPA será executado separadamente.
+- O O3Cloud Manager não armazenará senhas do FreeIPA.
+- Os grupos FreeIPA serão mapeados para perfis internos configuráveis.
+- Todas as ações deverão gerar auditoria.
+- As tabelas somente serão criadas após aprovação do diagrama funcional.
+- O módulo deverá respeitar o Architecture Freeze.
+
 # Objetivos Estratégicos
 
 Ao final do desenvolvimento o O3Cloud Manager deverá controlar:
@@ -319,6 +343,7 @@ Ao final do desenvolvimento o O3Cloud Manager deverá controlar:
 - Financeiro
 - Dashboards
 - Indicadores Executivos
+- Gerenciamento de acessos e usuarios integrados com FreeIPA
 
 ---
 

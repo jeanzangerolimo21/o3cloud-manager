@@ -109,6 +109,13 @@
                             <div class="d-flex flex-wrap align-items-start justify-content-lg-end gap-2" style="min-width: 280px;">
                                 <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('contratos.view', contrato_id=contrato.id) }}" title="Ver"><i class="bi bi-eye"></i></a>
                                 <a class="btn btn-sm btn-outline-primary" href="{{ url_for('contratos.editar', contrato_id=contrato.id) }}" title="Editar vinculos comerciais"><i class="bi bi-pencil"></i></a>
+                                {% if contrato.implantacao_id %}
+                                    <a class="btn btn-sm btn-outline-info" href="{{ url_for('implantacao.visualizar', implantacao_id=contrato.implantacao_id) }}" title="Abrir implantação"><i class="bi bi-hdd-network"></i> Implantação</a>
+                                {% elif contrato.status == 'ENCAMINHADO_PROJETO' %}
+                                    <form method="POST" action="{{ url_for('contratos.iniciar_implantacao', contrato_id=contrato.id) }}">
+                                        <button class="btn btn-sm btn-outline-info" title="Iniciar implantação"><i class="bi bi-hdd-network"></i> Iniciar Implantação</button>
+                                    </form>
+                                {% endif %}
                                 {% if contrato.origem == 'MANUAL' %}
                                     <a class="btn btn-sm btn-outline-danger" href="{{ url_for('contratos.excluir', contrato_id=contrato.id) }}" title="Excluir" onclick="return confirm('Deseja excluir este contrato manual?')"><i class="bi bi-trash"></i></a>
                                 {% endif %}

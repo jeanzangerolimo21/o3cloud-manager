@@ -168,6 +168,17 @@ class ImplantacaoService:
         return implantacao
 
     @classmethod
+    def buscar_por_contrato_id(cls, contrato_id):
+        return cls.repository.buscar_por_contrato_id(contrato_id)
+
+    @classmethod
+    def iniciar_por_contrato(cls, contrato_id):
+        existente = cls.repository.buscar_por_contrato_id(contrato_id)
+        if existente:
+            return existente.get("id"), False
+        return cls.criar({"contrato_id": contrato_id, "etapa_kanban": "FILA"}), True
+
+    @classmethod
     def listar_contratos_elegiveis(cls):
         return cls.repository.listar_contratos_elegiveis()
 

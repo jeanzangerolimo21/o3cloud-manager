@@ -3,13 +3,13 @@ from app.repositories.base_repository import BaseRepository
 
 class O3WebLicencaRepository(BaseRepository):
     @classmethod
-    def listar(cls, pesquisa=None, tipo=None, ativo=1, limit=50, offset=0):
+    def listar(cls, pesquisa=None, tipo=None, ativo=1, validade=None, limit=50, offset=0):
         sql = """
             SELECT *
             FROM o3web_licencas
             WHERE 1 = 1
         """
-        where, params = cls._filtros(pesquisa, tipo, ativo)
+        where, params = cls._filtros(pesquisa, tipo, ativo, validade)
         sql += where
         sql += """
             ORDER BY cliente_nome ASC, COALESCE(data_expiracao, '2999-12-31') ASC, id DESC
@@ -19,9 +19,9 @@ class O3WebLicencaRepository(BaseRepository):
         return cls.fetch_all(sql, tuple(params))
 
     @classmethod
-    def total(cls, pesquisa=None, tipo=None, ativo=1):
+    def total(cls, pesquisa=None, tipo=None, ativo=1, validade=None):
         sql = "SELECT COUNT(*) FROM o3web_licencas WHERE 1 = 1"
-        where, params = cls._filtros(pesquisa, tipo, ativo)
+        where, params = cls._filtros(pesquisa, tipo, ativo, validade)
         return cls.scalar(sql + where, tuple(params)) or 0
 
     @classmethod
@@ -34,7 +34,7 @@ class O3WebLicencaRepository(BaseRepository):
                 SUM(CASE WHEN tipo = 'trial' AND ativo = 1 THEN 1 ELSE 0 END) AS trials,
                 SUM(CASE WHEN tipo = 'permanent' AND ativo = 1 THEN 1 ELSE 0 END) AS permanentes,
                 SUM(CASE WHEN ativo = 1 THEN COALESCE(usuarios, 0) ELSE 0 END) AS usuarios_total,
-                SUM(CASE WHEN ativo = 1 AND data_expiracao IS NOT NULL AND data_expiracao < NOW() THEN 1 ELSE 0 END) AS expiradas
+                SUM(CASE WHEN ativo = 1 AND data_expiracao IS NOT NULL AND data_expiracao < CURDATE() THEN 1 ELSE 0 END) AS expiradas
             FROM o3web_licencas
             """
         )
@@ -70,10 +70,10 @@ class O3WebLicencaRepository(BaseRepository):
         return cls.execute_insert(
             """
             INSERT INTO o3web_licencas (
-                uuid, chave_ativacao, id_licenca, tipo, bkp, dias, usuarios, edicao,
+                uuid, cliente_id, cliente_nome, cliente_cnpj, chave_ativacao, id_licenca, tipo, bkp, dias, usuarios, edicao,
                 data_ativacao, data_ativacao_raw, data_expiracao, data_expiracao_raw,
-                cliente_nome, url_principal, url_secundaria, comments, observacao, origem, ativo
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                url_principal, url_secundaria, comments, observacao, origem, ativo
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             cls._params(dados, incluir_uuid=True),
         )
@@ -83,7 +83,10 @@ class O3WebLicencaRepository(BaseRepository):
         return cls.execute(
             """
             UPDATE o3web_licencas
-            SET chave_ativacao=%s,
+            SET cliente_id=%s,
+                cliente_nome=%s,
+                cliente_cnpj=%s,
+                chave_ativacao=%s,
                 id_licenca=%s,
                 tipo=%s,
                 bkp=%s,
@@ -94,7 +97,6 @@ class O3WebLicencaRepository(BaseRepository):
                 data_ativacao_raw=%s,
                 data_expiracao=%s,
                 data_expiracao_raw=%s,
-                cliente_nome=%s,
                 url_principal=%s,
                 url_secundaria=%s,
                 comments=%s,
@@ -113,6 +115,9 @@ class O3WebLicencaRepository(BaseRepository):
     @classmethod
     def _params(cls, dados, incluir_uuid=False):
         params = (
+            dados.get("cliente_id"),
+            dados.get("cliente_nome"),
+            dados.get("cliente_cnpj"),
             dados.get("chave_ativacao"),
             dados.get("id_licenca"),
             dados.get("tipo"),
@@ -124,7 +129,6 @@ class O3WebLicencaRepository(BaseRepository):
             dados.get("data_ativacao_raw"),
             dados.get("data_expiracao"),
             dados.get("data_expiracao_raw"),
-            dados.get("cliente_nome"),
             dados.get("url_principal"),
             dados.get("url_secundaria"),
             dados.get("comments"),
@@ -137,7 +141,7 @@ class O3WebLicencaRepository(BaseRepository):
         return params
 
     @classmethod
-    def _filtros(cls, pesquisa=None, tipo=None, ativo=1):
+    def _filtros(cls, pesquisa=None, tipo=None, ativo=1, validade=None):
         where = []
         params = []
         if pesquisa:
@@ -147,15 +151,20 @@ class O3WebLicencaRepository(BaseRepository):
                     cliente_nome LIKE %s
                     OR COALESCE(chave_ativacao, '') LIKE %s
                     OR COALESCE(id_licenca, '') LIKE %s
+                    OR COALESCE(cliente_cnpj, '') LIKE %s
                     OR COALESCE(url_principal, '') LIKE %s
                     OR COALESCE(comments, '') LIKE %s
                     OR COALESCE(observacao, '') LIKE %s
                 )
             """)
-            params.extend([termo] * 6)
+            params.extend([termo] * 7)
         if tipo:
             where.append("tipo = %s")
             params.append(tipo)
+        if validade == "expiradas":
+            where.append("data_expiracao IS NOT NULL AND data_expiracao < CURDATE()")
+        elif validade == "vigentes":
+            where.append("(data_expiracao IS NULL OR data_expiracao >= CURDATE())")
         if ativo in (0, 1):
             where.append("ativo = %s")
             params.append(ativo)

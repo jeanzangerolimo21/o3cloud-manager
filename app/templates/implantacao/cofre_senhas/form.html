@@ -1,0 +1,262 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Editar Credencial" if modo == "editar" else "Nova Credencial" %}
+    {% set page_description = "Senha criptografada com vínculos operacionais do cliente." %}
+    {% set page_icon = "bi-shield-lock-fill" %}
+    {% set page_button_url = url_for('implantacao.cofre_senhas') %}
+    {% set page_button_icon = "bi-arrow-left" %}
+    {% set page_button_text = "Voltar" %}
+    {% include "components/page_header.html" %}
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Cliente *</label>
+                                <select class="form-select" name="cliente_id" id="cliente_id" required>
+                                    <option value="">Selecionar cliente</option>
+                                    {% for cliente in clientes %}
+                                        {% set nome_cliente = cliente.nome_fantasia or cliente.razao_social %}
+                                        <option value="{{ cliente.id }}" {% if senha.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj }}{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Faixa de rede *</label>
+                                <select class="form-select" name="faixa_rede_id" required>
+                                    <option value="">Selecionar faixa</option>
+                                    {% for faixa in faixas_rede %}
+                                        <option value="{{ faixa.id }}" {% if senha.faixa_rede_id|string == faixa.id|string %}selected{% endif %}>{{ faixa.cliente_nome }} - {{ faixa.rede }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Pasta</label>
+                                <select class="form-select" name="pasta_id">
+                                    <option value="">Sem pasta</option>
+                                    {% for pasta in pastas %}
+                                        <option value="{{ pasta.id }}" {% if senha.pasta_id|string == pasta.id|string %}selected{% endif %}>{{ pasta.nome }} - {{ pasta_tipo_options.get(pasta.tipo, pasta.tipo) if pasta_tipo_options is defined else pasta.tipo }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Licença O3Web</label>
+                                <select class="form-select" name="licenca_o3web_id" id="licenca_o3web_id">
+                                    <option value="">Sem vínculo</option>
+                                    {% for licenca in licencas_o3web %}
+                                        {% set licenca_url = licenca.url_principal or licenca.url_secundaria or '' %}
+                                        <option value="{{ licenca.id }}" data-url="{{ licenca_url }}" {% if senha.licenca_o3web_id|string == licenca.id|string %}selected{% endif %}>{{ licenca.cliente_nome }} - {{ licenca.id_licenca or licenca.chave_ativacao or licenca.id }}{% if licenca_url %} - {{ licenca_url }}{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3"><label class="form-label">Categoria *</label><select class="form-select" name="categoria" required>{% for valor, label in categoria_options.items() %}<option value="{{ valor }}" {% if senha.categoria == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                            <div class="col-md-3"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if senha.ativo is not defined or senha.ativo %}selected{% endif %}>Ativa</option><option value="0" {% if senha.ativo is defined and not senha.ativo %}selected{% endif %}>Inativa</option></select></div>
+                            <div class="col-md-6"><label class="form-label">Título *</label><input class="form-control" name="titulo" value="{{ senha.titulo or '' }}" required></div>
+                            <div class="col-md-6">
+                                <label class="form-label">URL</label>
+                                <div class="input-group">
+                                    <input class="form-control" name="url" id="url" value="{{ senha.url or '' }}">
+                                    <button class="btn btn-outline-secondary cofre-copy-field" type="button" data-copy-target="url" title="Copiar URL"><i class="bi bi-clipboard"></i></button>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">Host/IP</label>
+                                <div class="input-group">
+                                    <input class="form-control" name="host" id="host" value="{{ senha.host or '' }}">
+                                    <button class="btn btn-outline-secondary cofre-copy-field" type="button" data-copy-target="host" title="Copiar Host/IP"><i class="bi bi-clipboard"></i></button>
+                                </div>
+                            </div>
+                            <div class="col-md-2"><label class="form-label">Porta</label><input class="form-control" type="number" min="1" max="65535" name="porta" value="{{ senha.porta or '' }}"></div>
+                            <div class="col-md-5">
+                                <label class="form-label">Usuário *</label>
+                                <div class="input-group">
+                                    <input class="form-control" name="usuario" id="usuario" value="{{ senha.usuario or '' }}" required>
+                                    <button class="btn btn-outline-secondary cofre-copy-field" type="button" data-copy-target="usuario" title="Copiar usuário"><i class="bi bi-clipboard"></i></button>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Senha {% if modo == 'novo' %}*{% endif %}</label>
+                                <div class="input-group">
+                                    <input class="form-control" type="password" name="senha" id="senha" {% if modo == 'novo' %}required{% endif %} autocomplete="new-password">
+                                    <button class="btn btn-outline-secondary" type="button" id="toggle_senha" title="Mostrar senha"><i class="bi bi-eye"></i></button>
+                                    <button class="btn btn-outline-primary" type="button" id="gerar_senha" title="Gerar senha complexa"><i class="bi bi-magic"></i></button>
+                                    <button class="btn btn-outline-secondary" type="button" id="copiar_senha_form" title="Copiar senha"><i class="bi bi-clipboard"></i></button>
+                                </div>
+                                <small class="text-muted">{% if modo == 'editar' %}Preencha apenas se quiser trocar a senha. {% endif %}Padrão atual: {{ senha_policy.tamanho }} caracteres.</small>
+                            </div>
+                            <div class="col-md-6"><label class="form-label">Observações</label><textarea class="form-control" rows="3" name="observacoes">{{ senha.observacoes or '' }}</textarea></div>
+                            <div class="col-md-3"><label class="form-label">Proxmox Node</label><input class="form-control" name="proxmox_node_id" value="{{ senha.proxmox_node_id or '' }}"></div>
+                            <div class="col-md-3"><label class="form-label">Proxmox VM</label><input class="form-control" name="proxmox_vm_id" value="{{ senha.proxmox_vm_id or '' }}"></div>
+                            <div class="col-md-3"><label class="form-label">PBS Server</label><input class="form-control" name="pbs_server_id" value="{{ senha.pbs_server_id or '' }}"></div>
+                            <div class="col-md-3"><label class="form-label">Zabbix Host</label><input class="form-control" name="zabbix_host_id" value="{{ senha.zabbix_host_id or '' }}"></div>
+                        </div>
+                        <div class="text-end mt-4"><button class="btn btn-primary"><i class="bi bi-floppy"></i> Salvar</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="mb-3">Auditoria</h6>
+                    {% if auditoria %}
+                        <div class="list-group list-group-flush">
+                            {% for item in auditoria %}
+                                <div class="list-group-item px-0">
+                                    <strong>{{ item.acao }}</strong><br>
+                                    <small class="text-muted">{{ item.usuario_email }} - {{ item.created_at|date_br if item.created_at else '' }}</small><br>
+                                    <small>{{ item.detalhe or '-' }}</small>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <small class="text-muted">Nenhum evento registrado ainda.</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const licencaSelect = document.getElementById('licenca_o3web_id');
+    const urlInput = document.getElementById('url');
+    const senhaInput = document.getElementById('senha');
+    const toggleButton = document.getElementById('toggle_senha');
+    const gerarButton = document.getElementById('gerar_senha');
+    const copiarButton = document.getElementById('copiar_senha_form');
+    const copyFieldButtons = document.querySelectorAll('.cofre-copy-field');
+    const policy = {
+        tamanho: {{ senha_policy.tamanho or 20 }},
+        maiusculas: {{ 'true' if senha_policy.maiusculas else 'false' }},
+        minusculas: {{ 'true' if senha_policy.minusculas else 'false' }},
+        numeros: {{ 'true' if senha_policy.numeros else 'false' }},
+        simbolos: {{ 'true' if senha_policy.simbolos else 'false' }}
+    };
+    const grupos = {
+        maiusculas: 'ABCDEFGHJKLMNPQRSTUVWXYZ',
+        minusculas: 'abcdefghijkmnopqrstuvwxyz',
+        numeros: '23456789',
+        simbolos: '!@#$%&*()-_=+[]{}?'
+    };
+
+    function bytesAleatorios(total) {
+        const bytes = new Uint32Array(total);
+        window.crypto.getRandomValues(bytes);
+        return Array.from(bytes);
+    }
+
+    function escolher(chars, random) {
+        return chars[random % chars.length];
+    }
+
+    function gerarSenha() {
+        const ativos = Object.keys(grupos).filter(function (chave) { return policy[chave]; });
+        const gruposAtivos = ativos.length ? ativos : ['maiusculas', 'minusculas', 'numeros', 'simbolos'];
+        const tamanho = Math.max(Number(policy.tamanho || 20), gruposAtivos.length, 12);
+        const todos = gruposAtivos.map(function (chave) { return grupos[chave]; }).join('');
+        const random = bytesAleatorios(tamanho * 2);
+        const senha = gruposAtivos.map(function (chave, index) {
+            return escolher(grupos[chave], random[index]);
+        });
+        for (let i = senha.length; i < tamanho; i += 1) {
+            senha.push(escolher(todos, random[i]));
+        }
+        for (let i = senha.length - 1; i > 0; i -= 1) {
+            const j = random[tamanho + i] % (i + 1);
+            const tmp = senha[i];
+            senha[i] = senha[j];
+            senha[j] = tmp;
+        }
+        return senha.join('');
+    }
+
+    function copiarTexto(valor) {
+        if (!valor) {
+            return Promise.resolve(false);
+        }
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(valor).then(function () { return true; });
+        }
+        const area = document.createElement('textarea');
+        area.value = valor;
+        area.setAttribute('readonly', 'readonly');
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(area);
+        return Promise.resolve(ok);
+    }
+
+    function marcarCopiado(button) {
+        const original = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-check2"></i>';
+        setTimeout(function () { button.innerHTML = original; }, 1200);
+    }
+
+    function atualizarUrlLicenca() {
+        if (!licencaSelect || !urlInput) {
+            return;
+        }
+        const option = licencaSelect.options[licencaSelect.selectedIndex];
+        const url = option ? (option.dataset.url || '') : '';
+        if (licencaSelect.value && url) {
+            urlInput.value = url;
+            urlInput.readOnly = true;
+        } else if (!licencaSelect.value) {
+            urlInput.readOnly = false;
+        } else {
+            urlInput.readOnly = false;
+        }
+    }
+
+    if (licencaSelect && urlInput) {
+        licencaSelect.addEventListener('change', atualizarUrlLicenca);
+        atualizarUrlLicenca();
+    }
+
+    if (toggleButton && senhaInput) {
+        toggleButton.addEventListener('click', function () {
+            senhaInput.type = senhaInput.type === 'password' ? 'text' : 'password';
+            toggleButton.innerHTML = senhaInput.type === 'password' ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+        });
+    }
+    if (gerarButton && senhaInput) {
+        gerarButton.addEventListener('click', function () {
+            senhaInput.value = gerarSenha();
+            senhaInput.type = 'text';
+            if (toggleButton) {
+                toggleButton.innerHTML = '<i class="bi bi-eye-slash"></i>';
+            }
+        });
+    }
+    if (copiarButton && senhaInput) {
+        copiarButton.addEventListener('click', function () {
+            copiarTexto(senhaInput.value).then(function (ok) {
+                if (ok) {
+                    marcarCopiado(copiarButton);
+                }
+            });
+        });
+    }
+    copyFieldButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            const input = document.getElementById(button.dataset.copyTarget);
+            copiarTexto(input ? input.value : '').then(function (ok) {
+                if (ok) {
+                    marcarCopiado(button);
+                }
+            });
+        });
+    });
+})();
+</script>
+{% endblock %}

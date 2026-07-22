@@ -12,6 +12,13 @@
             {% else %}
                 <a href="{{ url_for('contratos.editar', contrato_id=contrato.id) }}" class="btn btn-outline-primary"><i class="bi bi-pencil"></i> Editar Vinculos</a>
             {% endif %}
+            {% if contrato.implantacao_id %}
+                <a href="{{ url_for('implantacao.visualizar', implantacao_id=contrato.implantacao_id) }}" class="btn btn-outline-info"><i class="bi bi-hdd-network"></i> Abrir Implantação</a>
+            {% elif contrato.status == 'ENCAMINHADO_PROJETO' %}
+                <form method="POST" action="{{ url_for('contratos.iniciar_implantacao', contrato_id=contrato.id) }}">
+                    <button class="btn btn-outline-info"><i class="bi bi-hdd-network"></i> Iniciar Implantação</button>
+                </form>
+            {% endif %}
             {% if contrato.arquivo_assinado %}
                 <a href="{{ url_for('contratos.download', contrato_id=contrato.id) }}" class="btn btn-success"><i class="bi bi-download"></i> Download assinado</a>
             {% endif %}

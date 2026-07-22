@@ -17,15 +17,23 @@
         <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Expiradas</small><h4>{{ dashboard.expiradas or 0 }}</h4></div></div></div>
     </div>
 
+    {% if dashboard.expiradas %}
+        <div class="alert alert-warning d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2" role="alert">
+            <div><i class="bi bi-exclamation-triangle-fill me-2"></i>Existem {{ dashboard.expiradas }} licença(s) O3Web vencida(s).</div>
+            <a class="btn btn-sm btn-outline-dark" href="{{ url_for('implantacao.licencas_o3web', validade='expiradas', ativo='1') }}">Ver vencidas</a>
+        </div>
+    {% endif %}
+
     <div class="card border-0 shadow-sm">
         <div class="card-body">
             <form method="GET" class="mb-4">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5"><label class="form-label">Pesquisar</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Cliente, chave, ID licença, URL ou observação..."></div>
+                    <div class="col-md-4"><label class="form-label">Pesquisar</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Cliente, chave, ID licença, URL ou observação..."></div>
                     <div class="col-md-2"><label class="form-label">Tipo</label><select class="form-select" name="tipo"><option value="">Todos</option>{% for valor, label in tipo_options.items() %}<option value="{{ valor }}" {% if selected_tipo == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                    <div class="col-md-2"><label class="form-label">Validade</label><select class="form-select" name="validade"><option value="" {% if not selected_validade %}selected{% endif %}>Todas</option><option value="expiradas" {% if selected_validade == 'expiradas' %}selected{% endif %}>Vencidas</option><option value="vigentes" {% if selected_validade == 'vigentes' %}selected{% endif %}>Vigentes</option></select></div>
                     <div class="col-md-2"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativas</option><option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativas</option><option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todas</option></select></div>
                     <div class="col-md-1"><button class="btn btn-primary w-100"><i class="bi bi-search"></i></button></div>
-                    <div class="col-md-2"><a href="{{ request.path }}" class="btn btn-outline-secondary w-100">Limpar</a></div>
+                    <div class="col-md-1"><a href="{{ request.path }}" class="btn btn-outline-secondary w-100">Limpar</a></div>
                 </div>
             </form>
 
@@ -36,7 +44,7 @@
                     <tbody>
                     {% for licenca in licencas %}
                         <tr>
-                            <td><strong>{{ licenca.cliente_nome }}</strong><br><small class="text-muted">{{ licenca.edicao or '-' }}</small></td>
+                            <td><strong>{{ licenca.cliente_nome }}</strong><br><small class="text-muted">{{ licenca.cliente_cnpj or 'CNPJ não vinculado' }}</small><br><small class="text-muted">{{ licenca.edicao or '-' }}</small></td>
                             <td><code>{{ licenca.chave_ativacao or '-' }}</code><br><small class="text-muted">ID {{ licenca.id_licenca or '-' }}</small></td>
                             <td><span class="badge bg-{{ 'info' if licenca.tipo == 'trial' else 'success' }}">{{ tipo_options.get(licenca.tipo, licenca.tipo or '-') }}</span>{% if licenca.bkp %}<br><span class="badge bg-light text-dark border mt-1">Bkp</span>{% endif %}</td>
                             <td><strong>{{ licenca.usuarios or 0 }}</strong><br><small class="text-muted">{{ licenca.dias or 0 }} dia(s)</small></td>
@@ -53,6 +61,30 @@
                     </tbody>
                 </table>
             </div>
+            {% if total_paginas > 1 %}
+                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mt-4">
+                    <small class="text-muted">
+                        Exibindo {{ ((pagina - 1) * 50) + 1 if total else 0 }}
+                        até {{ ((pagina - 1) * 50) + licencas|length }}
+                        de {{ total }} licença(s)
+                    </small>
+                    <nav aria-label="Paginação de licenças O3Web">
+                        <ul class="pagination mb-0">
+                            <li class="page-item {% if pagina <= 1 %}disabled{% endif %}">
+                                <a class="page-link" href="?page={{ pagina - 1 }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if selected_tipo %}&tipo={{ selected_tipo }}{% endif %}{% if selected_validade %}&validade={{ selected_validade }}{% endif %}{% if selected_ativo %}&ativo={{ selected_ativo }}{% endif %}">Anterior</a>
+                            </li>
+                            {% for p in range(1, total_paginas + 1) %}
+                                <li class="page-item {% if p == pagina %}active{% endif %}">
+                                    <a class="page-link" href="?page={{ p }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if selected_tipo %}&tipo={{ selected_tipo }}{% endif %}{% if selected_validade %}&validade={{ selected_validade }}{% endif %}{% if selected_ativo %}&ativo={{ selected_ativo }}{% endif %}">{{ p }}</a>
+                                </li>
+                            {% endfor %}
+                            <li class="page-item {% if pagina >= total_paginas %}disabled{% endif %}">
+                                <a class="page-link" href="?page={{ pagina + 1 }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if selected_tipo %}&tipo={{ selected_tipo }}{% endif %}{% if selected_validade %}&validade={{ selected_validade }}{% endif %}{% if selected_ativo %}&ativo={{ selected_ativo }}{% endif %}">Próxima</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

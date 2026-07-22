@@ -2,6 +2,7 @@ import csv
 import io
 from datetime import datetime
 
+from app.clientes.service import ClienteService
 from app.repositories.o3web_licenca_repository import O3WebLicencaRepository
 
 
@@ -15,7 +16,7 @@ class O3WebLicencaService:
     repository = O3WebLicencaRepository
 
     @classmethod
-    def listar(cls, pesquisa=None, tipo=None, ativo="1", pagina=1):
+    def listar(cls, pesquisa=None, tipo=None, ativo="1", validade=None, pagina=1):
         limit = 50
         offset = (pagina - 1) * limit
         ativo_normalizado = cls._normalizar_ativo(ativo)
@@ -23,10 +24,11 @@ class O3WebLicencaService:
             pesquisa=pesquisa,
             tipo=tipo,
             ativo=ativo_normalizado,
+            validade=validade,
             limit=limit,
             offset=offset,
         )
-        total = cls.repository.total(pesquisa=pesquisa, tipo=tipo, ativo=ativo_normalizado)
+        total = cls.repository.total(pesquisa=pesquisa, tipo=tipo, ativo=ativo_normalizado, validade=validade)
         return licencas, total
 
     @classmethod
@@ -96,10 +98,20 @@ class O3WebLicencaService:
     def _normalizar(cls, dados):
         data_ativacao, data_ativacao_raw = cls._normalizar_data(dados.get("data_ativacao") or dados.get("data_ativacao_raw"))
         data_expiracao, data_expiracao_raw = cls._normalizar_data(dados.get("data_expiracao") or dados.get("data_expiracao_raw"))
+        cliente_id = cls._inteiro(dados.get("cliente_id"))
+        cliente_cnpj = cls._texto(dados.get("cliente_cnpj") or dados.get("cnpj"))
         cliente_nome = (dados.get("cliente_nome") or dados.get("cliente") or "").strip()
+        if cliente_id:
+            cliente = ClienteService.buscar_por_id(cliente_id)
+            if not cliente:
+                raise ValueError("Cliente selecionado não encontrado.")
+            cliente_nome = (cliente.get("nome_fantasia") or cliente.get("razao_social") or "").strip()
+            cliente_cnpj = cliente.get("cnpj")
         if not cliente_nome:
             raise ValueError("Cliente é obrigatório.")
         return {
+            "cliente_id": cliente_id,
+            "cliente_cnpj": cliente_cnpj,
             "chave_ativacao": cls._texto(dados.get("chave_ativacao")),
             "id_licenca": cls._texto(dados.get("id_licenca")),
             "tipo": cls._texto(dados.get("tipo")),
@@ -134,6 +146,7 @@ class O3WebLicencaService:
             "data_ativacao": cls._valor(normalizada, "data_ativacao", "ativacao_data"),
             "data_expiracao": cls._valor(normalizada, "data_de_expiracao", "data_expiracao", "expiracao"),
             "cliente_nome": cls._valor(normalizada, "cliente", "cliente_nome"),
+            "cliente_cnpj": cls._valor(normalizada, "cnpj", "cliente_cnpj"),
             "url_principal": cls._valor(normalizada, "url", "url_principal", "url_1"),
             "url_secundaria": cls._valor(normalizada, "url_2", "url_secundaria"),
             "comments": cls._valor(normalizada, "comments", "comentarios", "comentario"),
