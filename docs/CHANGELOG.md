@@ -46,6 +46,19 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-27 - Início da Sprint 10
+
+### Dashboard Executivo
+
+- Sprint 10 marcada como iniciada para evoluir o Dashboard Executivo.
+- Home `/` convertida em painel executivo com dados reais de propostas, contratos e implantação.
+- Adicionados cards de receita mensal negociada, receita mensal ativa, implantações em andamento e pendências críticas.
+- Adicionados agrupamentos por status comercial, status de contratos, status de implantação, executivo e parceiro.
+- Adicionadas listas de atenção para implantações críticas, contratos a iniciar e assinaturas pendentes.
+- Atalhos de drill-down conectam o dashboard aos módulos de Propostas, Contratos, Implantação e Kanban.
+
+---
+
 ## 2026-07-27 - Fechamento da Sprint 9
 
 ### Documentação

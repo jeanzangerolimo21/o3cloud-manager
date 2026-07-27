@@ -6,17 +6,7 @@ class FinanceiroService:
     @staticmethod
     def dashboard():
 
-        return {
-
-            "clientes": FinanceiroRepository.total_clientes(),
-
-            "contratos": FinanceiroRepository.total_contratos(),
-
-            "produtos": FinanceiroRepository.total_produtos(),
-
-            "receita": FinanceiroRepository.receita_total()
-
-        }
+        return FinanceiroRepository.dashboard_executivo()
 
 
     @staticmethod

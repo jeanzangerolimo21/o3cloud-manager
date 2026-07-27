@@ -35,7 +35,7 @@ O desenvolvimento segue uma metodologia incremental baseada em Sprints, preserva
 | CRM Comercial | ✅ Base Alpha concluída |
 | Propostas | ✅ Base Alpha concluída |
 | Implantação | ✅ Base Alpha concluída |
-| Dashboard Executivo | 🚧 Em preparação |
+| Dashboard Executivo | 🚧 Em andamento |
 
 ---
 
@@ -270,7 +270,7 @@ Dashboard Executivo
 
 Status:
 
-🚧 Em preparação
+🚧 Em andamento
 
 Objetivos:
 
@@ -366,7 +366,7 @@ Versão:
 
 Sprint:
 
-10 em preparação
+10 em andamento
 
 Status Geral:
 
@@ -374,7 +374,7 @@ Status Geral:
 
 Próxima Entrega:
 
-Dashboard Executivo consolidando indicadores comerciais, contratos, implantação e base para rentabilidade.
+Dashboard Executivo com filtros executivos por período, parceiro, executivo e status.
 
 
 

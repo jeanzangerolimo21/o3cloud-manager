@@ -238,7 +238,7 @@ Objetivos:
 
 Status:
 
-🚧 Em preparação
+🚧 Em andamento
 
 ---
 
