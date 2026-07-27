@@ -1,5 +1,6 @@
 from flask import Blueprint
 from flask import render_template
+from flask import request
 
 from app.financeiro.service import FinanceiroService
 
@@ -16,17 +17,20 @@ def dashboard():
 
     return render_template(
         "dashboards/index.html",
-        dashboard=dados
+        dashboard=dados,
     )
 
 
 @financeiro_bp.route("/dashboard/executivo")
 def dashboard_executivo():
 
-    dados = FinanceiroService.dashboard()
+    filtros = FinanceiroService.filtros_dashboard(request.args)
+    dados = FinanceiroService.dashboard(filtros)
 
     return render_template(
         "dashboards/executivo.html",
-        dashboard=dados
+        dashboard=dados,
+        filtros=filtros,
+        **FinanceiroService.contexto_dashboard(),
     )
 

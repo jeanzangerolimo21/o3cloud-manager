@@ -59,10 +59,18 @@ Entregas concluídas:
 - Listas de atenção adicionadas para implantações críticas, contratos a iniciar e assinaturas pendentes.
 - Atalhos de drill-down adicionados para Dashboard Comercial, Contratos, Implantação e Kanban.
 
+Entregas concluídas:
+
+- Filtros executivos adicionados na tela `/dashboard/executivo`.
+- Filtro por período aplicado em propostas, contratos e implantação conforme a data operacional de cada módulo.
+- Filtros por parceiro e executivo aplicados nas agregações comerciais, contratuais e de implantação.
+- Filtros por status comercial, status de contrato e status de implantação aplicados aos respectivos blocos.
+- Opções de parceiro e executivo carregadas diretamente da base ativa.
+
 Entregas previstas:
 
-- Evoluir filtros executivos por período, parceiro, executivo e status.
-- Refinar indicadores de evolução temporal após validação da primeira versão.
+- Refinar indicadores de evolução temporal após validação dos filtros.
+- Preservar filtros nos links de drill-down quando houver compatibilidade com as telas operacionais.
 
 ## 2. Visão Comercial e Contratos
 
@@ -129,13 +137,14 @@ Entregas previstas:
 - Sintaxe Python validada em `app/financeiro/repository.py`, `app/financeiro/service.py` e `app/financeiro/routes.py`.
 - Visão geral `/` validada via Flask test client com retorno HTTP 200.
 - Dashboard Executivo dedicado `/dashboard/executivo` validado via Flask test client com retorno HTTP 200.
+- Dashboard Executivo validado com filtros por período, parceiro, executivo, status comercial, status de contrato e status de implantação.
 - Payload agregado de `FinanceiroService.dashboard()` validado com dados reais do banco local.
 - Renderização dos blocos `Dashboard Executivo`, `Receita mensal negociada` e `Implantações críticas` confirmada.
 
 # Validações Previstas
 
-- Conferência de filtros principais por período, parceiro, executivo e status.
 - Verificação ampla de links para Propostas, Contratos e Implantação após evolução dos filtros.
+- Validação dos comparativos mensais e evolução temporal.
 
 ---
 
@@ -155,4 +164,4 @@ Situação:
 
 Próxima Implementação:
 
-Evoluir filtros executivos por período, parceiro, executivo e status no Dashboard Executivo.
+Implementar comparativos mensais e evolução temporal no Dashboard Executivo.

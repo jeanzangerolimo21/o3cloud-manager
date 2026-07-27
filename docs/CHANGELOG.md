@@ -46,6 +46,17 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-27 - Filtros Executivos do Dashboard
+
+### Dashboard Executivo
+
+- Adicionados filtros executivos em `/dashboard/executivo` por período, parceiro, executivo, status comercial, status de contrato e status de implantação.
+- Consultas agregadas do Dashboard Executivo passaram a aplicar os filtros nos blocos de propostas, contratos e implantação.
+- Rankings por executivo/parceiro e listas de atenção passaram a respeitar os recortes selecionados.
+- Selects de parceiro e executivo são carregados a partir dos registros ativos da base local.
+
+---
+
 ## 2026-07-27 - Dashboard Executivo Dedicado
 
 ### Dashboard Executivo
