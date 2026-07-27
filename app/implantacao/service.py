@@ -76,6 +76,28 @@ CHECKLIST_PADRAO = [
     {"ordem": 80, "grupo": "Entrega", "titulo": "Formalizar entrega", "descricao": "Registrar conclusão, pendências residuais e transição para operação."},
 ]
 
+CHECKLIST_MODELOS = {
+    "PADRAO": {
+        "nome": "Implantação padrão",
+        "itens": CHECKLIST_PADRAO,
+    },
+    "O3WEB": {
+        "nome": "Licenças O3Web",
+        "itens": CHECKLIST_PADRAO + [
+            {"ordem": 90, "grupo": "O3Web", "titulo": "Validar licença O3Web", "descricao": "Confirmar ID da licença, URL, validade e vínculo com o cliente."},
+            {"ordem": 100, "grupo": "O3Web", "titulo": "Registrar credenciais no cofre", "descricao": "Salvar acessos operacionais vinculados à licença, quando aplicável."},
+        ],
+    },
+    "INFRA": {
+        "nome": "Infraestrutura e VPN",
+        "itens": CHECKLIST_PADRAO + [
+            {"ordem": 90, "grupo": "Rede", "titulo": "Reservar faixa de rede", "descricao": "Definir rede, firewall WAN/LAN, PVE e range de portas."},
+            {"ordem": 100, "grupo": "VPN", "titulo": "Validar VPN com cliente", "descricao": "Registrar evidência de conectividade e acessos liberados."},
+            {"ordem": 110, "grupo": "Provisionamento", "titulo": "Conferir recursos provisionados", "descricao": "Validar CPU, memória, disco, backup e monitoramento planejado."},
+        ],
+    },
+}
+
 
 class ImplantacaoService:
     repository = ImplantacaoWorkflowRepository
@@ -88,7 +110,7 @@ class ImplantacaoService:
         }
 
     @classmethod
-    def listar(cls, pesquisa=None, status=None, responsavel=None, ativo="1", pagina=1):
+    def listar(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo="1", pagina=1):
         limit = 50
         offset = (pagina - 1) * limit
         ativo_normalizado = cls._normalizar_ativo(ativo)
@@ -96,6 +118,7 @@ class ImplantacaoService:
             pesquisa=pesquisa,
             status=status,
             responsavel=responsavel,
+            prazo=prazo,
             ativo=ativo_normalizado,
             limit=limit,
             offset=offset,
@@ -104,21 +127,75 @@ class ImplantacaoService:
             pesquisa=pesquisa,
             status=status,
             responsavel=responsavel,
+            prazo=prazo,
             ativo=ativo_normalizado,
         )
         return implantacoes, total
 
     @classmethod
+    def kanban_colunas(cls, ativo=1):
+        try:
+            colunas = cls.repository.listar_colunas_kanban(ativo=ativo)
+        except Exception:
+            if ativo in (None, 1):
+                return [{"codigo": codigo, "titulo": titulo, "ordem": (idx + 1) * 10, "ativo": 1, "sistema": 1, "total_cards": 0} for idx, (codigo, titulo) in enumerate(KANBAN_COLUNAS)]
+            return []
+        return colunas
+
+    @classmethod
+    def kanban_labels(cls):
+        return {coluna.get("codigo"): coluna.get("titulo") for coluna in cls.kanban_colunas(ativo=None)} or KANBAN_LABELS
+
+    @classmethod
+    def kanban_options(cls):
+        return [(coluna.get("codigo"), coluna.get("titulo")) for coluna in cls.kanban_colunas(ativo=1)] or KANBAN_COLUNAS
+
+    @classmethod
     def kanban(cls):
         cls.sincronizar_contratos_encaminhados()
-        colunas = [{"codigo": codigo, "titulo": titulo, "cards": []} for codigo, titulo in KANBAN_COLUNAS]
+        colunas_config = cls.kanban_colunas(ativo=1)
+        colunas = [{"codigo": coluna.get("codigo"), "titulo": coluna.get("titulo"), "cards": []} for coluna in colunas_config]
         por_codigo = {coluna["codigo"]: coluna for coluna in colunas}
         for card in cls.repository.listar_kanban():
             etapa = card.get("etapa_kanban") or "FILA"
             if etapa not in por_codigo:
                 etapa = "FILA"
-            por_codigo[etapa]["cards"].append(card)
+            por_codigo.setdefault(etapa, {"codigo": etapa, "titulo": cls.kanban_labels().get(etapa, etapa), "cards": []})["cards"].append(card)
         return colunas
+
+
+    @classmethod
+    def criar_coluna_kanban(cls, dados):
+        payload = cls._normalizar_coluna_kanban(dados, nova=True)
+        if cls.repository.buscar_coluna_kanban_por_codigo(payload.get("codigo")):
+            raise ValueError("Já existe uma coluna do Kanban com este código.")
+        return cls.repository.inserir_coluna_kanban(payload)
+
+    @classmethod
+    def atualizar_coluna_kanban(cls, coluna_id, dados):
+        coluna = cls.repository.buscar_coluna_kanban(coluna_id)
+        if not coluna:
+            raise ValueError("Coluna do Kanban não encontrada.")
+        payload = cls._normalizar_coluna_kanban(dados, coluna=coluna)
+        if coluna.get("codigo") in ("FILA", "FINALIZADO", "CANCELADOS") and not payload.get("ativo"):
+            raise ValueError("Esta coluna é essencial para o fluxo e não pode ser inativada.")
+        if not payload.get("ativo") and cls.repository.contar_cards_por_coluna_kanban(coluna.get("codigo")):
+            raise ValueError("Não é possível inativar uma coluna com implantações ativas.")
+        cls.repository.atualizar_coluna_kanban(coluna_id, payload)
+
+    @staticmethod
+    def _normalizar_coluna_kanban(dados, nova=False, coluna=None):
+        titulo = (dados.get("titulo") or "").strip()
+        if not titulo:
+            raise ValueError("Informe o título da coluna.")
+        codigo = (dados.get("codigo") or (coluna or {}).get("codigo") or titulo).strip().upper()
+        codigo = "_".join("".join(ch if ch.isalnum() else " " for ch in codigo).split())
+        if not codigo:
+            raise ValueError("Informe um código válido para a coluna.")
+        ordem = ImplantacaoService._inteiro(dados.get("ordem")) or (coluna or {}).get("ordem") or 10
+        ativo_valores = dados.getlist("ativo") if hasattr(dados, "getlist") else [dados.get("ativo", "1")]
+        ativo = str((ativo_valores or ["0"])[-1]).lower() in ("1", "true", "on", "sim")
+        return {"codigo": codigo, "titulo": titulo, "ordem": ordem, "ativo": ativo}
 
     @classmethod
     def sincronizar_contratos_encaminhados(cls):
@@ -132,7 +209,8 @@ class ImplantacaoService:
 
     @classmethod
     def mover_kanban(cls, implantacao_id, etapa_kanban):
-        if etapa_kanban not in KANBAN_LABELS:
+        labels = cls.kanban_labels()
+        if etapa_kanban not in labels:
             raise ValueError("Etapa do Kanban inválida.")
         implantacao = cls.buscar_por_id(implantacao_id)
         if not implantacao:
@@ -146,7 +224,7 @@ class ImplantacaoService:
         cls._registrar_historico(
             implantacao_id,
             tipo="ETAPA",
-            comentario=f"Etapa alterada de {KANBAN_LABELS.get(etapa_anterior, etapa_anterior)} para {KANBAN_LABELS.get(etapa_kanban, etapa_kanban)}.",
+            comentario=f"Etapa alterada de {labels.get(etapa_anterior, etapa_anterior)} para {labels.get(etapa_kanban, etapa_kanban)}.",
             etapa_anterior=etapa_anterior,
             etapa_nova=etapa_kanban,
             email=email,
@@ -154,8 +232,27 @@ class ImplantacaoService:
         return {"alterado": True, "email": email}
 
     @classmethod
-    def dashboard(cls):
-        return cls.repository.dashboard()
+    def dashboard(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo="1"):
+        return cls.repository.dashboard(
+            pesquisa=pesquisa,
+            status=status,
+            responsavel=responsavel,
+            prazo=prazo,
+            ativo=cls._normalizar_ativo(ativo),
+        )
+
+
+    @classmethod
+    def rastreabilidade_por_proposta(cls, proposta_id):
+        return cls._normalizar_rastreabilidade(cls.repository.rastreabilidade_por_proposta(proposta_id))
+
+    @classmethod
+    def rastreabilidade_por_contrato(cls, contrato_id):
+        return cls._normalizar_rastreabilidade(cls.repository.rastreabilidade_por_contrato(contrato_id))
+
+    @classmethod
+    def rastreabilidade_por_implantacao(cls, implantacao_id):
+        return cls._normalizar_rastreabilidade(cls.repository.rastreabilidade_por_implantacao(implantacao_id))
 
     @classmethod
     def buscar_por_id(cls, implantacao_id):
@@ -223,10 +320,11 @@ class ImplantacaoService:
         if etapa_anterior != etapa_nova:
             atualizada = cls.buscar_por_id(implantacao_id)
             email = cls._notificar_movimento_kanban(atualizada, etapa_anterior, etapa_nova)
+            labels = cls.kanban_labels()
             cls._registrar_historico(
                 implantacao_id,
                 tipo="ETAPA",
-                comentario=f"Etapa alterada de {KANBAN_LABELS.get(etapa_anterior, etapa_anterior)} para {KANBAN_LABELS.get(etapa_nova, etapa_nova)}.",
+                comentario=f"Etapa alterada de {labels.get(etapa_anterior, etapa_anterior)} para {labels.get(etapa_nova, etapa_nova)}.",
                 etapa_anterior=etapa_anterior,
                 etapa_nova=etapa_nova,
                 email=email,
@@ -278,6 +376,54 @@ class ImplantacaoService:
         cls.repository.excluir_historico(historico_id)
         return historico.get("implantacao_id")
 
+
+    @classmethod
+    def checklist_modelos(cls):
+        return CHECKLIST_MODELOS
+
+    @classmethod
+    def adicionar_item_checklist(cls, implantacao_id, dados):
+        implantacao = cls.repository.buscar_por_id(implantacao_id)
+        if not implantacao:
+            raise ValueError("Implantação não encontrada.")
+        item = cls._normalizar_item_checklist(dados)
+        if not item.get("ordem"):
+            item["ordem"] = cls.repository.proxima_ordem_checklist(implantacao_id)
+        item_id = cls.repository.inserir_item_checklist(implantacao_id, item)
+        cls.repository.atualizar_percentual(implantacao_id)
+        return item_id
+
+    @classmethod
+    def aplicar_modelo_checklist(cls, implantacao_id, modelo_codigo):
+        implantacao = cls.repository.buscar_por_id(implantacao_id)
+        if not implantacao:
+            raise ValueError("Implantação não encontrada.")
+        modelo = CHECKLIST_MODELOS.get(modelo_codigo)
+        if not modelo:
+            raise ValueError("Modelo de checklist inválido.")
+        existentes = cls.repository.listar_checklist(implantacao_id)
+        existentes_chaves = {(item.get("grupo"), item.get("titulo")) for item in existentes}
+        criados = 0
+        for item in modelo.get("itens", []):
+            chave = (item.get("grupo"), item.get("titulo"))
+            if chave in existentes_chaves:
+                continue
+            cls.repository.inserir_item_checklist(implantacao_id, item)
+            existentes_chaves.add(chave)
+            criados += 1
+        cls.repository.atualizar_percentual(implantacao_id)
+        return criados
+
+    @classmethod
+    def excluir_item_checklist(cls, item_id):
+        item = cls.repository.buscar_item_checklist(item_id)
+        if not item:
+            raise ValueError("Item de checklist não encontrado.")
+        implantacao_id = item.get("implantacao_id")
+        cls.repository.excluir_item_checklist(item_id)
+        cls.repository.atualizar_percentual(implantacao_id)
+        return implantacao_id
+
     @classmethod
     def atualizar_item_checklist(cls, item_id, dados):
         item = cls.repository.buscar_item_checklist(item_id)
@@ -308,7 +454,7 @@ class ImplantacaoService:
             raise ValueError("Prioridade de implantação inválida.")
         if provisionamento_status not in STATUS_PROVISIONAMENTO:
             raise ValueError("Status de provisionamento inválido.")
-        if etapa_kanban not in KANBAN_LABELS:
+        if etapa_kanban not in cls.kanban_labels():
             raise ValueError("Etapa do Kanban inválida.")
 
         titulo = (dados.get("titulo") or base.get("titulo") or "").strip()
@@ -347,6 +493,62 @@ class ImplantacaoService:
             "provisionamento_notas": (dados.get("provisionamento_notas") or base.get("provisionamento_notas") or "").strip() or None,
         }
 
+
+
+    @staticmethod
+    def _normalizar_rastreabilidade(row):
+        if not row:
+            return None
+        return {
+            "proposta": {
+                "id": row.get("proposta_id"),
+                "codigo": row.get("codigo_proposta"),
+                "titulo": row.get("proposta_titulo"),
+                "status": row.get("proposta_status"),
+                "clicksign_status": row.get("clicksign_status"),
+                "clicksign_document_key": row.get("clicksign_document_key"),
+                "clicksign_envelope_id": row.get("clicksign_envelope_id"),
+                "clicksign_sent_at": row.get("clicksign_sent_at"),
+                "clicksign_signed_at": row.get("clicksign_signed_at"),
+                "clicksign_completed_at": row.get("clicksign_completed_at"),
+            } if row.get("proposta_id") else None,
+            "contrato": {
+                "id": row.get("contrato_id"),
+                "numero": row.get("contrato_numero"),
+                "origem": row.get("contrato_origem"),
+                "status": row.get("contrato_status"),
+                "codigo_externo": row.get("contrato_codigo_externo"),
+                "data_fechamento": row.get("contrato_data_fechamento"),
+            } if row.get("contrato_id") else None,
+            "implantacao": {
+                "id": row.get("implantacao_id"),
+                "titulo": row.get("implantacao_titulo"),
+                "status": row.get("implantacao_status"),
+                "etapa_kanban": row.get("etapa_kanban"),
+                "responsavel": row.get("implantacao_responsavel") or row.get("implantador_nome"),
+                "data_prevista_entrega": row.get("data_prevista_entrega"),
+                "percentual_conclusao": row.get("percentual_conclusao"),
+                "total_itens": row.get("total_itens"),
+                "total_concluidos": row.get("total_concluidos"),
+            } if row.get("implantacao_id") else None,
+        }
+
+    @staticmethod
+    def _normalizar_item_checklist(dados):
+        titulo = (dados.get("titulo") or "").strip()
+        if not titulo:
+            raise ValueError("Informe o título do item do checklist.")
+        grupo = (dados.get("grupo") or "Geral").strip() or "Geral"
+        ordem = ImplantacaoService._inteiro(dados.get("ordem"))
+        obrigatorio = str(dados.get("obrigatorio") or "1").lower() in ("1", "true", "on", "sim")
+        return {
+            "ordem": ordem,
+            "grupo": grupo,
+            "titulo": titulo,
+            "descricao": (dados.get("descricao") or "").strip() or None,
+            "obrigatorio": obrigatorio,
+        }
+
     @classmethod
     def _criar_checklist_padrao(cls, implantacao_id):
         for item in CHECKLIST_PADRAO:
@@ -376,7 +578,7 @@ class ImplantacaoService:
             f"Projeto: {implantacao.get('titulo') or '-'}",
             f"Cliente: {implantacao.get('cliente_nome') or '-'}",
             f"Contrato: {implantacao.get('contrato_numero') or implantacao.get('contrato_id') or '-'}",
-            f"Etapa atual: {KANBAN_LABELS.get(implantacao.get('etapa_kanban'), implantacao.get('etapa_kanban') or '-')}",
+            f"Etapa atual: {cls.kanban_labels().get(implantacao.get('etapa_kanban'), implantacao.get('etapa_kanban') or '-')}",
             f"Autor: {autor or '-'}",
             "",
             comentario,
@@ -431,13 +633,14 @@ class ImplantacaoService:
     @classmethod
     def _notificar_movimento_kanban(cls, implantacao, etapa_anterior, etapa_nova):
         destinatarios = cls._destinatarios_implantacao(implantacao)
-        assunto = f"Implantação movida para {KANBAN_LABELS.get(etapa_nova, etapa_nova)}"
+        labels = cls.kanban_labels()
+        assunto = f"Implantação movida para {labels.get(etapa_nova, etapa_nova)}"
         corpo = "\n".join([
             f"Projeto: {implantacao.get('titulo') or '-'}",
             f"Cliente: {implantacao.get('cliente_nome') or '-'}",
             f"Contrato: {implantacao.get('contrato_numero') or implantacao.get('contrato_id') or '-'}",
-            f"Etapa anterior: {KANBAN_LABELS.get(etapa_anterior, etapa_anterior)}",
-            f"Nova etapa: {KANBAN_LABELS.get(etapa_nova, etapa_nova)}",
+            f"Etapa anterior: {labels.get(etapa_anterior, etapa_anterior)}",
+            f"Nova etapa: {labels.get(etapa_nova, etapa_nova)}",
             f"Implantador: {implantacao.get('implantador_nome') or implantacao.get('responsavel') or '-'}",
         ])
         return EmailService.enviar(assunto, corpo, destinatarios)

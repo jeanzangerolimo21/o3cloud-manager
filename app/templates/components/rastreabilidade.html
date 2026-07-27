@@ -1,0 +1,81 @@
+{% if rastreabilidade %}
+<div class="card border-0 shadow-sm mb-4 no-print">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <strong>Rastreabilidade Comercial -> Implantação</strong>
+        <span class="text-muted small">Proposta -> Contrato -> Projeto</span>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-lg-4">
+                <div class="border rounded p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                            <div class="small text-uppercase text-muted">Proposta</div>
+                            {% if rastreabilidade.proposta %}
+                            <strong>{{ rastreabilidade.proposta.codigo or ("Proposta #" ~ rastreabilidade.proposta.id) }}</strong>
+                            {% else %}
+                            <strong>Sem vínculo</strong>
+                            {% endif %}
+                        </div>
+                        {% if rastreabilidade.proposta %}<span class="badge bg-light text-dark border">{{ status_options.get(rastreabilidade.proposta.status, rastreabilidade.proposta.status) if status_options is defined else rastreabilidade.proposta.status }}</span>{% endif %}
+                    </div>
+                    {% if rastreabilidade.proposta %}
+                    <div class="text-muted small mb-2">{{ rastreabilidade.proposta.titulo or "-" }}</div>
+                    <div class="small mb-2">ClickSign: <span class="badge bg-secondary">{{ clicksign_status_options.get(rastreabilidade.proposta.clicksign_status, rastreabilidade.proposta.clicksign_status) if clicksign_status_options is defined else rastreabilidade.proposta.clicksign_status }}</span></div>
+                    {% if rastreabilidade.proposta.clicksign_envelope_id %}<div class="small text-muted mb-2">Envelope: {{ rastreabilidade.proposta.clicksign_envelope_id }}</div>{% endif %}
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('propostas.visualizar', proposta_id=rastreabilidade.proposta.id) }}"><i class="bi bi-file-earmark-richtext"></i> Abrir Proposta</a>
+                    {% else %}
+                    <div class="text-muted small">Contrato sem proposta vinculada.</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="border rounded p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                            <div class="small text-uppercase text-muted">Contrato</div>
+                            {% if rastreabilidade.contrato %}
+                            <strong>{{ rastreabilidade.contrato.numero or ("Contrato #" ~ rastreabilidade.contrato.id) }}</strong>
+                            {% else %}
+                            <strong>Não gerado</strong>
+                            {% endif %}
+                        </div>
+                        {% if rastreabilidade.contrato %}<span class="badge bg-light text-dark border">{{ rastreabilidade.contrato.status }}</span>{% endif %}
+                    </div>
+                    {% if rastreabilidade.contrato %}
+                    <div class="small text-muted mb-2">Origem: {{ rastreabilidade.contrato.origem or "-" }}{% if rastreabilidade.contrato.codigo_externo %} | Omie: {{ rastreabilidade.contrato.codigo_externo }}{% endif %}</div>
+                    <div class="small text-muted mb-2">Fechamento: {{ rastreabilidade.contrato.data_fechamento|date_br if rastreabilidade.contrato.data_fechamento else "-" }}</div>
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('contratos.view', contrato_id=rastreabilidade.contrato.id) }}"><i class="bi bi-file-earmark-check"></i> Abrir Contrato</a>
+                    {% else %}
+                    <div class="text-muted small">A proposta ainda não possui contrato ativo vinculado.</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="border rounded p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                            <div class="small text-uppercase text-muted">Implantação</div>
+                            {% if rastreabilidade.implantacao %}
+                            <strong>{{ rastreabilidade.implantacao.titulo or ("Implantação #" ~ rastreabilidade.implantacao.id) }}</strong>
+                            {% else %}
+                            <strong>Não iniciada</strong>
+                            {% endif %}
+                        </div>
+                        {% if rastreabilidade.implantacao %}<span class="badge bg-light text-dark border">{{ rastreabilidade.implantacao.status }}</span>{% endif %}
+                    </div>
+                    {% if rastreabilidade.implantacao %}
+                    <div class="small text-muted mb-2">Etapa: {{ kanban_labels.get(rastreabilidade.implantacao.etapa_kanban, rastreabilidade.implantacao.etapa_kanban) if kanban_labels is defined else rastreabilidade.implantacao.etapa_kanban }}</div>
+                    <div class="small text-muted mb-2">Responsável: {{ rastreabilidade.implantacao.responsavel or "-" }}</div>
+                    <div class="small text-muted mb-2">Entrega: {{ rastreabilidade.implantacao.data_prevista_entrega|date_br if rastreabilidade.implantacao.data_prevista_entrega else "-" }}</div>
+                    <div class="small mb-2">Checklist: {{ rastreabilidade.implantacao.total_concluidos or 0 }}/{{ rastreabilidade.implantacao.total_itens or 0 }} | {{ rastreabilidade.implantacao.percentual_conclusao or 0 }}%</div>
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('implantacao.visualizar', implantacao_id=rastreabilidade.implantacao.id) }}"><i class="bi bi-hdd-network"></i> Abrir Implantação</a>
+                    {% else %}
+                    <div class="text-muted small">A implantação aparecerá quando o contrato for encaminhado para projeto.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}

@@ -46,6 +46,85 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-27 - Fechamento da Sprint 9
+
+### Documentação
+
+- Sprint 9 marcada como concluída oficialmente em 27/07/2026.
+- Criado documento `docs/19-FECHAMENTO-SPRINT-9.md` consolidando objetivo, entregas, migrations, regras, validações e pendências encaminhadas.
+- Documento `docs/05-SPRINT_ATUAL` preparado para a Sprint 10 - Dashboard Executivo.
+- Roadmap e histórico de sprints atualizados para refletir Implantação como Base Alpha concluída e Dashboard Executivo como próxima frente.
+
+---
+
+## 2026-07-27 - Navegação por Pastas no Cofre de Senhas
+
+### Implantação e Provisionamento
+
+- Tela principal do Cofre de Senhas reorganizada em navegação visual por parceiro e pastas de clientes.
+- Seleção de parceiro passou a exibir apenas as pastas de clientes vinculadas a ele; credenciais aparecem somente após abrir a pasta do cliente.
+- Formulário de pasta de cliente passou a exigir e gravar parceiro, evitando pastas fora da navegação hierárquica.
+- Ações de revelar, copiar, editar e inativar credenciais foram preservadas dentro da pasta selecionada.
+
+---
+
+## 2026-07-27 - Base de Integrações Técnicas
+
+### Implantação e Provisionamento
+
+- Adicionada migration 031 para configuração base de integrações Proxmox, PBS e Zabbix.
+- Criada tela /implantacao/integracoes para cadastrar, editar, inativar e validar configurações técnicas.
+- Tokens e senhas das integrações passaram a ser armazenados criptografados usando a política do cofre.
+- Validação desta etapa é estrutural e não executa chamadas externas ou ações destrutivas.
+- Adicionado atalho Integrações Técnicas no menu Operações.
+
+---
+
+## 2026-07-27 - Colunas Administrativas do Kanban
+
+### Implantação e Provisionamento
+
+- Adicionada migration 030 para configurar colunas do Kanban de Implantação.
+- Criada tela administrativa /implantacao/kanban/colunas para criar, ordenar, renomear, ativar e inativar colunas.
+- Kanban, formulário de implantação e notificações passaram a usar as colunas configuradas na base.
+- Colunas essenciais FILA, FINALIZADO e CANCELADOS ficam protegidas contra inativação.
+- Colunas com cards ativos não podem ser inativadas para evitar perda visual de implantações em andamento.
+
+---
+
+## 2026-07-27 - Rastreabilidade Comercial para Implantação
+
+### Implantação e Provisionamento
+
+- Criada visão compartilhada de rastreabilidade proposta -> contrato -> implantação.
+- Telas de Proposta, Contrato e Implantação passaram a exibir atalhos e status do fluxo ponta a ponta.
+- Rastreabilidade exibe ClickSign, contrato Omie/manual, etapa Kanban, responsável, prazo e progresso do checklist quando disponíveis.
+- Consulta tolera vínculos incompletos, mantendo visibilidade de propostas sem contrato e contratos sem implantação.
+
+---
+
+## 2026-07-27 - Checklist de Implantação Evoluído
+
+### Implantação e Provisionamento
+
+- Checklist de Implantação passou a permitir inclusão manual de itens por projeto.
+- Adicionados modelos operacionais de checklist para implantação padrão, Licenças O3Web e Infraestrutura/VPN.
+- Aplicação de modelo evita duplicar itens já existentes na implantação.
+- Itens do checklist podem ser removidos, com recálculo automático do percentual de conclusão.
+
+---
+
+## 2026-07-27 - Dashboard de Implantação Refinado
+
+### Implantação e Provisionamento
+
+- Dashboard de Implantação passou a aplicar filtros reais por status, responsável, prazo e situação.
+- Adicionados indicadores de projetos atrasados, vencendo em 7 dias, vencendo em 30 dias e sem prazo.
+- Adicionadas visões resumidas por status e por responsável, respeitando os filtros aplicados.
+- Listagem passou a sinalizar prazo atrasado, vencimento próximo e ausência de prazo.
+
+---
+
 ## 2026-07-22 - Dashboard Principal da Sprint 9
 
 ### Implantação e Provisionamento

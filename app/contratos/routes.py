@@ -213,5 +213,6 @@ def view(contrato_id):
         "contratos/view.html",
         contrato=contrato,
         itens=itens,
+        rastreabilidade=ImplantacaoService.rastreabilidade_por_contrato(contrato_id),
         status_options=ContratoService.STATUS_OPTIONS,
     )

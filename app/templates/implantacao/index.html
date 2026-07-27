@@ -11,22 +11,59 @@
     </div>
 
     <div class="row g-3 mb-4">
-        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Implantações</small><h4>{{ dashboard.resumo.total_implantacoes or 0 }}</h4></div></div></div>
-        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Planejamento</small><h4>{{ dashboard.resumo.total_planejamento or 0 }}</h4></div></div></div>
-        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Execução</small><h4>{{ dashboard.resumo.total_execucao or 0 }}</h4></div></div></div>
-        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Validação</small><h4>{{ dashboard.resumo.total_validacao or 0 }}</h4></div></div></div>
-        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Entregues</small><h4>{{ dashboard.resumo.total_entregues or 0 }}</h4></div></div></div>
-        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Atrasadas</small><h4>{{ dashboard.resumo.total_atrasadas or 0 }}</h4></div></div></div>
+        <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Implantações</small><h4>{{ dashboard.resumo.total_implantacoes or 0 }}</h4></div></div></div>
+        <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Planejamento</small><h4>{{ dashboard.resumo.total_planejamento or 0 }}</h4></div></div></div>
+        <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Execução</small><h4>{{ dashboard.resumo.total_execucao or 0 }}</h4></div></div></div>
+        <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Validação</small><h4>{{ dashboard.resumo.total_validacao or 0 }}</h4></div></div></div>
+        <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Entregues</small><h4>{{ dashboard.resumo.total_entregues or 0 }}</h4></div></div></div>
+        <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Atrasadas</small><h4 class="text-danger">{{ dashboard.resumo.total_atrasadas or 0 }}</h4></div></div></div>
+        <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Vencem em 7 dias</small><h4 class="text-warning">{{ dashboard.resumo.total_vence_7 or 0 }}</h4></div></div></div>
+        <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Vencem em 30 dias</small><h4>{{ dashboard.resumo.total_vence_30 or 0 }}</h4></div></div></div>
+        <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Sem prazo</small><h4>{{ dashboard.resumo.total_sem_prazo or 0 }}</h4></div></div></div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="mb-3">Por status</h6>
+                    {% for item in dashboard.por_status %}
+                    <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                        <span>{{ status_options.get(item.nome, item.nome) }}</span>
+                        <span class="badge bg-secondary">{{ item.total }}</span>
+                    </div>
+                    {% else %}
+                    <small class="text-muted">Nenhum status encontrado.</small>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="mb-3">Por responsável</h6>
+                    {% for item in dashboard.por_responsavel %}
+                    <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                        <span>{{ item.nome }}</span>
+                        <span class="badge bg-primary">{{ item.total }}</span>
+                    </div>
+                    {% else %}
+                    <small class="text-muted">Nenhum responsável encontrado.</small>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <form method="GET" class="mb-4">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-4"><label class="form-label">Pesquisar</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Buscar por cliente, contrato, responsável ou parceiro..."></div>
+                    <div class="col-md-3"><label class="form-label">Pesquisar</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Buscar por cliente, contrato, responsável ou parceiro..."></div>
                     <div class="col-md-2"><label class="form-label">Status</label><select class="form-select" name="status"><option value="">Todos</option>{% for valor, descricao in status_options.items() %}<option value="{{ valor }}" {% if selected_status == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}</select></div>
                     <div class="col-md-2"><label class="form-label">Responsável</label><input class="form-control" name="responsavel" value="{{ responsavel or '' }}" placeholder="Nome"></div>
-                    <div class="col-md-2"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativas</option><option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativas</option><option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todas</option></select></div>
+                    <div class="col-md-2"><label class="form-label">Prazo</label><select class="form-select" name="prazo"><option value="">Todos</option>{% for valor, descricao in prazo_options.items() %}<option value="{{ valor }}" {% if selected_prazo == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}</select></div>
+                    <div class="col-md-2 col-xl-1"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativas</option><option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativas</option><option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todas</option></select></div>
                     <div class="col-md-1"><button class="btn btn-primary w-100"><i class="bi bi-search"></i></button></div>
                     <div class="col-md-1"><a href="{{ request.path }}" class="btn btn-outline-secondary w-100">Limpar</a></div>
                 </div>
@@ -43,8 +80,14 @@
                             <td><strong>{{ implantacao.titulo }}</strong><br><small class="text-muted">Contrato {{ implantacao.contrato_numero or implantacao.contrato_id }}</small></td>
                             <td>{{ implantacao.cliente_nome or '-' }}<br><small class="text-muted">{{ implantacao.executivo_nome or implantacao.parceiro_nome or '-' }}</small></td>
                             <td><span class="badge bg-secondary">{{ status_options.get(implantacao.status, implantacao.status) }}</span></td>
-                            <td>{{ implantacao.responsavel or '-' }}</td>
-                            <td>{{ implantacao.data_prevista_entrega|date_br }}</td>
+                            <td>{{ implantacao.responsavel or implantacao.implantador_nome or '-' }}</td>
+                            <td>
+                                {{ implantacao.data_prevista_entrega|date_br }}
+                                {% if implantacao.prazo_situacao == 'ATRASADA' %}<br><span class="badge bg-danger">Atrasada</span>{% endif %}
+                                {% if implantacao.prazo_situacao == 'VENCE_7' %}<br><span class="badge bg-warning text-dark">Vence em {{ implantacao.dias_para_entrega }} dia(s)</span>{% endif %}
+                                {% if implantacao.prazo_situacao == 'VENCE_30' %}<br><span class="badge bg-info text-dark">Vence em {{ implantacao.dias_para_entrega }} dia(s)</span>{% endif %}
+                                {% if implantacao.prazo_situacao == 'SEM_PRAZO' %}<br><span class="badge bg-light text-dark border">Sem prazo</span>{% endif %}
+                            </td>
                             <td>{{ implantacao.total_concluidos or 0 }}/{{ implantacao.total_itens or 0 }}<br><small class="text-muted">{{ implantacao.percentual_conclusao or 0 }}%</small></td>
                             <td><span class="badge bg-light text-dark border">{{ implantacao.provisionamento_status or 'NAO_PLANEJADO' }}</span></td>
                             <td><div class="btn-group btn-group-sm"><a class="btn btn-outline-secondary" href="{{ url_for('implantacao.visualizar', implantacao_id=implantacao.id) }}"><i class="bi bi-eye"></i></a><a class="btn btn-outline-primary" href="{{ url_for('implantacao.editar', implantacao_id=implantacao.id) }}"><i class="bi bi-pencil"></i></a></div></td>

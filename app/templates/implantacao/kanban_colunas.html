@@ -1,0 +1,59 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include "components/page_header.html" %}
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white"><strong>Nova Coluna</strong></div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('implantacao.criar_coluna_kanban') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3"><label class="form-label">Código</label><input class="form-control" name="codigo" placeholder="ex: VALIDACAO_CLIENTE" required></div>
+                    <div class="col-md-4"><label class="form-label">Título</label><input class="form-control" name="titulo" placeholder="Título da coluna" required></div>
+                    <div class="col-md-2"><label class="form-label">Ordem</label><input class="form-control" type="number" name="ordem" min="1" step="1" value="200" required></div>
+                    <div class="col-md-2"><div class="form-check mb-2"><input type="hidden" name="ativo" value="0"><input class="form-check-input" type="checkbox" name="ativo" id="nova_coluna_ativo" value="1" checked><label class="form-check-label" for="nova_coluna_ativo">Ativa</label></div></div>
+                    <div class="col-md-1"><button class="btn btn-primary w-100"><i class="bi bi-plus-circle"></i></button></div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white"><strong>Colunas Cadastradas</strong></div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Código</th><th>Título</th><th width="110">Ordem</th><th width="120">Cards</th><th width="120">Situação</th><th width="120">Origem</th><th width="100">Ação</th></tr></thead>
+                <tbody>
+                    {% for coluna in colunas %}
+                    <tr>
+                        <td><code>{{ coluna.codigo }}</code></td>
+                        <td>
+                            <form id="coluna-edit-{{ coluna.id }}" method="POST" action="{{ url_for('implantacao.editar_coluna_kanban', coluna_id=coluna.id) }}">
+                                <input type="hidden" name="codigo" value="{{ coluna.codigo }}">
+                                <input class="form-control form-control-sm" name="titulo" value="{{ coluna.titulo }}" required>
+                            </form>
+                        </td>
+                        <td><input class="form-control form-control-sm" form="coluna-edit-{{ coluna.id }}" type="number" name="ordem" min="1" step="1" value="{{ coluna.ordem }}" required></td>
+                        <td><span class="badge bg-light text-dark border">{{ coluna.total_cards or 0 }}</span></td>
+                        <td>
+                            <div class="form-check form-switch">
+                                <input form="coluna-edit-{{ coluna.id }}" type="hidden" name="ativo" value="0"><input class="form-check-input" form="coluna-edit-{{ coluna.id }}" type="checkbox" name="ativo" id="ativo_{{ coluna.id }}" value="1" {% if coluna.ativo %}checked{% endif %} {% if coluna.total_cards or coluna.codigo in ['FILA', 'FINALIZADO', 'CANCELADOS'] %}disabled{% endif %}>
+                                {% if coluna.total_cards or coluna.codigo in ['FILA', 'FINALIZADO', 'CANCELADOS'] %}<input form="coluna-edit-{{ coluna.id }}" type="hidden" name="ativo" value="1">{% endif %}
+                                <label class="form-check-label" for="ativo_{{ coluna.id }}">{{ 'Ativa' if coluna.ativo else 'Inativa' }}</label>
+                            </div>
+                        </td>
+                        <td>{% if coluna.sistema %}<span class="badge bg-secondary">Sistema</span>{% else %}<span class="badge bg-info text-dark">Manual</span>{% endif %}</td>
+                        <td><button class="btn btn-sm btn-outline-primary" form="coluna-edit-{{ coluna.id }}" title="Salvar coluna"><i class="bi bi-floppy"></i></button></td>
+                    </tr>
+                    {% else %}
+                        {% set colspan = 7 %}
+                        {% set empty_message = "Nenhuma coluna cadastrada." %}
+                        {% include "components/empty_state.html" %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

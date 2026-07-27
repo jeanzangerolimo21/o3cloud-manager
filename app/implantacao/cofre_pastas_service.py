@@ -27,6 +27,22 @@ class CofrePastaService:
         return cls.repository.buscar_por_id(pasta_id)
 
     @classmethod
+    def listar_parceiros_navegacao(cls):
+        return cls.repository.listar_parceiros_navegacao()
+
+    @classmethod
+    def buscar_parceiro_navegacao(cls, parceiro_id):
+        if not parceiro_id:
+            return None
+        return cls.repository.buscar_parceiro_navegacao(parceiro_id)
+
+    @classmethod
+    def listar_pastas_cliente_por_parceiro(cls, parceiro_id):
+        if not parceiro_id:
+            return []
+        return cls.repository.listar_pastas_cliente_por_parceiro(parceiro_id)
+
+    @classmethod
     def contexto_form(cls):
         return {
             "clientes": ClienteService.listar_para_importacao(),
@@ -65,15 +81,15 @@ class CofrePastaService:
         parceiro_nome = None
         cliente_id = None
         cliente_nome = None
-        if tipo == "parceiro":
+        if tipo in ("parceiro", "cliente"):
             parceiro_id = cls._inteiro(dados.get("parceiro_id"))
             if not parceiro_id:
-                raise ValueError("Parceiro é obrigatório para pasta por parceiro.")
+                raise ValueError("Parceiro é obrigatório para esta pasta.")
             parceiro = ParceiroService.buscar_por_id(parceiro_id)
             if not parceiro:
                 raise ValueError("Parceiro selecionado não encontrado.")
             parceiro_nome = parceiro.get("nome_fantasia") or parceiro.get("nome") or parceiro.get("razao_social")
-        elif tipo == "cliente":
+        if tipo == "cliente":
             cliente_id = cls._inteiro(dados.get("cliente_id"))
             if not cliente_id:
                 raise ValueError("Cliente é obrigatório para pasta por cliente.")

@@ -34,8 +34,8 @@ O desenvolvimento segue uma metodologia incremental baseada em Sprints, preserva
 | Catálogo Técnico | 🚧 Em Desenvolvimento |
 | CRM Comercial | ✅ Base Alpha concluída |
 | Propostas | ✅ Base Alpha concluída |
-| Implantação | 🚧 Em Desenvolvimento |
-| Dashboard Executivo | ⏳ Planejado |
+| Implantação | ✅ Base Alpha concluída |
+| Dashboard Executivo | 🚧 Em preparação |
 
 ---
 
@@ -231,7 +231,7 @@ Primeira entrega concluída:
 
 ---
 
-# Sprint Atual
+# Última Sprint Concluída
 
 ## Sprint 9
 
@@ -239,43 +239,38 @@ Implantação e Provisionamento
 
 Status:
 
-🚧 Em andamento
+✅ Concluída em 27/07/2026
 
 Objetivo:
 
-Criar a fundação operacional do módulo de Implantação, conectando contratos encaminhados para projeto ao fluxo técnico de entrega, checklist, acompanhamento e preparação para provisionamento.
+Criar a fundação operacional do módulo de Implantação, conectando contratos encaminhados para projeto ao fluxo técnico de entrega, checklist, acompanhamento, rastreabilidade e preparação para provisionamento controlado.
 
-Escopo revisado:
+Escopo entregue:
 
-- Módulo próprio de Implantação com listagem, Kanban, visualização e edição controlada.
-- Geração ou abertura de implantação a partir de contrato encaminhado para projeto, com entrada automática na coluna Fila quando sincronizado do Omie.
-- Workflow de implantação: Aguardando início, Em planejamento, Em execução, Em validação, Entregue, Pausada e Cancelada.
-- Checklist técnico por implantação, com itens obrigatórios, responsáveis, status e evidências.
-- Vínculo com cliente, contrato, proposta, executivo, parceiro e ambiente técnico.
-- Visão de acompanhamento por status, responsável, etapa Kanban e prazo.
-- Notificação de movimentação de etapa para implantador, executivo, parceiro e contatos envolvidos.
-- Preparação para provisionamento rastreável usando catálogo técnico, modelos e recursos.
-- Integração Proxmox apenas como etapa controlada, inicialmente preparada por configuração e rastreabilidade, sem automação destrutiva.
+- Módulo próprio de Implantação com listagem, Kanban, visualização, edição e dashboard.
+- Geração ou abertura de implantação a partir de contrato encaminhado para projeto.
+- Workflow técnico com checklist, histórico, responsáveis, prazos e evidências.
+- Kanban operacional com colunas administráveis e notificações tolerantes a SMTP ausente.
+- Licenças O3Web, Faixas de Rede e Cofre de Senhas como bases operacionais.
+- Cofre de Senhas com criptografia, auditoria e navegação por parceiro -> cliente -> credenciais.
+- Rastreabilidade proposta -> contrato -> implantação.
+- Base de configuração para Proxmox, PBS e Zabbix, sem automação destrutiva.
 
-Primeira entrega concluída:
+Documento de fechamento:
 
-- ✅ Fundação do domínio `implantacao`: migration, repository, service, routes, templates, sidebar, listagem, criação, visualização e dashboard inicial.
-- ✅ Kanban operacional de implantação com sincronização automática de contratos encaminhados para projeto e notificação de mudança de coluna.
-
-Critérios de aceite:
-
-- Nenhuma implantação pode iniciar sem contrato encaminhado para projeto.
-- Toda implantação deve manter vínculo com cliente e contrato.
-- Checklist deve ser rastreável e persistido no banco.
-- Contrato encaminhado para projeto deve entrar na primeira fila do Kanban de implantação.
-- Movimentação de Kanban deve registrar etapa e acionar notificação por e-mail quando SMTP estiver configurado.
-- Provisionamento deve registrar intenção/planejamento antes de qualquer integração Proxmox real.
+- `docs/19-FECHAMENTO-SPRINT-9.md`
 
 ---
+
+# Sprint Atual
 
 ## Sprint 10
 
 Dashboard Executivo
+
+Status:
+
+🚧 Em preparação
 
 Objetivos:
 
@@ -371,7 +366,7 @@ Versão:
 
 Sprint:
 
-9 em andamento
+10 em preparação
 
 Status Geral:
 
@@ -379,7 +374,7 @@ Status Geral:
 
 Próxima Entrega:
 
-Ação direta em Contratos para iniciar implantação e rastreabilidade proposta -> contrato -> implantação.
+Dashboard Executivo consolidando indicadores comerciais, contratos, implantação e base para rentabilidade.
 
 
 

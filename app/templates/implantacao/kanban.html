@@ -23,6 +23,9 @@
     {% include "components/page_header.html" %}
 
     <div class="d-flex justify-content-end gap-2 mb-3">
+        <a href="{{ url_for('implantacao.kanban_colunas') }}" class="btn btn-outline-primary">
+            <i class="bi bi-columns-gap"></i> Colunas
+        </a>
         <a href="{{ url_for('implantacao.index') }}" class="btn btn-outline-secondary">
             <i class="bi bi-list-ul"></i> Lista
         </a>

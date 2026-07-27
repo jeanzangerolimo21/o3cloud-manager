@@ -11,6 +11,7 @@ from flask import session
 from flask import url_for
 
 from app.core.storage import StorageService
+from app.implantacao.service import ImplantacaoService
 from app.propostas.service import PropostaService
 from app.propostas.service import STATUS_CLICKSIGN
 from app.propostas.service import STATUS_PROPOSTA
@@ -91,7 +92,14 @@ def visualizar(proposta_id):
     if not proposta:
         flash("Proposta não encontrada.", "danger")
         return redirect(url_for("propostas.index"))
-    return render_template("propostas/view.html", proposta=proposta, status_options=STATUS_PROPOSTA, clicksign_status_options=STATUS_CLICKSIGN, print_mode=False)
+    return render_template(
+        "propostas/view.html",
+        proposta=proposta,
+        rastreabilidade=ImplantacaoService.rastreabilidade_por_proposta(proposta_id),
+        status_options=STATUS_PROPOSTA,
+        clicksign_status_options=STATUS_CLICKSIGN,
+        print_mode=False,
+    )
 
 
 @propostas_bp.route("/<int:proposta_id>/imprimir")

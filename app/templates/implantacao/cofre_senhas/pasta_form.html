@@ -17,8 +17,8 @@
                     <div class="col-md-6"><label class="form-label">Nome *</label><input class="form-control" name="nome" value="{{ pasta.nome or '' }}" required></div>
                     <div class="col-md-3"><label class="form-label">Tipo *</label><select class="form-select" name="tipo" id="tipo_pasta" required>{% for valor, label in tipo_options.items() %}<option value="{{ valor }}" {% if pasta.tipo == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
                     <div class="col-md-3"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if pasta.ativo is not defined or pasta.ativo %}selected{% endif %}>Ativa</option><option value="0" {% if pasta.ativo is defined and not pasta.ativo %}selected{% endif %}>Inativa</option></select></div>
-                    <div class="col-md-6 pasta-contexto" data-tipo="parceiro"><label class="form-label">Parceiro</label><select class="form-select" name="parceiro_id"><option value="">Selecionar parceiro</option>{% for parceiro in parceiros %}<option value="{{ parceiro.id }}" {% if pasta.parceiro_id|string == parceiro.id|string %}selected{% endif %}>{{ parceiro.nome_exibicao or parceiro.nome }}</option>{% endfor %}</select></div>
-                    <div class="col-md-6 pasta-contexto" data-tipo="cliente"><label class="form-label">Cliente</label><select class="form-select" name="cliente_id"><option value="">Selecionar cliente</option>{% for cliente in clientes %}{% set nome_cliente = cliente.nome_fantasia or cliente.razao_social %}<option value="{{ cliente.id }}" {% if pasta.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj }}{% endif %}</option>{% endfor %}</select></div>
+                    <div class="col-md-6 pasta-contexto" data-tipos="parceiro cliente"><label class="form-label">Parceiro</label><select class="form-select" name="parceiro_id"><option value="">Selecionar parceiro</option>{% for parceiro in parceiros %}<option value="{{ parceiro.id }}" {% if pasta.parceiro_id|string == parceiro.id|string %}selected{% endif %}>{{ parceiro.nome_exibicao or parceiro.nome }}</option>{% endfor %}</select></div>
+                    <div class="col-md-6 pasta-contexto" data-tipos="cliente"><label class="form-label">Cliente</label><select class="form-select" name="cliente_id"><option value="">Selecionar cliente</option>{% for cliente in clientes %}{% set nome_cliente = cliente.nome_fantasia or cliente.razao_social %}<option value="{{ cliente.id }}" {% if pasta.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj }}{% endif %}</option>{% endfor %}</select></div>
                     <div class="col-md-6"><label class="form-label">Dono</label><input class="form-control" name="owner_email" value="{{ pasta.owner_email or owner_email or 'sistema' }}"></div>
                     <div class="col-md-3"><label class="form-label">Compartilhar</label><select class="form-select" name="compartilhada"><option value="0" {% if not pasta.compartilhada %}selected{% endif %}>Não</option><option value="1" {% if pasta.compartilhada %}selected{% endif %}>Sim</option></select></div>
                     <div class="col-md-9"><label class="form-label">Compartilhar com</label><input class="form-control" name="compartilhada_com" value="{{ pasta.compartilhada_com or '' }}" placeholder="E-mails ou grupos separados por vírgula"></div>
@@ -37,7 +37,8 @@
     function atualizarContexto() {
         const valor = tipo ? tipo.value : 'usuario';
         blocos.forEach(function (bloco) {
-            bloco.style.display = bloco.dataset.tipo === valor ? '' : 'none';
+            const tipos = (bloco.dataset.tipos || '').split(' ');
+            bloco.style.display = tipos.indexOf(valor) >= 0 ? '' : 'none';
         });
     }
     if (tipo) {

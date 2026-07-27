@@ -124,17 +124,19 @@
         <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
                 <div class="d-flex align-items-center gap-2 mb-2">
-                    <span class="badge text-bg-warning">Sprint 9 em implantacao</span>
-                    <span class="text-muted small">Implantacao e Provisionamento</span>
+                    <span class="badge text-bg-success">Sprint 9 encerrada</span>
+                    <span class="badge text-bg-primary">Sprint 10 iniciada</span>
+                    <span class="text-muted small">Dashboard Executivo</span>
                 </div>
-                <h5 class="mb-1">Fundacao operacional de implantacao em andamento</h5>
-                <p class="text-muted mb-2">Entregas recentes e pendencias principais da Sprint 9.</p>
+                <h5 class="mb-1">Sprint 9 concluida: Implantacao e Provisionamento entregues</h5>
+                <p class="text-muted mb-2">A Sprint 10 inicia o Dashboard Executivo, consolidando dados comerciais, contratos e implantacao para acompanhamento gerencial.</p>
                 <ul class="text-muted mb-0 ps-3">
-                    <li>Licencas O3Web, Faixas de Rede e Cofre de Senhas ja disponiveis em Implantacao.</li>
-                    <li>Pendente: refinar dashboard de Implantacao com filtros por prazo, responsavel e status.</li>
-                    <li>Pendente: evoluir checklist com itens manuais e modelos por tipo de projeto.</li>
-                    <li>Pendente: revisar colunas administrativas do Kanban e rastreabilidade proposta -> contrato -> implantacao.</li>
-                    <li>Pendente: preparar configuracao base para integracoes Proxmox, PBS e Zabbix.</li>
+                    <li>Indicadores executivos com totais, evolucao e pendencias criticas.</li>
+                    <li>Visao comercial por propostas, contratos, parceiros e executivos.</li>
+                    <li>Resumo de implantacoes por etapa Kanban, prazo, responsavel e progresso do checklist.</li>
+                    <li>Filtros gerenciais por periodo, parceiro, executivo e status.</li>
+                    <li>Drill-down para Propostas, Contratos e Implantacao a partir dos cards do dashboard.</li>
+                    <li>Base inicial para rentabilidade e custos, sem calculo financeiro definitivo ate validar as fontes.</li>
                 </ul>
             </div>
             <a href="{{ url_for('implantacao.index') }}" class="btn btn-primary">

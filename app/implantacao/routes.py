@@ -10,6 +10,7 @@ from flask import url_for
 from app.implantacao.service import ImplantacaoService
 from app.implantacao.service import KANBAN_COLUNAS
 from app.implantacao.service import KANBAN_LABELS
+from app.implantacao.service import CHECKLIST_MODELOS
 from app.implantacao.service import PRIORIDADE_IMPLANTACAO
 from app.implantacao.service import STATUS_CHECKLIST
 from app.implantacao.service import STATUS_IMPLANTACAO
@@ -18,6 +19,8 @@ from app.clientes.service import ClienteService
 from app.implantacao.o3web_licencas_service import O3WebLicencaService
 from app.implantacao.o3web_licencas_service import TIPOS_LICENCA_O3WEB
 from app.implantacao.faixas_rede_service import FaixaRedeService
+from app.implantacao.integracoes_service import IntegracaoConfigService
+from app.implantacao.integracoes_service import TIPOS_INTEGRACAO
 from app.implantacao.cofre_senhas_service import CATEGORIAS_COFRE_SENHAS
 from app.implantacao.cofre_pastas_service import CofrePastaService
 from app.implantacao.cofre_pastas_service import TIPOS_COFRE_PASTA
@@ -32,12 +35,14 @@ def index():
     pesquisa = request.args.get("q")
     status = request.args.get("status")
     responsavel = request.args.get("responsavel")
+    prazo = request.args.get("prazo")
     ativo = request.args.get("ativo", "1")
     pagina = request.args.get("page", 1, type=int)
     implantacoes, total = ImplantacaoService.listar(
         pesquisa=pesquisa,
         status=status,
         responsavel=responsavel,
+        prazo=prazo,
         ativo=ativo,
         pagina=pagina,
     )
@@ -52,8 +57,21 @@ def index():
         selected_status=status,
         responsavel=responsavel,
         selected_ativo=ativo,
+        selected_prazo=prazo,
         status_options=STATUS_IMPLANTACAO,
-        dashboard=ImplantacaoService.dashboard(),
+        prazo_options={
+            "atrasadas": "Atrasadas",
+            "vence_7": "Vencem em 7 dias",
+            "vence_30": "Vencem em 30 dias",
+            "sem_prazo": "Sem prazo",
+        },
+        dashboard=ImplantacaoService.dashboard(
+            pesquisa=pesquisa,
+            status=status,
+            responsavel=responsavel,
+            prazo=prazo,
+            ativo=ativo,
+        ),
         page_title="Implantação",
         page_description="Workflow técnico pós-contrato encaminhado para projeto.",
         page_icon="bi-hdd-network",
@@ -160,16 +178,34 @@ def excluir_faixa_rede(faixa_id):
 def cofre_senhas():
     pesquisa = request.args.get("q")
     categoria = request.args.get("categoria")
+    parceiro_id = request.args.get("parceiro_id", type=int)
     pasta_id = request.args.get("pasta_id", type=int)
     ativo = request.args.get("ativo", "1")
     pagina = request.args.get("page", 1, type=int)
-    senhas, total = CofreSenhaService.listar(
-        pesquisa=pesquisa,
-        categoria=categoria,
-        ativo=ativo,
-        pasta_id=pasta_id,
-        pagina=pagina,
-    )
+
+    selected_pasta = CofrePastaService.buscar_por_id(pasta_id) if pasta_id else None
+    if selected_pasta and not parceiro_id:
+        parceiro_id = selected_pasta.get("parceiro_id")
+    if selected_pasta and parceiro_id and int(selected_pasta.get("parceiro_id") or 0) != int(parceiro_id):
+        selected_pasta = None
+        pasta_id = None
+
+    selected_parceiro = CofrePastaService.buscar_parceiro_navegacao(parceiro_id)
+    if parceiro_id and not selected_parceiro:
+        parceiro_id = None
+        pasta_id = None
+        selected_pasta = None
+
+    senhas = []
+    total = 0
+    if selected_pasta:
+        senhas, total = CofreSenhaService.listar(
+            pesquisa=pesquisa,
+            categoria=categoria,
+            ativo=ativo,
+            pasta_id=pasta_id,
+            pagina=pagina,
+        )
     total_paginas = (total + 49) // 50
     return render_template(
         "implantacao/cofre_senhas/index.html",
@@ -179,8 +215,13 @@ def cofre_senhas():
         total_paginas=total_paginas,
         pesquisa=pesquisa,
         selected_categoria=categoria,
+        selected_parceiro_id=parceiro_id,
+        selected_parceiro=selected_parceiro,
         selected_pasta_id=pasta_id,
+        selected_pasta=selected_pasta,
         selected_ativo=ativo,
+        parceiros_navegacao=CofrePastaService.listar_parceiros_navegacao(),
+        pastas_cliente=CofrePastaService.listar_pastas_cliente_por_parceiro(parceiro_id),
         pastas=CofrePastaService.listar_ativas(),
         pasta_tipo_options=TIPOS_COFRE_PASTA,
         categoria_options=CATEGORIAS_COFRE_SENHAS,
@@ -205,7 +246,12 @@ def nova_pasta_cofre():
             return render_template("implantacao/cofre_senhas/pasta_form.html", pasta=request.form, modo="novo", owner_email=_email_usuario_logado(), **contexto)
         flash("Pasta criada no cofre.", "success")
         return redirect(url_for("implantacao.cofre_senhas"))
-    return render_template("implantacao/cofre_senhas/pasta_form.html", pasta={"tipo": "usuario", "ativo": 1}, modo="novo", owner_email=_email_usuario_logado(), **contexto)
+    pasta = {
+        "tipo": request.args.get("tipo") or "usuario",
+        "parceiro_id": request.args.get("parceiro_id"),
+        "ativo": 1,
+    }
+    return render_template("implantacao/cofre_senhas/pasta_form.html", pasta=pasta, modo="novo", owner_email=_email_usuario_logado(), **contexto)
 
 
 @implantacao_bp.route("/cofre-senhas/pastas/<int:pasta_id>/editar", methods=["GET", "POST"])
@@ -397,12 +443,86 @@ def excluir_licenca_o3web(licenca_id):
     return redirect(url_for("implantacao.licencas_o3web"))
 
 
+@implantacao_bp.route("/integracoes")
+def integracoes_config():
+    tipo = request.args.get("tipo")
+    ativo = request.args.get("ativo", "1")
+    return render_template(
+        "implantacao/integracoes/index.html",
+        integracoes=IntegracaoConfigService.listar(tipo=tipo, ativo=ativo),
+        dashboard=IntegracaoConfigService.dashboard(),
+        tipo_options=TIPOS_INTEGRACAO,
+        selected_tipo=tipo,
+        selected_ativo=ativo,
+        page_title="Integrações Técnicas",
+        page_description="Configuração base para Proxmox, PBS e Zabbix.",
+        page_icon="bi-plug-fill",
+        page_button_text="Nova Integração",
+        page_button_icon="bi-plus-circle",
+        page_button_url=url_for("implantacao.nova_integracao_config"),
+    )
+
+
+@implantacao_bp.route("/integracoes/novo", methods=["GET", "POST"])
+def nova_integracao_config():
+    if request.method == "POST":
+        try:
+            integracao_id = IntegracaoConfigService.criar(request.form, _email_usuario_logado())
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            return render_template("implantacao/integracoes/form.html", integracao=request.form, tipo_options=TIPOS_INTEGRACAO, modo="novo")
+        flash("Integração técnica cadastrada.", "success")
+        return redirect(url_for("implantacao.editar_integracao_config", integracao_id=integracao_id))
+    return render_template("implantacao/integracoes/form.html", integracao={"ativo": 1, "verify_ssl": 1, "timeout_seconds": 30}, tipo_options=TIPOS_INTEGRACAO, modo="novo")
+
+
+@implantacao_bp.route("/integracoes/<int:integracao_id>/editar", methods=["GET", "POST"])
+def editar_integracao_config(integracao_id):
+    integracao = IntegracaoConfigService.buscar_por_id(integracao_id)
+    if not integracao:
+        flash("Integração não encontrada.", "danger")
+        return redirect(url_for("implantacao.integracoes_config"))
+    if request.method == "POST":
+        try:
+            IntegracaoConfigService.atualizar(integracao_id, request.form, _email_usuario_logado())
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            integracao = {**integracao, **request.form}
+        else:
+            flash("Integração técnica atualizada.", "success")
+            return redirect(url_for("implantacao.integracoes_config"))
+    return render_template("implantacao/integracoes/form.html", integracao=integracao, tipo_options=TIPOS_INTEGRACAO, modo="editar")
+
+
+@implantacao_bp.route("/integracoes/<int:integracao_id>/testar", methods=["POST"])
+def testar_integracao_config(integracao_id):
+    try:
+        resultado = IntegracaoConfigService.testar_configuracao(integracao_id)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        categoria = "success" if resultado.get("status") == "OK" else "warning"
+        flash(resultado.get("mensagem"), categoria)
+    return redirect(request.referrer or url_for("implantacao.integracoes_config"))
+
+
+@implantacao_bp.route("/integracoes/<int:integracao_id>/excluir", methods=["POST"])
+def excluir_integracao_config(integracao_id):
+    try:
+        IntegracaoConfigService.inativar(integracao_id, _email_usuario_logado())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Integração técnica inativada.", "success")
+    return redirect(url_for("implantacao.integracoes_config"))
+
+
 @implantacao_bp.route("/kanban")
 def kanban():
     return render_template(
         "implantacao/kanban.html",
         colunas=ImplantacaoService.kanban(),
-        kanban_labels=KANBAN_LABELS,
+        kanban_labels=ImplantacaoService.kanban_labels(),
         page_title="Kanban de Implantação",
         page_description="Organização operacional das etapas de projeto.",
         page_icon="bi-kanban-fill",
@@ -410,6 +530,42 @@ def kanban():
         page_button_icon="bi-plus-circle",
         page_button_url=url_for("implantacao.novo"),
     )
+
+
+@implantacao_bp.route("/kanban/colunas")
+def kanban_colunas():
+    return render_template(
+        "implantacao/kanban_colunas.html",
+        colunas=ImplantacaoService.kanban_colunas(ativo=None),
+        page_title="Colunas do Kanban",
+        page_description="Configuração administrativa das etapas de implantação.",
+        page_icon="bi-columns-gap",
+        page_button_text="Voltar ao Kanban",
+        page_button_icon="bi-kanban-fill",
+        page_button_url=url_for("implantacao.kanban"),
+    )
+
+
+@implantacao_bp.route("/kanban/colunas/novo", methods=["POST"])
+def criar_coluna_kanban():
+    try:
+        ImplantacaoService.criar_coluna_kanban(request.form)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Coluna do Kanban criada.", "success")
+    return redirect(url_for("implantacao.kanban_colunas"))
+
+
+@implantacao_bp.route("/kanban/colunas/<int:coluna_id>/editar", methods=["POST"])
+def editar_coluna_kanban(coluna_id):
+    try:
+        ImplantacaoService.atualizar_coluna_kanban(coluna_id, request.form)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Coluna do Kanban atualizada.", "success")
+    return redirect(url_for("implantacao.kanban_colunas"))
 
 
 @implantacao_bp.route("/kanban/mover", methods=["POST"])
@@ -443,7 +599,7 @@ def novo():
                 status_options=STATUS_IMPLANTACAO,
                 prioridade_options=PRIORIDADE_IMPLANTACAO,
                 provisionamento_options=STATUS_PROVISIONAMENTO,
-                kanban_options=KANBAN_COLUNAS,
+                kanban_options=ImplantacaoService.kanban_options(),
                 **contexto,
             )
         flash("Implantação criada com checklist padrão.", "success")
@@ -458,7 +614,7 @@ def novo():
         status_options=STATUS_IMPLANTACAO,
         prioridade_options=PRIORIDADE_IMPLANTACAO,
         provisionamento_options=STATUS_PROVISIONAMENTO,
-        kanban_options=KANBAN_COLUNAS,
+        kanban_options=ImplantacaoService.kanban_options(),
         **contexto,
     )
 
@@ -485,11 +641,13 @@ def visualizar(implantacao_id):
     return render_template(
         "implantacao/view.html",
         implantacao=implantacao,
+        rastreabilidade=ImplantacaoService.rastreabilidade_por_implantacao(implantacao_id),
         status_options=STATUS_IMPLANTACAO,
         prioridade_options=PRIORIDADE_IMPLANTACAO,
         provisionamento_options=STATUS_PROVISIONAMENTO,
         checklist_status_options=STATUS_CHECKLIST,
-        kanban_labels=KANBAN_LABELS,
+        checklist_modelos=CHECKLIST_MODELOS,
+        kanban_labels=ImplantacaoService.kanban_labels(),
     )
 
 
@@ -519,7 +677,7 @@ def editar(implantacao_id):
         status_options=STATUS_IMPLANTACAO,
         prioridade_options=PRIORIDADE_IMPLANTACAO,
         provisionamento_options=STATUS_PROVISIONAMENTO,
-        kanban_options=KANBAN_COLUNAS,
+        kanban_options=ImplantacaoService.kanban_options(),
         **contexto,
     )
 
@@ -560,6 +718,42 @@ def excluir_comentario(historico_id):
     flash("Comentário excluído.", "success")
     return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
 
+
+
+@implantacao_bp.route("/<int:implantacao_id>/checklist/novo", methods=["POST"])
+def adicionar_item_checklist(implantacao_id):
+    try:
+        ImplantacaoService.adicionar_item_checklist(implantacao_id, request.form)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Item adicionado ao checklist.", "success")
+    return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
+
+
+@implantacao_bp.route("/<int:implantacao_id>/checklist/modelo", methods=["POST"])
+def aplicar_modelo_checklist(implantacao_id):
+    try:
+        criados = ImplantacaoService.aplicar_modelo_checklist(implantacao_id, request.form.get("modelo"))
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        if criados:
+            flash(f"Modelo aplicado com {criados} novo(s) item(ns).", "success")
+        else:
+            flash("Modelo já estava aplicado ao checklist.", "info")
+    return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
+
+
+@implantacao_bp.route("/checklist/<int:item_id>/excluir", methods=["POST"])
+def excluir_item_checklist(item_id):
+    try:
+        implantacao_id = ImplantacaoService.excluir_item_checklist(item_id)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+        return redirect(request.referrer or url_for("implantacao.index"))
+    flash("Item removido do checklist.", "success")
+    return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
 
 @implantacao_bp.route("/checklist/<int:item_id>", methods=["POST"])
 def atualizar_checklist(item_id):

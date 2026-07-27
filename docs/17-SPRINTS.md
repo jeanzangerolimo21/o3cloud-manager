@@ -4,7 +4,7 @@
 
 Versão: 3.0 Alpha
 
-Última atualização: 21/07/2026
+Última atualização: 27/07/2026
 
 Status: Oficial
 
@@ -185,7 +185,7 @@ Status:
 
 ---
 
-# Sprint Atual
+# Última Sprint Concluída
 
 ## Sprint 9
 
@@ -198,39 +198,47 @@ Objetivos:
 - Checklist técnico rastreável
 - Acompanhamento por status, responsável e prazo
 - Preparação de provisionamento
-- Base para integração Proxmox segura e auditável
+- Base para integração Proxmox, PBS e Zabbix segura e auditável
 
-Escopo inicial:
+Escopo entregue:
 
-- ✅ Criada migration `021` do domínio de implantação
-- ✅ Criados Repository, Service, Routes e Templates
-- ✅ Criadas listagem, visualização, edição e dashboard de implantações
-- ✅ Criado vínculo obrigatório com contrato encaminhado para projeto
-- ✅ Criado checklist padrão por implantação
-- ✅ Criados estados oficiais do workflow
+- ✅ Fundação do domínio `implantacao` com migrations, repository, service, routes e templates
+- ✅ Listagem, criação, visualização, edição e dashboard de implantações
+- ✅ Kanban operacional com movimentação, histórico e notificação tolerante a SMTP ausente
+- ✅ Administração de colunas do Kanban
+- ✅ Checklist técnico rastreável com modelos, inclusão e remoção manual de itens
+- ✅ Licenças O3Web, Faixas de Rede e Cofre de Senhas como telas operacionais da Implantação
+- ✅ Cofre com senha criptografada, auditoria e navegação por parceiro -> cliente -> credenciais
+- ✅ Rastreabilidade proposta -> contrato -> implantação nas telas operacionais
+- ✅ Base de configuração para integrações Proxmox, PBS e Zabbix sem automação destrutiva
+
+Documento de fechamento:
+
+- `docs/19-FECHAMENTO-SPRINT-9.md`
 
 Status:
 
-🚧 Em andamento
+✅ Concluída em 27/07/2026
 
 ---
 
-# Sprints Futuras
+# Sprint Atual
 
 ## Sprint 10
 
+Dashboard Executivo
+
 Objetivos:
 
-- Dashboard Executivo
-- Indicadores
-- Rentabilidade
-- Custos
-- Comercial
-- Infraestrutura
+- Indicadores executivos
+- Visão comercial e contratos
+- Acompanhamento de implantação
+- Base para rentabilidade e custos
+- Drill-down para telas operacionais existentes
 
 Status:
 
-⏳ Planejado
+🚧 Em preparação
 
 ---
 

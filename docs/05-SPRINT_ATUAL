@@ -4,7 +4,7 @@
 
 Versão: 3.0 Alpha
 
-Última atualização: 22/07/2026
+Última atualização: 27/07/2026
 
 Status: Oficial
 
@@ -12,151 +12,116 @@ Status: Oficial
 
 # Sprint Registrada
 
-## Sprint 9
+## Sprint 10
+
+Dashboard Executivo
 
 Status:
 
-🚧 Em andamento
+🚧 Em preparação
+
+---
+
+# Contexto
+
+A Sprint 9 foi encerrada em 27/07/2026 com a fundação operacional de Implantação concluída.
+
+A Sprint 10 inicia a consolidação executiva dos dados já disponíveis no O3Cloud Manager, conectando visão comercial, contratos, implantação, infraestrutura operacional e indicadores de acompanhamento.
+
+Documento de fechamento da sprint anterior:
+
+- `docs/19-FECHAMENTO-SPRINT-9.md`
 
 ---
 
 # Objetivo da Sprint
 
-Criar a fundação operacional do módulo de Implantação, conectando contratos encaminhados para projeto ao fluxo técnico de entrega, checklist, acompanhamento e preparação para provisionamento.
-
-A Sprint 9 parte do fluxo comercial pós-assinatura entregue nas Sprints 7 e 8 e estabelece a camada técnica de execução após contrato encaminhado para projeto.
+Criar o Dashboard Executivo do O3Cloud Manager para acompanhamento gerencial da operação, com indicadores consolidados e visões de apoio à tomada de decisão.
 
 ---
 
-# Entregas Concluídas
+# Escopo Inicial
 
-## 1. Fundação do Módulo de Implantação
+## 1. Indicadores Executivos
 
 Status:
 
-✅ Primeira versão implementada
+⏳ Planejado
 
-Entregas:
+Entregas previstas:
 
-- Migration `021_create_implantacao_workflow.sql`.
-- Tabelas `implantacoes` e `implantacao_checklist`.
-- Módulo Flask `app/implantacao` com routes e service.
-- Repository `implantacao_workflow_repository.py`.
-- Listagem de implantações em `/implantacao/`.
-- Criação de implantação em `/implantacao/novo` somente a partir de contrato encaminhado para projeto.
-- Origem da nova implantação exibe cliente, executivo, parceiro, descrição do contrato Omie e escopo da proposta, sem valores de negociação.
-- Visualização operacional do contrato disponível na origem, renderizada sem valores comerciais/financeiros.
-- Título de planejamento preenchido automaticamente ao selecionar o contrato de origem.
-- Visualização de implantação com dados de cliente, contrato, comercial, provisionamento e checklist.
-- Edição de status, prioridade, responsável, implantador, e-mail do implantador, executivo, parceiro, prazos, observações e provisionamento.
-- Kanban operacional de implantação em `/implantacao/kanban` com as etapas Fila, Criação de Grupo, Kickoff, VPN, Provisionamento, Parametrizações, Homologação, Virada, Revisão, Finalizado e Cancelados.
-- Contratos sincronizados do Omie com status `ENCAMINHADO_PROJETO` são materializados automaticamente como implantação na primeira coluna `Fila`.
-- Ao entrar no Kanban, a implantação recebe `data_prevista_inicio` para 7 dias corridos após a inclusão e `data_prevista_entrega` para 30 dias após o início previsto.
-- Movimentação de card por arrastar e soltar atualiza `etapa_kanban` e dispara notificação para implantador, executivo, parceiro e contatos envolvidos quando houver SMTP configurado.
-- Edição da implantação permite alterar a etapa do projeto diretamente no card.
-- Histórico do projeto registra comentários e mudanças de etapa com data/hora, autor, resultado de e-mail e comentário.
-- Comentários do histórico podem ser editados ou excluídos pela tela da implantação; registros automáticos de etapa permanecem somente leitura.
-- Tela operacional `Licenças O3Web` adicionada em Implantação para gerir licenças por usuário, com dashboard, filtros, cadastro manual, edição, inativação e importação CSV.
-- Cadastro manual de Licenças O3Web seleciona cliente ativo da base `clientes` e preenche CNPJ automaticamente.
-- Listagem de Licenças O3Web pagina resultados acima de 50 registros, mantendo filtros de pesquisa, tipo e situação.
-- Listagem de Licenças O3Web filtra licenças vencidas ou vigentes e exibe alerta quando houver vencidas ativas.
-- Tela operacional `Faixas de Rede` adicionada em Implantação para gerir redes por cliente com campos `Rede`, `FW - WAN`, `FW - LAN`, `Cliente`, `VPN`, range de `Portas`, `PVE` e `Observações`.
-- Cálculo de próxima faixa disponível considera rede base informada e quantidade de servidores, usando `/29` até 5 servidores, `/28` até 13 e `/27` para projetos maiores.
-- Faixas de Rede validam conflito de portas por `FW - WAN`, impedindo sobreposição de ranges em cadastros ativos diferentes.
-- Tela operacional `Cofre de Senhas` adicionada em Implantação para gerir credenciais criptografadas vinculadas a cliente, faixa de rede e licença O3Web opcional.
-- Cofre de Senhas registra auditoria de criação, atualização, inativação e revelação de senha, com campos futuros para Proxmox, PBS e Zabbix.
-- Cofre de Senhas permite copiar senha, usuário, URL e Host/IP, além de gerar senha complexa com política padrão preparada para Configurações.
-- Cofre de Senhas importa a URL salva da Licença O3Web selecionada e mantém o campo URL editável quando não há vínculo.
-- Cofre de Senhas organiza credenciais em pastas por parceiro, cliente ou usuário logado, com dados de compartilhamento preparados para política futura de usuários e grupos.
-- Contratos exibem ação direta para iniciar implantação quando estão `ENCAMINHADO_PROJETO` e atalho para abrir implantação existente quando já houver vínculo ativo.
-- Dashboard principal informa que a Sprint 9 esta em implantacao e exibe as pendencias principais antes do acesso ao modulo de Implantacao.
-- Importador CSV de licenças O3Web aceita arquivo tabulado, ponto e vírgula ou vírgula, preservando datas originais e atualizando registros por `ID Licença` quando disponível.
-- Cadastro de e-mails adicionais por implantação para incluir outros envolvidos nas notificações do projeto.
-- Comentários podem ser enviados por e-mail aos envolvidos quando o SMTP estiver configurado.
-- Checklist técnico padrão gerado automaticamente ao criar implantação.
-- Atualização individual de itens de checklist com status, responsável e evidência.
-- Dashboard inicial com totais por etapa e atrasos.
-- Atalho no menu lateral em `Operações > Implantação`.
+- Consolidar visão geral de propostas, contratos, implantação e operação.
+- Exibir cards executivos com totais, evolução e pendências críticas.
+- Destacar atrasos, contratos em andamento, implantações em execução e oportunidades relevantes.
+- Preparar filtros por período, parceiro, executivo e status.
 
-Arquivos principais:
+## 2. Visão Comercial e Contratos
 
-- `database/migrations/021_create_implantacao_workflow.sql`
-- `database/migrations/022_add_kanban_implantacao.sql`
-- `database/migrations/023_add_implantacao_historico_emails.sql`
-- `database/migrations/024_create_o3web_licencas.sql`
-- `database/migrations/025_add_cliente_vinculo_o3web_licencas.sql`
-- `database/migrations/026_create_implantacao_faixas_rede.sql`
-- `database/migrations/027_add_port_range_implantacao_faixas_rede.sql`
-- `database/migrations/028_create_implantacao_cofre_senhas.sql`
-- `database/migrations/029_create_implantacao_cofre_pastas.sql`
-- `app/repositories/implantacao_workflow_repository.py`
-- `app/repositories/o3web_licenca_repository.py`
-- `app/repositories/faixa_rede_repository.py`
-- `app/repositories/cofre_senha_repository.py`
-- `app/repositories/cofre_pasta_repository.py`
-- `app/implantacao/service.py`
-- `app/implantacao/routes.py`
-- `app/implantacao/o3web_licencas_service.py`
-- `app/implantacao/faixas_rede_service.py`
-- `app/implantacao/cofre_senhas_service.py`
-- `app/implantacao/cofre_pastas_service.py`
-- `app/templates/implantacao/licencas_o3web/`
-- `app/templates/implantacao/faixas_rede/`
-- `app/templates/implantacao/cofre_senhas/`
-- `app/templates/implantacao/index.html`
-- `app/templates/implantacao/kanban.html`
-- `app/templates/implantacao/form.html`
-- `app/templates/implantacao/view.html`
-- `app/templates/components/sidebar.html`
-- `app/templates/dashboards/index.html`
-- `app/__init__.py`
+Status:
+
+⏳ Planejado
+
+Entregas previstas:
+
+- Indicadores por parceiro e executivo.
+- Funil resumido de propostas e contratos.
+- Sinalização de contratos assinados, encaminhados para projeto e em implantação.
+- Rastreabilidade executiva proposta -> contrato -> implantação.
+
+## 3. Visão de Implantação
+
+Status:
+
+⏳ Planejado
+
+Entregas previstas:
+
+- Resumo por etapa Kanban.
+- Projetos atrasados e próximos do vencimento.
+- Indicadores de progresso do checklist.
+- Carga por responsável/implantador.
+
+## 4. Base para Rentabilidade e Custos
+
+Status:
+
+⏳ Planejado
+
+Entregas previstas:
+
+- Mapear dados necessários para rentabilidade por contrato, cliente e parceiro.
+- Identificar fontes atuais no catálogo, contratos e infraestrutura.
+- Preparar estrutura inicial sem cálculo financeiro definitivo caso os dados de custo ainda não estejam completos.
 
 ---
 
-# Regras Implementadas
+# Fora do Escopo Inicial
 
-- Implantação só pode ser criada a partir de contrato ativo e elegível.
-- Contrato de origem precisa estar com status `ENCAMINHADO_PROJETO`, representando projeto recém-negociado para o implantador.
-- Cada contrato pode ter uma implantação ativa.
-- Checklist padrão é persistido por implantação.
-- Percentual de conclusão é calculado a partir dos itens de checklist concluídos.
-- Proxmox permanece como planejamento de provisionamento, sem automação destrutiva nesta primeira entrega.
-- Etapa `FINALIZADO` ajusta a implantação para status `ENTREGUE`; etapa `CANCELADOS` ajusta para status `CANCELADA`.
-- E-mail de movimentação e de comentário é tolerante a ambiente sem SMTP: a operação continua e retorna `smtp_nao_configurado`.
+- Integrações reais destrutivas com Proxmox, PBS ou Zabbix.
+- Cálculo financeiro definitivo sem fonte validada de custos.
+- Reestruturação de permissões ou autenticação.
+- Refatoração ampla dos módulos comerciais já entregues.
 
 ---
 
-# Próximas Entregas da Sprint 9
+# Critérios de Aceite
 
-- Evoluir edição administrativa de colunas do Kanban, caso as etapas precisem ser configuráveis pelo usuário.
-- Refinar dashboard de Implantação com filtros por prazo, responsável e status.
-- Evoluir checklist com inclusão manual de itens e modelos por tipo de projeto.
-- Criar visão de rastreabilidade proposta -> contrato -> implantação.
-- Preparar camada de configuração para integrações Proxmox, PBS e Zabbix futuras.
+- Dashboard Executivo acessível pelo menu principal.
+- Indicadores principais carregam a partir dos dados reais do banco.
+- Filtros executivos preservam consistência entre cards e listagens resumidas.
+- Links de drill-down levam para telas operacionais existentes.
+- Tela mantém leitura clara para uso gerencial diário.
+- Implementação segue Repository / Service / Routes / Templates.
 
 ---
 
-# Validações Realizadas
+# Validações Previstas
 
-- Sintaxe Python validada nos módulos alterados.
-- Migrations `021`, `022`, `023`, `024`, `025`, `026`, `027`, `028` e `029` aplicadas na base local.
-- Rotas `/`, `/implantacao/`, `/implantacao/novo` e `/implantacao/kanban` validadas via Flask test client com retorno HTTP 200.
-- Consulta de contratos elegíveis validada na base local.
-- Importação CSV de Licenças O3Web validada com criação e atualização por `ID Licença`, sem erros e com cleanup do registro temporário.
-- Cadastro manual de Licença O3Web validado com `cliente_id`, nome e CNPJ originados da tabela `clientes`, com cleanup do registro temporário.
-- Paginação de Licenças O3Web validada nas páginas 1 e 2 via Flask test client, com retorno HTTP 200.
-- Filtro de Licenças O3Web vencidas validado na base local com 9 registros ativos vencidos e retorno HTTP 200.
-- Rotas `/implantacao/faixas-rede`, `/implantacao/faixas-rede/novo` e cálculo de sugestão por rede base validados via Flask test client com retorno HTTP 200.
-- Cadastro de Faixa de Rede validado com cliente real da tabela `clientes`, cálculo de máscara `/29`, criação temporária e cleanup do registro de teste.
-- Conflito de range de portas em Faixas de Rede validado com bloqueio para o mesmo `FW - WAN` e liberação para `FW - WAN` diferente.
-- Rotas `/implantacao/cofre-senhas` e `/implantacao/cofre-senhas/novo` validadas via Flask test client com retorno HTTP 200.
-- Cofre de Senhas validado com criação temporária, senha criptografada, revelação auditada, edição sem troca de senha, edição com troca de senha e cleanup dos registros de teste.
-- Botões de copiar senha, usuário, URL e Host/IP validados via renderização de credencial temporária e endpoint HTTP de revelação.
-- Importação de URL da Licença O3Web no formulário do Cofre validada via renderização com `data-url` e campo URL somente leitura quando aplicável.
-- Pastas do Cofre validadas com criação temporária, vínculo de credencial, filtro por pasta, renderização da tela principal e cleanup dos registros de teste.
-- Ação direta de Contratos para Implantação validada em contrato com implantação existente, com redirecionamento HTTP 302 para `/implantacao/19` e sem duplicar implantação ativa.
-- Dashboard principal validado via Flask test client com retorno HTTP 200 e aviso da Sprint 9 renderizado.
-- Movimentação de card validada via POST `/implantacao/kanban/mover`, com retorno `smtp_nao_configurado` em ambiente sem SMTP.
+- Sintaxe Python dos módulos alterados.
+- Renderização via Flask test client com retorno HTTP 200.
+- Validação de consultas agregadas no MariaDB.
+- Conferência de filtros principais por período, parceiro, executivo e status.
+- Verificação de links para Propostas, Contratos e Implantação.
 
 ---
 
@@ -168,12 +133,12 @@ Versão:
 
 Sprint Atual:
 
-9
+10
 
 Situação:
 
-🚧 Em andamento
+🚧 Em preparação
 
 Próxima Implementação:
 
-Refinar dashboard de Implantação, checklist, configuração de colunas, rastreabilidade pós-assinatura e camada base para Proxmox/PBS/Zabbix.
+Iniciar o Dashboard Executivo consolidando indicadores comerciais, contratos e implantação.

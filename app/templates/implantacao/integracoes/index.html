@@ -1,0 +1,59 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include "components/page_header.html" %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Configurações</small><h4>{{ dashboard.total or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ativas</small><h4>{{ dashboard.ativas or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Proxmox</small><h4>{{ dashboard.proxmox or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">PBS</small><h4>{{ dashboard.pbs or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Zabbix</small><h4>{{ dashboard.zabbix or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Validadas</small><h4>{{ dashboard.testes_ok or 0 }}</h4></div></div></div>
+    </div>
+
+    <div class="alert alert-secondary"><i class="bi bi-shield-lock-fill"></i> Tokens e senhas ficam criptografados. Nesta etapa o teste valida a estrutura da configuração, sem executar ações externas.</div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="mb-4">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4"><label class="form-label">Tipo</label><select class="form-select" name="tipo"><option value="">Todos</option>{% for valor, label in tipo_options.items() %}<option value="{{ valor }}" {% if selected_tipo == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                    <div class="col-md-3"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativas</option><option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativas</option><option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todas</option></select></div>
+                    <div class="col-md-2"><button class="btn btn-primary w-100"><i class="bi bi-search"></i></button></div>
+                    <div class="col-md-2"><a class="btn btn-outline-secondary w-100" href="{{ request.path }}">Limpar</a></div>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>Integração</th><th>Endpoint</th><th>Autenticação</th><th>Segurança</th><th>Último teste</th><th width="180">Ações</th></tr></thead>
+                    <tbody>
+                    {% for item in integracoes %}
+                        <tr>
+                            <td><strong>{{ item.nome }}</strong><br><span class="badge bg-secondary">{{ tipo_options.get(item.tipo, item.tipo) }}</span> {% if not item.ativo %}<span class="badge bg-light text-dark border">Inativa</span>{% endif %}</td>
+                            <td><a href="{{ item.base_url }}" target="_blank">{{ item.base_url }}</a><br><small class="text-muted">Timeout {{ item.timeout_seconds }}s</small></td>
+                            <td>{{ item.usuario or item.token_nome or '-' }}<br><small class="text-muted">Segredo criptografado</small></td>
+                            <td>{% if item.verify_ssl %}<span class="badge bg-success">SSL verificado</span>{% else %}<span class="badge bg-warning text-dark">SSL sem verificação</span>{% endif %}</td>
+                            <td>{% if item.ultimo_teste_status %}<span class="badge bg-{{ 'success' if item.ultimo_teste_status == 'OK' else 'warning' }}">{{ item.ultimo_teste_status }}</span><br><small class="text-muted">{{ item.ultimo_teste_mensagem or '-' }}</small>{% else %}<span class="text-muted">Não testada</span>{% endif %}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a class="btn btn-outline-primary" href="{{ url_for('implantacao.editar_integracao_config', integracao_id=item.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
+                                    <form method="POST" action="{{ url_for('implantacao.testar_integracao_config', integracao_id=item.id) }}"><button class="btn btn-outline-info" title="Validar configuração"><i class="bi bi-check2-circle"></i></button></form>
+                                    {% if item.ativo %}<form method="POST" action="{{ url_for('implantacao.excluir_integracao_config', integracao_id=item.id) }}" onsubmit="return confirm('Inativar esta integração?');"><button class="btn btn-outline-danger" title="Inativar"><i class="bi bi-trash"></i></button></form>{% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        {% set colspan = 6 %}
+                        {% set empty_message = "Nenhuma integração técnica configurada." %}
+                        {% include "components/empty_state.html" %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

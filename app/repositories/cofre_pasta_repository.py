@@ -29,6 +29,76 @@ class CofrePastaRepository(BaseRepository):
             """
         )
 
+
+    @classmethod
+    def listar_parceiros_navegacao(cls):
+        return cls.fetch_all(
+            """
+            SELECT
+                p.id,
+                COALESCE(p.nome_fantasia, p.nome, p.razao_social) AS nome,
+                p.sigla,
+                COUNT(DISTINCT cp.id) AS total_pastas,
+                COUNT(DISTINCT cs.id) AS total_credenciais
+            FROM parceiros p
+            LEFT JOIN implantacao_cofre_pastas cp
+                ON cp.parceiro_id = p.id
+                AND cp.tipo = 'cliente'
+                AND cp.ativo = 1
+            LEFT JOIN implantacao_cofre_senhas cs
+                ON cs.pasta_id = cp.id
+                AND cs.ativo = 1
+            WHERE p.ativo = 1
+            GROUP BY p.id, p.nome_fantasia, p.nome, p.razao_social, p.sigla
+            ORDER BY COALESCE(p.nome_fantasia, p.nome, p.razao_social), p.nome
+            """
+        )
+
+    @classmethod
+    def buscar_parceiro_navegacao(cls, parceiro_id):
+        return cls.fetch_one(
+            """
+            SELECT
+                p.id,
+                COALESCE(p.nome_fantasia, p.nome, p.razao_social) AS nome,
+                p.sigla,
+                COUNT(DISTINCT cp.id) AS total_pastas,
+                COUNT(DISTINCT cs.id) AS total_credenciais
+            FROM parceiros p
+            LEFT JOIN implantacao_cofre_pastas cp
+                ON cp.parceiro_id = p.id
+                AND cp.tipo = 'cliente'
+                AND cp.ativo = 1
+            LEFT JOIN implantacao_cofre_senhas cs
+                ON cs.pasta_id = cp.id
+                AND cs.ativo = 1
+            WHERE p.id = %s
+                AND p.ativo = 1
+            GROUP BY p.id, p.nome_fantasia, p.nome, p.razao_social, p.sigla
+            """,
+            (parceiro_id,),
+        )
+
+    @classmethod
+    def listar_pastas_cliente_por_parceiro(cls, parceiro_id):
+        return cls.fetch_all(
+            """
+            SELECT
+                cp.*,
+                COUNT(DISTINCT cs.id) AS total_credenciais,
+                SUM(CASE WHEN cs.ativo = 1 THEN 1 ELSE 0 END) AS credenciais_ativas
+            FROM implantacao_cofre_pastas cp
+            LEFT JOIN implantacao_cofre_senhas cs
+                ON cs.pasta_id = cp.id
+            WHERE cp.ativo = 1
+                AND cp.tipo = 'cliente'
+                AND cp.parceiro_id = %s
+            GROUP BY cp.id
+            ORDER BY COALESCE(cp.cliente_nome, cp.nome), cp.nome
+            """,
+            (parceiro_id,),
+        )
+
     @classmethod
     def buscar_por_id(cls, pasta_id):
         return cls.fetch_one("SELECT * FROM implantacao_cofre_pastas WHERE id = %s", (pasta_id,))
