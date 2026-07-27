@@ -46,6 +46,17 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-27 - Dashboard Executivo Dedicado
+
+### Dashboard Executivo
+
+- Criada rota `/dashboard/executivo` para concentrar a visão gerencial de diretoria.
+- Home `/` passou a ser uma visão geral resumida com cards principais, status da Sprint 10 e atalhos.
+- Menu lateral passou a separar `Visão Geral` e `Dashboard Executivo`.
+- Tela executiva mantém indicadores comerciais, contratos, implantação, rankings e listas de atenção.
+
+---
+
 ## 2026-07-27 - Início da Sprint 10
 
 ### Dashboard Executivo

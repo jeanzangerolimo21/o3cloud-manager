@@ -19,3 +19,14 @@ def dashboard():
         dashboard=dados
     )
 
+
+@financeiro_bp.route("/dashboard/executivo")
+def dashboard_executivo():
+
+    dados = FinanceiroService.dashboard()
+
+    return render_template(
+        "dashboards/executivo.html",
+        dashboard=dados
+    )
+

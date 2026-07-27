@@ -50,7 +50,8 @@ Status:
 
 Entregas concluídas:
 
-- Home `/` convertida em Dashboard Executivo com agregações reais de propostas, contratos e implantação.
+- Home `/` mantida como visão geral resumida, com atalhos operacionais e entrada para o Dashboard Executivo.
+- Tela dedicada `/dashboard/executivo` criada para planejamento de diretoria, com agregações reais de propostas, contratos e implantação.
 - Cards executivos adicionados para receita mensal negociada, receita mensal ativa, implantações em andamento e pendências críticas.
 - Indicadores complementares adicionados para clientes ativos, setup em contratos, implantações vencendo em 7 dias e checklist médio.
 - Blocos de status adicionados para Comercial, Contratos e Implantação.
@@ -126,7 +127,8 @@ Entregas previstas:
 # Validações Realizadas
 
 - Sintaxe Python validada em `app/financeiro/repository.py`, `app/financeiro/service.py` e `app/financeiro/routes.py`.
-- Dashboard Executivo `/` validado via Flask test client com retorno HTTP 200.
+- Visão geral `/` validada via Flask test client com retorno HTTP 200.
+- Dashboard Executivo dedicado `/dashboard/executivo` validado via Flask test client com retorno HTTP 200.
 - Payload agregado de `FinanceiroService.dashboard()` validado com dados reais do banco local.
 - Renderização dos blocos `Dashboard Executivo`, `Receita mensal negociada` e `Implantações críticas` confirmada.
 
