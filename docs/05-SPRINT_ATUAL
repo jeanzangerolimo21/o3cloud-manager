@@ -54,10 +54,12 @@ Entregas concluídas:
 - Diagnostico inicial usa itens sincronizados de contratos Omie e vinculos reais com proposta/catalogo/custo.
 - Cards de cobertura adicionados para contratos com itens, cobertura de catalogo e cobertura de custo.
 - Lacunas de rentabilidade passam a ser exibidas sem alterar dados historicos.
+- Dashboard passou a listar itens Omie sem catalogo e produtos vinculados sem custo como fila de saneamento.
 
 Entregas previstas:
 
 - Definir fonte oficial de custos por produto, recurso tecnico e infraestrutura.
+- Cadastrar/vincular no catalogo os principais codigos Omie sem correspondencia.
 - Popular ou importar `parametros_financeiros`.
 - Popular ou importar `faturamentos` por competencia.
 - Definir regra para `valor_custo` de produtos e recursos de servidor.
@@ -151,4 +153,4 @@ Situacao:
 
 Proxima Implementacao:
 
-Validar a tela Produtos por Cliente e definir regra oficial de vinculo com catalogo/custos.
+Cadastrar/vincular os principais codigos Omie sem catalogo e preencher custos dos produtos vinculados.

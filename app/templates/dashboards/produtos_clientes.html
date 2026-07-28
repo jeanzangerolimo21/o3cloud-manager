@@ -117,6 +117,68 @@
         </div>
     </div>
 
+    <div class="row g-4 mb-4">
+        <div class="col-xl-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong>Itens Omie sem catalogo</strong>
+                    <a class="small" href="{{ url_for('financeiro.produtos_clientes', situacao='sem_catalogo') }}">filtrar</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Codigo</th>
+                                <th>Descricao</th>
+                                <th class="text-end">Ocorrencias</th>
+                                <th class="text-end">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pendencia in dashboard.itens_sem_catalogo %}
+                                <tr>
+                                    <td><small class="text-muted">Item {{ pendencia.codigo_item or '-' }}<br>Servico {{ pendencia.codigo_servico or '-' }}</small></td>
+                                    <td><strong>{{ pendencia.descricao }}</strong><br><small class="text-muted">{{ pendencia.clientes_total }} cliente(s) - {{ pendencia.contratos_total }} contrato(s)</small></td>
+                                    <td class="text-end">{{ pendencia.ocorrencias or 0 }}</td>
+                                    <td class="text-end">{{ pendencia.valor_total_itens|moeda }}</td>
+                                </tr>
+                            {% else %}
+                                <tr><td colspan="4" class="text-muted">Nenhum item sem catalogo para os filtros selecionados.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong>Produtos vinculados sem custo</strong>
+                    <a class="small" href="{{ url_for('financeiro.produtos_clientes', situacao='sem_custo') }}">filtrar</a>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for produto in dashboard.produtos_sem_custo %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between gap-3">
+                                <div>
+                                    <strong>{{ produto.nome }}</strong><br>
+                                    <small class="text-muted">{{ produto.codigo or '-' }} / externo {{ produto.codigo_externo or '-' }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span>{{ produto.valor_total_itens|moeda }}</span><br>
+                                    <small class="text-muted">{{ produto.itens_vinculados or 0 }} item(ns)</small>
+                                </div>
+                            </div>
+                            <small class="text-muted">{{ produto.clientes_total or 0 }} cliente(s) afetado(s)</small>
+                        </div>
+                    {% else %}
+                        <div class="list-group-item text-muted">Nenhum produto vinculado sem custo para os filtros selecionados.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <strong>Itens por contrato</strong>

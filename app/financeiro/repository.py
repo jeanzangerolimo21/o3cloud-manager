@@ -895,6 +895,59 @@ class FinanceiroRepository(BaseRepository):
                 cliente.get("itens_total"),
             )
 
+        itens_sem_catalogo = cls.fetch_all(
+            f"""
+            SELECT
+                ci.codigo_servico,
+                ci.codigo_item,
+                LEFT(COALESCE(ci.descricao, 'Sem descricao'), 120) AS descricao,
+                COUNT(*) AS ocorrencias,
+                COUNT(DISTINCT c.cliente_id) AS clientes_total,
+                COUNT(DISTINCT c.id) AS contratos_total,
+                COALESCE(SUM(COALESCE(ci.valor_total, 0)), 0) AS valor_total_itens
+            FROM contratos c
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            INNER JOIN contratos_itens ci ON ci.contrato_id = c.id
+            LEFT JOIN produtos prod ON prod.ativo = 1 AND (
+                (ci.codigo_servico IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico))
+                OR (ci.codigo_item IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_item))
+            )
+            WHERE c.ativo = 1 {where}
+              AND prod.id IS NULL
+            GROUP BY ci.codigo_servico, ci.codigo_item, descricao
+            ORDER BY valor_total_itens DESC, ocorrencias DESC, descricao ASC
+            LIMIT 12
+            """,
+            tuple(params),
+        )
+
+        produtos_sem_custo = cls.fetch_all(
+            f"""
+            SELECT
+                prod.id,
+                prod.codigo,
+                prod.codigo_externo,
+                prod.nome,
+                prod.valor_custo,
+                COUNT(ci.id) AS itens_vinculados,
+                COUNT(DISTINCT c.cliente_id) AS clientes_total,
+                COALESCE(SUM(COALESCE(ci.valor_total, 0)), 0) AS valor_total_itens
+            FROM contratos c
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            INNER JOIN contratos_itens ci ON ci.contrato_id = c.id
+            INNER JOIN produtos prod ON prod.ativo = 1 AND (
+                (ci.codigo_servico IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico))
+                OR (ci.codigo_item IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_item))
+            )
+            WHERE c.ativo = 1 {where}
+              AND COALESCE(prod.valor_custo, 0) <= 0
+            GROUP BY prod.id, prod.codigo, prod.codigo_externo, prod.nome, prod.valor_custo
+            ORDER BY valor_total_itens DESC, itens_vinculados DESC, prod.nome ASC
+            LIMIT 12
+            """,
+            tuple(params),
+        )
+
         lacunas = []
         if not resumo.get("itens_total"):
             lacunas.append("Sincronizar itens de contratos do Omie ou registrar itens comerciais nos contratos.")
@@ -909,6 +962,8 @@ class FinanceiroRepository(BaseRepository):
             "resumo": resumo,
             "itens": itens,
             "clientes": clientes,
+            "itens_sem_catalogo": itens_sem_catalogo,
+            "produtos_sem_custo": produtos_sem_custo,
             "lacunas": lacunas,
         }
 

@@ -46,6 +46,16 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-28 - Fila de Saneamento de Catalogo e Custos
+
+### Sprint 11
+
+- Dashboard Produtos por Cliente passou a listar os principais itens Omie sem vinculo com catalogo.
+- Adicionada lista de produtos ja vinculados a contratos, mas ainda sem custo preenchido.
+- Proxima acao operacional ficou direcionada para cadastrar codigos Omie e completar custos antes da rentabilidade.
+
+---
+
 ## 2026-07-28 - Inicio da Sprint 11 com Produtos por Cliente
 
 ### Sprint 11
