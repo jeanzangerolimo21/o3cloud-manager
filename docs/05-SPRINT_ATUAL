@@ -46,7 +46,14 @@ Evoluir as integracoes tecnicas e operacionais do O3Cloud Manager, preparando fo
 
 Status:
 
-⏳ Planejado
+🚧 Em andamento
+
+Entregas concluídas:
+
+- Tela `/dashboard/produtos-clientes` criada para mapear cliente -> contrato -> item contratado.
+- Diagnostico inicial usa itens sincronizados de contratos Omie e vinculos reais com proposta/catalogo/custo.
+- Cards de cobertura adicionados para contratos com itens, cobertura de catalogo e cobertura de custo.
+- Lacunas de rentabilidade passam a ser exibidas sem alterar dados historicos.
 
 Entregas previstas:
 
@@ -115,6 +122,10 @@ Entregas previstas:
 
 ---
 
+# Validacoes Realizadas
+
+- Tela `/dashboard/produtos-clientes` validada com dados reais de contratos e itens Omie.
+
 # Validacoes Previstas
 
 - Validar consultas com dados reais do banco local.
@@ -140,4 +151,4 @@ Situacao:
 
 Proxima Implementacao:
 
-Mapear fontes oficiais de custos, parametros financeiros e faturamentos para rentabilidade.
+Validar a tela Produtos por Cliente e definir regra oficial de vinculo com catalogo/custos.

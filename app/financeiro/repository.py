@@ -767,6 +767,185 @@ class FinanceiroRepository(BaseRepository):
         return date(ano, mes, 1)
 
     @classmethod
+    def produtos_clientes(cls, filtros=None):
+        filtros = filtros or {}
+        where, params = cls._filtros_produtos_clientes(filtros)
+        resumo = cls.fetch_one(
+            f"""
+            SELECT
+                COUNT(DISTINCT c.id) AS contratos_total,
+                COUNT(DISTINCT ci.contrato_id) AS contratos_com_itens,
+                COUNT(ci.id) AS itens_total,
+                COUNT(DISTINCT c.cliente_id) AS clientes_total,
+                COALESCE(SUM(COALESCE(ci.valor_total, 0)), 0) AS valor_total_itens,
+                SUM(CASE WHEN c.proposta_id IS NOT NULL THEN 1 ELSE 0 END) AS itens_com_proposta,
+                SUM(CASE WHEN prod.id IS NOT NULL THEN 1 ELSE 0 END) AS itens_com_produto_catalogo,
+                SUM(CASE WHEN prod.id IS NOT NULL AND COALESCE(prod.valor_custo, 0) > 0 THEN 1 ELSE 0 END) AS itens_com_custo
+            FROM contratos c
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            LEFT JOIN contratos_itens ci ON ci.contrato_id = c.id
+            LEFT JOIN produtos prod ON prod.ativo = 1 AND (
+                (ci.codigo_servico IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico))
+                OR (ci.codigo_item IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_item))
+            )
+            WHERE c.ativo = 1 {where}
+            """,
+            tuple(params),
+        ) or {}
+        resumo["cobertura_itens"] = cls._percentual(
+            resumo.get("contratos_com_itens"),
+            resumo.get("contratos_total"),
+        )
+        resumo["cobertura_proposta"] = cls._percentual(
+            resumo.get("itens_com_proposta"),
+            resumo.get("itens_total"),
+        )
+        resumo["cobertura_catalogo"] = cls._percentual(
+            resumo.get("itens_com_produto_catalogo"),
+            resumo.get("itens_total"),
+        )
+        resumo["cobertura_custo"] = cls._percentual(
+            resumo.get("itens_com_custo"),
+            resumo.get("itens_total"),
+        )
+
+        itens = cls.fetch_all(
+            f"""
+            SELECT
+                ci.id,
+                c.id AS contrato_id,
+                c.numero AS contrato_numero,
+                c.status AS contrato_status,
+                c.origem,
+                c.proposta_id,
+                prop.codigo_proposta,
+                cli.id AS cliente_id,
+                COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
+                COALESCE(par.nome_fantasia, par.nome, par.razao_social, 'Sem parceiro') AS parceiro_nome,
+                COALESCE(exec.nome, 'Sem executivo') AS executivo_nome,
+                ci.codigo_item,
+                ci.codigo_servico,
+                ci.descricao,
+                ci.quantidade,
+                ci.valor_unitario,
+                ci.valor_total,
+                prod.id AS produto_id,
+                prod.codigo AS produto_codigo,
+                prod.nome AS produto_nome,
+                prod.valor_custo,
+                CASE
+                    WHEN ci.id IS NULL THEN 'SEM_ITEM'
+                    WHEN prod.id IS NULL THEN 'SEM_CATALOGO'
+                    WHEN COALESCE(prod.valor_custo, 0) <= 0 THEN 'SEM_CUSTO'
+                    ELSE 'COMPLETO'
+                END AS situacao_custo
+            FROM contratos c
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            LEFT JOIN contratos_itens ci ON ci.contrato_id = c.id
+            LEFT JOIN crm_propostas prop ON prop.id = c.proposta_id AND prop.ativo = 1
+            LEFT JOIN parceiros par ON par.id = c.parceiro_id
+            LEFT JOIN parceiros_executivos exec ON exec.id = c.executivo_id
+            LEFT JOIN produtos prod ON prod.ativo = 1 AND (
+                (ci.codigo_servico IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico))
+                OR (ci.codigo_item IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_item))
+            )
+            WHERE c.ativo = 1 {where}
+            ORDER BY ci.id IS NULL ASC,
+                     FIELD(situacao_custo, 'SEM_ITEM', 'SEM_CATALOGO', 'SEM_CUSTO', 'COMPLETO'),
+                     COALESCE(ci.valor_total, COALESCE(NULLIF(c.valor_promocional, 0), c.valor_mensal, 0), 0) DESC,
+                     c.id DESC,
+                     ci.sequencia ASC
+            LIMIT 100
+            """,
+            tuple(params),
+        )
+
+        clientes = cls.fetch_all(
+            f"""
+            SELECT
+                cli.id,
+                COALESCE(cli.nome_fantasia, cli.razao_social) AS nome,
+                COUNT(DISTINCT c.id) AS contratos_total,
+                COUNT(ci.id) AS itens_total,
+                COALESCE(SUM(COALESCE(ci.valor_total, 0)), 0) AS valor_total_itens,
+                SUM(CASE WHEN c.proposta_id IS NOT NULL THEN 1 ELSE 0 END) AS itens_com_proposta,
+                SUM(CASE WHEN prod.id IS NOT NULL THEN 1 ELSE 0 END) AS itens_com_catalogo,
+                SUM(CASE WHEN prod.id IS NOT NULL AND COALESCE(prod.valor_custo, 0) > 0 THEN 1 ELSE 0 END) AS itens_com_custo
+            FROM contratos c
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            LEFT JOIN contratos_itens ci ON ci.contrato_id = c.id
+            LEFT JOIN produtos prod ON prod.ativo = 1 AND (
+                (ci.codigo_servico IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico))
+                OR (ci.codigo_item IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_item))
+            )
+            WHERE c.ativo = 1 {where}
+            GROUP BY cli.id, nome
+            ORDER BY valor_total_itens DESC, itens_total DESC, nome ASC
+            LIMIT 12
+            """,
+            tuple(params),
+        )
+        for cliente in clientes:
+            cliente["cobertura_custo"] = cls._percentual(
+                cliente.get("itens_com_custo"),
+                cliente.get("itens_total"),
+            )
+            cliente["cobertura_catalogo"] = cls._percentual(
+                cliente.get("itens_com_catalogo"),
+                cliente.get("itens_total"),
+            )
+
+        lacunas = []
+        if not resumo.get("itens_total"):
+            lacunas.append("Sincronizar itens de contratos do Omie ou registrar itens comerciais nos contratos.")
+        if not resumo.get("itens_com_produto_catalogo"):
+            lacunas.append("Vincular codigos de itens do Omie ao catalogo de produtos.")
+        if not resumo.get("itens_com_custo"):
+            lacunas.append("Preencher custos dos produtos para preparar rentabilidade.")
+        if not resumo.get("itens_com_proposta"):
+            lacunas.append("Tratar vinculos historicos de contrato com proposta para rastrear origem comercial.")
+
+        return {
+            "resumo": resumo,
+            "itens": itens,
+            "clientes": clientes,
+            "lacunas": lacunas,
+        }
+
+    @classmethod
+    def _filtros_produtos_clientes(cls, filtros):
+        where = []
+        params = []
+        pesquisa = (filtros.get("q") or "").strip()
+        if pesquisa:
+            like = f"%{pesquisa}%"
+            where.append("""
+                (
+                    COALESCE(cli.nome_fantasia, cli.razao_social) LIKE %s
+                    OR c.numero LIKE %s
+                    OR ci.descricao LIKE %s
+                    OR CAST(ci.codigo_item AS CHAR) LIKE %s
+                    OR CAST(ci.codigo_servico AS CHAR) LIKE %s
+                )
+            """)
+            params.extend([like, like, like, like, like])
+        if filtros.get("status"):
+            where.append("c.status = %s")
+            params.append(filtros.get("status"))
+        if filtros.get("origem"):
+            where.append("c.origem = %s")
+            params.append(filtros.get("origem"))
+        if filtros.get("situacao") == "sem_item":
+            where.append("ci.id IS NULL")
+        elif filtros.get("situacao") == "sem_catalogo":
+            where.append("ci.id IS NOT NULL AND prod.id IS NULL")
+        elif filtros.get("situacao") == "sem_custo":
+            where.append("prod.id IS NOT NULL AND COALESCE(prod.valor_custo, 0) <= 0")
+        elif filtros.get("situacao") == "completo":
+            where.append("prod.id IS NOT NULL AND COALESCE(prod.valor_custo, 0) > 0")
+        return (" AND " + " AND ".join(where) if where else ""), params
+
+    @classmethod
     def listar_clientes(cls):
 
         conn = cls.connection()

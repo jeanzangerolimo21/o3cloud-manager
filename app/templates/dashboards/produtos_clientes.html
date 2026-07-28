@@ -1,0 +1,158 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set resumo = dashboard.resumo or {} %}
+    {% set situacao_labels = {
+        "SEM_ITEM": "Sem item",
+        "SEM_CATALOGO": "Sem catalogo",
+        "SEM_CUSTO": "Sem custo",
+        "COMPLETO": "Completo"
+    } %}
+    {% set situacao_classes = {
+        "SEM_ITEM": "secondary",
+        "SEM_CATALOGO": "warning",
+        "SEM_CUSTO": "danger",
+        "COMPLETO": "success"
+    } %}
+
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">Produtos por Cliente</h2>
+            <p class="text-muted mb-0">Base de vinculo cliente -> contrato -> produto para preparar custos, faturamentos e rentabilidade.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-primary" href="{{ url_for('financeiro.dashboard_executivo') }}"><i class="bi bi-graph-up-arrow"></i> Dashboard Executivo</a>
+            <a class="btn btn-primary" href="{{ url_for('contratos.index') }}"><i class="bi bi-file-earmark-text"></i> Contratos</a>
+        </div>
+    </div>
+
+    <div class="alert alert-info d-flex align-items-start gap-2" role="alert">
+        <i class="bi bi-flag-fill mt-1"></i>
+        <div>
+            <strong>Sprint 11 iniciada.</strong>
+            Esta primeira visao usa itens de contratos e vinculos existentes sem alterar dados historicos.
+        </div>
+    </div>
+
+    <form method="GET" class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-4">
+                    <label class="form-label">Buscar</label>
+                    <input class="form-control" name="q" value="{{ filtros.q or '' }}" placeholder="Cliente, contrato, item ou codigo">
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Status contrato</label>
+                    <select class="form-select" name="status">
+                        <option value="">Todos</option>
+                        {% for valor, label in status_options.items() %}
+                            <option value="{{ valor }}" {% if filtros.status == valor %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Origem</label>
+                    <select class="form-select" name="origem">
+                        <option value="">Todas</option>
+                        <option value="OMIE" {% if filtros.origem == 'OMIE' %}selected{% endif %}>Omie</option>
+                        <option value="MANUAL" {% if filtros.origem == 'MANUAL' %}selected{% endif %}>Manual</option>
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Situacao</label>
+                    <select class="form-select" name="situacao">
+                        <option value="">Todas</option>
+                        <option value="sem_item" {% if filtros.situacao == 'sem_item' %}selected{% endif %}>Sem item</option>
+                        <option value="sem_catalogo" {% if filtros.situacao == 'sem_catalogo' %}selected{% endif %}>Sem catalogo</option>
+                        <option value="sem_custo" {% if filtros.situacao == 'sem_custo' %}selected{% endif %}>Sem custo</option>
+                        <option value="completo" {% if filtros.situacao == 'completo' %}selected{% endif %}>Completo</option>
+                    </select>
+                </div>
+                <div class="col-lg-2 d-flex gap-2">
+                    <button class="btn btn-primary flex-fill"><i class="bi bi-search"></i></button>
+                    <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.produtos_clientes') }}"><i class="bi bi-arrow-counterclockwise"></i></a>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Contratos com itens</small><h3 class="mb-1">{{ resumo.contratos_com_itens or 0 }}/{{ resumo.contratos_total or 0 }}</h3><small class="text-muted">{{ resumo.cobertura_itens or 0 }}% de cobertura</small></div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Itens contratados</small><h3 class="mb-1">{{ resumo.itens_total or 0 }}</h3><small class="text-muted">{{ resumo.clientes_total or 0 }} cliente(s)</small></div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Cobertura catalogo</small><h3 class="mb-1 {{ 'text-danger' if not resumo.cobertura_catalogo else '' }}">{{ resumo.cobertura_catalogo or 0 }}%</h3><small class="text-muted">Itens vinculados a produtos</small></div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Cobertura custo</small><h3 class="mb-1 {{ 'text-danger' if not resumo.cobertura_custo else '' }}">{{ resumo.cobertura_custo or 0 }}%</h3><small class="text-muted">Itens com custo preenchido</small></div></div></div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-xl-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white"><strong>Clientes com itens contratados</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for cliente in dashboard.clientes %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between gap-3">
+                                <div><strong>{{ cliente.nome }}</strong><br><small class="text-muted">{{ cliente.contratos_total }} contrato(s) - {{ cliente.itens_total or 0 }} item(ns)</small></div>
+                                <div class="text-end"><span>{{ cliente.valor_total_itens|moeda }}</span><br><small class="text-muted">Custo {{ cliente.cobertura_custo or 0 }}%</small></div>
+                            </div>
+                            <div class="progress mt-2" style="height: 6px;"><div class="progress-bar bg-success" style="width: {{ cliente.cobertura_catalogo or 0 }}%"></div></div>
+                        </div>
+                    {% else %}
+                        <div class="list-group-item text-muted">Sem clientes para os filtros selecionados.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white"><strong>Lacunas para rentabilidade</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for lacuna in dashboard.lacunas %}
+                        <div class="list-group-item"><i class="bi bi-exclamation-circle text-warning"></i> {{ lacuna }}</div>
+                    {% else %}
+                        <div class="list-group-item text-muted">Nenhuma lacuna principal identificada para os filtros selecionados.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <strong>Itens por contrato</strong>
+            <span class="badge text-bg-light border">Amostra de ate 100 registros</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Contrato</th>
+                        <th>Item</th>
+                        <th class="text-end">Qtd</th>
+                        <th class="text-end">Valor</th>
+                        <th class="text-end">Vinculos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in dashboard.itens %}
+                        <tr>
+                            <td><strong>{{ item.cliente_nome }}</strong><br><small class="text-muted">{{ item.parceiro_nome }} - {{ item.executivo_nome }}</small></td>
+                            <td><a href="{{ url_for('contratos.view', contrato_id=item.contrato_id) }}">{{ item.contrato_numero or ('Contrato #' ~ item.contrato_id) }}</a><br><small class="text-muted">{{ item.origem }} - {{ status_options.get(item.contrato_status, item.contrato_status) }}</small></td>
+                            <td><strong>{{ item.produto_nome or item.descricao or 'Sem item sincronizado' }}</strong><br><small class="text-muted">Item {{ item.codigo_item or '-' }} / Servico {{ item.codigo_servico or '-' }}</small></td>
+                            <td class="text-end">{{ item.quantidade or 0 }}</td>
+                            <td class="text-end">{{ item.valor_total|moeda }}<br><small class="text-muted">Custo {{ item.valor_custo|moeda if item.valor_custo is not none else '-' }}</small></td>
+                            <td class="text-end">
+                                <span class="badge text-bg-{{ situacao_classes.get(item.situacao_custo, 'secondary') }}">{{ situacao_labels.get(item.situacao_custo, item.situacao_custo) }}</span><br>
+                                {% if item.proposta_id %}<a class="small" href="{{ url_for('propostas.visualizar', proposta_id=item.proposta_id) }}">{{ item.codigo_proposta or 'Proposta' }}</a>{% else %}<small class="text-muted">Sem proposta</small>{% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="6" class="text-muted">Sem itens para os filtros selecionados.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

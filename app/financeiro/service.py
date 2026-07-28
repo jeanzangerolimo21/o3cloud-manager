@@ -21,6 +21,22 @@ class FinanceiroService:
             "status_implantacao": FinanceiroService._texto(dados.get("status_implantacao")),
         }
 
+
+    @staticmethod
+    def filtros_produtos_clientes(dados):
+
+        return {
+            "q": FinanceiroService._texto(dados.get("q")),
+            "status": FinanceiroService._texto(dados.get("status")),
+            "origem": FinanceiroService._texto(dados.get("origem")),
+            "situacao": FinanceiroService._texto(dados.get("situacao")),
+        }
+
+    @staticmethod
+    def produtos_clientes(filtros=None):
+
+        return FinanceiroRepository.produtos_clientes(filtros)
+
     @staticmethod
     def contexto_dashboard():
 

@@ -35,3 +35,23 @@ def dashboard_executivo():
         **FinanceiroService.contexto_dashboard(),
     )
 
+@financeiro_bp.route("/dashboard/produtos-clientes")
+def produtos_clientes():
+
+    filtros = FinanceiroService.filtros_produtos_clientes(request.args)
+    dados = FinanceiroService.produtos_clientes(filtros)
+
+    return render_template(
+        "dashboards/produtos_clientes.html",
+        dashboard=dados,
+        filtros=filtros,
+        status_options={
+            "RASCUNHO": "Rascunho",
+            "EM_ELABORACAO": "Em elaboracao",
+            "ENCAMINHADO_PROJETO": "Encaminhado para projeto",
+            "ATIVO": "Ativo",
+            "CONCLUIDO": "Concluido",
+            "CANCELADO": "Cancelado",
+        },
+    )
+

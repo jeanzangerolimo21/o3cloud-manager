@@ -46,6 +46,16 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-28 - Inicio da Sprint 11 com Produtos por Cliente
+
+### Sprint 11
+
+- Criada tela `/dashboard/produtos-clientes` para mapear cliente -> contrato -> item contratado.
+- Diagnostico inicial usa itens sincronizados de contratos Omie e evidencia lacunas de proposta, catalogo e custo.
+- Visao Geral passou a destacar Produtos por Cliente como primeira entrega operacional da Sprint 11.
+
+---
+
 ## 2026-07-28 - Visao Geral Atualizada para Sprint 11
 
 ### Dashboard
