@@ -46,6 +46,17 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-28 - Fluxo de Importacao de Custos de Produtos
+
+### Sprint 11
+
+- Criada tela `/catalogo/produtos/custos` para listar produtos ativos pendentes de custo.
+- Adicionada exportacao CSV `produtos_custos_pendentes.csv` com impacto por itens, clientes e valor vinculado.
+- Adicionada importacao CSV por `codigo` para atualizar `valor_custo` somente com valores positivos.
+- Lista de produtos ganhou atalho para o fluxo de custos.
+
+---
+
 ## 2026-07-28 - Vinculos Omie no Catalogo
 
 ### Sprint 11

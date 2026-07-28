@@ -10,6 +10,9 @@ Não conhece HTML.
 Toda persistência é feita pelo ProdutoRepository.
 """
 
+import csv
+import io
+
 from app.catalogo.produtos.repository import ProdutoRepository
 
 
@@ -58,6 +61,73 @@ class ProdutoService:
     def contar(cls):
 
         return cls.repository.contar()
+
+    @classmethod
+    def listar_custos_pendentes(cls):
+
+        return cls.repository.listar_custos_pendentes()
+
+    @classmethod
+    def importar_custos_csv(cls, arquivo):
+
+        if not arquivo or not arquivo.filename:
+            raise ValueError("Selecione um arquivo CSV para importar.")
+
+        conteudo = arquivo.read().decode("utf-8-sig", errors="replace")
+        if not conteudo.strip():
+            raise ValueError("Arquivo CSV vazio.")
+
+        linhas = cls._ler_csv(conteudo)
+        if not linhas:
+            raise ValueError("Nenhuma linha encontrada no CSV.")
+
+        resumo = {"processadas": 0, "atualizadas": 0, "ignoradas": 0, "erros": []}
+
+        for numero, linha in enumerate(linhas, start=2):
+            try:
+                normalizada = {cls._normalizar_header(chave): valor for chave, valor in linha.items()}
+                codigo = cls._valor(normalizada, "codigo", "produto_codigo").strip().upper()
+                valor_raw = cls._valor(normalizada, "valor_custo", "custo")
+
+                if not codigo and not str(valor_raw or "").strip():
+                    resumo["ignoradas"] += 1
+                    continue
+                if not codigo:
+                    raise ValueError("Codigo do produto e obrigatorio.")
+
+                produto = cls.buscar_por_codigo(codigo)
+                if not produto or not produto.get("ativo"):
+                    raise ValueError("Produto ativo nao encontrado.")
+
+                valor_custo = cls._normalizar_decimal(valor_raw)
+                if valor_custo <= 0:
+                    raise ValueError("Valor de custo deve ser maior que zero.")
+
+                cls.repository.atualizar_custo_por_codigo(codigo, valor_custo)
+                resumo["atualizadas"] += 1
+                resumo["processadas"] += 1
+            except Exception as erro:
+                resumo["erros"].append(f"Linha {numero}: {erro}")
+
+        return resumo
+
+    @staticmethod
+    def linhas_exportacao_custos(produtos):
+
+        linhas = []
+        for produto in produtos:
+            linhas.append([
+                produto.get("codigo"),
+                produto.get("codigo_externo") or "",
+                produto.get("nome"),
+                produto.get("categoria"),
+                produto.get("tipo_recurso"),
+                produto.get("itens_vinculados") or 0,
+                produto.get("clientes_total") or 0,
+                produto.get("valor_total_itens") or 0,
+                "",
+            ])
+        return linhas
 
     ####################################################################
     # CADASTRO
@@ -285,6 +355,81 @@ class ProdutoService:
             )
 
         return True
+
+    @staticmethod
+    def _ler_csv(conteudo):
+
+        amostra = conteudo[:4096]
+        try:
+            dialect = csv.Sniffer().sniff(amostra, delimiters="	;,|")
+        except csv.Error:
+            dialect = csv.excel_tab if "	" in amostra else csv.excel
+
+        reader = csv.reader(io.StringIO(conteudo), dialect)
+        rows = [row for row in reader if any((coluna or "").strip() for coluna in row)]
+        if not rows:
+            return []
+
+        headers = ProdutoService._headers_unicos(rows[0])
+        resultado = []
+        for row in rows[1:]:
+            if len(row) < len(headers):
+                row = row + [""] * (len(headers) - len(row))
+            if len(row) > len(headers):
+                row = row[:len(headers)]
+            resultado.append(dict(zip(headers, row)))
+        return resultado
+
+    @staticmethod
+    def _headers_unicos(headers):
+
+        resultado = []
+        vistos = {}
+        for index, header in enumerate(headers):
+            nome = (header or "").strip() or f"coluna_{index + 1}"
+            vistos[nome] = vistos.get(nome, 0) + 1
+            if vistos[nome] > 1:
+                nome = f"{nome}_{vistos[nome]}"
+            resultado.append(nome)
+        return resultado
+
+    @staticmethod
+    def _normalizar_header(valor):
+
+        texto = (valor or "").strip().lower()
+        substituicoes = {
+            "ç": "c", "ã": "a", "á": "a", "à": "a", "â": "a", "é": "e", "ê": "e",
+            "í": "i", "ó": "o", "ô": "o", "õ": "o", "ú": "u", ":": "", "/": "_",
+        }
+        for origem, destino in substituicoes.items():
+            texto = texto.replace(origem, destino)
+        return "_".join(parte for parte in texto.replace("-", " ").split() if parte)
+
+    @staticmethod
+    def _valor(dados, *nomes):
+
+        for nome in nomes:
+            chave = ProdutoService._normalizar_header(nome)
+            if chave in dados:
+                return dados.get(chave) or ""
+        return ""
+
+    @staticmethod
+    def _normalizar_decimal(valor):
+
+        texto = str(valor or "").strip()
+        if not texto:
+            raise ValueError("Valor de custo e obrigatorio.")
+        texto = texto.replace("R$", "").replace(" ", "")
+        if "," in texto and "." in texto:
+            texto = texto.replace(".", "").replace(",", ".")
+        else:
+            texto = texto.replace(",", ".")
+        try:
+            valor_decimal = float(texto)
+        except ValueError as erro:
+            raise ValueError("Valor de custo invalido.") from erro
+        return round(valor_decimal, 2)
 
     @staticmethod
     def _normalizar_inteiro(valor, default=None):

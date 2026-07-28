@@ -57,10 +57,12 @@ Entregas concluídas:
 - Dashboard passou a listar itens Omie sem catalogo e produtos vinculados sem custo como fila de saneamento.
 - Seed `database/seed/004_catalogo_vinculos_omie_sprint11.sql` cadastra/vincula 7 codigos de servico Omie de maior impacto.
 - Cobertura de catalogo validada em 256 de 257 itens; item restante possui `codigo_servico = 0` e permanece como dado invalido a tratar.
+- Tela `/catalogo/produtos/custos` criada para exportar/importar custos pendentes por CSV.
 
 Entregas previstas:
 
 - Definir fonte oficial de custos por produto, recurso tecnico e infraestrutura.
+- Preencher os custos oficiais dos produtos Omie pelo fluxo de importacao CSV.
 - Popular ou importar `parametros_financeiros`.
 - Popular ou importar `faturamentos` por competencia.
 - Definir regra para `valor_custo` de produtos e recursos de servidor.
@@ -154,4 +156,4 @@ Situacao:
 
 Proxima Implementacao:
 
-Cadastrar/vincular os principais codigos Omie sem catalogo e preencher custos dos produtos vinculados.
+Preencher/importar custos oficiais dos produtos vinculados e validar cobertura de custo no dashboard.

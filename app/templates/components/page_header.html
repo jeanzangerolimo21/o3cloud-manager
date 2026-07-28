@@ -22,18 +22,32 @@
 
     </div>
 
-    {% if page_button_url %}
+    {% if page_button_url or page_secondary_button_url %}
 
-    <a
-        href="{{ page_button_url }}"
-        class="btn btn-primary"
-        {% if page_button_text == "Voltar" %}onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }"{% endif %}>
+    <div class="d-flex gap-2 flex-wrap justify-content-end">
+        {% if page_secondary_button_url %}
+        <a href="{{ page_secondary_button_url }}" class="btn btn-outline-primary">
 
-        <i class="bi {{ page_button_icon }}"></i>
+            <i class="bi {{ page_secondary_button_icon }}"></i>
 
-        {{ page_button_text }}
+            {{ page_secondary_button_text }}
 
-    </a>
+        </a>
+        {% endif %}
+
+        {% if page_button_url %}
+        <a
+            href="{{ page_button_url }}"
+            class="btn btn-primary"
+            {% if page_button_text == "Voltar" %}onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }"{% endif %}>
+
+            <i class="bi {{ page_button_icon }}"></i>
+
+            {{ page_button_text }}
+
+        </a>
+        {% endif %}
+    </div>
 
     {% endif %}
 

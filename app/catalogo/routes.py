@@ -275,6 +275,57 @@ def listar_produtos():
     )
 
 
+@catalogo_bp.route("/produtos/custos", methods=["GET", "POST"])
+def custos_produtos():
+
+    resumo = None
+
+    if request.method == "POST":
+        try:
+            resumo = ProdutoService.importar_custos_csv(request.files.get("arquivo"))
+            if resumo["erros"]:
+                flash("Importacao concluida com erros. Verifique o resumo abaixo.", "warning")
+            else:
+                flash("Custos importados com sucesso.", "success")
+        except Exception as erro:
+            flash(str(erro), "danger")
+
+    return render_template(
+        "catalogo/produtos/custos.html",
+        produtos=ProdutoService.listar_custos_pendentes(),
+        resumo=resumo,
+    )
+
+
+@catalogo_bp.route("/produtos/custos/exportar.csv")
+def exportar_custos_produtos_csv():
+
+    produtos = ProdutoService.listar_custos_pendentes()
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, delimiter=';')
+    writer.writerow([
+        'codigo',
+        'codigo_externo',
+        'nome',
+        'categoria',
+        'tipo_recurso',
+        'itens_vinculados',
+        'clientes_total',
+        'valor_total_itens',
+        'valor_custo',
+    ])
+    writer.writerows(ProdutoService.linhas_exportacao_custos(produtos))
+
+    return Response(
+        buffer.getvalue(),
+        mimetype='text/csv; charset=utf-8',
+        headers={
+            'Content-Disposition': 'attachment; filename=produtos_custos_pendentes.csv',
+        },
+    )
+
+
 ####################################################################
 # RECURSOS DE SERVIDOR
 ####################################################################
