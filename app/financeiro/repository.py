@@ -785,8 +785,14 @@ class FinanceiroRepository(BaseRepository):
             INNER JOIN clientes cli ON cli.id = c.cliente_id
             LEFT JOIN contratos_itens ci ON ci.contrato_id = c.id
             LEFT JOIN produtos prod ON prod.ativo = 1 AND (
-                (ci.codigo_servico IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico))
-                OR (ci.codigo_item IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_item))
+                (ci.codigo_servico IS NOT NULL AND (
+                    (prod.codigo_externo REGEXP '^[0-9]+$' AND CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico)
+                    OR (prod.codigo REGEXP '^[0-9]+$' AND CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico)
+                ))
+                OR (ci.codigo_item IS NOT NULL AND (
+                    (prod.codigo_externo REGEXP '^[0-9]+$' AND CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item)
+                    OR (prod.codigo REGEXP '^[0-9]+$' AND CAST(prod.codigo AS UNSIGNED) = ci.codigo_item)
+                ))
             )
             WHERE c.ativo = 1 {where}
             """,
@@ -846,8 +852,14 @@ class FinanceiroRepository(BaseRepository):
             LEFT JOIN parceiros par ON par.id = c.parceiro_id
             LEFT JOIN parceiros_executivos exec ON exec.id = c.executivo_id
             LEFT JOIN produtos prod ON prod.ativo = 1 AND (
-                (ci.codigo_servico IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico))
-                OR (ci.codigo_item IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_item))
+                (ci.codigo_servico IS NOT NULL AND (
+                    (prod.codigo_externo REGEXP '^[0-9]+$' AND CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico)
+                    OR (prod.codigo REGEXP '^[0-9]+$' AND CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico)
+                ))
+                OR (ci.codigo_item IS NOT NULL AND (
+                    (prod.codigo_externo REGEXP '^[0-9]+$' AND CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item)
+                    OR (prod.codigo REGEXP '^[0-9]+$' AND CAST(prod.codigo AS UNSIGNED) = ci.codigo_item)
+                ))
             )
             WHERE c.ativo = 1 {where}
             ORDER BY ci.id IS NULL ASC,
@@ -875,8 +887,14 @@ class FinanceiroRepository(BaseRepository):
             INNER JOIN clientes cli ON cli.id = c.cliente_id
             LEFT JOIN contratos_itens ci ON ci.contrato_id = c.id
             LEFT JOIN produtos prod ON prod.ativo = 1 AND (
-                (ci.codigo_servico IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico))
-                OR (ci.codigo_item IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_item))
+                (ci.codigo_servico IS NOT NULL AND (
+                    (prod.codigo_externo REGEXP '^[0-9]+$' AND CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico)
+                    OR (prod.codigo REGEXP '^[0-9]+$' AND CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico)
+                ))
+                OR (ci.codigo_item IS NOT NULL AND (
+                    (prod.codigo_externo REGEXP '^[0-9]+$' AND CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item)
+                    OR (prod.codigo REGEXP '^[0-9]+$' AND CAST(prod.codigo AS UNSIGNED) = ci.codigo_item)
+                ))
             )
             WHERE c.ativo = 1 {where}
             GROUP BY cli.id, nome
@@ -909,8 +927,14 @@ class FinanceiroRepository(BaseRepository):
             INNER JOIN clientes cli ON cli.id = c.cliente_id
             INNER JOIN contratos_itens ci ON ci.contrato_id = c.id
             LEFT JOIN produtos prod ON prod.ativo = 1 AND (
-                (ci.codigo_servico IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico))
-                OR (ci.codigo_item IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_item))
+                (ci.codigo_servico IS NOT NULL AND (
+                    (prod.codigo_externo REGEXP '^[0-9]+$' AND CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico)
+                    OR (prod.codigo REGEXP '^[0-9]+$' AND CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico)
+                ))
+                OR (ci.codigo_item IS NOT NULL AND (
+                    (prod.codigo_externo REGEXP '^[0-9]+$' AND CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item)
+                    OR (prod.codigo REGEXP '^[0-9]+$' AND CAST(prod.codigo AS UNSIGNED) = ci.codigo_item)
+                ))
             )
             WHERE c.ativo = 1 {where}
               AND prod.id IS NULL
@@ -936,8 +960,14 @@ class FinanceiroRepository(BaseRepository):
             INNER JOIN clientes cli ON cli.id = c.cliente_id
             INNER JOIN contratos_itens ci ON ci.contrato_id = c.id
             INNER JOIN produtos prod ON prod.ativo = 1 AND (
-                (ci.codigo_servico IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico))
-                OR (ci.codigo_item IS NOT NULL AND (CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item OR CAST(prod.codigo AS UNSIGNED) = ci.codigo_item))
+                (ci.codigo_servico IS NOT NULL AND (
+                    (prod.codigo_externo REGEXP '^[0-9]+$' AND CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico)
+                    OR (prod.codigo REGEXP '^[0-9]+$' AND CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico)
+                ))
+                OR (ci.codigo_item IS NOT NULL AND (
+                    (prod.codigo_externo REGEXP '^[0-9]+$' AND CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item)
+                    OR (prod.codigo REGEXP '^[0-9]+$' AND CAST(prod.codigo AS UNSIGNED) = ci.codigo_item)
+                ))
             )
             WHERE c.ativo = 1 {where}
               AND COALESCE(prod.valor_custo, 0) <= 0

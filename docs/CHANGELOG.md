@@ -46,6 +46,16 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-28 - Vinculos Omie no Catalogo
+
+### Sprint 11
+
+- Criado seed idempotente `database/seed/004_catalogo_vinculos_omie_sprint11.sql` para cadastrar/vincular 7 codigos de servico Omie ao catalogo.
+- Corrigido o join de produtos no dashboard para converter apenas codigos numericos, evitando vinculos falsos com codigo Omie `0`.
+- Cobertura de catalogo validada em 256 de 257 itens; custos continuam pendentes porque ainda nao ha fonte oficial validada para `valor_custo`.
+
+---
+
 ## 2026-07-28 - Fila de Saneamento de Catalogo e Custos
 
 ### Sprint 11

@@ -55,11 +55,12 @@ Entregas concluídas:
 - Cards de cobertura adicionados para contratos com itens, cobertura de catalogo e cobertura de custo.
 - Lacunas de rentabilidade passam a ser exibidas sem alterar dados historicos.
 - Dashboard passou a listar itens Omie sem catalogo e produtos vinculados sem custo como fila de saneamento.
+- Seed `database/seed/004_catalogo_vinculos_omie_sprint11.sql` cadastra/vincula 7 codigos de servico Omie de maior impacto.
+- Cobertura de catalogo validada em 256 de 257 itens; item restante possui `codigo_servico = 0` e permanece como dado invalido a tratar.
 
 Entregas previstas:
 
 - Definir fonte oficial de custos por produto, recurso tecnico e infraestrutura.
-- Cadastrar/vincular no catalogo os principais codigos Omie sem correspondencia.
 - Popular ou importar `parametros_financeiros`.
 - Popular ou importar `faturamentos` por competencia.
 - Definir regra para `valor_custo` de produtos e recursos de servidor.
