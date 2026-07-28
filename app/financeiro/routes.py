@@ -31,6 +31,7 @@ def dashboard_executivo():
         "dashboards/executivo.html",
         dashboard=dados,
         filtros=filtros,
+        dashboard_links=FinanceiroService.links_dashboard(filtros),
         **FinanceiroService.contexto_dashboard(),
     )
 

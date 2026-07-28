@@ -29,6 +29,49 @@ class FinanceiroService:
             "executivos": FinanceiroRepository.listar_executivos_dashboard(),
         }
 
+    @staticmethod
+    def links_dashboard(filtros):
+        filtros = filtros or {}
+
+        contratos_base = FinanceiroService._limpar_params({
+            "status": filtros.get("status_contrato"),
+            "data_de": filtros.get("data_de"),
+            "data_ate": filtros.get("data_ate"),
+        })
+        implantacoes_base = FinanceiroService._limpar_params({
+            "status": filtros.get("status_implantacao"),
+        })
+        propostas_base = FinanceiroService._limpar_params({
+            "status": filtros.get("status_comercial"),
+        })
+
+        return {
+            "propostas_index": propostas_base,
+            "propostas_assinatura": FinanceiroService._limpar_params({
+                **propostas_base,
+                "clicksign_status": "AGUARDANDO_ASSINATURAS",
+            }),
+            "contratos_dashboard": contratos_base,
+            "contratos_index": contratos_base,
+            "contratos_ativos": FinanceiroService._limpar_params({
+                **contratos_base,
+                "status": "ATIVO",
+            }),
+            "contratos_a_iniciar": FinanceiroService._limpar_params({
+                **contratos_base,
+                "status": filtros.get("status_contrato") or "ENCAMINHADO_PROJETO",
+            }),
+            "implantacoes_index": implantacoes_base,
+            "implantacoes_atrasadas": FinanceiroService._limpar_params({
+                **implantacoes_base,
+                "prazo": "atrasadas",
+            }),
+            "implantacoes_vence_7": FinanceiroService._limpar_params({
+                **implantacoes_base,
+                "prazo": "vence_7",
+            }),
+        }
+
 
     @staticmethod
     def listar_clientes():
@@ -51,4 +94,9 @@ class FinanceiroService:
             return int(valor or 0) or None
         except (TypeError, ValueError):
             return None
+
+    @staticmethod
+    def _limpar_params(params):
+
+        return {chave: valor for chave, valor in params.items() if valor not in (None, "")}
 

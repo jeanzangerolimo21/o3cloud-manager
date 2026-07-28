@@ -46,6 +46,56 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-28 - Rastreabilidade Executiva no Dashboard
+
+### Dashboard Executivo
+
+- Adicionada visao de rastreabilidade proposta -> contrato -> implantacao.
+- Dashboard passou a exibir cobertura ponta a ponta, contratos sem proposta e contratos sem implantacao.
+- Fluxos operacionais exibem links diretos para proposta, contrato e implantacao quando houver vinculo.
+
+---
+
+## 2026-07-28 - Carga por Responsavel no Dashboard Executivo
+
+### Dashboard Executivo
+
+- Adicionada visao de carga por responsavel/implantador com projetos totais, andamento, atrasos e vencimentos em 7 dias.
+- Carga operacional passou a exibir checklist medio e receita mensal vinculada aos contratos de implantacao.
+- Visao respeita os filtros executivos aplicados no Dashboard Executivo.
+
+---
+
+## 2026-07-28 - Base Inicial de Rentabilidade e Custos
+
+### Dashboard Executivo
+
+- Adicionada seção de base para rentabilidade com receita recorrente, setup/projeto e cobertura de rastreabilidade.
+- Dashboard passou a mapear prontidão das fontes de dados: contratos, faturamentos, produtos/custos, parâmetros financeiros e infraestrutura.
+- Adicionada lista de contratos candidatos para cálculo futuro de rentabilidade, sem cálculo definitivo de margem enquanto custos não estiverem validados.
+
+---
+
+## 2026-07-28 - Evolucao Mensal no Dashboard Executivo
+
+### Dashboard Executivo
+
+- Adicionado comparativo mensal para propostas, receita mensal ativa e volume operacional.
+- Evolucao mensal passou a respeitar filtros executivos de periodo, parceiro, executivo e status.
+- Periodo padrao exibe os ultimos 6 meses; intervalos maiores ficam limitados aos ultimos 12 meses para manter leitura gerencial.
+
+---
+
+## 2026-07-28 - Drill-down Filtrado no Dashboard Executivo
+
+### Dashboard Executivo
+
+- Links do Dashboard Executivo passaram a preservar filtros compatíveis ao abrir Propostas, Contratos e Implantação.
+- Atalhos de pendências críticas, contratos a iniciar e assinaturas pendentes passaram a apontar para listagens operacionais já filtradas.
+- Corrigido endpoint do link de contratos a iniciar para usar a rota real `contratos.view`.
+
+---
+
 ## 2026-07-27 - Filtros Executivos do Dashboard
 
 ### Dashboard Executivo

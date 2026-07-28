@@ -34,9 +34,9 @@
             <p class="text-muted mb-0">Visao consolidada de comercial, contratos e implantacao.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a class="btn btn-outline-primary" href="{{ url_for('propostas.dashboard') }}"><i class="bi bi-bar-chart-line"></i> Comercial</a>
-            <a class="btn btn-outline-primary" href="{{ url_for('contratos.dashboard') }}"><i class="bi bi-file-earmark-text"></i> Contratos</a>
-            <a class="btn btn-primary" href="{{ url_for('implantacao.index') }}"><i class="bi bi-hdd-network"></i> Implantacao</a>
+            <a class="btn btn-outline-primary" href="{{ url_for('propostas.index', **dashboard_links.propostas_index) }}"><i class="bi bi-bar-chart-line"></i> Comercial</a>
+            <a class="btn btn-outline-primary" href="{{ url_for('contratos.dashboard', **dashboard_links.contratos_dashboard) }}"><i class="bi bi-file-earmark-text"></i> Contratos</a>
+            <a class="btn btn-primary" href="{{ url_for('implantacao.index', **dashboard_links.implantacoes_index) }}"><i class="bi bi-hdd-network"></i> Implantacao</a>
         </div>
     </div>
 
@@ -74,7 +74,7 @@
 
     <div class="row g-3 mb-4">
         <div class="col-md-6 col-xl-3">
-            <a class="text-decoration-none" href="{{ url_for('propostas.dashboard') }}">
+            <a class="text-decoration-none" href="{{ url_for('propostas.index', **dashboard_links.propostas_index) }}">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-body">
                         <small class="text-muted">Receita mensal negociada</small>
@@ -85,7 +85,7 @@
             </a>
         </div>
         <div class="col-md-6 col-xl-3">
-            <a class="text-decoration-none" href="{{ url_for('contratos.dashboard') }}">
+            <a class="text-decoration-none" href="{{ url_for('contratos.index', **dashboard_links.contratos_ativos) }}">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-body">
                         <small class="text-muted">Receita mensal ativa</small>
@@ -96,7 +96,7 @@
             </a>
         </div>
         <div class="col-md-6 col-xl-3">
-            <a class="text-decoration-none" href="{{ url_for('implantacao.index') }}">
+            <a class="text-decoration-none" href="{{ url_for('implantacao.index', **dashboard_links.implantacoes_index) }}">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-body">
                         <small class="text-muted">Implantacoes em andamento</small>
@@ -107,7 +107,7 @@
             </a>
         </div>
         <div class="col-md-6 col-xl-3">
-            <a class="text-decoration-none" href="{{ url_for('implantacao.index', prazo='atrasadas') }}">
+            <a class="text-decoration-none" href="{{ url_for('implantacao.index', **dashboard_links.implantacoes_atrasadas) }}">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-body">
                         <small class="text-muted">Pendencias criticas</small>
@@ -126,12 +126,139 @@
         <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Checklist medio</small><h4>{{ resumo.checklist_medio or 0 }}%</h4></div></div></div>
     </div>
 
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
+            <div>
+                <strong>Evolucao mensal</strong><br>
+                <small class="text-muted">Comparativo por mes do periodo selecionado.</small>
+            </div>
+            <div class="d-flex flex-wrap gap-3 small text-muted">
+                <span><i class="bi bi-square-fill text-primary"></i> Propostas</span>
+                <span><i class="bi bi-square-fill text-success"></i> Receita ativa</span>
+                <span><i class="bi bi-square-fill text-secondary"></i> Volume operacional</span>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 90px;">Mes</th>
+                        <th>Receita mensal</th>
+                        <th class="text-end">Propostas</th>
+                        <th class="text-end">Contratos</th>
+                        <th class="text-end">Implantacoes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in dashboard.evolucao_mensal %}
+                        <tr>
+                            <td><strong>{{ item.label }}</strong></td>
+                            <td>
+                                <div class="d-flex flex-column gap-2">
+                                    <div>
+                                        <div class="d-flex justify-content-between small"><span class="text-muted">Negociada</span><span>{{ item.propostas_mensal|moeda }}</span></div>
+                                        <div class="progress" style="height: 6px;"><div class="progress-bar bg-primary" style="width: {{ item.propostas_percentual }}%"></div></div>
+                                    </div>
+                                    <div>
+                                        <div class="d-flex justify-content-between small"><span class="text-muted">Ativa</span><span>{{ item.receita_mensal_ativa|moeda }}</span></div>
+                                        <div class="progress" style="height: 6px;"><div class="progress-bar bg-success" style="width: {{ item.receita_percentual }}%"></div></div>
+                                    </div>
+                                    <div>
+                                        <div class="d-flex justify-content-between small"><span class="text-muted">Volume operacional</span><span>{{ item.volume_total or 0 }}</span></div>
+                                        <div class="progress" style="height: 6px;"><div class="progress-bar bg-secondary" style="width: {{ item.volume_percentual }}%"></div></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-end">{{ item.propostas_total or 0 }}</td>
+                            <td class="text-end">{{ item.contratos_total or 0 }}</td>
+                            <td class="text-end">
+                                <div>{{ item.implantacoes_total or 0 }}</div>
+                                <small class="text-muted">{{ item.implantacoes_entregues or 0 }} entregue(s)</small>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="5" class="text-muted">Sem dados para evolucao mensal.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% set rentabilidade = dashboard.base_rentabilidade or {} %}
+    {% set rentabilidade_resumo = rentabilidade.resumo or {} %}
+    <div class="row g-4 mb-4">
+        <div class="col-xl-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <strong>Base para rentabilidade</strong><br>
+                    <small class="text-muted">Mapeamento inicial sem calculo financeiro definitivo.</small>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6"><small class="text-muted">Receita recorrente ativa</small><h5 class="mb-0">{{ rentabilidade_resumo.receita_mensal_ativa|moeda }}</h5></div>
+                        <div class="col-sm-6"><small class="text-muted">Setup + projeto</small><h5 class="mb-0">{{ rentabilidade_resumo.receita_setup_projeto|moeda }}</h5></div>
+                        <div class="col-sm-6"><small class="text-muted">Contratos com proposta</small><h5 class="mb-0">{{ rentabilidade_resumo.cobertura_proposta or 0 }}%</h5></div>
+                        <div class="col-sm-6"><small class="text-muted">Contratos com implantacao</small><h5 class="mb-0">{{ rentabilidade_resumo.cobertura_implantacao or 0 }}%</h5></div>
+                    </div>
+                    <div class="list-group list-group-flush border-top">
+                        {% for fonte in rentabilidade.fontes %}
+                            <div class="list-group-item px-0 d-flex justify-content-between gap-3">
+                                <div><strong>{{ fonte.nome }}</strong><br><small class="text-muted">{{ fonte.detalhe }}</small></div>
+                                <span class="badge text-bg-{{ fonte.classe }} align-self-start">{{ fonte.status }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Contratos candidatos</strong><br>
+                        <small class="text-muted">Receita real com rastreabilidade disponivel para calculo futuro.</small>
+                    </div>
+                    <span class="badge text-bg-light border">Custos: {{ rentabilidade_resumo.cobertura_custo_produtos or 0 }}%</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr><th>Cliente</th><th>Responsaveis</th><th class="text-end">Receita</th><th class="text-end">Base</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for contrato in dashboard.contratos_base_rentabilidade %}
+                                <tr>
+                                    <td><strong>{{ contrato.cliente_nome }}</strong><br><small class="text-muted">{{ contrato.numero }} - {{ contrato_status.get(contrato.status, contrato.status) }}</small></td>
+                                    <td><small>{{ contrato.parceiro_nome }}</small><br><small class="text-muted">{{ contrato.executivo_nome }}</small></td>
+                                    <td class="text-end">{{ contrato.receita_mensal|moeda }}<br><small class="text-muted">{{ contrato.receita_setup_projeto|moeda }} setup</small></td>
+                                    <td class="text-end">
+                                        <span class="badge {{ 'text-bg-success' if contrato.tem_proposta else 'text-bg-light border' }}">Proposta</span>
+                                        <span class="badge {{ 'text-bg-success' if contrato.tem_implantacao else 'text-bg-light border' }}">Implantacao</span>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr><td colspan="4" class="text-muted">Sem contratos para mapear rentabilidade.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if rentabilidade.lacunas %}
+                    <div class="card-footer bg-white">
+                        {% for lacuna in rentabilidade.lacunas %}
+                            <div class="small text-muted"><i class="bi bi-exclamation-circle text-warning"></i> {{ lacuna }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <div class="row g-4 mb-4">
         <div class="col-xl-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <strong>Comercial</strong>
-                    <a href="{{ url_for('propostas.dashboard') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-up-right"></i></a>
+                    <a href="{{ url_for('propostas.index', **dashboard_links.propostas_index) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-up-right"></i></a>
                 </div>
                 <div class="list-group list-group-flush">
                     {% for item in dashboard.propostas_status %}
@@ -149,7 +276,7 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <strong>Contratos</strong>
-                    <a href="{{ url_for('contratos.dashboard') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-up-right"></i></a>
+                    <a href="{{ url_for('contratos.dashboard', **dashboard_links.contratos_dashboard) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-up-right"></i></a>
                 </div>
                 <div class="list-group list-group-flush">
                     {% for item in dashboard.contratos_status %}
@@ -180,6 +307,49 @@
                     {% endfor %}
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
+            <div>
+                <strong>Carga por responsavel/implantador</strong><br>
+                <small class="text-muted">Prioriza atrasos, projetos em andamento e vencimentos proximos.</small>
+            </div>
+            <a href="{{ url_for('implantacao.index', **dashboard_links.implantacoes_index) }}" class="btn btn-sm btn-outline-primary align-self-lg-center"><i class="bi bi-box-arrow-up-right"></i></a>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Responsavel</th>
+                        <th class="text-end">Projetos</th>
+                        <th class="text-end">Andamento</th>
+                        <th class="text-end">Atrasadas</th>
+                        <th class="text-end">Vencem 7d</th>
+                        <th class="text-end">Checklist</th>
+                        <th class="text-end">Receita vinculada</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in dashboard.carga_implantadores %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.nome }}</strong><br>
+                                <small class="text-muted">{{ item.planejamento or 0 }} planejamento - {{ item.entregues or 0 }} entregue(s) - {{ item.sem_prazo or 0 }} sem prazo</small>
+                            </td>
+                            <td class="text-end">{{ item.total_implantacoes or 0 }}</td>
+                            <td class="text-end">{{ item.em_andamento or 0 }}</td>
+                            <td class="text-end"><span class="{{ 'text-danger fw-semibold' if item.atrasadas else 'text-muted' }}">{{ item.atrasadas or 0 }}</span></td>
+                            <td class="text-end"><span class="{{ 'text-warning fw-semibold' if item.vence_7 else 'text-muted' }}">{{ item.vence_7 or 0 }}</span></td>
+                            <td class="text-end">{{ item.checklist_medio or 0 }}%</td>
+                            <td class="text-end">{{ item.receita_mensal_vinculada|moeda }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="7" class="text-muted">Sem carga de implantacao para os filtros selecionados.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -216,12 +386,95 @@
         </div>
     </div>
 
+    {% set rastreabilidade = dashboard.rastreabilidade_executiva or {} %}
+    {% set fluxo_labels = {
+        "SEM_PROPOSTA": "Sem proposta",
+        "SEM_IMPLANTACAO": "Sem implantacao",
+        "EM_FLUXO": "Em fluxo",
+        "FINALIZADO": "Finalizado"
+    } %}
+    {% set fluxo_classes = {
+        "SEM_PROPOSTA": "danger",
+        "SEM_IMPLANTACAO": "warning",
+        "EM_FLUXO": "primary",
+        "FINALIZADO": "success"
+    } %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
+            <div>
+                <strong>Rastreabilidade executiva</strong><br>
+                <small class="text-muted">Proposta -> contrato -> implantacao com lacunas de vinculo.</small>
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-self-lg-center">
+                <span class="badge text-bg-light border">Ponta a ponta: {{ rastreabilidade.cobertura_ponta_a_ponta or 0 }}%</span>
+                <span class="badge text-bg-light border">Contrato -> implantacao: {{ rastreabilidade.cobertura_contrato_implantacao or 0 }}%</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-3"><small class="text-muted">Propostas com contrato</small><h5 class="mb-0">{{ rastreabilidade.propostas_com_contrato or 0 }}/{{ rastreabilidade.propostas_total or 0 }}</h5></div>
+                <div class="col-md-3"><small class="text-muted">Propostas com implantacao</small><h5 class="mb-0">{{ rastreabilidade.propostas_com_implantacao or 0 }}/{{ rastreabilidade.propostas_total or 0 }}</h5></div>
+                <div class="col-md-3"><small class="text-muted">Contratos sem proposta</small><h5 class="mb-0 {{ 'text-danger' if rastreabilidade.contratos_sem_proposta else '' }}">{{ rastreabilidade.contratos_sem_proposta or 0 }}</h5></div>
+                <div class="col-md-3"><small class="text-muted">Contratos sem implantacao</small><h5 class="mb-0 {{ 'text-warning' if rastreabilidade.contratos_sem_implantacao else '' }}">{{ rastreabilidade.contratos_sem_implantacao or 0 }}</h5></div>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Proposta</th>
+                        <th>Contrato</th>
+                        <th>Implantacao</th>
+                        <th class="text-end">Receita</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in dashboard.fluxos_rastreabilidade %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.cliente_nome }}</strong><br>
+                                <small class="text-muted">{{ item.parceiro_nome }} - {{ item.executivo_nome }}</small>
+                            </td>
+                            <td>
+                                {% if item.proposta_id %}
+                                    <a href="{{ url_for('propostas.visualizar', proposta_id=item.proposta_id) }}">{{ item.codigo_proposta or ('Proposta #' ~ item.proposta_id) }}</a><br>
+                                    <small class="text-muted">{{ proposta_status.get(item.proposta_status, item.proposta_status) }} - {{ item.clicksign_status or '-' }}</small>
+                                {% else %}
+                                    <span class="text-muted">Sem proposta</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('contratos.view', contrato_id=item.contrato_id) }}">{{ item.contrato_numero or ('Contrato #' ~ item.contrato_id) }}</a><br>
+                                <small class="text-muted">{{ contrato_status.get(item.contrato_status, item.contrato_status) }}</small>
+                            </td>
+                            <td>
+                                {% if item.implantacao_id %}
+                                    <a href="{{ url_for('implantacao.visualizar', implantacao_id=item.implantacao_id) }}">{{ implantacao_status.get(item.implantacao_status, item.implantacao_status) }}</a><br>
+                                    <small class="text-muted">{{ item.responsavel or item.implantador_nome or '-' }} - {{ item.percentual_conclusao or 0 }}%</small>
+                                {% else %}
+                                    <span class="text-muted">Sem implantacao</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <span class="badge text-bg-{{ fluxo_classes.get(item.situacao_fluxo, 'secondary') }}">{{ fluxo_labels.get(item.situacao_fluxo, item.situacao_fluxo) }}</span><br>
+                                <small>{{ item.receita_mensal|moeda }}</small>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="5" class="text-muted">Sem fluxo de rastreabilidade para os filtros selecionados.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="row g-4">
         <div class="col-xl-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <strong>Implantacoes criticas</strong>
-                    <a href="{{ url_for('implantacao.index', prazo='atrasadas') }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-exclamation-triangle"></i></a>
+                    <a href="{{ url_for('implantacao.index', **dashboard_links.implantacoes_atrasadas) }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-exclamation-triangle"></i></a>
                 </div>
                 <div class="list-group list-group-flush">
                     {% for item in dashboard.implantacoes_criticas %}
@@ -239,11 +492,11 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <strong>Contratos a iniciar</strong>
-                    <a href="{{ url_for('contratos.index', status='ENCAMINHADO_PROJETO') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-up-right"></i></a>
+                    <a href="{{ url_for('contratos.index', **dashboard_links.contratos_a_iniciar) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-up-right"></i></a>
                 </div>
                 <div class="list-group list-group-flush">
                     {% for item in dashboard.contratos_pendentes_implantacao %}
-                        <a class="list-group-item list-group-item-action" href="{{ url_for('contratos.visualizar', contrato_id=item.id) }}">
+                        <a class="list-group-item list-group-item-action" href="{{ url_for('contratos.view', contrato_id=item.id) }}">
                             <strong>{{ item.cliente_nome }}</strong><br>
                             <small class="text-muted">{{ contrato_status.get(item.status, item.status) }} - {{ item.valor_mensal|moeda }} mensal</small>
                         </a>
@@ -257,7 +510,7 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <strong>Assinaturas pendentes</strong>
-                    <a href="{{ url_for('propostas.dashboard') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-up-right"></i></a>
+                    <a href="{{ url_for('propostas.index', **dashboard_links.propostas_assinatura) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-up-right"></i></a>
                 </div>
                 <div class="list-group list-group-flush">
                     {% for item in dashboard.propostas_pendentes_assinatura %}
