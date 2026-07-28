@@ -2,9 +2,9 @@
 
 # 05 - SPRINT ATUAL
 
-Versão: 3.0 Alpha
+Versao: 3.0 Alpha
 
-Última atualização: 27/07/2026
+Ultima atualizacao: 28/07/2026
 
 Status: Oficial
 
@@ -12,85 +12,37 @@ Status: Oficial
 
 # Sprint Registrada
 
-## Sprint 10
+## Sprint 11
 
-Dashboard Executivo
+Integracoes e Melhorias Operacionais
 
 Status:
 
-🚧 Em andamento
+🚧 Em planejamento
 
 ---
 
 # Contexto
 
-A Sprint 9 foi encerrada em 27/07/2026 com a fundação operacional de Implantação concluída.
+A Sprint 10 foi encerrada em 28/07/2026 com o Dashboard Executivo consolidado e validado em ambiente local.
 
-A Sprint 10 inicia a consolidação executiva dos dados já disponíveis no O3Cloud Manager, conectando visão comercial, contratos, implantação, infraestrutura operacional e indicadores de acompanhamento.
+A Sprint 11 inicia a evolucao das integracoes e melhorias operacionais, aproveitando os diagnosticos gerados pelo Dashboard Executivo sobre custos, faturamentos, rastreabilidade historica e infraestrutura tecnica.
 
 Documento de fechamento da sprint anterior:
 
-- `docs/19-FECHAMENTO-SPRINT-9.md`
+- `docs/20-FECHAMENTO-SPRINT-10.md`
 
 ---
 
 # Objetivo da Sprint
 
-Criar o Dashboard Executivo do O3Cloud Manager para acompanhamento gerencial da operação, com indicadores consolidados e visões de apoio à tomada de decisão.
+Evoluir as integracoes tecnicas e operacionais do O3Cloud Manager, preparando fontes confiaveis para automacao, rentabilidade futura e acompanhamento gerencial.
 
 ---
 
 # Escopo Inicial
 
-## 1. Indicadores Executivos
-
-Status:
-
-✅ Primeira versão implementada
-
-Entregas concluídas:
-
-- Home `/` mantida como visão geral resumida, com atalhos operacionais e entrada para o Dashboard Executivo.
-- Tela dedicada `/dashboard/executivo` criada para planejamento de diretoria, com agregações reais de propostas, contratos e implantação.
-- Cards executivos adicionados para receita mensal negociada, receita mensal ativa, implantações em andamento e pendências críticas.
-- Indicadores complementares adicionados para clientes ativos, setup em contratos, implantações vencendo em 7 dias e checklist médio.
-- Blocos de status adicionados para Comercial, Contratos e Implantação.
-- Rankings por executivo e parceiro adicionados com receita mensal, contratos e implantações.
-- Listas de atenção adicionadas para implantações críticas, contratos a iniciar e assinaturas pendentes.
-- Atalhos de drill-down adicionados para Dashboard Comercial, Contratos, Implantação e Kanban.
-
-Entregas concluídas:
-
-- Filtros executivos adicionados na tela `/dashboard/executivo`.
-- Filtro por período aplicado em propostas, contratos e implantação conforme a data operacional de cada módulo.
-- Filtros por parceiro e executivo aplicados nas agregações comerciais, contratuais e de implantação.
-- Filtros por status comercial, status de contrato e status de implantação aplicados aos respectivos blocos.
-- Opções de parceiro e executivo carregadas diretamente da base ativa.
-
-Entregas concluídas:
-
-- Links de drill-down atualizados para preservar filtros compatíveis com Propostas, Contratos e Implantação.
-
-Entregas concluídas:
-
-- Comparativo de evolução mensal adicionado ao Dashboard Executivo para propostas, receita ativa e volume operacional.
-- Evolução mensal aplica os filtros executivos disponíveis e usa o período selecionado, limitado aos últimos 12 meses quando o intervalo for maior.
-
-Entregas concluídas:
-
-- Carga por responsável/implantador adicionada ao Dashboard Executivo.
-- Visão de carga exibe projetos totais, andamento, atrasos, vencimentos em 7 dias, checklist médio e receita mensal vinculada.
-
-Entregas concluídas:
-
-- Rastreabilidade executiva proposta -> contrato -> implantação adicionada ao Dashboard Executivo.
-- Dashboard passou a exibir cobertura ponta a ponta, contratos sem proposta, contratos sem implantação e fluxos operacionais com links para as telas de origem.
-
-Entregas previstas:
-
-- Refinar leitura visual dos comparativos após uso real pela diretoria.
-
-## 2. Visão Comercial e Contratos
+## 1. Fontes para Rentabilidade
 
 Status:
 
@@ -98,12 +50,12 @@ Status:
 
 Entregas previstas:
 
-- Indicadores por parceiro e executivo.
-- Funil resumido de propostas e contratos.
-- Sinalização de contratos assinados, encaminhados para projeto e em implantação.
-- Rastreabilidade executiva proposta -> contrato -> implantação. ✅ Implementado no Dashboard Executivo
+- Definir fonte oficial de custos por produto, recurso tecnico e infraestrutura.
+- Popular ou importar `parametros_financeiros`.
+- Popular ou importar `faturamentos` por competencia.
+- Definir regra para `valor_custo` de produtos e recursos de servidor.
 
-## 3. Visão de Implantação
+## 2. Rastreabilidade Historica
 
 Status:
 
@@ -111,85 +63,81 @@ Status:
 
 Entregas previstas:
 
-- Resumo por etapa Kanban.
-- Projetos atrasados e próximos do vencimento.
-- Indicadores de progresso do checklist.
-- Carga por responsável/implantador. ✅ Implementado no Dashboard Executivo
+- Mapear contratos historicos sem `proposta_id`.
+- Definir criterio seguro para vincular contratos e propostas legadas.
+- Avaliar preenchimento de `proposta_id` em implantacoes quando houver contrato vinculado.
+- Preservar trilha auditavel para qualquer correcao historica.
 
-## 4. Base para Rentabilidade e Custos
+## 3. Integracoes Tecnicas
 
 Status:
 
-✅ Primeira versão implementada
-
-Entregas concluídas:
-
-- Dados necessários para rentabilidade mapeados por contrato, cliente, parceiro e executivo.
-- Fontes atuais identificadas: contratos, faturamentos, produtos, catálogo de recursos, parâmetros financeiros e integrações técnicas.
-- Seção de base para rentabilidade adicionada ao Dashboard Executivo sem cálculo financeiro definitivo.
-- Dashboard passou a exibir prontidão das fontes, lacunas de custos e contratos candidatos para cálculo futuro.
+⏳ Planejado
 
 Entregas previstas:
 
-- Definir fonte oficial de custos por recurso técnico e produto.
-- Popular parâmetros financeiros e histórico de faturamentos antes do cálculo definitivo de margem.
+- Evoluir conectores Proxmox, PBS e Zabbix a partir das configuracoes cadastradas.
+- Manter validacoes inicialmente nao destrutivas.
+- Mapear dados tecnicos necessarios para custo operacional e provisionamento controlado.
+- Registrar historico de validacoes e falhas de integracao.
+
+## 4. Melhorias Operacionais
+
+Status:
+
+⏳ Planejado
+
+Entregas previstas:
+
+- Refinar leitura visual dos indicadores consolidados apos avaliacao gerencial.
+- Priorizar pendencias operacionais evidenciadas pelo Dashboard Executivo.
+- Melhorar cobertura de responsaveis/implantadores nas implantacoes existentes.
+- Preparar criterios para encerramento operacional de projetos entregues.
 
 ---
 
 # Fora do Escopo Inicial
 
-- Integrações reais destrutivas com Proxmox, PBS ou Zabbix.
-- Cálculo financeiro definitivo sem fonte validada de custos.
-- Reestruturação de permissões ou autenticação.
-- Refatoração ampla dos módulos comerciais já entregues.
+- Automacoes destrutivas em Proxmox, PBS ou Zabbix sem aprovacao especifica.
+- Calculo definitivo de rentabilidade sem custos e faturamentos validados.
+- Reestruturação ampla de autenticacao ou permissoes.
+- Correcao automatica de dados historicos sem regra validada.
 
 ---
 
-# Critérios de Aceite
+# Criterios de Aceite
 
-- Dashboard Executivo acessível pelo menu principal.
-- Indicadores principais carregam a partir dos dados reais do banco.
-- Filtros executivos preservam consistência entre cards e listagens resumidas.
-- Links de drill-down levam para telas operacionais existentes.
-- Tela mantém leitura clara para uso gerencial diário.
-- Implementação segue Repository / Service / Routes / Templates.
+- Fontes necessarias para rentabilidade documentadas e priorizadas.
+- Integracoes tecnicas evoluidas sem executar acoes destrutivas.
+- Pendencias de rastreabilidade historica mapeadas com criterio seguro de correcao.
+- Melhorias operacionais derivadas do Dashboard Executivo registradas e validadas.
+- Implementacao segue Repository / Service / Routes / Templates quando houver codigo.
 
 ---
 
-# Validações Realizadas
+# Validacoes Previstas
 
-- Sintaxe Python validada em `app/financeiro/repository.py`, `app/financeiro/service.py` e `app/financeiro/routes.py`.
-- Visão geral `/` validada via Flask test client com retorno HTTP 200.
-- Dashboard Executivo dedicado `/dashboard/executivo` validado via Flask test client com retorno HTTP 200.
-- Dashboard Executivo validado com filtros por período, parceiro, executivo, status comercial, status de contrato e status de implantação.
-- Evolução mensal do Dashboard Executivo validada com período padrão e período filtrado.
-- Base inicial de rentabilidade validada com dados reais de contratos, catálogo, faturamentos e parâmetros financeiros.
-- Carga por responsável/implantador validada com filtros executivos e dados reais de implantação.
-- Rastreabilidade executiva validada com dados reais de propostas, contratos e implantação.
-- Payload agregado de `FinanceiroService.dashboard()` validado com dados reais do banco local.
-- Renderização dos blocos `Dashboard Executivo`, `Receita mensal negociada` e `Implantações críticas` confirmada.
-
-# Validações Previstas
-
-- Verificação ampla de links para Propostas, Contratos e Implantação após evolução dos filtros.
-- Validação dos comparativos mensais e evolução temporal.
+- Validar consultas com dados reais do banco local.
+- Validar rotas alteradas via Flask test client.
+- Validar ausencia de acoes destrutivas em qualquer integracao tecnica.
+- Validar documentacao de regras antes de alterar dados historicos.
 
 ---
 
 # Status Geral
 
-Versão:
+Versao:
 
 3.0 Alpha
 
 Sprint Atual:
 
-10
+11
 
-Situação:
+Situacao:
 
-🚧 Em andamento
+🚧 Em planejamento
 
-Próxima Implementação:
+Proxima Implementacao:
 
-Refinar leitura visual dos comparativos e validar indicadores consolidados com a diretoria.
+Mapear fontes oficiais de custos, parametros financeiros e faturamentos para rentabilidade.

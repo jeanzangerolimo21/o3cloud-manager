@@ -4,7 +4,7 @@
 
 Versão: 3.0 Alpha
 
-Última atualização: 27/07/2026
+Última atualização: 28/07/2026
 
 Status: Oficial
 
@@ -222,7 +222,7 @@ Status:
 
 ---
 
-# Sprint Atual
+# Última Sprint Concluída
 
 ## Sprint 10
 
@@ -236,25 +236,42 @@ Objetivos:
 - Base para rentabilidade e custos
 - Drill-down para telas operacionais existentes
 
+Escopo entregue:
+
+- ✅ Dashboard Executivo dedicado em `/dashboard/executivo`
+- ✅ Filtros executivos por periodo, parceiro, executivo e status
+- ✅ Drill-down filtrado para Propostas, Contratos e Implantacao
+- ✅ Evolucao mensal de propostas, receita ativa e volume operacional
+- ✅ Base inicial para rentabilidade e custos, sem calculo definitivo de margem
+- ✅ Carga por responsavel/implantador
+- ✅ Rastreabilidade executiva proposta -> contrato -> implantacao
+
+Documento de fechamento:
+
+- `docs/20-FECHAMENTO-SPRINT-10.md`
+
 Status:
 
-🚧 Em andamento
+✅ Concluída em 28/07/2026
 
 ---
 
+# Sprint Atual
+
 ## Sprint 11
+
+Integracoes e Melhorias Operacionais
 
 Objetivos:
 
-- Integrações
-- NetBox
-- PBS
-- Automações
-- Melhorias Operacionais
+- Definir fontes oficiais de custos, parametros financeiros e faturamentos
+- Tratar rastreabilidade historica de contratos e implantacoes
+- Evoluir integracoes Proxmox, PBS e Zabbix sem acoes destrutivas
+- Priorizar melhorias operacionais evidenciadas pelo Dashboard Executivo
 
 Status:
 
-⏳ Planejado
+🚧 Em planejamento
 
 ---
 
