@@ -15,11 +15,11 @@
         </div>
     </div>
 
-    <div class="alert alert-success d-flex align-items-start gap-2" role="alert">
-        <i class="bi bi-check-circle-fill mt-1"></i>
+    <div class="alert alert-info d-flex align-items-start gap-2" role="alert">
+        <i class="bi bi-flag-fill mt-1"></i>
         <div>
-            <strong>Sprint 9 encerrada.</strong>
-            A Sprint 10 esta em andamento com foco no Dashboard Executivo para planejamento de diretoria.
+            <strong>Sprint 11 em planejamento.</strong>
+            A Sprint 10 foi encerrada com o Dashboard Executivo consolidado; a proxima frente prioriza integracoes, custos, faturamentos e rastreabilidade historica.
         </div>
     </div>
 
@@ -76,18 +76,18 @@
                 <div class="card-body">
                     <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
                         <div>
-                            <h5 class="mb-1">Dashboard Executivo para diretoria</h5>
-                            <p class="text-muted mb-3">A tela dedicada concentra indicadores gerenciais de comercial, contratos, implantacao, pendencias criticas e preparacao para rentabilidade.</p>
+                            <h5 class="mb-1">Sprint 11 - Integracoes e melhorias operacionais</h5>
+                            <p class="text-muted mb-3">A proxima etapa usa os diagnosticos do Dashboard Executivo para organizar fontes de custos, faturamentos, integracoes tecnicas e vinculos historicos.</p>
                             <div class="d-flex flex-wrap gap-2">
-                                <span class="badge text-bg-light border">Indicadores executivos</span>
-                                <span class="badge text-bg-light border">Status comercial</span>
-                                <span class="badge text-bg-light border">Contratos</span>
-                                <span class="badge text-bg-light border">Implantacao</span>
-                                <span class="badge text-bg-light border">Executivos e parceiros</span>
+                                <span class="badge text-bg-light border">Custos e faturamentos</span>
+                                <span class="badge text-bg-light border">Rastreabilidade historica</span>
+                                <span class="badge text-bg-light border">Proxmox</span>
+                                <span class="badge text-bg-light border">PBS</span>
+                                <span class="badge text-bg-light border">Zabbix</span>
                             </div>
                         </div>
                         <div class="align-self-md-center">
-                            <a class="btn btn-primary" href="{{ url_for('financeiro.dashboard_executivo') }}"><i class="bi bi-box-arrow-up-right"></i> Abrir Dashboard Executivo</a>
+                            <a class="btn btn-primary" href="{{ url_for('financeiro.dashboard_executivo') }}"><i class="bi bi-box-arrow-up-right"></i> Abrir diagnostico executivo</a>
                         </div>
                     </div>
                 </div>
@@ -95,12 +95,12 @@
         </div>
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white"><strong>Proximas tarefas da Sprint 10</strong></div>
+                <div class="card-header bg-white"><strong>Proximas tarefas da Sprint 11</strong></div>
                 <div class="list-group list-group-flush">
-                    <div class="list-group-item">Refino visual dos comparativos mensais</div>
-                    <div class="list-group-item">Definicao final das fontes de custo</div>
-                    <div class="list-group-item">Priorizacao executiva das pendencias operacionais</div>
-                    <div class="list-group-item">Validacao gerencial dos indicadores consolidados</div>
+                    <div class="list-group-item">Mapear fontes oficiais de custos</div>
+                    <div class="list-group-item">Popular parametros financeiros e faturamentos</div>
+                    <div class="list-group-item">Tratar vinculos historicos de contratos e implantacoes</div>
+                    <div class="list-group-item">Evoluir integracoes Proxmox, PBS e Zabbix</div>
                 </div>
             </div>
         </div>

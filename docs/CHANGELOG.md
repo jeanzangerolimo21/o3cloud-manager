@@ -46,6 +46,15 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-28 - Visao Geral Atualizada para Sprint 11
+
+### Dashboard
+
+- Visao Geral passou a indicar Sprint 11 como etapa atual de integracoes e melhorias operacionais.
+- Dashboard Executivo passou a indicar Sprint 10 como concluida e base de diagnostico para a Sprint 11.
+
+---
+
 ## 2026-07-28 - Fechamento da Sprint 10
 
 ### Documentacao
