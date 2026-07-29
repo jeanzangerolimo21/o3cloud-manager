@@ -43,7 +43,11 @@ Decisao principal da Sprint 13:
 - Comercial e areas envolvidas deverao completar cadastros antes das validacoes oficiais.
 - Custos, faturamentos e parametros financeiros permanecem preparados, mas sem carga real prematura.
 
-Sprint atual: Sprint 14 - Consolidacao Pre-Beta e Preparacao de Validacao com a Equipe.
+Proxima sprint registrada: Sprint 14 - Consolidacao Pre-Beta e Preparacao de Validacao com a Equipe.
+
+Inicio previsto:
+
+- 30/07/2026
 
 Pendencias principais da Sprint 14:
 
