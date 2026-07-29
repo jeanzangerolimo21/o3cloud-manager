@@ -1,0 +1,32 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = 'Novo Serviço de Email' if modo == 'novo' else 'Editar Serviço de Email' %}
+    {% set page_description = 'Configuração SMTP usada pelos avisos automáticos do sistema' %}
+    {% set page_icon = 'bi-envelope-gear-fill' %}
+    {% set page_button_url = url_for('configuracoes.email_index') %}
+    {% set page_button_icon = 'bi-arrow-left' %}
+    {% set page_button_text = 'Voltar' %}
+    {% include "components/page_header.html" %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row g-3">
+                    <div class="col-md-4"><label class="form-label">Nome</label><input class="form-control" name="nome" value="{{ config.nome or '' }}" required placeholder="SMTP Principal"></div>
+                    <div class="col-md-5"><label class="form-label">Host SMTP</label><input class="form-control" name="smtp_host" value="{{ config.smtp_host or '' }}" required placeholder="smtp.seudominio.com"></div>
+                    <div class="col-md-3"><label class="form-label">Porta</label><input class="form-control" type="number" min="1" max="65535" name="smtp_port" value="{{ config.smtp_port or 587 }}" required></div>
+                    <div class="col-md-4"><label class="form-label">Usuário SMTP</label><input class="form-control" name="smtp_user" value="{{ config.smtp_user or '' }}" placeholder="usuario@seudominio.com"></div>
+                    <div class="col-md-4"><label class="form-label">Senha SMTP</label><input class="form-control" type="password" name="smtp_password" placeholder="{{ 'Manter atual se vazio' if modo == 'editar' else 'Senha ou app password' }}"></div>
+                    <div class="col-md-4"><label class="form-label">Remetente</label><input class="form-control" name="smtp_from" value="{{ config.smtp_from or '' }}" placeholder="O3Cloud Manager <sistema@dominio.com>"></div>
+                    <div class="col-md-3"><div class="form-check form-switch mt-4"><input type="hidden" name="usar_tls" value="0"><input class="form-check-input" type="checkbox" name="usar_tls" value="1" id="usar_tls" {% if config.usar_tls is not defined or config.usar_tls %}checked{% endif %}><label class="form-check-label" for="usar_tls">Usar TLS</label></div></div>
+                    <div class="col-md-3"><div class="form-check form-switch mt-4"><input type="hidden" name="ativo" value="0"><input class="form-check-input" type="checkbox" name="ativo" value="1" id="ativo" {% if config.ativo is not defined or config.ativo %}checked{% endif %}><label class="form-check-label" for="ativo">Ativo</label></div></div>
+                    <div class="col-12"><label class="form-label">Observações</label><textarea class="form-control" name="observacoes" rows="4" placeholder="Uso previsto, provedor, limites ou instruções de manutenção...">{{ config.observacoes or '' }}</textarea></div>
+                    <div class="col-12 text-end"><a class="btn btn-secondary" href="{{ url_for('configuracoes.email_index') }}">Cancelar</a> <button class="btn btn-primary"><i class="bi bi-check-circle"></i> Salvar</button></div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

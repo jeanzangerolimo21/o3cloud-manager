@@ -654,6 +654,52 @@ class ImplantacaoWorkflowRepository(BaseRepository):
         )
 
     @classmethod
+    def listar_anexos_historico(cls, implantacao_id):
+        return cls.fetch_all(
+            """
+            SELECT *
+            FROM implantacao_historico_anexos
+            WHERE implantacao_id = %s
+            ORDER BY created_at ASC, id ASC
+            """,
+            (implantacao_id,),
+        )
+
+    @classmethod
+    def inserir_anexo_historico(cls, dados):
+        return cls.execute_insert(
+            """
+            INSERT INTO implantacao_historico_anexos (
+                uuid, historico_id, implantacao_id, arquivo_original, nome_arquivo,
+                caminho, url, mime_type, tamanho
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                cls.generate_uuid(),
+                dados.get("historico_id"),
+                dados.get("implantacao_id"),
+                dados.get("arquivo_original"),
+                dados.get("nome_arquivo"),
+                dados.get("caminho"),
+                dados.get("url"),
+                dados.get("mime_type"),
+                dados.get("tamanho"),
+            ),
+        )
+
+    @classmethod
+    def listar_anexos_por_historico(cls, historico_id):
+        return cls.fetch_all(
+            """
+            SELECT *
+            FROM implantacao_historico_anexos
+            WHERE historico_id = %s
+            ORDER BY created_at ASC, id ASC
+            """,
+            (historico_id,),
+        )
+
+    @classmethod
     def inserir_historico(cls, dados):
         return cls.execute_insert(
             """

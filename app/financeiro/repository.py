@@ -438,7 +438,7 @@ class FinanceiroRepository(BaseRepository):
                 COALESCE(par.nome_fantasia, par.nome, par.razao_social, 'Sem parceiro') AS parceiro_nome,
                 COALESCE(NULLIF(c.valor_promocional, 0), c.valor_mensal, 0) AS receita_mensal,
                 CASE
-                    WHEN prop.id IS NULL THEN 'SEM_PROPOSTA'
+                    WHEN prop.id IS NULL THEN 'CONTRATO_DIRETO'
                     WHEN i.id IS NULL THEN 'SEM_IMPLANTACAO'
                     WHEN i.status IN ('ENTREGUE', 'CANCELADA') THEN 'FINALIZADO'
                     ELSE 'EM_FLUXO'
@@ -450,7 +450,7 @@ class FinanceiroRepository(BaseRepository):
             LEFT JOIN parceiros_executivos exec ON exec.id = c.executivo_id
             LEFT JOIN parceiros par ON par.id = c.parceiro_id
             WHERE c.ativo = 1 {where}
-            ORDER BY FIELD(situacao_fluxo, 'SEM_PROPOSTA', 'SEM_IMPLANTACAO', 'EM_FLUXO', 'FINALIZADO'),
+            ORDER BY FIELD(situacao_fluxo, 'SEM_IMPLANTACAO', 'EM_FLUXO', 'CONTRATO_DIRETO', 'FINALIZADO'),
                      COALESCE(i.data_prevista_entrega, c.data_fechamento, c.created_at) DESC,
                      c.id DESC
             LIMIT 10
@@ -1110,8 +1110,6 @@ class FinanceiroRepository(BaseRepository):
             lacunas.append("Vincular codigos de itens do Omie ao catalogo de produtos.")
         if not resumo.get("itens_com_custo"):
             lacunas.append("Preencher custos dos produtos para preparar rentabilidade.")
-        if not resumo.get("itens_com_proposta"):
-            lacunas.append("Tratar vinculos historicos de contrato com proposta para rastrear origem comercial.")
 
         return {
             "resumo": resumo,

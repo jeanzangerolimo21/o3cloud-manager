@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS config_email_servicos (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid CHAR(36) NOT NULL UNIQUE,
+    nome VARCHAR(120) NOT NULL,
+    smtp_host VARCHAR(255) NOT NULL,
+    smtp_port INT NOT NULL DEFAULT 587,
+    smtp_user VARCHAR(255) NULL,
+    smtp_password_encrypted TEXT NULL,
+    smtp_from VARCHAR(255) NULL,
+    usar_tls TINYINT(1) NOT NULL DEFAULT 1,
+    ativo TINYINT(1) NOT NULL DEFAULT 1,
+    observacoes TEXT NULL,
+    ultimo_teste_status VARCHAR(20) NULL,
+    ultimo_teste_mensagem TEXT NULL,
+    ultimo_teste_em DATETIME NULL,
+    created_by VARCHAR(120) NULL,
+    updated_by VARCHAR(120) NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_config_email_servicos_ativo (ativo),
+    KEY idx_config_email_servicos_nome (nome)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

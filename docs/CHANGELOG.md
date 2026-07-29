@@ -46,6 +46,61 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-29 - Fechamento da Sprint 13 e Preparacao Pre-Beta
+
+### Documentacao
+
+- Criado `docs/23-FECHAMENTO-SPRINT-13.md` com a Sprint 13 registrada como decisao/preparacao, adiando dados reais oficiais para a fase Beta com a equipe.
+- `docs/05-SPRINT_ATUAL`, `docs/17-SPRINTS.md` e `docs/ROADMAP.md` passaram a indicar Sprint 14 como sprint atual.
+- Visao Geral principal passou a informar Sprint 13 finalizada e pendencias da Sprint 14.
+- Custos, faturamentos e parametros financeiros ficaram preparados, mas sem carga real, dados ficticios ou importacao prematura antes do saneamento dos cadastros pelo Comercial e areas envolvidas.
+
+## 2026-07-29 - Fechamento da Sprint 12 e Abertura da Sprint 13
+
+### Documentacao
+
+- Criado `docs/22-FECHAMENTO-SPRINT-12.md` com entregas, validacoes e pendencias encaminhadas.
+- `docs/05-SPRINT_ATUAL`, `docs/17-SPRINTS.md` e `docs/ROADMAP.md` passaram a indicar Sprint 13 como sprint atual.
+- Visao Geral principal passou a informar Sprint 12 finalizada e listar pendencias da Sprint 13.
+- Pendencias da Sprint 13 foram organizadas em dados oficiais, validacoes tecnicas nao destrutivas, melhorias operacionais e indicadores gerenciais.
+
+## 2026-07-29 - Rastreabilidade com Proposta Opcional
+
+### Documentacao
+
+- Sprint 12 passou a tratar `proposta_id` como vinculo opcional, nao como obrigatoriedade operacional.
+- Contratos fechados diretamente pelo parceiro ou fora do O3Cloud Manager foram documentados como origem valida para implantacao.
+- Pendencia de rastreabilidade historica foi fechada com foco em contrato, cliente, parceiro, executivo, implantacao e origem do negocio.
+- Dashboard Executivo passou a exibir contratos sem proposta como contratos diretos, sem destaque de erro.
+- Vinculos legados com proposta so devem ser corrigidos quando houver evidencia confiavel e trilha auditavel.
+
+## 2026-07-29 - Anexos em Comentarios de Implantacao
+
+### Implantacao
+
+- Comentarios do historico de implantacao passaram a aceitar multiplos anexos.
+- Arquivos sao salvos em `storage/implantacoes/<implantacao_id>/comentarios`.
+- Banco registra apenas metadados e caminho/url do arquivo anexado em `implantacao_historico_anexos`.
+- Exclusao do comentario remove os registros de anexo e os arquivos fisicos correspondentes.
+
+## 2026-07-29 - OMIE e ClickSign na Tela de Integracoes
+
+### Integracoes
+
+- Tela `Integracoes de Negocio` passou a exibir OMIE e ClickSign ja configurados por variaveis de ambiente.
+- Segredos de ambiente e tokens cadastrados sao exibidos mascarados como `****` na renderizacao inicial.
+- Adicionado botao de visualizacao temporaria do segredo com retorno `no-store`, sem persistir o valor no HTML inicial.
+
+## 2026-07-29 - Configuracoes de Integracoes para Sprint 12
+
+### Integracoes
+
+- Sidebar ganhou a secao `Configuracoes` com `Integracoes de Negocio` e `Integracoes Tecnicas`.
+- Integracoes de negocio passaram a contemplar OMIE e ClickSign.
+- Integracoes tecnicas passaram a contemplar Proxmox, PBS, Zabbix, FreeIPA e TrueNAS.
+- Cadastro continua permitindo multiplas configuracoes por tipo usando nomes distintos.
+- Validacao permanece estrutural e nao destrutiva nesta etapa.
+
 ## 2026-07-29 - Inicio da Sprint 12
 
 ### Documentacao

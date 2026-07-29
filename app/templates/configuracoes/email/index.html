@@ -1,0 +1,59 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include "components/page_header.html" %}
+
+    <div class="alert alert-secondary">
+        <i class="bi bi-shield-lock-fill"></i>
+        A senha SMTP fica criptografada no banco. Quando houver um serviço ativo, ele será usado antes das variáveis SMTP do ambiente.
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Serviço</th>
+                        <th>SMTP</th>
+                        <th>Remetente</th>
+                        <th>Segurança</th>
+                        <th>Último Teste</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in configuracoes %}
+                    <tr>
+                        <td>
+                            <strong>{{ item.nome }}</strong><br>
+                            {% if item.ativo %}<span class="badge bg-success">Ativo</span>{% else %}<span class="badge bg-light text-dark border">Inativo</span>{% endif %}
+                        </td>
+                        <td>{{ item.smtp_host }}<br><small class="text-muted">Porta {{ item.smtp_port }}</small></td>
+                        <td>{{ item.smtp_from or item.smtp_user or '-' }}<br><small class="text-muted">{{ item.smtp_user or 'Sem usuário SMTP' }}</small></td>
+                        <td>{% if item.usar_tls %}<span class="badge bg-primary">TLS</span>{% else %}<span class="badge bg-warning text-dark">Sem TLS</span>{% endif %}</td>
+                        <td>
+                            {% if item.ultimo_teste_status %}
+                                <span class="badge bg-{{ 'success' if item.ultimo_teste_status == 'OK' else 'warning' }}">{{ item.ultimo_teste_status }}</span><br>
+                                <small class="text-muted">{{ item.ultimo_teste_mensagem or '-' }}</small>
+                            {% else %}
+                                <span class="text-muted">Não testado</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <form method="POST" action="{{ url_for('configuracoes.email_testar', config_id=item.id) }}" class="d-inline-flex gap-2 align-items-center">
+                                <input class="form-control form-control-sm" name="destinatario" placeholder="email de teste" style="width: 180px;">
+                                <button class="btn btn-sm btn-outline-primary" title="Enviar teste"><i class="bi bi-send"></i></button>
+                            </form>
+                            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('configuracoes.email_editar', config_id=item.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum serviço de e-mail configurado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

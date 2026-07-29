@@ -123,9 +123,9 @@ Esses diagnosticos refletem que a estrutura de telas e importacao esta pronta, m
 
 ## Para proximas sprints
 
-- Mapear contratos historicos sem `proposta_id`.
-- Definir criterio seguro para vincular contratos e propostas legadas.
-- Avaliar preenchimento de `proposta_id` em implantacoes quando houver contrato vinculado.
+- Documentar que contratos sem `proposta_id` podem ser fluxo valido quando a venda ocorrer diretamente pelo parceiro ou fora do O3Cloud Manager.
+- Definir criterio seguro para vincular contratos e propostas legadas somente quando houver evidencia confiavel.
+- Avaliar rastreabilidade de implantacoes por contrato, cliente, parceiro e origem do negocio, sem exigir proposta em todos os casos.
 - Evoluir validacoes nao destrutivas de Proxmox, PBS e Zabbix a partir das configuracoes cadastradas.
 - Registrar historico de validacoes e falhas de integracao.
 - Refinar indicadores consolidados apos avaliacao gerencial.

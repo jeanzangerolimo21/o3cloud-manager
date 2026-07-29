@@ -3,9 +3,9 @@
 {% block content %}
 <div class="container-fluid">
     {% set page_title = 'Nova Integração' if modo == 'novo' else 'Editar Integração' %}
-    {% set page_description = 'Configuração base segura para integrações técnicas' %}
+    {% set page_description = 'Configuração base segura para integrações' %}
     {% set page_icon = 'bi-plug-fill' %}
-    {% set page_button_url = url_for('implantacao.integracoes_config') %}
+    {% set page_button_url = url_for('implantacao.integracoes_negocio') if grupo_integracao == 'negocio' else url_for('implantacao.integracoes_tecnicas') %}
     {% set page_button_icon = 'bi-arrow-left' %}
     {% set page_button_text = 'Voltar' %}
     {% include "components/page_header.html" %}
@@ -24,7 +24,7 @@
                     <div class="col-md-3"><div class="form-check form-switch mt-4"><input type="hidden" name="verify_ssl" value="0"><input class="form-check-input" type="checkbox" name="verify_ssl" value="1" id="verify_ssl" {% if integracao.verify_ssl is not defined or integracao.verify_ssl %}checked{% endif %}><label class="form-check-label" for="verify_ssl">Verificar SSL</label></div></div>
                     <div class="col-md-3"><div class="form-check form-switch mt-4"><input type="hidden" name="ativo" value="0"><input class="form-check-input" type="checkbox" name="ativo" value="1" id="ativo" {% if integracao.ativo is not defined or integracao.ativo %}checked{% endif %}><label class="form-check-label" for="ativo">Ativa</label></div></div>
                     <div class="col-12"><label class="form-label">Observações</label><textarea class="form-control" name="observacoes" rows="4" placeholder="Uso previsto, ambiente, restrições ou instruções futuras...">{{ integracao.observacoes or '' }}</textarea></div>
-                    <div class="col-12 text-end"><a class="btn btn-secondary" href="{{ url_for('implantacao.integracoes_config') }}">Cancelar</a> <button class="btn btn-primary"><i class="bi bi-check-circle"></i> Salvar</button></div>
+                    <div class="col-12 text-end"><a class="btn btn-secondary" href="{{ page_button_url }}">Cancelar</a> <button class="btn btn-primary"><i class="bi bi-check-circle"></i> Salvar</button></div>
                 </div>
             </form>
         </div>

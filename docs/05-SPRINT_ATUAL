@@ -12,9 +12,9 @@ Status: Oficial
 
 # Sprint Registrada
 
-## Sprint 12
+## Sprint 14
 
-Pendencias Operacionais e Preparacao da Versao Final
+Consolidacao Pre-Beta e Preparacao de Validacao com a Equipe
 
 Status:
 
@@ -24,25 +24,25 @@ Status:
 
 # Contexto
 
-A Sprint 11 foi encerrada em 29/07/2026 como parcialmente concluida.
+A Sprint 13 foi encerrada em 29/07/2026 como concluida.
 
-A entrega da Sprint 11 deixou prontas as telas, menus e fluxos de importacao para custos de produtos e faturamentos por competencia, sem criar dados ficticios. As cargas oficiais e algumas regras de negocio permanecem dependentes das fontes validadas da versao final do sistema.
+A entrega da Sprint 13 definiu que dados reais de custos, faturamentos e parametros financeiros somente serao informados na fase Beta com a equipe, apos saneamento dos cadastros e preenchimento das informacoes pendentes pelo Comercial e areas envolvidas.
 
 Documento de fechamento da sprint anterior:
 
-- `docs/21-FECHAMENTO-SPRINT-11.md`
+- `docs/23-FECHAMENTO-SPRINT-13.md`
 
 ---
 
 # Objetivo da Sprint
 
-Preparar a continuidade operacional do O3Cloud Manager a partir das pendencias documentadas na Sprint 11, organizando criterios, validacoes e proximas telas/rotinas necessarias para a versao final.
+Preparar o O3Cloud Manager para validacao Beta assistida, consolidando cadastros, diagnosticos, telas operacionais e criterios de preenchimento antes de qualquer carga real oficial de rentabilidade.
 
 ---
 
 # Escopo Inicial
 
-## 1. Dados Oficiais para Rentabilidade
+## 1. Cadastros e Dados Pendentes para Beta
 
 Status:
 
@@ -50,27 +50,12 @@ Status:
 
 Entregas previstas:
 
-- Validar fonte oficial de custos por produto, recurso tecnico e infraestrutura.
-- Importar custos oficiais pelo fluxo `/catalogo/produtos/custos` quando a planilha oficial estiver disponivel.
-- Cadastrar ou importar `parametros_financeiros` com custos unitarios e margem minima oficial.
-- Importar `faturamentos` por competencia pelo fluxo `/financeiro/faturamentos` quando a fonte oficial estiver disponivel.
-- Validar cobertura de custo e faturamento no Dashboard Executivo apos carga real.
+- Mapear campos e cadastros que o Comercial precisa completar antes da Beta.
+- Identificar informacoes obrigatorias, recomendadas e opcionais por fluxo.
+- Preparar diagnosticos de dados incompletos sem tratar ausencia de dado homologado como erro.
+- Manter contratos diretos/parceiros como fluxo valido sem obrigatoriedade de proposta.
 
-## 2. Rastreabilidade Historica
-
-Status:
-
-⏳ Planejado
-
-Entregas previstas:
-
-- Mapear contratos historicos sem `proposta_id`.
-- Mapear implantacoes com contrato vinculado e sem `proposta_id`.
-- Definir criterio seguro para vincular contratos e propostas legadas.
-- Avaliar se implantacoes devem herdar `proposta_id` do contrato quando houver vinculo confiavel.
-- Preservar trilha auditavel para qualquer correcao historica.
-
-## 3. Integracoes Tecnicas Nao Destrutivas
+## 2. Preparacao de Validacao com a Equipe
 
 Status:
 
@@ -78,12 +63,12 @@ Status:
 
 Entregas previstas:
 
-- Evoluir validacoes de Proxmox, PBS e Zabbix a partir das configuracoes cadastradas.
-- Manter apenas acoes de leitura e diagnostico nesta etapa.
-- Mapear dados tecnicos necessarios para custo operacional e provisionamento controlado.
-- Registrar historico de validacoes e falhas de integracao.
+- Preparar checklist de validacao Beta por area: Comercial, Operacoes, Financeiro e Engenharia.
+- Revisar telas principais para uso assistido pela equipe.
+- Documentar criterios de aceite para preenchimento de cadastros.
+- Separar pendencias de cadastro, divergencias de informacao e falhas reais do sistema.
 
-## 4. Melhorias Operacionais
+## 3. Indicadores e Diagnosticos Pre-Beta
 
 Status:
 
@@ -91,28 +76,42 @@ Status:
 
 Entregas previstas:
 
-- Refinar leitura visual dos indicadores consolidados apos avaliacao gerencial.
-- Priorizar pendencias operacionais evidenciadas pelo Dashboard Executivo.
-- Melhorar cobertura de responsaveis/implantadores nas implantacoes existentes.
-- Preparar criterios para encerramento operacional de projetos entregues.
+- Refinar Dashboard Executivo para leitura pre-Beta.
+- Exibir lacunas de custos, faturamentos e parametros financeiros como pendencias de carga futura.
+- Evitar calculo definitivo de rentabilidade antes da carga real oficial.
+- Preparar indicadores para receber dados reais na Beta sem criar dados ficticios.
+
+## 4. Integracoes Tecnicas Nao Destrutivas
+
+Status:
+
+⏳ Planejado
+
+Entregas previstas:
+
+- Continuar validacoes tecnicas em modo leitura e diagnostico.
+- Preparar historico de validacoes e falhas de integracao.
+- Preservar segredos mascarados por padrao e visualizacao temporaria sem cache.
+- Manter automacoes destrutivas fora do escopo.
 
 ---
 
 # Fora do Escopo Inicial
 
+- Carregar dados reais de custos, faturamentos e parametros financeiros antes da Beta.
 - Criar dados ficticios para simular rentabilidade.
-- Executar automacoes destrutivas em Proxmox, PBS ou Zabbix sem aprovacao especifica.
-- Calculo definitivo de rentabilidade sem custos, parametros financeiros e faturamentos validados.
-- Correcao automatica de dados historicos sem criterio validado.
+- Tornar `proposta_id` obrigatorio para implantacao.
+- Executar automacoes destrutivas em integracoes tecnicas.
+- Entrar ainda no bloco de login, autenticacao, permissoes, auditoria e relatorios formais.
 
 ---
 
 # Criterios de Aceite
 
-- Sprint 12 parte das pendencias documentadas no fechamento da Sprint 11.
-- Fluxos de importacao existentes continuam funcionando com arquivos oficiais quando disponiveis.
-- Pendencias historicas possuem criterio documentado antes de qualquer atualizacao em massa.
-- Integracoes tecnicas permanecem nao destrutivas.
+- Sprint 14 parte das decisoes documentadas no fechamento da Sprint 13.
+- Sistema deixa claro quais dados dependem de preenchimento da equipe na Beta.
+- Diagnosticos diferenciam dado pendente, fluxo valido e erro real.
+- Importadores oficiais continuam prontos, mas sem carga real prematura.
 - Implementacao segue Repository / Service / Routes / Templates quando houver codigo.
 
 ---
@@ -120,10 +119,9 @@ Entregas previstas:
 # Validacoes Previstas
 
 - Validar rotas alteradas via Flask test client.
-- Validar importacoes com arquivos oficiais ou amostras homologadas.
-- Validar consultas com dados reais apos cargas oficiais.
-- Validar ausencia de acoes destrutivas em integracoes tecnicas.
-- Validar documentacao de regras antes de alterar dados historicos.
+- Validar textos e diagnosticos sem criar dados ficticios.
+- Validar que a ausencia de dados reais oficiais nao gere erro operacional indevido.
+- Validar que a documentacao da Beta esteja alinhada com Comercial, Operacoes, Financeiro e Engenharia.
 
 ---
 
@@ -135,7 +133,7 @@ Versao:
 
 Sprint Atual:
 
-12
+14
 
 Situacao:
 
@@ -143,4 +141,4 @@ Situacao:
 
 Proxima Implementacao:
 
-Definir a primeira entrega executavel da Sprint 12 a partir das pendencias de dados oficiais, rastreabilidade historica e integracoes tecnicas nao destrutivas.
+Definir os diagnosticos e checklists pre-Beta para orientar o preenchimento de cadastros pela equipe antes das cargas oficiais.

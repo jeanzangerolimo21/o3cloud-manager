@@ -152,11 +152,6 @@
                 Faixas de Rede
             </a>
 
-            <a href="{{ url_for('implantacao.integracoes_config') }}" class="submenu-item">
-                <i class="bi bi-plug-fill"></i>
-                Integrações Técnicas
-            </a>
-
             <a href="{{ url_for('implantacao.cofre_senhas') }}" class="submenu-item">
                 <i class="bi bi-shield-lock-fill"></i>
                 Cofre de Senhas
@@ -187,31 +182,22 @@
             </a>
 
             <div class="menu-section">
-                Integrações
-            </div>
-
-            <a href="#">
-                <i class="bi bi-cloud-arrow-down"></i>
-                OMIE
-            </a>
-
-            <a href="#">
-                <i class="bi bi-hdd-rack"></i>
-                Proxmox
-            </a>
-
-            <a href="#">
-                <i class="bi bi-safe2"></i>
-                PBS
-            </a>
-
-            <div class="menu-section">
-                Administração
-            </div>
-
-            <a href="#">
-                <i class="bi bi-gear"></i>
                 Configurações
+            </div>
+
+            <a href="{{ url_for('configuracoes.email_index') }}" class="submenu-item">
+                <i class="bi bi-envelope-fill"></i>
+                Serviços de Email
+            </a>
+
+            <a href="{{ url_for('implantacao.integracoes_negocio') }}" class="submenu-item">
+                <i class="bi bi-briefcase-fill"></i>
+                Integrações de Negócio
+            </a>
+
+            <a href="{{ url_for('implantacao.integracoes_tecnicas') }}" class="submenu-item">
+                <i class="bi bi-plug-fill"></i>
+                Integrações Técnicas
             </a>
 
         </nav>

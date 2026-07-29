@@ -20,6 +20,41 @@ Transformar dados operacionais, financeiros e de infraestrutura em informações
 
 ---
 
+
+---
+
+# Status Atual do Desenvolvimento
+
+Sprint 12 foi concluida em 29/07/2026.
+
+Entregas principais:
+
+- Proposta opcional no fluxo operacional.
+- Contratos diretos/parceiros como origem valida para implantacao.
+- Separacao entre Integracoes de Negocio e Integracoes Tecnicas.
+- OMIE e ClickSign exibidos a partir do ambiente com segredos mascarados.
+- Anexos em comentarios de implantacao.
+
+Sprint 13 foi concluida em 29/07/2026.
+
+Decisao principal da Sprint 13:
+
+- Dados reais oficiais serao carregados apenas na fase Beta com a equipe.
+- Comercial e areas envolvidas deverao completar cadastros antes das validacoes oficiais.
+- Custos, faturamentos e parametros financeiros permanecem preparados, mas sem carga real prematura.
+
+Sprint atual: Sprint 14 - Consolidacao Pre-Beta e Preparacao de Validacao com a Equipe.
+
+Pendencias principais da Sprint 14:
+
+- Mapear cadastros e campos pendentes para preenchimento pela equipe.
+- Preparar diagnosticos de dados incompletos sem bloquear fluxos validos.
+- Criar checklist de validacao Beta por area.
+- Refinar indicadores pre-Beta sem carga real oficial.
+- Manter validacoes tecnicas em modo nao destrutivo.
+
+---
+
 # Fontes Oficiais dos Dados
 
 | Informação        | Sistema Oficial        |

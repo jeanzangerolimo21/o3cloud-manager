@@ -314,19 +314,21 @@ Nunca alterar sem autorização.
 
 # Sprint Atual
 
-Sprint 6.4
+Sprint 13
 
-CRUD Modelos
+Dados Oficiais, Validacoes Tecnicas e Preparacao Operacional
 
 Status:
 
-Em desenvolvimento.
+Em planejamento.
 
-Sprint 6.3
+Sprint anterior:
 
-CRUD Produtos
+Sprint 12 - Pendencias Operacionais e Preparacao da Versao Final
 
-Homologado.
+Status:
+
+Concluida em 29/07/2026.
 
 ---
 

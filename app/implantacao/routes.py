@@ -20,6 +20,7 @@ from app.implantacao.o3web_licencas_service import O3WebLicencaService
 from app.implantacao.o3web_licencas_service import TIPOS_LICENCA_O3WEB
 from app.implantacao.faixas_rede_service import FaixaRedeService
 from app.implantacao.integracoes_service import IntegracaoConfigService
+from app.implantacao.integracoes_service import GRUPOS_INTEGRACAO
 from app.implantacao.integracoes_service import TIPOS_INTEGRACAO
 from app.implantacao.cofre_senhas_service import CATEGORIAS_COFRE_SENHAS
 from app.implantacao.cofre_pastas_service import CofrePastaService
@@ -445,35 +446,84 @@ def excluir_licenca_o3web(licenca_id):
 
 @implantacao_bp.route("/integracoes")
 def integracoes_config():
+    return redirect(url_for("implantacao.integracoes_tecnicas"))
+
+
+@implantacao_bp.route("/integracoes/negocio")
+def integracoes_negocio():
+    return _render_integracoes_config("negocio")
+
+
+@implantacao_bp.route("/integracoes/tecnicas")
+def integracoes_tecnicas():
+    return _render_integracoes_config("tecnicas")
+
+
+def _render_integracoes_config(grupo):
     tipo = request.args.get("tipo")
     ativo = request.args.get("ativo", "1")
+    contexto = IntegracaoConfigService.contexto_grupo(grupo)
+    tipo_options = IntegracaoConfigService.tipo_options(contexto["grupo"])
+    if tipo and tipo not in tipo_options:
+        tipo = None
     return render_template(
         "implantacao/integracoes/index.html",
-        integracoes=IntegracaoConfigService.listar(tipo=tipo, ativo=ativo),
-        dashboard=IntegracaoConfigService.dashboard(),
-        tipo_options=TIPOS_INTEGRACAO,
+        integracoes=IntegracaoConfigService.listar(tipo=tipo, ativo=ativo, grupo=contexto["grupo"]),
+        integracoes_ambiente=IntegracaoConfigService.integracoes_ambiente(contexto["grupo"]),
+        dashboard=IntegracaoConfigService.dashboard(contexto["grupo"]),
+        tipo_options=tipo_options,
         selected_tipo=tipo,
         selected_ativo=ativo,
-        page_title="Integrações Técnicas",
-        page_description="Configuração base para Proxmox, PBS e Zabbix.",
+        grupo_integracao=contexto["grupo"],
+        grupos_integracao=GRUPOS_INTEGRACAO,
+        page_title=contexto["titulo"],
+        page_description=contexto["descricao"],
         page_icon="bi-plug-fill",
         page_button_text="Nova Integração",
         page_button_icon="bi-plus-circle",
-        page_button_url=url_for("implantacao.nova_integracao_config"),
+        page_button_url=url_for("implantacao.nova_integracao_config", grupo=contexto["grupo"]),
     )
+
+
+@implantacao_bp.route("/integracoes/ambiente/segredo", methods=["POST"])
+def revelar_integracao_ambiente_segredo():
+    try:
+        valor = IntegracaoConfigService.revelar_segredo_ambiente(request.form.get("chave"))
+    except ValueError as erro:
+        response = jsonify({"erro": str(erro)})
+        response.status_code = 400
+    else:
+        response = jsonify({"valor": valor})
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@implantacao_bp.route("/integracoes/<int:integracao_id>/segredo", methods=["POST"])
+def revelar_integracao_config_segredo(integracao_id):
+    try:
+        valor = IntegracaoConfigService.revelar_segredo_config(integracao_id)
+    except ValueError as erro:
+        response = jsonify({"erro": str(erro)})
+        response.status_code = 400
+    else:
+        response = jsonify({"valor": valor})
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @implantacao_bp.route("/integracoes/novo", methods=["GET", "POST"])
 def nova_integracao_config():
+    grupo = request.args.get("grupo") or "tecnicas"
+    tipo_options = IntegracaoConfigService.tipo_options(grupo)
     if request.method == "POST":
         try:
             integracao_id = IntegracaoConfigService.criar(request.form, _email_usuario_logado())
         except ValueError as erro:
             flash(str(erro), "danger")
-            return render_template("implantacao/integracoes/form.html", integracao=request.form, tipo_options=TIPOS_INTEGRACAO, modo="novo")
-        flash("Integração técnica cadastrada.", "success")
+            return render_template("implantacao/integracoes/form.html", integracao=request.form, tipo_options=tipo_options, grupo_integracao=grupo, modo="novo")
+        flash("Integração cadastrada.", "success")
         return redirect(url_for("implantacao.editar_integracao_config", integracao_id=integracao_id))
-    return render_template("implantacao/integracoes/form.html", integracao={"ativo": 1, "verify_ssl": 1, "timeout_seconds": 30}, tipo_options=TIPOS_INTEGRACAO, modo="novo")
+    return render_template("implantacao/integracoes/form.html", integracao={"ativo": 1, "verify_ssl": 1, "timeout_seconds": 30}, tipo_options=tipo_options, grupo_integracao=grupo, modo="novo")
 
 
 @implantacao_bp.route("/integracoes/<int:integracao_id>/editar", methods=["GET", "POST"])
@@ -481,7 +531,7 @@ def editar_integracao_config(integracao_id):
     integracao = IntegracaoConfigService.buscar_por_id(integracao_id)
     if not integracao:
         flash("Integração não encontrada.", "danger")
-        return redirect(url_for("implantacao.integracoes_config"))
+        return redirect(url_for("implantacao.integracoes_tecnicas"))
     if request.method == "POST":
         try:
             IntegracaoConfigService.atualizar(integracao_id, request.form, _email_usuario_logado())
@@ -489,9 +539,11 @@ def editar_integracao_config(integracao_id):
             flash(str(erro), "danger")
             integracao = {**integracao, **request.form}
         else:
-            flash("Integração técnica atualizada.", "success")
-            return redirect(url_for("implantacao.integracoes_config"))
-    return render_template("implantacao/integracoes/form.html", integracao=integracao, tipo_options=TIPOS_INTEGRACAO, modo="editar")
+            flash("Integração atualizada.", "success")
+            grupo = IntegracaoConfigService.grupo_por_tipo(request.form.get("tipo") or integracao.get("tipo"))
+            return redirect(url_for(f"implantacao.integracoes_{grupo}"))
+    grupo = IntegracaoConfigService.grupo_por_tipo(integracao.get("tipo"))
+    return render_template("implantacao/integracoes/form.html", integracao=integracao, tipo_options=IntegracaoConfigService.tipo_options(grupo), grupo_integracao=grupo, modo="editar")
 
 
 @implantacao_bp.route("/integracoes/<int:integracao_id>/testar", methods=["POST"])
@@ -503,7 +555,7 @@ def testar_integracao_config(integracao_id):
     else:
         categoria = "success" if resultado.get("status") == "OK" else "warning"
         flash(resultado.get("mensagem"), categoria)
-    return redirect(request.referrer or url_for("implantacao.integracoes_config"))
+    return redirect(request.referrer or url_for("implantacao.integracoes_tecnicas"))
 
 
 @implantacao_bp.route("/integracoes/<int:integracao_id>/excluir", methods=["POST"])
@@ -513,8 +565,8 @@ def excluir_integracao_config(integracao_id):
     except ValueError as erro:
         flash(str(erro), "danger")
     else:
-        flash("Integração técnica inativada.", "success")
-    return redirect(url_for("implantacao.integracoes_config"))
+        flash("Integração inativada.", "success")
+    return redirect(request.referrer or url_for("implantacao.integracoes_tecnicas"))
 
 
 @implantacao_bp.route("/kanban")
@@ -685,7 +737,7 @@ def editar(implantacao_id):
 @implantacao_bp.route("/<int:implantacao_id>/comentarios", methods=["POST"])
 def adicionar_comentario(implantacao_id):
     try:
-        email = ImplantacaoService.adicionar_comentario(implantacao_id, request.form)
+        email = ImplantacaoService.adicionar_comentario(implantacao_id, request.form, request.files.getlist("anexos"))
     except ValueError as erro:
         flash(str(erro), "danger")
     else:

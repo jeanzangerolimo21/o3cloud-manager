@@ -285,11 +285,53 @@ Documento de fechamento:
 
 ---
 
-# Sprint Atual
-
 ## Sprint 12
 
 Pendencias Operacionais e Preparacao da Versao Final
+
+Status:
+
+✅ Concluida em 29/07/2026
+
+Entregas:
+
+- Proposta opcional no fluxo operacional
+- Contrato direto/parceiro como origem valida para implantacao
+- Separacao de Integracoes de Negocio e Integracoes Tecnicas
+- OMIE e ClickSign exibidos a partir do ambiente com segredos mascarados
+- Anexos em comentarios de implantacao
+
+Documento de fechamento:
+
+- `docs/22-FECHAMENTO-SPRINT-12.md`
+
+---
+
+## Sprint 13
+
+Decisao, Preparacao Operacional e Validacoes Nao Destrutivas
+
+Status:
+
+✅ Concluida em 29/07/2026
+
+Entregas:
+
+- Dados reais oficiais adiados para a fase Beta com a equipe, sem carga prematura na Sprint 13
+- Cargas de custos, faturamentos e parametros financeiros condicionadas ao saneamento dos cadastros
+- Preparacao pre-Beta priorizada antes de cargas reais ou configuracoes sistemicas definitivas
+
+Documento de fechamento:
+
+- `docs/23-FECHAMENTO-SPRINT-13.md`
+
+---
+
+# Sprint Atual
+
+## Sprint 14
+
+Consolidacao Pre-Beta e Preparacao de Validacao com a Equipe
 
 Status:
 
@@ -297,10 +339,10 @@ Status:
 
 Objetivos:
 
-- Dados oficiais de custos, faturamentos e parametros financeiros
-- Rastreabilidade historica
-- Validacoes Proxmox, PBS e Zabbix nao destrutivas
-- Melhorias operacionais
+- Cadastros e campos pendentes para Beta
+- Diagnosticos de dados incompletos sem bloquear fluxos validos
+- Checklist de validacao Beta por area
+- Indicadores pre-Beta sem carga real oficial
 
 ---
 

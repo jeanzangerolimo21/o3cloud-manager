@@ -281,18 +281,62 @@ Status:
 
 ---
 
-# Sprint Atual
-
 ## Sprint 12
 
 Pendencias Operacionais e Preparacao da Versao Final
 
+Entregas:
+
+- `proposta_id` definido como vinculo opcional no fluxo operacional
+- Contratos diretos/parceiros definidos como origem valida para implantacao
+- Dashboard Executivo ajustado para exibir contratos sem proposta como contratos diretos
+- Integracoes separadas em Negocio e Tecnicas
+- OMIE e ClickSign exibidos a partir de variaveis de ambiente com segredos mascarados
+- Comentarios de implantacao passaram a aceitar anexos
+
+Documento de fechamento:
+
+- `docs/22-FECHAMENTO-SPRINT-12.md`
+
+Status:
+
+✅ Concluida em 29/07/2026
+
+---
+
+## Sprint 13
+
+Decisao, Preparacao Operacional e Validacoes Nao Destrutivas
+
+Entregas:
+
+- Decidido que dados reais oficiais ficam para a fase Beta com a equipe, sem carga prematura na Sprint 13
+- Custos, faturamentos e parametros financeiros nao serao carregados antes do saneamento dos cadastros
+- Comercial devera completar informacoes pendentes antes das validacoes oficiais
+- Sprint 14 passa a focar consolidacao pre-Beta, diagnosticos, campos/telas pendentes e checklist de validacao
+
+Documento de fechamento:
+
+- `docs/23-FECHAMENTO-SPRINT-13.md`
+
+Status:
+
+✅ Concluida em 29/07/2026
+
+---
+
+# Sprint Atual
+
+## Sprint 14
+
+Consolidacao Pre-Beta e Preparacao de Validacao com a Equipe
+
 Objetivos:
 
-- Organizar carga oficial de custos, faturamentos e parametros financeiros
-- Definir criterios de rastreabilidade historica para contratos e implantacoes
-- Evoluir validacoes nao destrutivas de Proxmox, PBS e Zabbix
-- Refinar pendencias operacionais evidenciadas pelo Dashboard Executivo
+- Mapear cadastros e campos pendentes para preenchimento pela equipe
+- Preparar diagnosticos de dados incompletos sem bloquear fluxos validos
+- Criar checklist de validacao Beta por area
+- Refinar indicadores pre-Beta sem carga real oficial
 
 Status:
 

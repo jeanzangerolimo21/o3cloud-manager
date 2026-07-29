@@ -1,3 +1,4 @@
+import os
 from urllib.parse import urlparse
 
 from app.implantacao.cofre_senhas_service import CofreSenhaService
@@ -5,9 +6,26 @@ from app.repositories.integracao_config_repository import IntegracaoConfigReposi
 
 
 TIPOS_INTEGRACAO = {
+    "omie": "OMIE",
+    "clicksign": "ClickSign",
     "proxmox": "Proxmox VE",
     "pbs": "Proxmox Backup Server",
     "zabbix": "Zabbix",
+    "freeipa": "FreeIPA",
+    "truenas": "TrueNAS",
+}
+
+GRUPOS_INTEGRACAO = {
+    "negocio": {
+        "titulo": "Integrações de Negócio",
+        "descricao": "Configuração base para OMIE e ClickSign.",
+        "tipos": ("omie", "clicksign"),
+    },
+    "tecnicas": {
+        "titulo": "Integrações Técnicas",
+        "descricao": "Configuração base para Proxmox, PBS, Zabbix, FreeIPA e TrueNAS.",
+        "tipos": ("proxmox", "pbs", "zabbix", "freeipa", "truenas"),
+    },
 }
 
 
@@ -15,12 +33,118 @@ class IntegracaoConfigService:
     repository = IntegracaoConfigRepository
 
     @classmethod
-    def listar(cls, tipo=None, ativo="1"):
-        return cls.repository.listar(tipo=tipo, ativo=cls._normalizar_ativo(ativo))
+    def listar(cls, tipo=None, ativo="1", grupo=None):
+        return cls.repository.listar(
+            tipo=tipo,
+            ativo=cls._normalizar_ativo(ativo),
+            tipos=cls.tipos_por_grupo(grupo),
+        )
 
     @classmethod
-    def dashboard(cls):
-        return cls.repository.dashboard()
+    def dashboard(cls, grupo=None):
+        return cls.repository.dashboard(tipos=cls.tipos_por_grupo(grupo))
+
+    @classmethod
+    def tipos_por_grupo(cls, grupo):
+        if grupo in GRUPOS_INTEGRACAO:
+            return GRUPOS_INTEGRACAO[grupo]["tipos"]
+        return None
+
+    @classmethod
+    def tipo_options(cls, grupo=None):
+        tipos = cls.tipos_por_grupo(grupo)
+        if not tipos:
+            return TIPOS_INTEGRACAO
+        return {tipo: TIPOS_INTEGRACAO[tipo] for tipo in tipos}
+
+    @classmethod
+    def grupo_por_tipo(cls, tipo):
+        for grupo, config in GRUPOS_INTEGRACAO.items():
+            if tipo in config["tipos"]:
+                return grupo
+        return "tecnicas"
+
+    @classmethod
+    def contexto_grupo(cls, grupo):
+        grupo = grupo if grupo in GRUPOS_INTEGRACAO else "tecnicas"
+        contexto = GRUPOS_INTEGRACAO[grupo]
+        return {
+            "grupo": grupo,
+            "titulo": contexto["titulo"],
+            "descricao": contexto["descricao"],
+            "tipos": contexto["tipos"],
+        }
+
+    @classmethod
+    def integracoes_ambiente(cls, grupo=None):
+        if grupo != "negocio":
+            return []
+
+        clicksign_url = cls._url_sem_token(os.getenv("CLICKSIGN_API_URL") or "https://sandbox.clicksign.com/api/v3")
+        return [
+            {
+                "tipo": "omie",
+                "nome": "OMIE",
+                "origem_config": ".env",
+                "base_url": "https://app.omie.com.br/api/v1",
+                "ambiente": "producao",
+                "status": "Configurada" if os.getenv("OMIE_APP_KEY") and os.getenv("OMIE_APP_SECRET") else "Pendente",
+                "classe": "success" if os.getenv("OMIE_APP_KEY") and os.getenv("OMIE_APP_SECRET") else "warning",
+                "segredos": [
+                    {"chave": "OMIE_APP_KEY", "label": "App Key", "mascara": cls._mascara(os.getenv("OMIE_APP_KEY"))},
+                    {"chave": "OMIE_APP_SECRET", "label": "App Secret", "mascara": cls._mascara(os.getenv("OMIE_APP_SECRET"))},
+                ],
+            },
+            {
+                "tipo": "clicksign",
+                "nome": "ClickSign",
+                "origem_config": ".env",
+                "base_url": clicksign_url,
+                "ambiente": os.getenv("CLICKSIGN_ENVIRONMENT") or "sandbox",
+                "status": "Configurada" if os.getenv("CLICKSIGN_ACCESS_TOKEN") else "Pendente",
+                "classe": "success" if os.getenv("CLICKSIGN_ACCESS_TOKEN") else "warning",
+                "segredos": [
+                    {"chave": "CLICKSIGN_ACCESS_TOKEN", "label": "Access Token", "mascara": cls._mascara(os.getenv("CLICKSIGN_ACCESS_TOKEN"))},
+                ],
+            },
+        ]
+
+    @classmethod
+    def revelar_segredo_ambiente(cls, chave):
+        permitidas = {
+            "OMIE_APP_KEY",
+            "OMIE_APP_SECRET",
+            "CLICKSIGN_ACCESS_TOKEN",
+        }
+        if chave not in permitidas:
+            raise ValueError("Segredo de ambiente nao permitido.")
+        valor = os.getenv(chave) or ""
+        if not valor:
+            raise ValueError("Segredo nao configurado.")
+        return valor
+
+    @classmethod
+    def revelar_segredo_config(cls, integracao_id):
+        integracao = cls.repository.buscar_por_id(integracao_id)
+        if not integracao or not integracao.get("ativo"):
+            raise ValueError("Integração não encontrada ou inativa.")
+        try:
+            return CofreSenhaService._decrypt(integracao.get("segredo_encrypted"))
+        except ValueError as erro:
+            raise ValueError("Não foi possível descriptografar o segredo. Verifique a chave do cofre.") from erro
+
+    @staticmethod
+    def _mascara(valor):
+        if not valor:
+            return "Nao configurado"
+        return "****"
+
+    @staticmethod
+    def _url_sem_token(valor):
+        texto = (valor or "").strip()
+        if "?" in texto:
+            return texto.split("?", 1)[0]
+        return texto
 
     @classmethod
     def buscar_por_id(cls, integracao_id):
@@ -109,10 +233,10 @@ class IntegracaoConfigService:
             return "ERRO", "URL base inválida."
         if not integracao.get("segredo_encrypted"):
             return "ERRO", "Token ou senha não cadastrado."
-        if integracao.get("tipo") in ("proxmox", "pbs") and not integracao.get("usuario") and not integracao.get("token_nome"):
+        if integracao.get("tipo") in ("proxmox", "pbs", "freeipa", "truenas") and not integracao.get("usuario") and not integracao.get("token_nome"):
             return "ERRO", "Informe usuário ou nome do token."
-        if integracao.get("tipo") == "zabbix" and not integracao.get("token_nome"):
-            return "AVISO", "Configuração estrutural válida. Recomenda-se informar nome do token Zabbix para auditoria."
+        if integracao.get("tipo") in ("zabbix", "omie", "clicksign") and not integracao.get("token_nome"):
+            return "AVISO", "Configuração estrutural válida. Recomenda-se informar nome do token para auditoria."
         return "OK", "Configuração estrutural válida. Conexão externa será habilitada em etapa futura."
 
     @staticmethod

@@ -5,7 +5,7 @@ class IntegracaoConfigRepository(BaseRepository):
     TABLE = "implantacao_integracoes_config"
 
     @classmethod
-    def listar(cls, tipo=None, ativo=1):
+    def listar(cls, tipo=None, ativo=1, tipos=None):
         sql = """
             SELECT id, uuid, tipo, nome, base_url, usuario, token_nome,
                    verify_ssl, timeout_seconds, ativo, observacoes,
@@ -18,25 +18,41 @@ class IntegracaoConfigRepository(BaseRepository):
         if tipo:
             sql += " AND tipo = %s"
             params.append(tipo)
+        elif tipos:
+            placeholders = ", ".join(["%s"] * len(tipos))
+            sql += f" AND tipo IN ({placeholders})"
+            params.extend(tipos)
         if ativo in (0, 1):
             sql += " AND ativo = %s"
             params.append(ativo)
-        sql += " ORDER BY FIELD(tipo, 'proxmox', 'pbs', 'zabbix'), nome ASC, id ASC"
+        sql += " ORDER BY FIELD(tipo, 'omie', 'clicksign', 'proxmox', 'pbs', 'zabbix', 'freeipa', 'truenas'), nome ASC, id ASC"
         return cls.fetch_all(sql, tuple(params))
 
     @classmethod
-    def dashboard(cls):
+    def dashboard(cls, tipos=None):
+        where = ""
+        params = []
+        if tipos:
+            placeholders = ", ".join(["%s"] * len(tipos))
+            where = f"WHERE tipo IN ({placeholders})"
+            params.extend(tipos)
         return cls.fetch_one(
-            """
+            f"""
             SELECT
                 COUNT(*) AS total,
                 SUM(CASE WHEN ativo = 1 THEN 1 ELSE 0 END) AS ativas,
+                SUM(CASE WHEN tipo = 'omie' AND ativo = 1 THEN 1 ELSE 0 END) AS omie,
+                SUM(CASE WHEN tipo = 'clicksign' AND ativo = 1 THEN 1 ELSE 0 END) AS clicksign,
                 SUM(CASE WHEN tipo = 'proxmox' AND ativo = 1 THEN 1 ELSE 0 END) AS proxmox,
                 SUM(CASE WHEN tipo = 'pbs' AND ativo = 1 THEN 1 ELSE 0 END) AS pbs,
                 SUM(CASE WHEN tipo = 'zabbix' AND ativo = 1 THEN 1 ELSE 0 END) AS zabbix,
+                SUM(CASE WHEN tipo = 'freeipa' AND ativo = 1 THEN 1 ELSE 0 END) AS freeipa,
+                SUM(CASE WHEN tipo = 'truenas' AND ativo = 1 THEN 1 ELSE 0 END) AS truenas,
                 SUM(CASE WHEN ultimo_teste_status = 'OK' THEN 1 ELSE 0 END) AS testes_ok
             FROM implantacao_integracoes_config
-            """
+            {where}
+            """,
+            tuple(params),
         )
 
     @classmethod

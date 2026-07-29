@@ -19,6 +19,7 @@ class StorageService:
     ANEXOS = "anexos"
     BACKUPS = "backups"
     IMPLANTACAO = "implantacao"
+    IMPLANTACOES = "implantacoes"
     TEMPORARIOS = "temporarios"
     LOGS = "logs"
 
@@ -48,8 +49,7 @@ class StorageService:
     MAX_FILE_SIZE = 20 * 1024 * 1024
 
     @classmethod
-    def salvar(cls, arquivo, pasta):
-
+    def validar(cls, arquivo):
         if not arquivo or arquivo.filename == "":
             return None
 
@@ -70,6 +70,21 @@ class StorageService:
             raise ValueError(
                 "Arquivo excede o tamanho máximo permitido."
             )
+
+        return {
+            "extensao": extensao,
+            "tamanho": tamanho,
+        }
+
+    @classmethod
+    def salvar(cls, arquivo, pasta):
+
+        validacao = cls.validar(arquivo)
+        if not validacao:
+            return None
+
+        extensao = validacao["extensao"]
+        tamanho = validacao["tamanho"]
 
         nome = f"{uuid.uuid4()}{extensao}"
 

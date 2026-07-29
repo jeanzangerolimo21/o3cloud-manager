@@ -3,6 +3,7 @@ from datetime import date
 from datetime import timedelta
 
 from app.core.email import EmailService
+from app.core.storage import StorageService
 from app.parceiros.executivo_service import ParceiroExecutivoService
 from app.parceiros.service import ParceiroService
 from app.repositories.contrato_repository import ContratoRepository
@@ -260,7 +261,7 @@ class ImplantacaoService:
         if not implantacao:
             return None
         implantacao["checklist"] = cls.repository.listar_checklist(implantacao_id)
-        implantacao["historico"] = cls.repository.listar_historico(implantacao_id)
+        implantacao["historico"] = cls._historico_com_anexos(implantacao_id)
         implantacao["emails_adicionais_lista"] = cls._parse_emails(implantacao.get("emails_adicionais"))
         return implantacao
 
@@ -332,7 +333,7 @@ class ImplantacaoService:
 
 
     @classmethod
-    def adicionar_comentario(cls, implantacao_id, dados):
+    def adicionar_comentario(cls, implantacao_id, dados, arquivos=None):
         implantacao = cls.buscar_por_id(implantacao_id)
         if not implantacao:
             raise ValueError("Implantação não encontrada.")
@@ -341,16 +342,19 @@ class ImplantacaoService:
             raise ValueError("Informe um comentário para registrar no histórico.")
         autor = (dados.get("autor") or "").strip() or None
         enviar_email = str(dados.get("enviar_email") or "").lower() in ("1", "true", "on", "sim")
+        arquivos = arquivos or []
+        cls._validar_anexos_comentario(arquivos)
         email = None
         if enviar_email:
             email = cls._notificar_comentario(implantacao, comentario, autor)
-        cls._registrar_historico(
+        historico_id = cls._registrar_historico(
             implantacao_id,
             tipo="COMENTARIO",
             comentario=comentario,
             autor=autor,
             email=email,
         )
+        cls._salvar_anexos_comentario(implantacao_id, historico_id, arquivos or [])
         return email
 
     @classmethod
@@ -373,7 +377,9 @@ class ImplantacaoService:
             raise ValueError("Comentário não encontrado.")
         if historico.get("tipo") != "COMENTARIO":
             raise ValueError("Registros de etapa não podem ser excluídos.")
+        anexos = cls.repository.listar_anexos_por_historico(historico_id)
         cls.repository.excluir_historico(historico_id)
+        cls._excluir_arquivos_anexos(anexos)
         return historico.get("implantacao_id")
 
 
@@ -587,7 +593,7 @@ class ImplantacaoService:
 
     @classmethod
     def _registrar_historico(cls, implantacao_id, tipo, comentario, etapa_anterior=None, etapa_nova=None, autor=None, email=None):
-        cls.repository.inserir_historico({
+        return cls.repository.inserir_historico({
             "implantacao_id": implantacao_id,
             "tipo": tipo,
             "etapa_anterior": etapa_anterior,
@@ -597,6 +603,53 @@ class ImplantacaoService:
             "email_enviado": bool(email and email.get("enviado")),
             "email_resultado": json.dumps(email, ensure_ascii=False) if email else None,
         })
+
+    @classmethod
+    def _historico_com_anexos(cls, implantacao_id):
+        historico = cls.repository.listar_historico(implantacao_id)
+        anexos = cls.repository.listar_anexos_historico(implantacao_id)
+        por_historico = {}
+        for anexo in anexos:
+            por_historico.setdefault(anexo.get("historico_id"), []).append(anexo)
+        for item in historico:
+            item["anexos"] = por_historico.get(item.get("id"), [])
+        return historico
+
+    @classmethod
+    def _validar_anexos_comentario(cls, arquivos):
+        for arquivo in arquivos:
+            StorageService.validar(arquivo)
+
+    @classmethod
+    def _salvar_anexos_comentario(cls, implantacao_id, historico_id, arquivos):
+        for arquivo in arquivos:
+            if not arquivo or not arquivo.filename:
+                continue
+            pasta = f"{StorageService.IMPLANTACOES}/{implantacao_id}/comentarios"
+            salvo = StorageService.salvar(arquivo, pasta)
+            if not salvo:
+                continue
+            cls.repository.inserir_anexo_historico({
+                "historico_id": historico_id,
+                "implantacao_id": implantacao_id,
+                "arquivo_original": salvo.get("arquivo_original"),
+                "nome_arquivo": salvo.get("nome"),
+                "caminho": f"{pasta}/{salvo.get('nome')}",
+                "url": salvo.get("url"),
+                "mime_type": salvo.get("mime_type"),
+                "tamanho": salvo.get("tamanho"),
+            })
+
+    @classmethod
+    def _excluir_arquivos_anexos(cls, anexos):
+        for anexo in anexos:
+            caminho = anexo.get("caminho") or ""
+            partes = caminho.split("/")
+            if len(partes) < 2:
+                continue
+            pasta = "/".join(partes[:-1])
+            nome = partes[-1]
+            StorageService.excluir(pasta, nome)
 
     @classmethod
     def _destinatarios_implantacao(cls, implantacao):

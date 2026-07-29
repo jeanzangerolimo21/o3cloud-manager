@@ -388,13 +388,13 @@
 
     {% set rastreabilidade = dashboard.rastreabilidade_executiva or {} %}
     {% set fluxo_labels = {
-        "SEM_PROPOSTA": "Sem proposta",
+        "CONTRATO_DIRETO": "Contrato direto",
         "SEM_IMPLANTACAO": "Sem implantacao",
         "EM_FLUXO": "Em fluxo",
         "FINALIZADO": "Finalizado"
     } %}
     {% set fluxo_classes = {
-        "SEM_PROPOSTA": "danger",
+        "CONTRATO_DIRETO": "secondary",
         "SEM_IMPLANTACAO": "warning",
         "EM_FLUXO": "primary",
         "FINALIZADO": "success"
@@ -403,7 +403,7 @@
         <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
             <div>
                 <strong>Rastreabilidade executiva</strong><br>
-                <small class="text-muted">Proposta -> contrato -> implantacao com lacunas de vinculo.</small>
+                <small class="text-muted">Contrato -> implantacao, com proposta exibida quando fizer parte do fluxo.</small>
             </div>
             <div class="d-flex flex-wrap gap-2 align-self-lg-center">
                 <span class="badge text-bg-light border">Ponta a ponta: {{ rastreabilidade.cobertura_ponta_a_ponta or 0 }}%</span>
@@ -414,7 +414,7 @@
             <div class="row g-3 mb-3">
                 <div class="col-md-3"><small class="text-muted">Propostas com contrato</small><h5 class="mb-0">{{ rastreabilidade.propostas_com_contrato or 0 }}/{{ rastreabilidade.propostas_total or 0 }}</h5></div>
                 <div class="col-md-3"><small class="text-muted">Propostas com implantacao</small><h5 class="mb-0">{{ rastreabilidade.propostas_com_implantacao or 0 }}/{{ rastreabilidade.propostas_total or 0 }}</h5></div>
-                <div class="col-md-3"><small class="text-muted">Contratos sem proposta</small><h5 class="mb-0 {{ 'text-danger' if rastreabilidade.contratos_sem_proposta else '' }}">{{ rastreabilidade.contratos_sem_proposta or 0 }}</h5></div>
+                <div class="col-md-3"><small class="text-muted">Contratos diretos</small><h5 class="mb-0">{{ rastreabilidade.contratos_sem_proposta or 0 }}</h5></div>
                 <div class="col-md-3"><small class="text-muted">Contratos sem implantacao</small><h5 class="mb-0 {{ 'text-warning' if rastreabilidade.contratos_sem_implantacao else '' }}">{{ rastreabilidade.contratos_sem_implantacao or 0 }}</h5></div>
             </div>
         </div>
@@ -441,7 +441,7 @@
                                     <a href="{{ url_for('propostas.visualizar', proposta_id=item.proposta_id) }}">{{ item.codigo_proposta or ('Proposta #' ~ item.proposta_id) }}</a><br>
                                     <small class="text-muted">{{ proposta_status.get(item.proposta_status, item.proposta_status) }} - {{ item.clicksign_status or '-' }}</small>
                                 {% else %}
-                                    <span class="text-muted">Sem proposta</span>
+                                    <span class="text-muted">Contrato direto</span>
                                 {% endif %}
                             </td>
                             <td>
