@@ -256,18 +256,43 @@ Status:
 
 ---
 
-# Sprint Atual
+# Ultima Sprint Encerrada
 
 ## Sprint 11
 
 Integracoes e Melhorias Operacionais
 
+Entregas:
+
+- Menu Financeiro criado no sidebar com Dashboard Executivo, Produtos por Cliente, Faturamento e Contratos
+- Tela `/dashboard/produtos-clientes` criada para diagnostico cliente -> contrato -> item contratado
+- Vinculos Omie de maior impacto cadastrados no catalogo por seed idempotente
+- Tela `/catalogo/produtos/custos` criada para exportar/importar custos por CSV
+- Tela `/financeiro/faturamentos` criada para exportar modelo e importar faturamentos por competencia
+- Pendencias de custos, faturamentos, parametros financeiros e rastreabilidade historica documentadas
+
+Documento de fechamento:
+
+- `docs/21-FECHAMENTO-SPRINT-11.md`
+
+Status:
+
+⚠️ Parcialmente concluida em 29/07/2026
+
+---
+
+# Sprint Atual
+
+## Sprint 12
+
+Pendencias Operacionais e Preparacao da Versao Final
+
 Objetivos:
 
-- Definir fontes oficiais de custos, parametros financeiros e faturamentos
-- Tratar rastreabilidade historica de contratos e implantacoes
-- Evoluir integracoes Proxmox, PBS e Zabbix sem acoes destrutivas
-- Priorizar melhorias operacionais evidenciadas pelo Dashboard Executivo
+- Organizar carga oficial de custos, faturamentos e parametros financeiros
+- Definir criterios de rastreabilidade historica para contratos e implantacoes
+- Evoluir validacoes nao destrutivas de Proxmox, PBS e Zabbix
+- Refinar pendencias operacionais evidenciadas pelo Dashboard Executivo
 
 Status:
 

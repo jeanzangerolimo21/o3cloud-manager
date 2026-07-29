@@ -4,7 +4,7 @@
 
 Versao: 3.0 Alpha
 
-Ultima atualizacao: 28/07/2026
+Ultima atualizacao: 29/07/2026
 
 Status: Oficial
 
@@ -12,9 +12,9 @@ Status: Oficial
 
 # Sprint Registrada
 
-## Sprint 11
+## Sprint 12
 
-Integracoes e Melhorias Operacionais
+Pendencias Operacionais e Preparacao da Versao Final
 
 Status:
 
@@ -24,48 +24,37 @@ Status:
 
 # Contexto
 
-A Sprint 10 foi encerrada em 28/07/2026 com o Dashboard Executivo consolidado e validado em ambiente local.
+A Sprint 11 foi encerrada em 29/07/2026 como parcialmente concluida.
 
-A Sprint 11 inicia a evolucao das integracoes e melhorias operacionais, aproveitando os diagnosticos gerados pelo Dashboard Executivo sobre custos, faturamentos, rastreabilidade historica e infraestrutura tecnica.
+A entrega da Sprint 11 deixou prontas as telas, menus e fluxos de importacao para custos de produtos e faturamentos por competencia, sem criar dados ficticios. As cargas oficiais e algumas regras de negocio permanecem dependentes das fontes validadas da versao final do sistema.
 
 Documento de fechamento da sprint anterior:
 
-- `docs/20-FECHAMENTO-SPRINT-10.md`
+- `docs/21-FECHAMENTO-SPRINT-11.md`
 
 ---
 
 # Objetivo da Sprint
 
-Evoluir as integracoes tecnicas e operacionais do O3Cloud Manager, preparando fontes confiaveis para automacao, rentabilidade futura e acompanhamento gerencial.
+Preparar a continuidade operacional do O3Cloud Manager a partir das pendencias documentadas na Sprint 11, organizando criterios, validacoes e proximas telas/rotinas necessarias para a versao final.
 
 ---
 
 # Escopo Inicial
 
-## 1. Fontes para Rentabilidade
+## 1. Dados Oficiais para Rentabilidade
 
 Status:
 
-🚧 Em andamento
-
-Entregas concluídas:
-
-- Tela `/dashboard/produtos-clientes` criada para mapear cliente -> contrato -> item contratado.
-- Diagnostico inicial usa itens sincronizados de contratos Omie e vinculos reais com proposta/catalogo/custo.
-- Cards de cobertura adicionados para contratos com itens, cobertura de catalogo e cobertura de custo.
-- Lacunas de rentabilidade passam a ser exibidas sem alterar dados historicos.
-- Dashboard passou a listar itens Omie sem catalogo e produtos vinculados sem custo como fila de saneamento.
-- Seed `database/seed/004_catalogo_vinculos_omie_sprint11.sql` cadastra/vincula 7 codigos de servico Omie de maior impacto.
-- Cobertura de catalogo validada em 256 de 257 itens; item restante possui `codigo_servico = 0` e permanece como dado invalido a tratar.
-- Tela `/catalogo/produtos/custos` criada para exportar/importar custos pendentes por CSV.
+⏳ Planejado
 
 Entregas previstas:
 
-- Definir fonte oficial de custos por produto, recurso tecnico e infraestrutura.
-- Preencher os custos oficiais dos produtos Omie pelo fluxo de importacao CSV.
-- Popular ou importar `parametros_financeiros`.
-- Popular ou importar `faturamentos` por competencia.
-- Definir regra para `valor_custo` de produtos e recursos de servidor.
+- Validar fonte oficial de custos por produto, recurso tecnico e infraestrutura.
+- Importar custos oficiais pelo fluxo `/catalogo/produtos/custos` quando a planilha oficial estiver disponivel.
+- Cadastrar ou importar `parametros_financeiros` com custos unitarios e margem minima oficial.
+- Importar `faturamentos` por competencia pelo fluxo `/financeiro/faturamentos` quando a fonte oficial estiver disponivel.
+- Validar cobertura de custo e faturamento no Dashboard Executivo apos carga real.
 
 ## 2. Rastreabilidade Historica
 
@@ -76,11 +65,12 @@ Status:
 Entregas previstas:
 
 - Mapear contratos historicos sem `proposta_id`.
+- Mapear implantacoes com contrato vinculado e sem `proposta_id`.
 - Definir criterio seguro para vincular contratos e propostas legadas.
-- Avaliar preenchimento de `proposta_id` em implantacoes quando houver contrato vinculado.
+- Avaliar se implantacoes devem herdar `proposta_id` do contrato quando houver vinculo confiavel.
 - Preservar trilha auditavel para qualquer correcao historica.
 
-## 3. Integracoes Tecnicas
+## 3. Integracoes Tecnicas Nao Destrutivas
 
 Status:
 
@@ -88,8 +78,8 @@ Status:
 
 Entregas previstas:
 
-- Evoluir conectores Proxmox, PBS e Zabbix a partir das configuracoes cadastradas.
-- Manter validacoes inicialmente nao destrutivas.
+- Evoluir validacoes de Proxmox, PBS e Zabbix a partir das configuracoes cadastradas.
+- Manter apenas acoes de leitura e diagnostico nesta etapa.
 - Mapear dados tecnicos necessarios para custo operacional e provisionamento controlado.
 - Registrar historico de validacoes e falhas de integracao.
 
@@ -110,32 +100,29 @@ Entregas previstas:
 
 # Fora do Escopo Inicial
 
-- Automacoes destrutivas em Proxmox, PBS ou Zabbix sem aprovacao especifica.
-- Calculo definitivo de rentabilidade sem custos e faturamentos validados.
-- Reestruturação ampla de autenticacao ou permissoes.
-- Correcao automatica de dados historicos sem regra validada.
+- Criar dados ficticios para simular rentabilidade.
+- Executar automacoes destrutivas em Proxmox, PBS ou Zabbix sem aprovacao especifica.
+- Calculo definitivo de rentabilidade sem custos, parametros financeiros e faturamentos validados.
+- Correcao automatica de dados historicos sem criterio validado.
 
 ---
 
 # Criterios de Aceite
 
-- Fontes necessarias para rentabilidade documentadas e priorizadas.
-- Integracoes tecnicas evoluidas sem executar acoes destrutivas.
-- Pendencias de rastreabilidade historica mapeadas com criterio seguro de correcao.
-- Melhorias operacionais derivadas do Dashboard Executivo registradas e validadas.
+- Sprint 12 parte das pendencias documentadas no fechamento da Sprint 11.
+- Fluxos de importacao existentes continuam funcionando com arquivos oficiais quando disponiveis.
+- Pendencias historicas possuem criterio documentado antes de qualquer atualizacao em massa.
+- Integracoes tecnicas permanecem nao destrutivas.
 - Implementacao segue Repository / Service / Routes / Templates quando houver codigo.
 
 ---
 
-# Validacoes Realizadas
-
-- Tela `/dashboard/produtos-clientes` validada com dados reais de contratos e itens Omie.
-
 # Validacoes Previstas
 
-- Validar consultas com dados reais do banco local.
 - Validar rotas alteradas via Flask test client.
-- Validar ausencia de acoes destrutivas em qualquer integracao tecnica.
+- Validar importacoes com arquivos oficiais ou amostras homologadas.
+- Validar consultas com dados reais apos cargas oficiais.
+- Validar ausencia de acoes destrutivas em integracoes tecnicas.
 - Validar documentacao de regras antes de alterar dados historicos.
 
 ---
@@ -148,7 +135,7 @@ Versao:
 
 Sprint Atual:
 
-11
+12
 
 Situacao:
 
@@ -156,4 +143,4 @@ Situacao:
 
 Proxima Implementacao:
 
-Preencher/importar custos oficiais dos produtos vinculados e validar cobertura de custo no dashboard.
+Definir a primeira entrega executavel da Sprint 12 a partir das pendencias de dados oficiais, rastreabilidade historica e integracoes tecnicas nao destrutivas.

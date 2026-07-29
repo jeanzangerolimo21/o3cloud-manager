@@ -7,6 +7,131 @@ from app.repositories.base_repository import BaseRepository
 class FinanceiroRepository(BaseRepository):
 
     @classmethod
+    def listar_faturamentos(cls, limite=100):
+
+        return cls.fetch_all(
+            """
+            SELECT f.id, f.contrato_id, f.competencia, f.origem,
+                   f.valor_bruto, f.percentual_comissao, f.valor_comissao,
+                   f.valor_liquido, f.observacoes, f.updated_at,
+                   c.numero AS contrato_numero,
+                   c.codigo_externo AS contrato_codigo_externo,
+                   COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome
+            FROM faturamentos f
+            INNER JOIN contratos c
+                ON c.id = f.contrato_id
+            INNER JOIN clientes cli
+                ON cli.id = c.cliente_id
+            WHERE f.ativo = 1
+            ORDER BY f.competencia DESC, f.updated_at DESC, f.id DESC
+            LIMIT %s
+            """,
+            (limite,),
+        )
+
+    @classmethod
+    def resumo_faturamentos(cls):
+
+        return cls.fetch_one(
+            """
+            SELECT COUNT(*) AS total,
+                   COUNT(DISTINCT contrato_id) AS contratos_total,
+                   MIN(competencia) AS primeira_competencia,
+                   MAX(competencia) AS ultima_competencia,
+                   COALESCE(SUM(valor_bruto), 0) AS valor_bruto,
+                   COALESCE(SUM(valor_liquido), 0) AS valor_liquido
+            FROM faturamentos
+            WHERE ativo = 1
+            """
+        ) or {}
+
+    @classmethod
+    def contratos_para_faturamento(cls):
+
+        return cls.fetch_all(
+            """
+            SELECT c.id, c.numero, c.codigo_externo,
+                   COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
+                   COALESCE(NULLIF(c.valor_promocional, 0), c.valor_mensal, 0) AS valor_mensal
+            FROM contratos c
+            INNER JOIN clientes cli
+                ON cli.id = c.cliente_id
+            WHERE c.ativo = 1
+              AND c.status IN ('ATIVO', 'EM_IMPLANTACAO', 'CONCLUIDO')
+            ORDER BY cliente_nome ASC, c.numero ASC
+            """
+        )
+
+    @classmethod
+    def buscar_contrato_faturamento(cls, identificador):
+
+        contrato = cls.fetch_one(
+            """
+            SELECT id, numero, codigo_externo
+            FROM contratos
+            WHERE ativo = 1
+              AND CAST(id AS CHAR) = %s
+            LIMIT 1
+            """,
+            (identificador,),
+        )
+        if contrato:
+            return contrato
+
+        return cls.fetch_one(
+            """
+            SELECT id, numero, codigo_externo
+            FROM contratos
+            WHERE ativo = 1
+              AND (numero = %s OR CAST(codigo_externo AS CHAR) = %s)
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (identificador, identificador),
+        )
+
+    @classmethod
+    def salvar_faturamento(cls, dados):
+
+        sql = """
+            INSERT INTO faturamentos (
+                uuid,
+                contrato_id,
+                competencia,
+                origem,
+                valor_bruto,
+                percentual_comissao,
+                valor_comissao,
+                valor_liquido,
+                observacoes,
+                ativo
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
+            ON DUPLICATE KEY UPDATE
+                origem = VALUES(origem),
+                valor_bruto = VALUES(valor_bruto),
+                percentual_comissao = VALUES(percentual_comissao),
+                valor_comissao = VALUES(valor_comissao),
+                valor_liquido = VALUES(valor_liquido),
+                observacoes = VALUES(observacoes),
+                ativo = 1
+        """
+
+        return cls.execute(
+            sql,
+            (
+                cls.generate_uuid(),
+                dados["contrato_id"],
+                dados["competencia"],
+                dados["origem"],
+                dados["valor_bruto"],
+                dados["percentual_comissao"],
+                dados["valor_comissao"],
+                dados["valor_liquido"],
+                dados.get("observacoes"),
+            ),
+        )
+
+    @classmethod
     def total_clientes(cls):
 
         conn = cls.connection()

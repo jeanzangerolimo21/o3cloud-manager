@@ -46,6 +46,39 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-29 - Inicio da Sprint 12
+
+### Documentacao
+
+- Documento `docs/05-SPRINT_ATUAL` atualizado para Sprint 12 - Pendencias Operacionais e Preparacao da Versao Final.
+- Roadmap e historico de sprints atualizados para refletir a Sprint 11 como parcialmente concluida e a Sprint 12 como sprint atual.
+- Visao Geral passou a indicar Sprint 12 em planejamento e listar os focos de custos oficiais, faturamentos, parametros financeiros, rastreabilidade e validacoes tecnicas.
+
+## 2026-07-29 - Visao Geral Atualizada para Fechamento Parcial da Sprint 11
+
+### Dashboard
+
+- Home `/` passou a informar o fechamento parcial da Sprint 11.
+- Card principal da Visao Geral destaca as entregas prontas: telas, menus e importacoes CSV.
+- Lista lateral passou a exibir pendencias encaminhadas para a Sprint 12.
+
+## 2026-07-29 - Fechamento Parcial da Sprint 11
+
+### Documentacao
+
+- Sprint 11 encerrada como parcialmente concluida, pois as cargas oficiais de custos, faturamentos e parametros financeiros ficaram condicionadas a fontes validadas da versao final.
+- Criado documento `docs/21-FECHAMENTO-SPRINT-11.md` com entregas, validacoes, diagnosticos e pendencias encaminhadas.
+- Documentados os dados pendentes sem criar registros ficticios para simular rentabilidade.
+
+## 2026-07-29 - Fluxo de Importacao de Faturamentos
+
+### Sprint 11
+
+- Criada tela `/financeiro/faturamentos` para acompanhar registros carregados por competencia.
+- Adicionado modelo CSV `faturamentos_modelo.csv` com contratos elegiveis e colunas de bruto, comissao, liquido, origem e observacoes.
+- Adicionada importacao idempotente por contrato e competencia, preservando a chave unica `contrato_id + competencia`.
+- Origem padrao da carga manual definida como `MANUAL`; nenhum faturamento ficticio foi criado.
+
 ## 2026-07-28 - Fluxo de Importacao de Custos de Produtos
 
 ### Sprint 11

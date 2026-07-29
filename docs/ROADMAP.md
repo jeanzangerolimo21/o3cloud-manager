@@ -262,32 +262,7 @@ Documento de fechamento:
 
 ---
 
-# Última Sprint Concluída
-
-## Sprint 10
-
-Dashboard Executivo
-
-Status:
-
-✅ Concluída em 28/07/2026
-
-Objetivos entregues:
-
-- Indicadores executivos consolidados
-- Filtros e drill-down para telas operacionais
-- Evolucao mensal
-- Base inicial para rentabilidade e custos
-- Carga por responsavel/implantador
-- Rastreabilidade proposta -> contrato -> implantacao
-
-Documento de fechamento:
-
-- `docs/20-FECHAMENTO-SPRINT-10.md`
-
----
-
-# Sprint Atual
+# Última Sprint Encerrada
 
 ## Sprint 11
 
@@ -295,15 +270,36 @@ Integracoes e Melhorias Operacionais
 
 Status:
 
+⚠️ Parcialmente concluida em 29/07/2026
+
+Objetivos entregues:
+
+- Menu Financeiro e telas de preparacao para rentabilidade
+- Produtos por Cliente
+- Fluxos CSV para custos de produtos e faturamentos
+- Pendencias documentadas para versao final
+
+Documento de fechamento:
+
+- `docs/21-FECHAMENTO-SPRINT-11.md`
+
+---
+
+# Sprint Atual
+
+## Sprint 12
+
+Pendencias Operacionais e Preparacao da Versao Final
+
+Status:
+
 🚧 Em planejamento
 
 Objetivos:
 
-- NetBox
-- PBS
-- Proxmox
-- Zabbix
-- Fontes de custos e faturamentos
+- Dados oficiais de custos, faturamentos e parametros financeiros
+- Rastreabilidade historica
+- Validacoes Proxmox, PBS e Zabbix nao destrutivas
 - Melhorias operacionais
 
 ---
