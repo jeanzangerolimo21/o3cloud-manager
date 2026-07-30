@@ -233,274 +233,224 @@
 
         <hr class="my-5">
 
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
+                <div>
+                    <strong>Diagnostico pre-Beta do cliente</strong><br>
+                    <small class="text-muted">Pendencias de cadastro para saneamento comercial antes da validacao assistida.</small>
+                </div>
+                <span class="badge text-bg-light border align-self-lg-center">Sprint 14</span>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% for item in diagnostico_pre_beta %}
+                        <div class="col-md-6 col-xl-4">
+                            <div class="border rounded-2 p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <div>
+                                        <strong>{{ item.titulo }}</strong><br>
+                                        <small class="text-muted">{{ item.detalhe }}</small>
+                                    </div>
+                                    <span class="badge text-bg-{{ item.classe }}"><i class="bi {{ item.icone }}"></i></span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
         <!-- ===================================================== -->
         <!-- IMPLANTAÇÃO -->
         <!-- ===================================================== -->
 
-        <h5 class="mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
 
-            <i class="bi bi-hdd-network"></i>
+            <h5 class="mb-0">
 
-            Implantação
+                <i class="bi bi-hdd-network"></i>
 
-        </h5>
+                Implantação
 
-        <div class="row g-3">
+            </h5>
 
-            <div class="col-md-6">
+            {% if implantacao %}
 
-                <label class="form-label">
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('implantacao.visualizar', implantacao_id=implantacao.id) }}">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                    Abrir implantação
+                </a>
 
-                    Responsável
+            {% endif %}
 
-                </label>
+        </div>
 
-                <input class="form-control"
-                       value="{{ implantacao.responsavel_implantacao or '' }}"
-                       readonly>
+        {% if implantacao %}
 
-            </div>
+            <div class="row g-3">
 
-            <div class="col-md-3">
+                <div class="col-md-6">
 
-                <label class="form-label">
+                    <label class="form-label">
 
-                    Data da Implantação
+                        Projeto
 
-                </label>
+                    </label>
 
-                <input class="form-control"
-                       value="{{ implantacao.data_implantacao or '' }}"
-                       readonly>
+                    <input class="form-control"
+                           value="{{ implantacao.titulo or '' }}"
+                           readonly>
 
-            </div>
+                </div>
 
-            <div class="col-md-3">
+                <div class="col-md-3">
 
-                <label class="form-label">
+                    <label class="form-label">
 
-                    Status
+                        Status
 
-                </label>
+                    </label>
 
-                <div class="mt-2">
-
-                    {% if implantacao.status_implantacao == "Concluído" %}
-
-                        <span class="badge bg-success">
-
-                            Concluído
-
-                        </span>
-
-                    {% elif implantacao.status_implantacao == "Em andamento" %}
-
-                        <span class="badge bg-warning text-dark">
-
-                            Em andamento
-
-                        </span>
-
-                    {% elif implantacao.status_implantacao == "Pausado" %}
-
-                        <span class="badge bg-danger">
-
-                            Pausado
-
-                        </span>
-
-                    {% else %}
-
+                    <div class="mt-2">
                         <span class="badge bg-secondary">
-
-                            Não iniciado
-
+                            {{ implantacao.status_label }}
                         </span>
-
-                    {% endif %}
-
-                </div>
-
-            </div>
-
-            <div class="col-md-6">
-
-                <label class="form-label">
-
-                    Servidor Principal
-
-                </label>
-
-                <select class="form-select" disabled>
-
-                    <option>
-
-                        {% if implantacao.servidor_principal_id %}
-
-                            {{ implantacao.servidor_principal_id }}
-
-                        {% else %}
-
-                            Não definido
-
-                        {% endif %}
-
-                    </option>
-
-                </select>
-
-            </div>
-
-            <div class="col-md-6">
-
-                <label class="form-label">
-
-                    Cluster
-
-                </label>
-
-                <input class="form-control"
-                       value="{{ implantacao.cluster or '' }}"
-                       readonly>
-
-            </div>
-
-        </div>
-
-        <div class="card mt-4 border">
-
-            <div class="card-header bg-light">
-
-                <i class="bi bi-journal-text"></i>
-
-                Notas Técnicas
-
-            </div>
-
-            <div class="card-body">
-
-                <textarea
-                    class="form-control"
-                    rows="6"
-                    readonly>{{ implantacao.notas_tecnicas or '' }}</textarea>
-
-            </div>
-
-        </div>
-
-        <hr class="my-5">
-
-        <!-- ===================================================== -->
-        <!-- FUTUROS MÓDULOS -->
-        <!-- ===================================================== -->
-
-        <div class="row text-center">
-
-            <div class="col-md-3">
-
-                <div class="card border-light shadow-sm">
-
-                    <div class="card-body">
-
-                        💰
-
-                        <h6 class="mt-2">
-
-                            Financeiro
-
-                        </h6>
-
-                        <small class="text-muted">
-
-                            Sprint 5
-
-                        </small>
-
                     </div>
 
                 </div>
 
-            </div>
+                <div class="col-md-3">
 
-            <div class="col-md-3">
+                    <label class="form-label">
 
-                <div class="card border-light shadow-sm">
+                        Checklist
 
-                    <div class="card-body">
+                    </label>
 
-                        📑
+                    <input class="form-control"
+                           value="{{ implantacao.total_concluidos or 0 }}/{{ implantacao.total_itens or 0 }} - {{ implantacao.percentual_conclusao or 0 }}%"
+                           readonly>
 
-                        <h6 class="mt-2">
+                </div>
 
-                            Contratos
+                <div class="col-md-4">
 
-                        </h6>
+                    <label class="form-label">
 
-                        <small class="text-muted">
+                        Etapa Kanban
 
-                            Sprint 5
+                    </label>
 
-                        </small>
+                    <input class="form-control"
+                           value="{{ implantacao.etapa_label }}"
+                           readonly>
 
-                    </div>
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+
+                        Responsável / Implantador
+
+                    </label>
+
+                    <input class="form-control"
+                           value="{{ implantacao.responsavel_exibicao }}"
+                           readonly>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+
+                        Entrega Prevista
+
+                    </label>
+
+                    <input class="form-control"
+                           value="{{ implantacao.data_prevista_entrega|date_br }}"
+                           readonly>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+
+                        Contrato
+
+                    </label>
+
+                    <input class="form-control"
+                           value="{{ implantacao.contrato_numero or implantacao.contrato_id or '' }}"
+                           readonly>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+
+                        Proposta
+
+                    </label>
+
+                    <input class="form-control"
+                           value="{{ implantacao.codigo_proposta or implantacao.proposta_titulo or 'Contrato direto' }}"
+                           readonly>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+
+                        Provisionamento
+
+                    </label>
+
+                    <input class="form-control"
+                           value="{{ implantacao.provisionamento_label }}"
+                           readonly>
 
                 </div>
 
             </div>
 
-            <div class="col-md-3">
+            <div class="card mt-4 border">
 
-                <div class="card border-light shadow-sm">
+                <div class="card-header bg-light">
 
-                    <div class="card-body">
+                    <i class="bi bi-journal-text"></i>
 
-                        🖥
+                    Observações da Implantação
 
-                        <h6 class="mt-2">
+                </div>
 
-                            Infraestrutura
+                <div class="card-body">
 
-                        </h6>
-
-                        <small class="text-muted">
-
-                            Sprint 6
-
-                        </small>
-
-                    </div>
+                    <textarea
+                        class="form-control"
+                        rows="5"
+                        readonly>{{ implantacao.observacoes or 'Nenhuma observação cadastrada.' }}</textarea>
 
                 </div>
 
             </div>
 
-            <div class="col-md-3">
+        {% else %}
 
-                <div class="card border-light shadow-sm">
-
-                    <div class="card-body">
-
-                        📋
-
-                        <h6 class="mt-2">
-
-                            Auditoria
-
-                        </h6>
-
-                        <small class="text-muted">
-
-                            Sprint 6
-
-                        </small>
-
-                    </div>
-
+            <div class="alert alert-light border d-flex align-items-start gap-2 mb-0" role="alert">
+                <i class="bi bi-info-circle mt-1"></i>
+                <div>
+                    <strong>Nenhuma implantação vinculada.</strong><br>
+                    <span class="text-muted">Este cliente ainda não possui implantação ativa cadastrada no fluxo operacional.</span>
                 </div>
-
             </div>
 
-        </div>
+        {% endif %}
 
     </div>
 

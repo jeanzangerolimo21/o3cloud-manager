@@ -470,6 +470,8 @@ def _render_integracoes_config(grupo):
         "implantacao/integracoes/index.html",
         integracoes=IntegracaoConfigService.listar(tipo=tipo, ativo=ativo, grupo=contexto["grupo"]),
         integracoes_ambiente=IntegracaoConfigService.integracoes_ambiente(contexto["grupo"]),
+        plano_sincronismo_proxmox=IntegracaoConfigService.plano_sincronismo_proxmox(contexto["grupo"]),
+        validacoes_recentes=IntegracaoConfigService.validacoes_recentes(contexto["grupo"]),
         dashboard=IntegracaoConfigService.dashboard(contexto["grupo"]),
         tipo_options=tipo_options,
         selected_tipo=tipo,
@@ -520,10 +522,10 @@ def nova_integracao_config():
             integracao_id = IntegracaoConfigService.criar(request.form, _email_usuario_logado())
         except ValueError as erro:
             flash(str(erro), "danger")
-            return render_template("implantacao/integracoes/form.html", integracao=request.form, tipo_options=tipo_options, grupo_integracao=grupo, modo="novo")
+            return render_template("implantacao/integracoes/form.html", integracao=request.form, tipo_options=tipo_options, grupo_integracao=grupo, modo="novo", historico_validacoes=[])
         flash("Integração cadastrada.", "success")
         return redirect(url_for("implantacao.editar_integracao_config", integracao_id=integracao_id))
-    return render_template("implantacao/integracoes/form.html", integracao={"ativo": 1, "verify_ssl": 1, "timeout_seconds": 30}, tipo_options=tipo_options, grupo_integracao=grupo, modo="novo")
+    return render_template("implantacao/integracoes/form.html", integracao={"ativo": 1, "verify_ssl": 1, "timeout_seconds": 30}, tipo_options=tipo_options, grupo_integracao=grupo, modo="novo", historico_validacoes=[])
 
 
 @implantacao_bp.route("/integracoes/<int:integracao_id>/editar", methods=["GET", "POST"])
@@ -538,18 +540,20 @@ def editar_integracao_config(integracao_id):
         except ValueError as erro:
             flash(str(erro), "danger")
             integracao = {**integracao, **request.form}
+            historico_validacoes = IntegracaoConfigService.historico_validacoes(integracao_id)
         else:
             flash("Integração atualizada.", "success")
             grupo = IntegracaoConfigService.grupo_por_tipo(request.form.get("tipo") or integracao.get("tipo"))
             return redirect(url_for(f"implantacao.integracoes_{grupo}"))
     grupo = IntegracaoConfigService.grupo_por_tipo(integracao.get("tipo"))
-    return render_template("implantacao/integracoes/form.html", integracao=integracao, tipo_options=IntegracaoConfigService.tipo_options(grupo), grupo_integracao=grupo, modo="editar")
+    historico_validacoes = IntegracaoConfigService.historico_validacoes(integracao_id)
+    return render_template("implantacao/integracoes/form.html", integracao=integracao, tipo_options=IntegracaoConfigService.tipo_options(grupo), grupo_integracao=grupo, modo="editar", historico_validacoes=historico_validacoes)
 
 
 @implantacao_bp.route("/integracoes/<int:integracao_id>/testar", methods=["POST"])
 def testar_integracao_config(integracao_id):
     try:
-        resultado = IntegracaoConfigService.testar_configuracao(integracao_id)
+        resultado = IntegracaoConfigService.testar_configuracao(integracao_id, _email_usuario_logado())
     except ValueError as erro:
         flash(str(erro), "danger")
     else:
@@ -694,6 +698,7 @@ def visualizar(implantacao_id):
         "implantacao/view.html",
         implantacao=implantacao,
         rastreabilidade=ImplantacaoService.rastreabilidade_por_implantacao(implantacao_id),
+        diagnostico_pre_beta=ImplantacaoService.diagnostico_pre_beta(implantacao),
         status_options=STATUS_IMPLANTACAO,
         prioridade_options=PRIORIDADE_IMPLANTACAO,
         provisionamento_options=STATUS_PROVISIONAMENTO,

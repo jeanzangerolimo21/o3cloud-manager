@@ -68,6 +68,10 @@ def create_app():
     from app.configuracoes.routes import configuracoes_bp
     app.register_blueprint(configuracoes_bp)
 
+    # Infraestrutura
+    from app.infraestrutura.routes import infraestrutura_bp
+    app.register_blueprint(infraestrutura_bp)
+
 
     @app.route("/storage/<path:filename>")
     def storage(filename):

@@ -15,10 +15,56 @@
         {% for valor, label in tipo_options.items() %}
             <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">{{ label }}</small><h4>{{ dashboard.get(valor) or 0 }}</h4></div></div></div>
         {% endfor %}
-        <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Validadas</small><h4>{{ dashboard.testes_ok or 0 }}</h4></div></div></div>
+        <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Configuradas</small><h4>{{ dashboard.diagnostico_configurado or dashboard.testes_ok or 0 }}</h4></div></div></div>
+        <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Sem credencial</small><h4>{{ dashboard.diagnostico_pendente_credencial or dashboard.pendentes_credencial or 0 }}</h4></div></div></div>
+        <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Pendentes teste</small><h4>{{ dashboard.diagnostico_pendente_teste or dashboard.pendentes_teste or 0 }}</h4></div></div></div>
+        <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Erros cadastro</small><h4>{{ dashboard.diagnostico_erro_cadastro or dashboard.erros_cadastro or 0 }}</h4></div></div></div>
     </div>
 
-    <div class="alert alert-secondary"><i class="bi bi-shield-lock-fill"></i> Tokens e senhas ficam criptografados. Nesta etapa o teste valida a estrutura da configuração, sem executar ações externas.</div>
+    <div class="alert alert-secondary"><i class="bi bi-shield-lock-fill"></i> Tokens e senhas ficam criptografados e mascarados por padrão. Nesta sprint as integrações técnicas são somente leitura/diagnóstico; a validação é estrutural e não executa automações destrutivas.</div>
+
+    {% if plano_sincronismo_proxmox %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
+            <div>
+                <strong>{{ plano_sincronismo_proxmox.titulo }}</strong><br>
+                <small class="text-muted">{{ plano_sincronismo_proxmox.descricao }}</small>
+            </div>
+            <span class="badge text-bg-light border align-self-lg-center">{{ plano_sincronismo_proxmox.status }}</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-lg-4">
+                    <h6>Campos previstos</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for campo in plano_sincronismo_proxmox.campos %}
+                            <span class="badge text-bg-light border">{{ campo }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <h6>Regras de segurança</h6>
+                    <ul class="mb-0 small text-muted">
+                        {% for regra in plano_sincronismo_proxmox.regras %}
+                            <li>{{ regra }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="col-lg-4">
+                    <h6>Fases</h6>
+                    <div class="d-grid gap-2">
+                        {% for fase in plano_sincronismo_proxmox.fases %}
+                            <div class="border rounded-2 p-2">
+                                <strong>{{ fase.nome }}</strong><br>
+                                <small class="text-muted">{{ fase.descricao }}</small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     {% if integracoes_ambiente %}
     <div class="card border-0 shadow-sm mb-4">
@@ -70,12 +116,13 @@
 
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
-                    <thead><tr><th>Integração</th><th>Endpoint</th><th>Autenticação</th><th>Segurança</th><th>Último teste</th><th width="180">Ações</th></tr></thead>
+                    <thead><tr><th>Integração</th><th>Endpoint</th><th>Diagnóstico</th><th>Autenticação</th><th>Segurança</th><th>Última validação</th><th width="180">Ações</th></tr></thead>
                     <tbody>
                     {% for item in integracoes %}
                         <tr>
                             <td><strong>{{ item.nome }}</strong><br><span class="badge bg-secondary">{{ tipo_options.get(item.tipo, item.tipo) }}</span> {% if not item.ativo %}<span class="badge bg-light text-dark border">Inativa</span>{% endif %}</td>
                             <td><a href="{{ item.base_url }}" target="_blank">{{ item.base_url }}</a><br><small class="text-muted">Timeout {{ item.timeout_seconds }}s</small></td>
+                            <td><span class="badge bg-{{ item.diagnostico_classe }}">{{ item.diagnostico_label }}</span><br><small class="text-muted">{{ item.diagnostico_mensagem }}</small></td>
                             <td>
                                 {{ item.usuario or item.token_nome or '-' }}<br>
                                 {% if item.ativo %}
@@ -90,13 +137,13 @@
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <a class="btn btn-outline-primary" href="{{ url_for('implantacao.editar_integracao_config', integracao_id=item.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
-                                    <form method="POST" action="{{ url_for('implantacao.testar_integracao_config', integracao_id=item.id) }}"><button class="btn btn-outline-info" title="Validar configuração"><i class="bi bi-check2-circle"></i></button></form>
+                                    <form method="POST" action="{{ url_for('implantacao.testar_integracao_config', integracao_id=item.id) }}"><button class="btn btn-outline-info" title="Validar estrutura"><i class="bi bi-check2-circle"></i></button></form>
                                     {% if item.ativo %}<form method="POST" action="{{ url_for('implantacao.excluir_integracao_config', integracao_id=item.id) }}" onsubmit="return confirm('Inativar esta integração?');"><button class="btn btn-outline-danger" title="Inativar"><i class="bi bi-trash"></i></button></form>{% endif %}
                                 </div>
                             </td>
                         </tr>
                     {% else %}
-                        {% set colspan = 6 %}
+                        {% set colspan = 7 %}
                         {% set empty_message = "Nenhuma integração técnica configurada." %}
                         {% include "components/empty_state.html" %}
                     {% endfor %}
@@ -105,6 +152,31 @@
             </div>
         </div>
     </div>
+
+    {% if validacoes_recentes %}
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <strong>Validações recentes</strong>
+            <span class="badge text-bg-light border">Registro pre-Beta</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light"><tr><th>Integração</th><th>Resultado</th><th>Mensagem</th><th>Validado por</th><th>Data</th></tr></thead>
+                <tbody>
+                    {% for validacao in validacoes_recentes %}
+                        <tr>
+                            <td><strong>{{ validacao.nome }}</strong><br><span class="badge bg-secondary">{{ tipo_options.get(validacao.tipo, validacao.tipo) }}</span></td>
+                            <td><span class="badge bg-{{ 'success' if validacao.status == 'OK' else 'warning' if validacao.status == 'AVISO' else 'danger' }}">{{ validacao.status }}</span></td>
+                            <td><small class="text-muted">{{ validacao.mensagem or '-' }}</small></td>
+                            <td>{{ validacao.validado_por or '-' }}</td>
+                            <td>{{ validacao.validado_em.strftime('%d/%m/%Y %H:%M') if validacao.validado_em else '-' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <script>

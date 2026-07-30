@@ -81,6 +81,53 @@ class ContratoService:
         return ContratoRepository.dashboard(**filtros)
 
     @classmethod
+    def diagnostico_pre_beta(cls, contrato, implantacao=None):
+        implantacao = implantacao or {}
+        itens = []
+
+        def adicionar(tipo, titulo, detalhe, icone):
+            itens.append({
+                "tipo": tipo,
+                "titulo": titulo,
+                "detalhe": detalhe,
+                "icone": icone,
+                "classe": {
+                    "ok": "success",
+                    "fluxo": "secondary",
+                    "pendencia": "warning",
+                    "erro": "danger",
+                }.get(tipo, "secondary"),
+            })
+
+        if contrato.get("proposta_id"):
+            adicionar("ok", "Proposta vinculada", "Contrato possui rastreabilidade comercial por proposta.", "bi-link-45deg")
+        else:
+            adicionar("fluxo", "Contrato direto", "Fluxo valido para contratos diretos ou vindos de parceiro; nao exige proposta para implantacao.", "bi-signpost-2")
+
+        if implantacao:
+            adicionar("ok", "Implantacao vinculada", "Projeto operacional ja existe para este contrato.", "bi-hdd-network")
+        elif contrato.get("status") in ("ENCAMINHADO_PROJETO", "EM_ELABORACAO", "EM_IMPLANTACAO"):
+            adicionar("pendencia", "Implantacao pendente", "Contrato esta em fase operacional e ainda nao possui implantacao ativa.", "bi-kanban")
+
+        if not contrato.get("cliente_cnpj"):
+            adicionar("pendencia", "CNPJ do cliente pendente", "Comercial deve completar o cadastro antes da validacao Beta assistida.", "bi-person-vcard")
+        if not (contrato.get("contato_email") or contrato.get("cliente_email")):
+            adicionar("pendencia", "Contato sem email", "Email do contato ou do cliente deve ser revisado para comunicacoes de validacao.", "bi-envelope")
+        if not contrato.get("executivo_id"):
+            adicionar("pendencia", "Executivo nao informado", "Responsavel comercial deve ser preenchido quando houver dono do relacionamento.", "bi-person-badge")
+        if not contrato.get("data_fechamento"):
+            adicionar("pendencia", "Data de fechamento pendente", "Campo recomendado para recortes executivos e planejamento operacional.", "bi-calendar-event")
+        if not contrato.get("valor_mensal") and not contrato.get("valor_promocional"):
+            adicionar("pendencia", "Receita recorrente pendente", "Valor mensal sera base de conferencia antes da carga financeira oficial.", "bi-currency-dollar")
+        if contrato.get("status") == "ATIVO" and not contrato.get("dia_faturamento"):
+            adicionar("pendencia", "Dia de faturamento pendente", "Dado necessario para conferencia financeira durante a Beta.", "bi-receipt")
+
+        if not itens:
+            adicionar("ok", "Sem pendencias pre-Beta", "Contrato tem os dados basicos esperados para validacao assistida.", "bi-check2-circle")
+
+        return itens
+
+    @classmethod
     def contexto_form(cls):
         return {
             "clientes": ContratoRepository.listar_clientes_para_contrato(),

@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS implantacao_faixas_rede (
     fw_lan VARCHAR(45) NULL,
     cliente_id BIGINT NULL,
     cliente_nome VARCHAR(180) NOT NULL,
-    cliente_cnpj VARCHAR(20) NULL,
+    cliente_cnpj VARCHAR(32) NULL,
     vpn VARCHAR(120) NULL,
     porta_inicio INT NULL,
     porta_fim INT NULL,

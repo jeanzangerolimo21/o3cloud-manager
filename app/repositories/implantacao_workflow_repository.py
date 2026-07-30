@@ -93,6 +93,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
                 c.numero AS contrato_numero,
                 c.status AS contrato_status,
                 c.descricao AS contrato_descricao,
+                prop.codigo_proposta,
                 prop.titulo AS proposta_titulo,
                 prop.detalhes_negociacao AS proposta_escopo,
                 COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
@@ -112,6 +113,45 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             WHERE i.id = %s AND i.ativo = 1
         """
         return cls.fetch_one(sql, (implantacao_id,))
+
+    @classmethod
+    def buscar_por_cliente_id(cls, cliente_id):
+        return cls.fetch_one(
+            """
+            SELECT
+                i.*,
+                c.numero AS contrato_numero,
+                c.status AS contrato_status,
+                c.descricao AS contrato_descricao,
+                prop.codigo_proposta,
+                prop.titulo AS proposta_titulo,
+                COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
+                exec.nome AS executivo_nome,
+                p.nome AS parceiro_nome,
+                checklist.total_itens,
+                checklist.total_concluidos
+            FROM implantacoes i
+            INNER JOIN clientes cli ON cli.id = i.cliente_id
+            INNER JOIN contratos c ON c.id = i.contrato_id
+            LEFT JOIN crm_propostas prop ON prop.id = i.proposta_id
+            LEFT JOIN parceiros_executivos exec ON exec.id = i.executivo_id
+            LEFT JOIN parceiros p ON p.id = i.parceiro_id
+            LEFT JOIN (
+                SELECT implantacao_id,
+                       COUNT(*) AS total_itens,
+                       SUM(CASE WHEN status = 'CONCLUIDO' THEN 1 ELSE 0 END) AS total_concluidos
+                FROM implantacao_checklist
+                GROUP BY implantacao_id
+            ) checklist ON checklist.implantacao_id = i.id
+            WHERE i.cliente_id = %s AND i.ativo = 1
+            ORDER BY FIELD(i.status, 'EM_EXECUCAO', 'EM_VALIDACAO', 'AGUARDANDO_INICIO', 'EM_PLANEJAMENTO', 'PAUSADA', 'ENTREGUE', 'CANCELADA'),
+                     COALESCE(i.data_prevista_entrega, '2999-12-31') ASC,
+                     i.updated_at DESC,
+                     i.id DESC
+            LIMIT 1
+            """,
+            (cliente_id,),
+        )
 
     @classmethod
     def buscar_por_contrato_id(cls, contrato_id):

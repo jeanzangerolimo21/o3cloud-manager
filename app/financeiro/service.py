@@ -167,7 +167,50 @@ class FinanceiroService:
         return {
             "parceiros": FinanceiroRepository.listar_parceiros_dashboard(),
             "executivos": FinanceiroRepository.listar_executivos_dashboard(),
+            "checklist_beta": FinanceiroService.checklist_beta(),
         }
+
+    @staticmethod
+    def checklist_beta():
+
+        return [
+            {
+                "area": "Comercial",
+                "classe": "primary",
+                "itens": [
+                    "Confirmar CNPJ, email, telefone e localizacao dos clientes ativos.",
+                    "Vincular propostas ao cadastro oficial do cliente quando aplicavel.",
+                    "Revisar contato e executivo responsavel nas propostas em negociacao.",
+                ],
+            },
+            {
+                "area": "Operacoes",
+                "classe": "success",
+                "itens": [
+                    "Conferir implantador, responsavel e prazo das implantacoes abertas.",
+                    "Separar contratos diretos de contratos originados por proposta.",
+                    "Validar contratos encaminhados para projeto antes da fila de implantacao.",
+                ],
+            },
+            {
+                "area": "Financeiro",
+                "classe": "warning",
+                "itens": [
+                    "Manter faturamentos reais pendentes ate carga oficial da Beta.",
+                    "Preencher custos homologados de produtos antes de margem definitiva.",
+                    "Validar parametros financeiros somente com fonte aprovada.",
+                ],
+            },
+            {
+                "area": "Engenharia",
+                "classe": "secondary",
+                "itens": [
+                    "Continuar integracoes em leitura e diagnostico.",
+                    "Registrar lacunas tecnicas sem executar automacoes destrutivas.",
+                    "Preservar segredos mascarados por padrao.",
+                ],
+            },
+        ]
 
     @staticmethod
     def links_dashboard(filtros):

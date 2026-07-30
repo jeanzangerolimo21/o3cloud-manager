@@ -40,11 +40,95 @@
         </div>
     </div>
 
-    <div class="alert alert-success d-flex align-items-start gap-2" role="alert">
-        <i class="bi bi-check-circle-fill mt-1"></i>
+    <div class="alert alert-info d-flex align-items-start gap-2" role="alert">
+        <i class="bi bi-clipboard2-check-fill mt-1"></i>
         <div>
-            <strong>Sprint 10 concluida.</strong>
-            Este dashboard agora serve como base de diagnostico para a Sprint 11, com foco em integracoes, custos, faturamentos e rastreabilidade historica.
+            <strong>Sprint 14 em consolidacao pre-Beta.</strong>
+            Dados ausentes de custos, faturamentos e parametros financeiros sao tratados como pendencias de preenchimento para a Beta, nao como erro operacional.
+        </div>
+    </div>
+
+    {% set pre_beta = dashboard.pre_beta or {} %}
+    {% set pre_comercial = pre_beta.comercial or {} %}
+    {% set pre_operacional = pre_beta.operacional or {} %}
+    {% set pre_financeiro = pre_beta.financeiro or {} %}
+    <div class="row g-4 mb-4">
+        <div class="col-xl-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
+                    <div>
+                        <strong>Diagnostico pre-Beta</strong><br>
+                        <small class="text-muted">Pendencias de preenchimento separadas de fluxos validos e falhas reais.</small>
+                    </div>
+                    <span class="badge text-bg-light border align-self-lg-center">Sem carga real prematura</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="border rounded-2 p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <div><strong>Cadastro comercial</strong><br><small class="text-muted">Obrigatorio para Beta assistida</small></div>
+                                    <i class="bi bi-person-vcard text-primary"></i>
+                                </div>
+                                <div class="small text-muted">{{ pre_comercial.clientes_total or 0 }} cliente(s), {{ pre_comercial.propostas_total or 0 }} proposta(s)</div>
+                                <div class="mt-2 d-flex flex-wrap gap-1">
+                                    <span class="badge text-bg-light border">{{ pre_comercial.clientes_sem_cnpj or 0 }} sem CNPJ</span>
+                                    <span class="badge text-bg-light border">{{ pre_comercial.clientes_sem_email or 0 }} sem email</span>
+                                    <span class="badge text-bg-light border">{{ pre_comercial.propostas_sem_executivo or 0 }} sem executivo</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded-2 p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <div><strong>Fluxo operacional</strong><br><small class="text-muted">Contrato direto continua valido</small></div>
+                                    <i class="bi bi-diagram-3 text-success"></i>
+                                </div>
+                                <div class="small text-muted">{{ pre_operacional.contratos_total or 0 }} contrato(s), {{ pre_operacional.implantacoes_total or 0 }} implantacao(oes)</div>
+                                <div class="mt-2 d-flex flex-wrap gap-1">
+                                    <span class="badge text-bg-secondary">{{ pre_operacional.contratos_diretos or 0 }} direto(s)</span>
+                                    <span class="badge text-bg-light border">{{ pre_operacional.implantacoes_sem_responsavel or 0 }} sem responsavel</span>
+                                    <span class="badge text-bg-light border">{{ pre_operacional.implantacoes_sem_prazo or 0 }} sem prazo</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded-2 p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <div><strong>Dados financeiros</strong><br><small class="text-muted">Carga real apenas na Beta</small></div>
+                                    <i class="bi bi-cash-coin text-warning"></i>
+                                </div>
+                                <div class="small text-muted">{{ pre_financeiro.faturamentos_total or 0 }} faturamento(s), {{ pre_financeiro.integracoes_total or 0 }} integracao(oes)</div>
+                                <div class="mt-2 d-flex flex-wrap gap-1">
+                                    <span class="badge text-bg-light border">{{ pre_financeiro.produtos_sem_custo or 0 }} produto(s) sem custo</span>
+                                    <span class="badge {{ 'text-bg-success' if pre_financeiro.parametros_total else 'text-bg-warning' }}">Parametros: {{ pre_financeiro.parametros_total or 0 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <strong>Checklist de validacao Beta</strong><br>
+                    <small class="text-muted">Criterios por area antes das cargas oficiais.</small>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for grupo in checklist_beta %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong>{{ grupo.area }}</strong>
+                                <span class="badge text-bg-{{ grupo.classe }}">{{ grupo.itens|length }} item(s)</span>
+                            </div>
+                            {% for item in grupo.itens %}
+                                <div class="small text-muted mb-1"><i class="bi bi-check2-square"></i> {{ item }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
 

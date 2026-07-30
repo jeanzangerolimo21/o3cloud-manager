@@ -111,7 +111,9 @@
                     <input
                         type="text"
                         name="cnpj"
-                        class="form-control"
+                        class="form-control text-uppercase"
+                        placeholder="CNPJ alfanumérico"
+                        maxlength="32"
 		        value="{{ cliente.cnpj if cliente else '' }}"
                         {% if modo == "editar" and cliente.origem == "OMIE" %}readonly{% endif %}
                         required>

@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS implantacao_cofre_senhas (
     uuid CHAR(36) NOT NULL UNIQUE,
     cliente_id BIGINT NOT NULL,
     cliente_nome VARCHAR(180) NOT NULL,
-    cliente_cnpj VARCHAR(20) NULL,
+    cliente_cnpj VARCHAR(32) NULL,
     faixa_rede_id BIGINT NOT NULL,
     licenca_o3web_id BIGINT NULL,
     categoria VARCHAR(40) NOT NULL,

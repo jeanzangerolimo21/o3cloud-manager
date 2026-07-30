@@ -1,0 +1,62 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+
+    {% set page_title = consulta.titulo %}
+    {% set page_description = consulta.descricao %}
+    {% set page_icon = consulta.icone %}
+    {% set page_button_url = integracoes_url %}
+    {% set page_button_icon = "bi-plug-fill" %}
+    {% set page_button_text = "Integrações Técnicas" %}
+
+    {% include "components/page_header.html" %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <small class="text-muted">Origem</small>
+                    <h4 class="mb-0">{{ consulta.origem }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <small class="text-muted">Objetivo</small>
+                    <h4 class="mb-0">{{ consulta.objetivo }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <small class="text-muted">Status</small>
+                    <h4 class="mb-0">{{ consulta.status }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <strong>Campos da consulta</strong>
+            <span class="badge text-bg-light border">{{ consulta.origem }}</span>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-2">
+                {% for campo in consulta.campos %}
+                    <span class="badge text-bg-light border">{{ campo }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-secondary mt-4 mb-0">
+        <i class="bi bi-info-circle"></i>
+        Consulta preparada para sincronismo somente leitura. A coleta real deve usar as credenciais cadastradas em Integrações Técnicas.
+    </div>
+
+</div>
+{% endblock %}

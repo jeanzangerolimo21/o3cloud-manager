@@ -325,22 +325,48 @@ Status:
 
 ---
 
-# Sprint Atual
+# Sprint Encerrada
 
 ## Sprint 14
 
 Consolidacao Pre-Beta e Preparacao de Validacao com a Equipe
 
-Objetivos:
+Entregas consolidadas em 30/07/2026:
 
-- Mapear cadastros e campos pendentes para preenchimento pela equipe
-- Preparar diagnosticos de dados incompletos sem bloquear fluxos validos
-- Criar checklist de validacao Beta por area
-- Refinar indicadores pre-Beta sem carga real oficial
+- Dashboard Executivo com diagnostico pre-Beta para cadastro comercial, fluxo operacional e dados financeiros
+- Checklist inicial de validacao Beta por area: Comercial, Operacoes, Financeiro e Engenharia
+- Indicacao explicita de que dados financeiros ausentes aguardam carga oficial da Beta
+- Integracoes Tecnicas preparadas para Proxmox, PBS, Zabbix, FreeIPA e TrueNAS em modo diagnostico/nao destrutivo
+- Infraestrutura recebeu itens para Backups PBS, Monitoramento Zabbix e Backup NAS
+- Cadastros finais e revisao assistida com a equipe foram encaminhados para a fase Beta
+
+Documento de fechamento:
+
+- `docs/24-FECHAMENTO-SPRINT-14.md`
 
 Status:
 
-🚧 Em planejamento
+✅ Concluida em 30/07/2026
+
+---
+
+# Sprint Atual
+
+## Sprint 15
+
+Infraestrutura Operacional e Sincronismo Read-Only
+
+Inicio registrado em 30/07/2026:
+
+- Sincronismo Proxmox VE em modo somente leitura
+- Telas operacionais de Clusters, Nodes, Maquinas Virtuais e Containers
+- Evolucao das consultas Backups PBS, Monitoramento Zabbix e Backup NAS/TrueNAS
+- Seguranca preservada: sem start, stop, reboot, migrate, delete ou alteracoes destrutivas
+- Cadastros finais e criterios por area seguem encaminhados para Beta assistida
+
+Status:
+
+🚧 Em andamento
 
 ---
 

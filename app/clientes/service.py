@@ -73,6 +73,60 @@ class ClienteService:
         return ClienteService._formatar_telefone(cliente)
 
     @staticmethod
+    def diagnostico_pre_beta(cliente, implantacao=None):
+        implantacao = implantacao or {}
+        itens = []
+
+        def adicionar(tipo, titulo, detalhe, icone):
+            itens.append({
+                "tipo": tipo,
+                "titulo": titulo,
+                "detalhe": detalhe,
+                "icone": icone,
+                "classe": {
+                    "ok": "success",
+                    "fluxo": "secondary",
+                    "pendencia": "warning",
+                    "erro": "danger",
+                }.get(tipo, "secondary"),
+            })
+
+        if cliente.get("cnpj"):
+            adicionar("ok", "CNPJ informado", "Cadastro possui identificador fiscal para conferencia comercial.", "bi-person-vcard")
+        else:
+            adicionar("pendencia", "CNPJ pendente", "Comercial deve completar o CNPJ antes da validacao Beta assistida.", "bi-person-vcard")
+
+        if cliente.get("razao_social") and cliente.get("nome_fantasia"):
+            adicionar("ok", "Dados comerciais basicos", "Razao social e nome fantasia estao preenchidos.", "bi-building-check")
+        else:
+            adicionar("pendencia", "Dados comerciais incompletos", "Revisar razao social e nome fantasia antes da Beta.", "bi-building-exclamation")
+
+        if cliente.get("email") or cliente.get("telefone"):
+            adicionar("ok", "Contato cadastrado", "Cliente possui pelo menos um canal de contato para alinhamentos.", "bi-envelope-check")
+        else:
+            adicionar("pendencia", "Contato pendente", "Informar email ou telefone para comunicacoes da validacao assistida.", "bi-envelope-exclamation")
+
+        if cliente.get("cidade") and cliente.get("estado"):
+            adicionar("ok", "Localizacao cadastrada", "Cidade e UF estao preenchidas para recortes operacionais.", "bi-geo-alt")
+        else:
+            adicionar("pendencia", "Localizacao incompleta", "Completar cidade e UF quando a informacao estiver homologada.", "bi-geo-alt-fill")
+
+        if implantacao:
+            adicionar("ok", "Fluxo operacional vinculado", "Cliente possui implantacao ativa no fluxo operacional atual.", "bi-hdd-network")
+        else:
+            adicionar("fluxo", "Sem implantacao ativa", "Situacao valida para clientes sem contrato em fase de implantacao; nao gera registro legado automatico.", "bi-signpost-2")
+
+        if cliente.get("origem") == "OMIE":
+            adicionar("ok", "Origem OMIE", "Cadastro sincronizado com a base externa e bloqueado para edicoes manuais sensiveis.", "bi-cloud-check")
+        else:
+            adicionar("fluxo", "Origem manual", "Cadastro manual permitido; revisar dados com Comercial antes da carga oficial da Beta.", "bi-pencil-square")
+
+        if not cliente.get("ativo"):
+            adicionar("erro", "Cliente inativo", "Cliente inativo deve ser revisado antes de entrar na validacao operacional.", "bi-slash-circle")
+
+        return itens
+
+    @staticmethod
     def sincronizar_omie(dados):
 
         return ClienteRepository.upsert_omie(

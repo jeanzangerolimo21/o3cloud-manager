@@ -43,19 +43,28 @@ Decisao principal da Sprint 13:
 - Comercial e areas envolvidas deverao completar cadastros antes das validacoes oficiais.
 - Custos, faturamentos e parametros financeiros permanecem preparados, mas sem carga real prematura.
 
-Proxima sprint registrada: Sprint 14 - Consolidacao Pre-Beta e Preparacao de Validacao com a Equipe.
+Sprint 14 foi concluida em 30/07/2026.
 
-Inicio previsto:
+Entregas principais da Sprint 14:
+
+- Diagnosticos pre-Beta consolidados para clientes, contratos, implantacao, financeiro e integracoes.
+- Integracoes tecnicas preparadas para Proxmox, PBS, Zabbix, FreeIPA e TrueNAS em modo seguro.
+- Menu de Infraestrutura recebeu Backups PBS, Monitoramento Zabbix e Backup NAS.
+- Cadastros finais e revisao assistida foram encaminhados para a fase Beta com a equipe.
+
+Sprint atual: Sprint 15 - Infraestrutura Operacional e Sincronismo Read-Only.
+
+Inicio registrado:
 
 - 30/07/2026
 
-Pendencias principais da Sprint 14:
+Focos principais da Sprint 15:
 
-- Mapear cadastros e campos pendentes para preenchimento pela equipe.
-- Preparar diagnosticos de dados incompletos sem bloquear fluxos validos.
-- Criar checklist de validacao Beta por area.
-- Refinar indicadores pre-Beta sem carga real oficial.
-- Manter validacoes tecnicas em modo nao destrutivo.
+- Implementar sincronismo Proxmox VE em modo somente leitura.
+- Evoluir telas operacionais de Clusters, Nodes, Maquinas Virtuais e Containers.
+- Evoluir consultas de Backups PBS, Monitoramento Zabbix e Backup NAS/TrueNAS.
+- Manter automacoes destrutivas fora do escopo ate aprovacao especifica.
+- Preparar base tecnica para validacao Beta assistida sem carga real prematura.
 
 ---
 

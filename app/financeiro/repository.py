@@ -239,6 +239,7 @@ class FinanceiroRepository(BaseRepository):
         )
         return {
             "resumo": resumo or {},
+            "pre_beta": cls._pre_beta(filtros),
             "propostas_status": cls._propostas_status(filtros),
             "contratos_status": cls._contratos_status(filtros),
             "implantacoes_status": cls._implantacoes_status(filtros),
@@ -253,6 +254,62 @@ class FinanceiroRepository(BaseRepository):
             "carga_implantadores": cls._carga_implantadores(filtros),
             "rastreabilidade_executiva": cls._rastreabilidade_executiva(filtros),
             "fluxos_rastreabilidade": cls._fluxos_rastreabilidade(filtros),
+        }
+
+    @classmethod
+    def _pre_beta(cls, filtros):
+        proposta_where, proposta_params = cls._filtros_propostas(filtros)
+        contrato_where, contrato_params = cls._filtros_contratos(filtros)
+        implantacao_where, implantacao_params = cls._filtros_implantacoes(filtros)
+
+        comercial = cls.fetch_one(
+            f"""
+            SELECT
+                (SELECT COUNT(*) FROM clientes cli WHERE cli.ativo = 1) AS clientes_total,
+                (SELECT COUNT(*) FROM clientes cli WHERE cli.ativo = 1 AND NULLIF(TRIM(cli.cnpj), '') IS NULL) AS clientes_sem_cnpj,
+                (SELECT COUNT(*) FROM clientes cli WHERE cli.ativo = 1 AND NULLIF(TRIM(cli.email), '') IS NULL) AS clientes_sem_email,
+                (SELECT COUNT(*) FROM clientes cli WHERE cli.ativo = 1 AND NULLIF(TRIM(cli.telefone), '') IS NULL) AS clientes_sem_telefone,
+                (SELECT COUNT(*) FROM clientes cli WHERE cli.ativo = 1 AND (NULLIF(TRIM(cli.cidade), '') IS NULL OR NULLIF(TRIM(cli.estado), '') IS NULL)) AS clientes_sem_localizacao,
+                (SELECT COUNT(*) FROM crm_propostas p WHERE p.ativo = 1 {proposta_where}) AS propostas_total,
+                (SELECT COUNT(*) FROM crm_propostas p WHERE p.ativo = 1 {proposta_where} AND p.cliente_id IS NULL) AS propostas_sem_cliente_vinculado,
+                (SELECT COUNT(*) FROM crm_propostas p WHERE p.ativo = 1 {proposta_where} AND NULLIF(TRIM(p.contato_email), '') IS NULL) AS propostas_sem_contato_email,
+                (SELECT COUNT(*) FROM crm_propostas p WHERE p.ativo = 1 {proposta_where} AND p.executivo_responsavel_id IS NULL) AS propostas_sem_executivo
+            """,
+            tuple(proposta_params * 4),
+        ) or {}
+
+        operacional = cls.fetch_one(
+            f"""
+            SELECT
+                (SELECT COUNT(*) FROM contratos c WHERE c.ativo = 1 {contrato_where}) AS contratos_total,
+                (SELECT COUNT(*) FROM contratos c WHERE c.ativo = 1 {contrato_where} AND c.proposta_id IS NULL) AS contratos_diretos,
+                (SELECT COUNT(*) FROM contratos c WHERE c.ativo = 1 {contrato_where} AND COALESCE(NULLIF(c.valor_promocional, 0), c.valor_mensal, 0) <= 0) AS contratos_sem_receita,
+                (SELECT COUNT(*) FROM contratos c WHERE c.ativo = 1 {contrato_where} AND c.status = 'ATIVO' AND c.data_ativacao IS NULL) AS contratos_ativos_sem_ativacao,
+                (SELECT COUNT(*) FROM contratos c WHERE c.ativo = 1 {contrato_where} AND c.status = 'ATIVO' AND c.dia_faturamento IS NULL) AS contratos_ativos_sem_dia_faturamento,
+                (SELECT COUNT(*) FROM implantacoes i WHERE i.ativo = 1 {implantacao_where}) AS implantacoes_total,
+                (SELECT COUNT(*) FROM implantacoes i WHERE i.ativo = 1 {implantacao_where} AND i.status NOT IN ('ENTREGUE', 'CANCELADA') AND NULLIF(TRIM(COALESCE(i.implantador_nome, i.responsavel)), '') IS NULL) AS implantacoes_sem_responsavel,
+                (SELECT COUNT(*) FROM implantacoes i WHERE i.ativo = 1 {implantacao_where} AND i.status NOT IN ('ENTREGUE', 'CANCELADA') AND i.data_prevista_entrega IS NULL) AS implantacoes_sem_prazo,
+                (SELECT COUNT(*) FROM implantacoes i WHERE i.ativo = 1 {implantacao_where} AND i.status NOT IN ('ENTREGUE', 'CANCELADA') AND COALESCE(i.percentual_conclusao, 0) = 0) AS implantacoes_sem_checklist
+            """,
+            tuple(contrato_params * 5 + implantacao_params * 4),
+        ) or {}
+
+        financeiro = cls.fetch_one(
+            f"""
+            SELECT
+                (SELECT COUNT(*) FROM faturamentos f INNER JOIN contratos c ON c.id = f.contrato_id WHERE f.ativo = 1 AND c.ativo = 1 {contrato_where}) AS faturamentos_total,
+                (SELECT COUNT(*) FROM produtos WHERE ativo = 1) AS produtos_total,
+                (SELECT COUNT(*) FROM produtos WHERE ativo = 1 AND COALESCE(valor_custo, 0) <= 0) AS produtos_sem_custo,
+                (SELECT COUNT(*) FROM parametros_financeiros) AS parametros_total,
+                (SELECT COUNT(*) FROM implantacao_integracoes_config WHERE ativo = 1) AS integracoes_total
+            """,
+            tuple(contrato_params),
+        ) or {}
+
+        return {
+            "comercial": comercial,
+            "operacional": operacional,
+            "financeiro": financeiro,
         }
 
     @classmethod

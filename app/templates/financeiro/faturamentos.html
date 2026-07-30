@@ -5,11 +5,19 @@
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
         <div>
             <h2 class="mb-1">Faturamentos</h2>
-            <p class="text-muted mb-0">Carga por competencia para preparar comparativos entre contrato e valor faturado.</p>
+            <p class="text-muted mb-0">Area preparada para carga oficial da Beta; sem faturamento real homologado, os valores permanecem como pendencia de preenchimento.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.dashboard_executivo') }}"><i class="bi bi-graph-up-arrow"></i> Dashboard</a>
             <a class="btn btn-outline-primary" href="{{ url_for('financeiro.exportar_modelo_faturamentos_csv') }}"><i class="bi bi-download"></i> Modelo CSV</a>
+        </div>
+    </div>
+
+    <div class="alert alert-info d-flex align-items-start gap-2" role="alert">
+        <i class="bi bi-info-circle-fill mt-1"></i>
+        <div>
+            <strong>Controle pre-Beta.</strong>
+            Importe faturamentos somente quando a base oficial for validada com a equipe. Ausencia de registros nesta tela e pendencia de carga futura, nao falha operacional.
         </div>
     </div>
 
@@ -51,7 +59,7 @@
     <div class="row g-4 mb-4">
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white"><strong>Importar faturamentos</strong></div>
+                <div class="card-header bg-white"><strong>Importar faturamentos oficiais</strong></div>
                 <div class="card-body">
                     <form method="POST" enctype="multipart/form-data">
                         <div class="mb-3">
@@ -79,7 +87,7 @@
                             <p class="text-muted mb-0">Nenhum erro encontrado.</p>
                         {% endif %}
                     {% else %}
-                        <p class="text-muted mb-0">Use o modelo CSV e preencha <code>competencia</code>, <code>valor_bruto</code> e, quando aplicavel, comissao e valor liquido.</p>
+                        <p class="text-muted mb-0">Use o modelo CSV apenas na carga oficial da Beta. Preencha <code>competencia</code>, <code>valor_bruto</code> e, quando aplicavel, comissao e valor liquido.</p>
                     {% endif %}
                 </div>
             </div>
@@ -88,7 +96,7 @@
 
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <strong>Ultimos faturamentos</strong>
+            <strong>Faturamentos carregados para conferencia</strong>
             <span class="badge text-bg-light border">{{ faturamentos|length }} exibido(s)</span>
         </div>
         <div class="table-responsive">
@@ -116,7 +124,7 @@
                             <td class="text-end"><strong>{{ item.valor_liquido|moeda }}</strong></td>
                         </tr>
                     {% else %}
-                        <tr><td colspan="7" class="text-muted">Nenhum faturamento importado.</td></tr>
+                        <tr><td colspan="7" class="text-muted">Nenhum faturamento oficial carregado. Pendencia prevista ate a Beta.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

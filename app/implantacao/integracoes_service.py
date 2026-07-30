@@ -15,6 +15,7 @@ TIPOS_INTEGRACAO = {
     "truenas": "TrueNAS",
 }
 
+
 GRUPOS_INTEGRACAO = {
     "negocio": {
         "titulo": "Integrações de Negócio",
@@ -34,15 +35,26 @@ class IntegracaoConfigService:
 
     @classmethod
     def listar(cls, tipo=None, ativo="1", grupo=None):
-        return cls.repository.listar(
+        integracoes = cls.repository.listar(
             tipo=tipo,
             ativo=cls._normalizar_ativo(ativo),
             tipos=cls.tipos_por_grupo(grupo),
         )
+        return [cls._com_diagnostico(item) for item in integracoes]
+
+    @classmethod
+    def validacoes_recentes(cls, grupo=None, limite=10):
+        return cls.repository.listar_validacoes_recentes(
+            tipos=cls.tipos_por_grupo(grupo),
+            limite=limite,
+        )
 
     @classmethod
     def dashboard(cls, grupo=None):
-        return cls.repository.dashboard(tipos=cls.tipos_por_grupo(grupo))
+        dashboard = cls.repository.dashboard(tipos=cls.tipos_por_grupo(grupo)) or {}
+        diagnosticos = cls.repository.dashboard_diagnosticos(tipos=cls.tipos_por_grupo(grupo)) or {}
+        dashboard.update(diagnosticos)
+        return dashboard
 
     @classmethod
     def tipos_por_grupo(cls, grupo):
@@ -73,6 +85,41 @@ class IntegracaoConfigService:
             "titulo": contexto["titulo"],
             "descricao": contexto["descricao"],
             "tipos": contexto["tipos"],
+        }
+
+    @classmethod
+    def plano_sincronismo_proxmox(cls, grupo=None):
+        if grupo != "tecnicas":
+            return None
+        return {
+            "titulo": "Plano de sincronismo Proxmox VE",
+            "status": "Preparado para Sprint 15",
+            "descricao": "Nesta sprint o Proxmox permanece em diagnostico estrutural. O sincronismo real de VMs sera somente leitura e entrara na proxima sprint.",
+            "campos": [
+                "vmid",
+                "nome",
+                "node",
+                "tipo qemu/lxc",
+                "status",
+                "CPU",
+                "memoria",
+                "disco",
+                "IPs",
+                "tags",
+                "template",
+                "uptime",
+            ],
+            "regras": [
+                "Usar token de API com permissao minima de leitura.",
+                "Nao executar start, stop, reboot, migrate, delete ou alteracoes de configuracao.",
+                "Sincronismo inicial sera manual e auditavel antes de qualquer agendamento.",
+                "Vinculo com cliente, contrato e implantacao sera conferido pela equipe antes de automacao.",
+            ],
+            "fases": [
+                {"nome": "Sprint 14", "descricao": "Cadastro seguro, validacao estrutural e desenho de inventario."},
+                {"nome": "Sprint 15", "descricao": "Cliente Proxmox em modo leitura, sync manual e gravacao de snapshot."},
+                {"nome": "Pos-validacao", "descricao": "Rotina agendada, reconciliacao e alertas de divergencia."},
+            ],
         }
 
     @classmethod
@@ -152,11 +199,12 @@ class IntegracaoConfigService:
 
     @classmethod
     def criar(cls, dados, usuario_email="sistema"):
-        payload = cls._normalizar(dados, exigir_segredo=True)
+        payload = cls._normalizar(dados, exigir_segredo=False)
         existente = cls.repository.buscar_por_tipo_nome(payload.get("tipo"), payload.get("nome"))
         if existente:
             raise ValueError("Já existe uma integração deste tipo com este nome.")
-        payload["segredo_encrypted"] = CofreSenhaService._encrypt(payload.pop("segredo"))
+        segredo = payload.pop("segredo", None)
+        payload["segredo_encrypted"] = CofreSenhaService._encrypt(segredo) if segredo else None
         payload["created_by"] = usuario_email or "sistema"
         payload["updated_by"] = usuario_email or "sistema"
         return cls.repository.inserir(payload)
@@ -182,13 +230,69 @@ class IntegracaoConfigService:
         cls.repository.inativar(integracao_id, usuario_email)
 
     @classmethod
-    def testar_configuracao(cls, integracao_id):
+    def testar_configuracao(cls, integracao_id, usuario_email="sistema"):
         integracao = cls.repository.buscar_por_id(integracao_id)
         if not integracao:
             raise ValueError("Integração não encontrada.")
         status, mensagem = cls._validar_configuracao(integracao)
-        cls.repository.registrar_teste(integracao_id, status, mensagem)
+        cls.repository.registrar_teste(integracao_id, status, mensagem, usuario_email)
         return {"status": status, "mensagem": mensagem}
+
+    @classmethod
+    def historico_validacoes(cls, integracao_id, limite=10):
+        return cls.repository.listar_historico(integracao_id, limite=limite)
+
+    @classmethod
+    def _com_diagnostico(cls, integracao):
+        item = dict(integracao)
+        diagnostico = cls._diagnostico_configuracao(item)
+        item.update(diagnostico)
+        return item
+
+    @classmethod
+    def _diagnostico_configuracao(cls, integracao):
+        if not integracao.get("ativo"):
+            return {
+                "diagnostico_status": "inativa",
+                "diagnostico_label": "Inativa",
+                "diagnostico_classe": "secondary",
+                "diagnostico_mensagem": "Configuração inativa, preservada apenas para consulta.",
+            }
+        status, mensagem = cls._validar_configuracao(integracao)
+        if status == "ERRO":
+            if not integracao.get("segredo_encrypted") and not integracao.get("possui_segredo"):
+                return {
+                    "diagnostico_status": "pendente_credencial",
+                    "diagnostico_label": "Pendente de credencial",
+                    "diagnostico_classe": "warning",
+                    "diagnostico_mensagem": "Cadastre token ou senha antes da validação estrutural.",
+                }
+            return {
+                "diagnostico_status": "erro_cadastro",
+                "diagnostico_label": "Erro de cadastro",
+                "diagnostico_classe": "danger",
+                "diagnostico_mensagem": mensagem,
+            }
+        if not integracao.get("ultimo_teste_status"):
+            return {
+                "diagnostico_status": "pendente_teste",
+                "diagnostico_label": "Pendente de teste",
+                "diagnostico_classe": "info",
+                "diagnostico_mensagem": "Configuração cadastrada, aguardando validação estrutural não destrutiva.",
+            }
+        if integracao.get("ultimo_teste_status") == "ERRO":
+            return {
+                "diagnostico_status": "erro_cadastro",
+                "diagnostico_label": "Erro de cadastro",
+                "diagnostico_classe": "danger",
+                "diagnostico_mensagem": integracao.get("ultimo_teste_mensagem") or mensagem,
+            }
+        return {
+            "diagnostico_status": "configurado",
+            "diagnostico_label": "Configurado",
+            "diagnostico_classe": "success",
+            "diagnostico_mensagem": integracao.get("ultimo_teste_mensagem") or mensagem,
+        }
 
     @classmethod
     def _normalizar(cls, dados, exigir_segredo=False, existente=None):
@@ -231,7 +335,7 @@ class IntegracaoConfigService:
         parsed = urlparse(integracao.get("base_url") or "")
         if parsed.scheme not in ("http", "https") or not parsed.netloc:
             return "ERRO", "URL base inválida."
-        if not integracao.get("segredo_encrypted"):
+        if not integracao.get("segredo_encrypted") and not integracao.get("possui_segredo"):
             return "ERRO", "Token ou senha não cadastrado."
         if integracao.get("tipo") in ("proxmox", "pbs", "freeipa", "truenas") and not integracao.get("usuario") and not integracao.get("token_nome"):
             return "ERRO", "Informe usuário ou nome do token."

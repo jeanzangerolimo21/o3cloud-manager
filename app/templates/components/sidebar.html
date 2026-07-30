@@ -161,24 +161,39 @@
                 Infraestrutura
             </div>
 
-            <a href="#">
+            <a href="#" class="submenu-item">
                 <i class="bi bi-diagram-3"></i>
                 Clusters
             </a>
 
-            <a href="#">
+            <a href="#" class="submenu-item">
                 <i class="bi bi-hdd-network"></i>
                 Nodes
             </a>
 
-            <a href="#">
+            <a href="#" class="submenu-item">
                 <i class="bi bi-pc-display"></i>
                 Máquinas Virtuais
             </a>
 
-            <a href="#">
+            <a href="#" class="submenu-item">
                 <i class="bi bi-boxes"></i>
                 Containers
+            </a>
+
+            <a href="{{ url_for('infraestrutura.backups_pbs') }}" class="submenu-item">
+                <i class="bi bi-server"></i>
+                Backups PBS
+            </a>
+
+            <a href="{{ url_for('infraestrutura.monitoramento_zabbix') }}" class="submenu-item">
+                <i class="bi bi-activity"></i>
+                Monitoramento Zabbix
+            </a>
+
+            <a href="{{ url_for('infraestrutura.backup_nas') }}" class="submenu-item">
+                <i class="bi bi-device-hdd"></i>
+                Backup NAS
             </a>
 
             <div class="menu-section">

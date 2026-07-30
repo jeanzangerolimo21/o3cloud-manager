@@ -2,27 +2,39 @@
 
 {% block content %}
 <style>
-.kanban-shell { overflow-x: auto; padding-bottom: 0.5rem; }
-.kanban-board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(280px, 320px); gap: 1rem; min-height: 68vh; }
-.kanban-column { background: #f6f7f9; border: 1px solid #e6e8ec; border-radius: 8px; display: flex; flex-direction: column; max-height: 72vh; }
-.kanban-column-header { align-items: center; border-bottom: 1px solid #e6e8ec; display: flex; justify-content: space-between; padding: 0.85rem; }
-.kanban-column-title { font-size: 0.92rem; font-weight: 700; margin: 0; }
-.kanban-actions { display: flex; gap: 0.25rem; }
-.kanban-list { flex: 1; min-height: 140px; overflow-y: auto; padding: 0.75rem; }
-.kanban-card { background: #fff; border: 1px solid #e2e6ea; border-radius: 8px; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06); cursor: grab; margin-bottom: 0.75rem; padding: 0.85rem; }
+.main, .content { min-width: 0; }
+.content { overflow-x: hidden; }
+.kanban-page { min-width: 0; overflow: hidden; width: 100%; }
+.kanban-toolbar { flex-shrink: 0; }
+.kanban-shell { border-bottom: 1px solid #d8dde6; display: block; height: calc(100dvh - 165px); max-width: 100%; min-height: 760px; overflow-x: scroll; overflow-y: hidden; padding-bottom: 1rem; scrollbar-color: #8d99aa #edf0f4; scrollbar-gutter: stable both-edges; scrollbar-width: auto; width: 100%; }
+.kanban-board { align-items: stretch; display: grid; gap: 1rem; grid-auto-columns: minmax(380px, 440px); grid-auto-flow: column; height: calc(100% - 16px); min-width: max-content; padding-bottom: 0.25rem; width: max-content; }
+.kanban-column { background: #f6f7f9; border: 1px solid #e6e8ec; border-radius: 8px; display: flex; flex-direction: column; min-height: 0; }
+.kanban-column-header { align-items: flex-start; border-bottom: 1px solid #e6e8ec; display: flex; gap: 0.75rem; justify-content: space-between; padding: 0.75rem 0.85rem; }
+.kanban-column-title { font-size: 0.92rem; font-weight: 700; line-height: 1.25; margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.kanban-actions { display: flex; flex-shrink: 0; gap: 0.25rem; }
+.kanban-list { flex: 1; min-height: 0; overflow-y: auto; padding: 0.65rem; }
+.kanban-card { background: #fff; border: 1px solid #e2e6ea; border-radius: 8px; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06); cursor: grab; margin-bottom: 0.55rem; min-height: 118px; min-width: 0; padding: 0.65rem; }
 .kanban-card:active { cursor: grabbing; }
 .kanban-card.dragging { opacity: 0.55; }
 .kanban-list.drag-over { background: #eaf2ff; outline: 2px dashed #4f83cc; outline-offset: -6px; }
-.kanban-card-title { font-size: 0.95rem; font-weight: 700; line-height: 1.25; margin-bottom: 0.4rem; }
-.kanban-meta { color: #5f6b7a; font-size: 0.82rem; line-height: 1.35; }
-.kanban-card-tools { display: flex; gap: 0.35rem; justify-content: flex-end; margin-bottom: 0.55rem; }
+.kanban-card-title { display: -webkit-box; font-size: 0.92rem; font-weight: 700; line-height: 1.2; margin-bottom: 0.35rem; max-height: 2.4em; overflow: hidden; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.kanban-meta { color: #5f6b7a; font-size: 0.79rem; line-height: 1.25; overflow-wrap: anywhere; }
+.kanban-meta > div { min-width: 0; overflow: hidden; overflow-wrap: anywhere; text-overflow: ellipsis; }
+.kanban-meta-line { display: -webkit-box; max-height: 2.5em; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.kanban-card-tools { display: flex; gap: 0.3rem; justify-content: flex-end; margin-bottom: 0.35rem; }
+.kanban-card-tools .btn { padding: 0.12rem 0.35rem; }
+.kanban-shell::-webkit-scrollbar { height: 14px; }
+.kanban-shell::-webkit-scrollbar-track { background: #edf0f4; border-radius: 999px; }
+.kanban-shell::-webkit-scrollbar-thumb { background: #8d99aa; border: 3px solid #edf0f4; border-radius: 999px; }
+.kanban-shell::-webkit-scrollbar-thumb:hover { background: #687386; }
 .kanban-toast { bottom: 1rem; position: fixed; right: 1rem; z-index: 1080; }
+@media (max-width: 768px) { .kanban-shell { height: calc(100dvh - 150px); min-height: 620px; } .kanban-board { grid-auto-columns: minmax(320px, 88vw); } }
 </style>
 
-<div class="container-fluid">
+<div class="container-fluid kanban-page">
     {% include "components/page_header.html" %}
 
-    <div class="d-flex justify-content-end gap-2 mb-3">
+    <div class="kanban-toolbar d-flex justify-content-end gap-2 mb-3">
         <a href="{{ url_for('implantacao.kanban_colunas') }}" class="btn btn-outline-primary">
             <i class="bi bi-columns-gap"></i> Colunas
         </a>
@@ -48,10 +60,10 @@
                             <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('implantacao.visualizar', implantacao_id=card.id) }}" title="Visualizar"><i class="bi bi-eye"></i></a>
                             <a class="btn btn-sm btn-outline-primary" href="{{ url_for('implantacao.editar', implantacao_id=card.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
                         </div>
-                        <div class="kanban-card-title">{{ card.cliente_nome or card.titulo }}</div>
+                        <div class="kanban-card-title" title="{{ card.cliente_nome or card.titulo }}">{{ card.cliente_nome or card.titulo }}</div>
                         <div class="kanban-meta">
                             <div>{{ card.parceiro_nome or card.executivo_nome or 'Sem parceiro' }}</div>
-                            <div>{{ card.titulo }}</div>
+                            <div class="kanban-meta-line" title="{{ card.titulo }}">{{ card.titulo }}</div>
                             {% if card.data_prevista_entrega %}
                             <div><i class="bi bi-calendar-event"></i> {{ card.data_prevista_entrega|date_br }}</div>
                             {% endif %}

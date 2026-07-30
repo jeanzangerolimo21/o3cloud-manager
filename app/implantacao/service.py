@@ -222,15 +222,19 @@ class ImplantacaoService:
         cls.repository.atualizar_etapa_kanban(implantacao_id, etapa_kanban)
         atualizada = cls.buscar_por_id(implantacao_id)
         email = cls._notificar_movimento_kanban(atualizada, etapa_anterior, etapa_kanban)
+        email_financeiro = cls._notificar_financeiro_implantacao_finalizada(atualizada) if etapa_kanban == "FINALIZADO" else None
+        comentario = f"Etapa alterada de {labels.get(etapa_anterior, etapa_anterior)} para {labels.get(etapa_kanban, etapa_kanban)}."
+        if email_financeiro:
+            comentario += " Financeiro notificado para faturamento."
         cls._registrar_historico(
             implantacao_id,
             tipo="ETAPA",
-            comentario=f"Etapa alterada de {labels.get(etapa_anterior, etapa_anterior)} para {labels.get(etapa_kanban, etapa_kanban)}.",
+            comentario=comentario,
             etapa_anterior=etapa_anterior,
             etapa_nova=etapa_kanban,
-            email=email,
+            email={"enviado": bool((email or {}).get("enviado") or (email_financeiro or {}).get("enviado")), "movimento": email, "financeiro": email_financeiro},
         )
-        return {"alterado": True, "email": email}
+        return {"alterado": True, "email": email, "email_financeiro": email_financeiro}
 
     @classmethod
     def dashboard(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo="1"):
@@ -264,6 +268,67 @@ class ImplantacaoService:
         implantacao["historico"] = cls._historico_com_anexos(implantacao_id)
         implantacao["emails_adicionais_lista"] = cls._parse_emails(implantacao.get("emails_adicionais"))
         return implantacao
+
+    @classmethod
+    def diagnostico_pre_beta(cls, implantacao):
+        itens = []
+
+        def adicionar(tipo, titulo, detalhe, icone):
+            itens.append({
+                "tipo": tipo,
+                "titulo": titulo,
+                "detalhe": detalhe,
+                "icone": icone,
+                "classe": {
+                    "ok": "success",
+                    "fluxo": "secondary",
+                    "pendencia": "warning",
+                    "erro": "danger",
+                }.get(tipo, "secondary"),
+            })
+
+        if implantacao.get("proposta_id"):
+            adicionar("ok", "Proposta vinculada", "Implantacao tem origem comercial rastreavel por proposta.", "bi-link-45deg")
+        else:
+            adicionar("fluxo", "Contrato direto", "Fluxo valido para implantacao quando o contrato nao nasceu de proposta no sistema.", "bi-signpost-2")
+
+        if implantacao.get("responsavel") or implantacao.get("implantador_nome"):
+            adicionar("ok", "Responsavel definido", "Projeto possui responsavel ou implantador para acompanhamento assistido.", "bi-person-check")
+        else:
+            adicionar("pendencia", "Responsavel pendente", "Definir responsavel ou implantador antes da validacao Beta com Operacoes.", "bi-person-exclamation")
+
+        if implantacao.get("data_prevista_entrega"):
+            adicionar("ok", "Prazo registrado", "Data prevista de entrega permite priorizacao operacional.", "bi-calendar-check")
+        elif implantacao.get("status") not in ("ENTREGUE", "CANCELADA"):
+            adicionar("pendencia", "Prazo pendente", "Registrar entrega prevista para separar fila planejada de pendencia real.", "bi-calendar-event")
+
+        checklist = implantacao.get("checklist") or []
+        obrigatorios = [item for item in checklist if item.get("obrigatorio")]
+        obrigatorios_pendentes = [
+            item for item in obrigatorios
+            if item.get("status") not in ("CONCLUIDO", "NAO_APLICAVEL")
+        ]
+        if checklist and not obrigatorios_pendentes:
+            adicionar("ok", "Checklist sem bloqueio obrigatorio", "Itens obrigatorios estao concluidos ou marcados como nao aplicaveis.", "bi-ui-checks")
+        elif checklist:
+            adicionar("pendencia", "Checklist obrigatorio pendente", f"{len(obrigatorios_pendentes)} item(ns) obrigatorio(s) ainda exigem validacao.", "bi-list-check")
+        else:
+            adicionar("pendencia", "Checklist nao gerado", "Aplicar um modelo de checklist antes da validacao assistida.", "bi-ui-checks-grid")
+
+        if implantacao.get("provisionamento_status") in ("EXECUTADO", "PLANEJADO", "AGUARDANDO_EXECUCAO"):
+            adicionar("ok", "Provisionamento registrado", "Status tecnico esta definido para acompanhamento sem automacao destrutiva.", "bi-hdd-rack")
+        else:
+            adicionar("pendencia", "Provisionamento nao planejado", "Registrar planejamento tecnico quando houver escopo de infraestrutura.", "bi-hdd-stack")
+
+        if implantacao.get("cliente_email") or implantacao.get("contato_email") or implantacao.get("emails_adicionais"):
+            adicionar("ok", "Contatos para comunicacao", "Ha pelo menos um email disponivel para alinhamentos e historico.", "bi-envelope-check")
+        else:
+            adicionar("pendencia", "Email de comunicacao pendente", "Completar email do cliente, contato ou envolvidos antes da Beta assistida.", "bi-envelope-exclamation")
+
+        if implantacao.get("status") == "ENTREGUE" and (implantacao.get("percentual_conclusao") or 0) < 100:
+            adicionar("erro", "Entrega sem checklist completo", "Implantacao entregue deve ter checklist consistente com a conclusao operacional.", "bi-exclamation-octagon")
+
+        return itens
 
     @classmethod
     def buscar_por_contrato_id(cls, contrato_id):
@@ -590,6 +655,41 @@ class ImplantacaoService:
             comentario,
         ])
         return EmailService.enviar(assunto, corpo, cls._destinatarios_implantacao(implantacao))
+
+    @classmethod
+    def _notificar_financeiro_implantacao_finalizada(cls, implantacao):
+        data_conclusao = date.today().strftime("%d/%m/%Y")
+        nome_cliente = implantacao.get("cliente_nome") or implantacao.get("titulo") or "-"
+        cnpj = implantacao.get("cliente_cnpj") or "-"
+        contrato = implantacao.get("contrato_numero") or implantacao.get("contrato_id") or "-"
+        if implantacao.get("codigo_proposta"):
+            contrato = f"{contrato} / {implantacao.get('codigo_proposta')}"
+        implantador = implantacao.get("implantador_nome") or implantacao.get("responsavel") or "Equipe de Implantacao"
+        assunto = f"Implantacao concluida para faturamento - {nome_cliente}"
+        corpo = "\n".join([
+            "Prezados,",
+            "",
+            f"Informamos que o processo de implantação do cliente {nome_cliente} foi concluído com sucesso nesta data.",
+            "",
+            "Solicitamos a gentileza de dar andamento ao faturamento do projeto/serviço, conforme as condições comerciais contratadas.",
+            "",
+            "Dados para Faturamento:",
+            "",
+            f"Razão Social / Cliente: {nome_cliente}",
+            "",
+            f"CNPJ/CPF: {cnpj}",
+            "",
+            f"Nº do Contrato / Proposta(se houver): {contrato}",
+            "",
+            f"Data de Conclusão da Implantação: {data_conclusao}",
+            "",
+            "Caso necessitem de qualquer validação adicional sobre os entregáveis desta etapa, ficamos à disposição.",
+            "",
+            "Atenciosamente,",
+            "",
+            implantador,
+        ])
+        return EmailService.enviar(assunto, corpo, ["contas@o3cloud.com.br"])
 
     @classmethod
     def _registrar_historico(cls, implantacao_id, tipo, comentario, etapa_anterior=None, etapa_nova=None, autor=None, email=None):

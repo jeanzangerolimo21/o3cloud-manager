@@ -1,5 +1,5 @@
 ALTER TABLE parceiros
-    ADD COLUMN cnpj VARCHAR(18) NULL AFTER uuid,
+    ADD COLUMN cnpj VARCHAR(32) NULL AFTER uuid,
     ADD COLUMN segmento VARCHAR(100) NULL AFTER cnpj,
     ADD COLUMN razao_social VARCHAR(150) NULL AFTER segmento,
     ADD COLUMN nome_fantasia VARCHAR(150) NULL AFTER razao_social,

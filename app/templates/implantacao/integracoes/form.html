@@ -19,7 +19,7 @@
                     <div class="col-md-4"><label class="form-label">URL Base</label><input class="form-control" name="base_url" value="{{ integracao.base_url or '' }}" required placeholder="https://host:porta"></div>
                     <div class="col-md-3"><label class="form-label">Usuário</label><input class="form-control" name="usuario" value="{{ integracao.usuario or '' }}" placeholder="user@realm ou API user"></div>
                     <div class="col-md-3"><label class="form-label">Nome do Token</label><input class="form-control" name="token_nome" value="{{ integracao.token_nome or '' }}" placeholder="Identificação do token"></div>
-                    <div class="col-md-3"><label class="form-label">Token ou Senha</label><input class="form-control" type="password" name="segredo" {% if modo == 'novo' %}required{% endif %} placeholder="{{ 'Manter atual se vazio' if modo == 'editar' else 'Token ou senha' }}"></div>
+                    <div class="col-md-3"><label class="form-label">Token ou Senha</label><input class="form-control" type="password" name="segredo" placeholder="{{ 'Manter atual se vazio' if modo == 'editar' else 'Opcional nesta etapa' }}"></div>
                     <div class="col-md-3"><label class="form-label">Timeout</label><input class="form-control" type="number" name="timeout_seconds" min="5" max="120" value="{{ integracao.timeout_seconds or 30 }}" required></div>
                     <div class="col-md-3"><div class="form-check form-switch mt-4"><input type="hidden" name="verify_ssl" value="0"><input class="form-check-input" type="checkbox" name="verify_ssl" value="1" id="verify_ssl" {% if integracao.verify_ssl is not defined or integracao.verify_ssl %}checked{% endif %}><label class="form-check-label" for="verify_ssl">Verificar SSL</label></div></div>
                     <div class="col-md-3"><div class="form-check form-switch mt-4"><input type="hidden" name="ativo" value="0"><input class="form-check-input" type="checkbox" name="ativo" value="1" id="ativo" {% if integracao.ativo is not defined or integracao.ativo %}checked{% endif %}><label class="form-check-label" for="ativo">Ativa</label></div></div>
@@ -29,5 +29,32 @@
             </form>
         </div>
     </div>
+    {% if modo == 'editar' %}
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <strong>Histórico de validação</strong>
+            <span class="badge text-bg-light border">Somente diagnóstico</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light"><tr><th>Resultado</th><th>Mensagem</th><th>Validado por</th><th>Data</th></tr></thead>
+                <tbody>
+                    {% for item in historico_validacoes %}
+                        <tr>
+                            <td><span class="badge bg-{{ 'success' if item.status == 'OK' else 'warning' if item.status == 'AVISO' else 'danger' }}">{{ item.status }}</span></td>
+                            <td><small class="text-muted">{{ item.mensagem or '-' }}</small></td>
+                            <td>{{ item.validado_por or '-' }}</td>
+                            <td>{{ item.validado_em.strftime('%d/%m/%Y %H:%M') if item.validado_em else '-' }}</td>
+                        </tr>
+                    {% else %}
+                        {% set colspan = 4 %}
+                        {% set empty_message = "Nenhuma validação registrada." %}
+                        {% include "components/empty_state.html" %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

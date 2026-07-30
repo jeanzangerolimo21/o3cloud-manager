@@ -327,7 +327,7 @@ Documento de fechamento:
 
 ---
 
-# Sprint Atual
+# Sprint Encerrada
 
 ## Sprint 14
 
@@ -335,14 +335,43 @@ Consolidacao Pre-Beta e Preparacao de Validacao com a Equipe
 
 Status:
 
-🚧 Em planejamento
+✅ Concluida em 30/07/2026
+
+Documento de fechamento:
+
+- `docs/24-FECHAMENTO-SPRINT-14.md`
+
+Resultado:
+
+- Diagnosticos de dados incompletos sem bloquear fluxos validos
+- Checklist inicial de validacao Beta por area
+- Indicadores pre-Beta sem carga real oficial
+- Integracoes tecnicas em modo seguro e nao destrutivo
+- Cadastros finais e revisao assistida encaminhados para a Beta com a equipe
+
+Proxima frente:
+
+- Sprint 15 deve iniciar sincronismo Proxmox VE em modo leitura e evoluir telas operacionais de infraestrutura
+
+---
+
+# Sprint Atual
+
+## Sprint 15
+
+Infraestrutura Operacional e Sincronismo Read-Only
+
+Status:
+
+🚧 Em andamento
 
 Objetivos:
 
-- Cadastros e campos pendentes para Beta
-- Diagnosticos de dados incompletos sem bloquear fluxos validos
-- Checklist de validacao Beta por area
-- Indicadores pre-Beta sem carga real oficial
+- Implementar sincronismo Proxmox VE em modo somente leitura
+- Evoluir telas operacionais de Clusters, Nodes, Maquinas Virtuais e Containers
+- Evoluir consultas Backups PBS, Monitoramento Zabbix e Backup NAS/TrueNAS
+- Manter automacoes destrutivas fora do escopo
+- Preparar base operacional para validacao Beta assistida
 
 ---
 

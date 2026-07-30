@@ -214,5 +214,6 @@ def view(contrato_id):
         contrato=contrato,
         itens=itens,
         rastreabilidade=ImplantacaoService.rastreabilidade_por_contrato(contrato_id),
+        diagnostico_pre_beta=ContratoService.diagnostico_pre_beta(contrato, implantacao),
         status_options=ContratoService.STATUS_OPTIONS,
     )

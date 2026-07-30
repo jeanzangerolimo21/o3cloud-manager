@@ -8,6 +8,7 @@ class IntegracaoConfigRepository(BaseRepository):
     def listar(cls, tipo=None, ativo=1, tipos=None):
         sql = """
             SELECT id, uuid, tipo, nome, base_url, usuario, token_nome,
+                   CASE WHEN segredo_encrypted IS NULL OR segredo_encrypted = '' THEN 0 ELSE 1 END AS possui_segredo,
                    verify_ssl, timeout_seconds, ativo, observacoes,
                    ultimo_teste_status, ultimo_teste_mensagem, ultimo_teste_em,
                    created_by, updated_by, created_at, updated_at
@@ -48,7 +49,31 @@ class IntegracaoConfigRepository(BaseRepository):
                 SUM(CASE WHEN tipo = 'zabbix' AND ativo = 1 THEN 1 ELSE 0 END) AS zabbix,
                 SUM(CASE WHEN tipo = 'freeipa' AND ativo = 1 THEN 1 ELSE 0 END) AS freeipa,
                 SUM(CASE WHEN tipo = 'truenas' AND ativo = 1 THEN 1 ELSE 0 END) AS truenas,
-                SUM(CASE WHEN ultimo_teste_status = 'OK' THEN 1 ELSE 0 END) AS testes_ok
+                SUM(CASE WHEN ultimo_teste_status = 'OK' THEN 1 ELSE 0 END) AS testes_ok,
+                SUM(CASE WHEN ativo = 1 AND (segredo_encrypted IS NULL OR segredo_encrypted = '') THEN 1 ELSE 0 END) AS pendentes_credencial,
+                SUM(CASE WHEN ativo = 1 AND segredo_encrypted IS NOT NULL AND segredo_encrypted <> '' AND ultimo_teste_status IS NULL THEN 1 ELSE 0 END) AS pendentes_teste,
+                SUM(CASE WHEN ativo = 1 AND ultimo_teste_status = 'ERRO' THEN 1 ELSE 0 END) AS erros_cadastro
+            FROM implantacao_integracoes_config
+            {where}
+            """,
+            tuple(params),
+        )
+
+    @classmethod
+    def dashboard_diagnosticos(cls, tipos=None):
+        where = "WHERE ativo = 1"
+        params = []
+        if tipos:
+            placeholders = ", ".join(["%s"] * len(tipos))
+            where += f" AND tipo IN ({placeholders})"
+            params.extend(tipos)
+        return cls.fetch_one(
+            f"""
+            SELECT
+                SUM(CASE WHEN ultimo_teste_status = 'OK' THEN 1 ELSE 0 END) AS diagnostico_configurado,
+                SUM(CASE WHEN segredo_encrypted IS NULL OR segredo_encrypted = '' THEN 1 ELSE 0 END) AS diagnostico_pendente_credencial,
+                SUM(CASE WHEN segredo_encrypted IS NOT NULL AND segredo_encrypted <> '' AND ultimo_teste_status IS NULL THEN 1 ELSE 0 END) AS diagnostico_pendente_teste,
+                SUM(CASE WHEN ultimo_teste_status = 'ERRO' THEN 1 ELSE 0 END) AS diagnostico_erro_cadastro
             FROM implantacao_integracoes_config
             {where}
             """,
@@ -116,16 +141,69 @@ class IntegracaoConfigRepository(BaseRepository):
         )
 
     @classmethod
-    def registrar_teste(cls, integracao_id, status, mensagem):
-        return cls.execute(
-            """
-            UPDATE implantacao_integracoes_config
-            SET ultimo_teste_status=%s,
-                ultimo_teste_mensagem=%s,
-                ultimo_teste_em=NOW()
-            WHERE id=%s
+    def registrar_teste(cls, integracao_id, status, mensagem, usuario_email=None):
+        conn = cls.connection()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute(
+                """
+                UPDATE implantacao_integracoes_config
+                SET ultimo_teste_status=%s,
+                    ultimo_teste_mensagem=%s,
+                    ultimo_teste_em=NOW()
+                WHERE id=%s
+                """,
+                (status, mensagem, integracao_id),
+            )
+            cursor.execute(
+                """
+                INSERT INTO implantacao_integracoes_validacoes (
+                    uuid, integracao_id, status, mensagem, validado_por
+                ) VALUES (%s, %s, %s, %s, %s)
+                """,
+                (cls.generate_uuid(), integracao_id, status, mensagem, usuario_email or "sistema"),
+            )
+            conn.commit()
+            return True
+
+        except Exception:
+            conn.rollback()
+            raise
+
+        finally:
+            cls.close(conn, cursor)
+
+    @classmethod
+    def listar_validacoes_recentes(cls, tipos=None, limite=10):
+        sql = """
+            SELECT v.id, v.integracao_id, v.status, v.mensagem, v.validado_por, v.validado_em,
+                   i.tipo, i.nome
+            FROM implantacao_integracoes_validacoes v
+            JOIN implantacao_integracoes_config i ON i.id = v.integracao_id
+            WHERE 1 = 1
+        """
+        params = []
+        if tipos:
+            placeholders = ", ".join(["%s"] * len(tipos))
+            sql += f" AND i.tipo IN ({placeholders})"
+            params.extend(tipos)
+        sql += " ORDER BY v.validado_em DESC, v.id DESC LIMIT %s"
+        params.append(int(limite or 10))
+        return cls.fetch_all(sql, tuple(params))
+
+    @classmethod
+    def listar_historico(cls, integracao_id, limite=10):
+        limite = max(1, min(int(limite or 10), 50))
+        return cls.fetch_all(
+            f"""
+            SELECT id, status, mensagem, validado_por, validado_em
+            FROM implantacao_integracoes_validacoes
+            WHERE integracao_id = %s
+            ORDER BY validado_em DESC, id DESC
+            LIMIT {limite}
             """,
-            (status, mensagem, integracao_id),
+            (integracao_id,),
         )
 
     @classmethod

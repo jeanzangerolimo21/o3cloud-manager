@@ -5,7 +5,7 @@
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
         <div>
             <h2 class="mb-1">Custos de Produtos</h2>
-            <p class="text-muted mb-0">Atualizacao de custo dos produtos usados na base de rentabilidade.</p>
+            <p class="text-muted mb-0">Preparacao de custos homologados para a Beta, sem margem definitiva antes da validacao oficial.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a class="btn btn-outline-secondary" href="{{ url_for('catalogo.listar_produtos') }}"><i class="bi bi-box-seam"></i> Produtos</a>
@@ -14,10 +14,18 @@
         </div>
     </div>
 
+    <div class="alert alert-info d-flex align-items-start gap-2" role="alert">
+        <i class="bi bi-info-circle-fill mt-1"></i>
+        <div>
+            <strong>Carga condicionada a fonte homologada.</strong>
+            Preencha ou importe custos somente quando os valores forem confirmados pela equipe. Produtos sem custo permanecem como pendencia de saneamento pre-Beta.
+        </div>
+    </div>
+
     <div class="row g-4 mb-4">
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white"><strong>Importar custos</strong></div>
+                <div class="card-header bg-white"><strong>Importar custos homologados</strong></div>
                 <div class="card-body">
                     <form method="POST" enctype="multipart/form-data">
                         <div class="mb-3">
@@ -45,7 +53,7 @@
                             <p class="text-muted mb-0">Nenhum erro encontrado.</p>
                         {% endif %}
                     {% else %}
-                        <p class="text-muted mb-0">Baixe o CSV, preencha a coluna <code>valor_custo</code> e importe o arquivo atualizado.</p>
+                        <p class="text-muted mb-0">Baixe o CSV e preencha <code>valor_custo</code> somente com fonte homologada pela equipe.</p>
                     {% endif %}
                 </div>
             </div>
@@ -54,7 +62,7 @@
 
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <strong>Produtos pendentes de custo</strong>
+            <strong>Produtos aguardando custo homologado</strong>
             <span class="badge text-bg-light border">{{ produtos|length }} pendente(s)</span>
         </div>
         <div class="table-responsive">
@@ -82,7 +90,7 @@
                             <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('catalogo.editar_produto', produto_id=produto.id) }}"><i class="bi bi-pencil-square"></i></a></td>
                         </tr>
                     {% else %}
-                        <tr><td colspan="7" class="text-muted">Nenhum produto ativo pendente de custo.</td></tr>
+                        <tr><td colspan="7" class="text-muted">Nenhum produto ativo aguardando custo homologado.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

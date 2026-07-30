@@ -66,7 +66,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-lg-2"><label class="form-label">CNPJ</label><input class="form-control" id="cliente_cnpj" value="{{ contrato.cliente_cnpj or '' }}" readonly placeholder="00.000.000/0000-00"></div>
+                <div class="col-lg-2"><label class="form-label">CNPJ</label><input class="form-control" id="cliente_cnpj" value="{{ contrato.cliente_cnpj or '' }}" readonly placeholder="CNPJ alfanumérico"></div>
                 <div class="col-lg-4"><label class="form-label">Razao Social</label><input class="form-control" id="cliente_razao" value="{{ contrato.cliente_razao_social or '' }}" readonly placeholder="Razao social"></div>
                 <div class="col-lg-4"><label class="form-label">Nome Fantasia</label><input class="form-control" id="cliente_nome" value="{{ contrato.cliente_nome or '' }}" readonly placeholder="Nome fantasia"></div>
                 <div class="col-lg-4"><label class="form-label">Contato *</label><input class="form-control" name="contato_nome" id="contato_nome" value="{{ contrato.contato_nome or '' }}" {% if not edicao_omie %}required{% endif %} placeholder="Nome do contato"></div>

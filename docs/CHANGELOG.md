@@ -46,6 +46,40 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-07-30 - Abertura da Sprint 15
+
+### Visao Geral
+
+- Visao Geral passou a informar Sprint 14 finalizada e Sprint 15 iniciada em 30/07/2026.
+- `docs/05-SPRINT_ATUAL` passou a registrar Sprint 15 - Infraestrutura Operacional e Sincronismo Read-Only.
+- `docs/17-SPRINTS.md` e `docs/ROADMAP.md` passaram a indicar Sprint 15 como sprint atual.
+- Foco da Sprint 15 definido para Proxmox VE somente leitura, telas operacionais de infraestrutura e consultas PBS, Zabbix e TrueNAS.
+
+## 2026-07-30 - Sprint 14 Diagnostico Pre-Beta
+
+### Dashboard Executivo
+
+- Adicionado bloco de Diagnostico pre-Beta com pendencias de cadastro comercial, fluxo operacional e dados financeiros.
+- Contratos diretos continuam classificados como fluxo valido, sem obrigatoriedade de proposta.
+- Custos, faturamentos e parametros financeiros ausentes passam a aparecer como pendencias de carga futura para a Beta, sem calculo definitivo de rentabilidade.
+- Incluido checklist de validacao Beta por area: Comercial, Operacoes, Financeiro e Engenharia.
+- Visualizacao de Clientes passou a buscar implantacao vinculada na tabela atual implantacoes, exibindo status, etapa Kanban, responsavel, prazo, checklist e link para o fluxo completo.
+- Visualizacao de Clientes recebeu diagnostico pre-Beta de saneamento cadastral, contato, localizacao, origem e vinculo operacional.
+- Visualizacao de Contratos recebeu diagnostico pre-Beta com classificacao de fluxo valido, pendencia de cadastro e pendencia operacional.
+- Visualizacao de Implantacao recebeu diagnostico pre-Beta operacional sem executar automacoes destrutivas.
+- Kanban de Implantacao teve colunas ampliadas, altura util ajustada para exibir pelo menos cinco cards por coluna, rolagem horizontal interna e quebra de texto reforcada para evitar sobreposicao.
+- Kanban de Implantacao passou a enviar e-mail para contas@o3cloud.com.br quando um card e movido para Finalizado, informando conclusao e liberacao para faturamento.
+- Telas de Faturamentos, Produtos por Cliente e Custos de Produtos passaram a reforcar leitura pre-Beta, carga homologada e ausencia de margem/rentabilidade definitiva antes da validacao oficial.
+- Tela de Integracoes Tecnicas passou a exibir diagnostico pre-Beta para Proxmox, PBS, Zabbix, FreeIPA e TrueNAS.
+- Adicionada migration 034 para historico de validacoes de integracoes tecnicas, registrando resultado, mensagem, usuario e data.
+- Validacao de integracoes tecnicas permanece estrutural e nao destrutiva, sem chamada a APIs externas nesta sprint.
+- Tela de Integracoes Tecnicas recebeu plano de sincronismo Proxmox VE para Sprint 15, com campos de inventario, regras de somente leitura e fases de execucao.
+- Adicionada migration 036 para preparar inventario de VMs Proxmox e historico de execucoes de sync, ainda sem chamada real a API externa.
+- Menu lateral de Infraestrutura foi padronizado visualmente com os demais submenus para Clusters, Nodes, Maquinas Virtuais e Containers.
+- Adicionados itens de Infraestrutura para Backups PBS, Monitoramento Zabbix e Backup NAS, com telas iniciais de consulta para snapshots, monitoramento e backups TrueNAS.
+- Sprint 14 encerrada em `docs/24-FECHAMENTO-SPRINT-14.md`, com cadastros finais e revisao assistida encaminhados para a fase Beta com a equipe.
+- Validacao final por Flask test client retornou 200 nas rotas principais de clientes, contratos, implantacao, financeiro, catalogo, integracoes e infraestrutura.
+
 ## 2026-07-29 - Fechamento da Sprint 13 e Preparacao Pre-Beta
 
 ### Documentacao

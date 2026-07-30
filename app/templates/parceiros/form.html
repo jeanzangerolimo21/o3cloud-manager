@@ -62,7 +62,7 @@
 
                     <div class="col-md-4">
                         <label class="form-label">CNPJ</label>
-                        <input class="form-control" name="cnpj" placeholder="00.000.000/0000-00" value="{{ parceiro.cnpj if parceiro else '' }}">
+                        <input class="form-control text-uppercase" name="cnpj" placeholder="CNPJ alfanumérico" maxlength="32" value="{{ parceiro.cnpj if parceiro else '' }}">
                     </div>
 
                     <div class="col-md-4">

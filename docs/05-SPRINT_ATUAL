@@ -4,7 +4,7 @@
 
 Versao: 3.0 Alpha
 
-Ultima atualizacao: 29/07/2026
+Ultima atualizacao: 30/07/2026
 
 Status: Oficial
 
@@ -12,106 +12,107 @@ Status: Oficial
 
 # Sprint Registrada
 
-## Sprint 14
+## Sprint 15
 
-Consolidacao Pre-Beta e Preparacao de Validacao com a Equipe
+Infraestrutura Operacional e Sincronismo Read-Only
 
 Status:
 
-🚧 Em planejamento
+🚧 Em andamento
 
 ---
 
 # Contexto
 
-A Sprint 13 foi encerrada em 29/07/2026 como concluida.
+A Sprint 14 foi encerrada em 30/07/2026 como concluida.
 
-A entrega da Sprint 13 definiu que dados reais de custos, faturamentos e parametros financeiros somente serao informados na fase Beta com a equipe, apos saneamento dos cadastros e preenchimento das informacoes pendentes pelo Comercial e areas envolvidas.
+A entrega da Sprint 14 consolidou a preparacao pre-Beta, validou rotas principais, preparou diagnosticos e encaminhou cadastros finais e revisao assistida para a fase Beta com a equipe.
 
 Documento de fechamento da sprint anterior:
 
-- `docs/23-FECHAMENTO-SPRINT-13.md`
+- `docs/24-FECHAMENTO-SPRINT-14.md`
 
 ---
 
 # Objetivo da Sprint
 
-Preparar o O3Cloud Manager para validacao Beta assistida, consolidando cadastros, diagnosticos, telas operacionais e criterios de preenchimento antes de qualquer carga real oficial de rentabilidade.
+Iniciar a evolucao operacional de infraestrutura em modo seguro, com sincronismo Proxmox VE somente leitura, telas para inventario tecnico e consultas PBS, Zabbix e TrueNAS sem automacoes destrutivas.
 
 ---
 
 # Escopo Inicial
 
-## 1. Cadastros e Dados Pendentes para Beta
+## 1. Sincronismo Proxmox VE Read-Only
 
 Status:
 
-⏳ Planejado
+🚧 Em andamento
 
 Entregas previstas:
 
-- Mapear campos e cadastros que o Comercial precisa completar antes da Beta.
-- Identificar informacoes obrigatorias, recomendadas e opcionais por fluxo.
-- Preparar diagnosticos de dados incompletos sem tratar ausencia de dado homologado como erro.
-- Manter contratos diretos/parceiros como fluxo valido sem obrigatoriedade de proposta.
+- Implementar cliente Proxmox VE com token de permissao minima e operacoes somente leitura.
+- Criar rotina manual de sincronismo inicial antes de qualquer agendamento.
+- Registrar execucoes de sincronismo, status, mensagem e usuario responsavel.
+- Gravar inventario de VMs/containers nas tabelas preparadas pela migration 036.
 
-## 2. Preparacao de Validacao com a Equipe
+## 2. Telas Operacionais de Infraestrutura
 
 Status:
 
-⏳ Planejado
+🚧 Em andamento
 
 Entregas previstas:
 
-- Preparar checklist de validacao Beta por area: Comercial, Operacoes, Financeiro e Engenharia.
-- Revisar telas principais para uso assistido pela equipe.
-- Documentar criterios de aceite para preenchimento de cadastros.
-- Separar pendencias de cadastro, divergencias de informacao e falhas reais do sistema.
+- Evoluir menu de Infraestrutura para telas reais de Clusters, Nodes, Maquinas Virtuais e Containers.
+- Exibir dados sincronizados com filtros por cliente, ambiente, node, status e tipo.
+- Permitir leitura operacional sem executar start, stop, reboot, migrate, delete ou alteracoes de configuracao.
+- Preparar vinculo futuro com cliente, contrato e implantacao para validacao assistida.
 
-## 3. Indicadores e Diagnosticos Pre-Beta
+## 3. Consultas PBS, Zabbix e TrueNAS
 
 Status:
 
-⏳ Planejado
+🚧 Em andamento
 
 Entregas previstas:
 
-- Refinar Dashboard Executivo para leitura pre-Beta.
-- Exibir lacunas de custos, faturamentos e parametros financeiros como pendencias de carga futura.
-- Evitar calculo definitivo de rentabilidade antes da carga real oficial.
-- Preparar indicadores para receber dados reais na Beta sem criar dados ficticios.
+- Evoluir Backups PBS para consulta de snapshots dos clientes.
+- Evoluir Monitoramento Zabbix para consulta de hosts, disponibilidade e alertas.
+- Evoluir Backup NAS para consulta de jobs/backups TrueNAS.
+- Manter todas as consultas em modo leitura e usando credenciais cadastradas em Integracoes Tecnicas.
 
-## 4. Integracoes Tecnicas Nao Destrutivas
+## 4. Segurança e Beta Assistida
 
 Status:
 
-⏳ Planejado
+🚧 Em andamento
 
 Entregas previstas:
 
-- Continuar validacoes tecnicas em modo leitura e diagnostico.
-- Preparar historico de validacoes e falhas de integracao.
-- Preservar segredos mascarados por padrao e visualizacao temporaria sem cache.
-- Manter automacoes destrutivas fora do escopo.
+- Preservar segredos mascarados e visualizacao temporaria sem cache.
+- Registrar falhas de sincronismo/consulta sem expor segredos.
+- Manter ausencia de dados reais como pendencia operacional quando depender de cadastro da equipe.
+- Deixar automacoes destrutivas fora do escopo ate aprovacao especifica.
 
 ---
 
 # Fora do Escopo Inicial
 
-- Carregar dados reais de custos, faturamentos e parametros financeiros antes da Beta.
-- Criar dados ficticios para simular rentabilidade.
-- Tornar `proposta_id` obrigatorio para implantacao.
-- Executar automacoes destrutivas em integracoes tecnicas.
+- Executar start, stop, reboot, migrate, delete ou alteracoes de configuracao no Proxmox.
+- Criar automacoes destrutivas em PBS, Zabbix ou TrueNAS.
+- Carregar custos, faturamentos ou parametros financeiros reais antes da Beta assistida.
+- Fechar criterios finais de cadastro sem a equipe usando a versao Beta.
 - Entrar ainda no bloco de login, autenticacao, permissoes, auditoria e relatorios formais.
 
 ---
 
 # Criterios de Aceite
 
-- Sprint 14 parte das decisoes documentadas no fechamento da Sprint 13.
-- Sistema deixa claro quais dados dependem de preenchimento da equipe na Beta.
-- Diagnosticos diferenciam dado pendente, fluxo valido e erro real.
-- Importadores oficiais continuam prontos, mas sem carga real prematura.
+- Sincronismo Proxmox deve operar somente leitura.
+- Toda execucao tecnica deve registrar status, mensagem e data.
+- Telas de infraestrutura devem renderizar sem depender de dados reais obrigatorios.
+- Consultas PBS, Zabbix e TrueNAS nao devem executar acoes destrutivas.
+- Segredos permanecem mascarados por padrao.
 - Implementacao segue Repository / Service / Routes / Templates quando houver codigo.
 
 ---
@@ -119,9 +120,9 @@ Entregas previstas:
 # Validacoes Previstas
 
 - Validar rotas alteradas via Flask test client.
-- Validar textos e diagnosticos sem criar dados ficticios.
-- Validar que a ausencia de dados reais oficiais nao gere erro operacional indevido.
-- Validar que a documentacao da Beta esteja alinhada com Comercial, Operacoes, Financeiro e Engenharia.
+- Validar que consultas e sincronismos nao chamem acoes destrutivas.
+- Validar telas sem dados reais oficiais, exibindo estado vazio/pendente de forma clara.
+- Validar documentacao de seguranca e pendencias encaminhadas para Beta assistida.
 
 ---
 
@@ -133,12 +134,16 @@ Versao:
 
 Sprint Atual:
 
-14
+15
 
 Situacao:
 
-🚧 Em planejamento
+🚧 Em andamento
+
+Sprint anterior:
+
+- `docs/24-FECHAMENTO-SPRINT-14.md`
 
 Proxima Implementacao:
 
-Definir os diagnosticos e checklists pre-Beta para orientar o preenchimento de cadastros pela equipe antes das cargas oficiais.
+Implementar sincronismo Proxmox VE em modo leitura e evoluir telas operacionais de infraestrutura.
