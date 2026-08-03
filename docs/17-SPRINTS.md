@@ -4,7 +4,7 @@
 
 Versão: 3.0 Alpha
 
-Última atualização: 28/07/2026
+Última atualização: 03/08/2026
 
 Status: Oficial
 
@@ -350,26 +350,88 @@ Status:
 
 ---
 
-# Sprint Atual
+# Ultima Sprint Encerrada
 
 ## Sprint 15
 
 Infraestrutura Operacional e Sincronismo Read-Only
 
-Inicio registrado em 30/07/2026:
+Inicio registrado em 30/07/2026. Encerrada em 03/08/2026.
 
-- Sincronismo Proxmox VE em modo somente leitura
-- Telas operacionais de Clusters, Nodes, Maquinas Virtuais e Containers
-- Evolucao das consultas Backups PBS, Monitoramento Zabbix e Backup NAS/TrueNAS
-- Seguranca preservada: sem start, stop, reboot, migrate, delete ou alteracoes destrutivas
-- Cadastros finais e criterios por area seguem encaminhados para Beta assistida
+Entregas consolidadas:
+
+- Sincronismo Proxmox VE em modo somente leitura.
+- Telas operacionais de Clusters, Nodes, Maquinas Virtuais e Containers.
+- Inventario Proxmox de recursos e nodes com dashboards operacionais.
+- Backups PBS com escopos, namespaces, snapshots e sincronismo manual.
+- Monitoramento Zabbix com cache, sincronismo manual, ordenacao por criticidade e filtros por status/criticidade.
+- Backup NAS/TrueNAS com cache, sincronismo manual, alertas por pasta sem alteracao recente e aba de Backups OK.
+- Atalhos para Integracoes Tecnicas removidos das telas operacionais e do menu lateral.
+- Seguranca preservada: sem start, stop, reboot, migrate, delete ou alteracoes destrutivas.
+
+Documento de revisao de fechamento:
+
+- `docs/25-FECHAMENTO-SPRINT-15.md`
+
+Pendencias encaminhadas:
+
+- Validacao assistida com a operacao.
+- Decisao futura sobre historico centralizado de sincronismos Zabbix/TrueNAS.
+- Controle formal de acesso/perfis encaminhado para sprint futura.
 
 Status:
 
-🚧 Em andamento
+✅ Concluida em 03/08/2026
+
+---
+
+# Melhorias Pre-Sprint 16
+
+Registro:
+
+- `docs/26-MELHORIAS-PRE-SPRINT-16.md`
+
+Entregas consolidadas:
+
+- Selecionar Representante Legal na proposta para ClickSign.
+- Exigir nome completo e CPF do Representante Legal antes do envio.
+- Bloquear reenvio duplicado para ClickSign quando ja existe envelope.
+- Cancelar envelope pendente na ClickSign ao cancelar/rejeitar/expirar proposta.
+- Exibir Gerar documento e Enviar na listagem de propostas aprovadas, respeitando status do documento.
+- Bloquear nova geracao de documento para fluxo assinado/concluido.
+- Refinar PDF, pipeline comercial, cofre de senhas e rastreabilidade operacional.
+
+Status:
+
+✅ Registrado em 03/08/2026 antes da abertura da Sprint 16
+
+---
+
+# Sprint Final Planejada
+
+## Integracao Receita Federal para Cadastro de Clientes
+
+Status:
+
+Planejada para a sprint final
+
+Objetivo:
+
+Permitir que o cadastro manual de novos clientes consulte uma API de dados da Receita Federal, ou provedor homologado, a partir do CNPJ informado, preenchendo automaticamente os dados cadastrais disponiveis.
+
+Escopo previsto:
+
+- Consultar dados cadastrais pelo CNPJ durante o cadastro de cliente.
+- Preencher campos compativeis do cliente, mantendo revisao manual antes do salvamento.
+- Tratar indisponibilidade da API como aviso operacional, sem bloquear cadastro manual.
+- Definir provedor, limites, cache, autenticacao e auditoria tecnica apenas na sprint final.
+
+Observacao:
+
+Esta integracao fica fora da Sprint 15 e das sprints intermediarias de infraestrutura, permanecendo como backlog final para fechamento da versao.
 
 ---
 
 # Diretriz
 
-Toda evolução do projeto deve permanecer alinhada ao `docs/ROADMAP.md`, que é a fonte oficial para sequência das próximas etapas.
+Toda evolução do projeto deve permanecer alinhada ao ROADMAP.md, que é a fonte oficial para sequência das próximas etapas.

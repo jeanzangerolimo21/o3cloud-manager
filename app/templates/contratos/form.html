@@ -16,15 +16,22 @@
 
     <form method="POST" enctype="multipart/form-data" class="card border-0 shadow-sm">
         <div class="card-body">
-            {% if not edicao_omie %}
+            {% if not edicao_omie and modo == 'editar' %}
             <h5>Contrato PDF</h5>
             <div class="border rounded p-3 mb-4 bg-light">
-                <input class="form-control" type="file" name="arquivo_preparado" accept="application/pdf,.pdf" {% if modo == 'novo' %}required{% endif %}>
-                <small class="text-muted">Apenas arquivos .pdf. O modelo base fica em storage/contratos/Modelo_Contrato.pdf.</small>
+                <input class="form-control" type="file" name="arquivo_preparado" accept="application/pdf,.pdf">
+                <small class="text-muted">Opcional. Apenas arquivos .pdf. O modelo base fica em storage/contratos/Modelo_Contrato.pdf.</small>
                 {% if contrato.arquivo_preparado_original %}<div class="small mt-2">PDF atual: {{ contrato.arquivo_preparado_original }}</div>{% endif %}
             </div>
-            {% else %}
+            {% elif edicao_omie %}
             <div class="alert alert-info mb-4">Contrato sincronizado do Omie. Apenas contato, executivo, parceiro e observacoes locais podem ser editados.</div>
+            {% endif %}
+
+            {% if contrato.cliente_id %}
+            <div class="alert alert-light border d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span>Se a validação apontar dados incompletos do cliente, ajuste o cadastro antes de concluir o contrato.</span>
+                <a class="btn btn-outline-primary btn-sm" href="{{ url_for('clientes.editar', id=contrato.cliente_id) }}" target="_blank"><i class="bi bi-person-gear"></i> Editar Cliente</a>
+            </div>
             {% endif %}
 
             <h5>Origem Comercial</h5>
@@ -36,22 +43,22 @@
                         <option value="">Selecionar proposta para puxar valores negociados...</option>
                         {% for proposta in propostas %}
                             {% if proposta.id %}
-                                <option value="{{ proposta.id }}" {% if (contrato.proposta_id|string) == (proposta.id|string) %}selected{% endif %}>{{ proposta.codigo or ('Proposta #' ~ proposta.id) }} - {{ proposta.titulo }}</option>
+                                <option value="{{ proposta.id }}" {% if (contrato.proposta_id|string) == (proposta.id|string) %}selected{% endif %}>{{ proposta.codigo or ('Proposta #' ~ proposta.id) }} - {{ proposta.cliente_nome or 'Cliente não informado' }} - {{ proposta.titulo }}</option>
                             {% endif %}
                         {% endfor %}
                     </select>
-                    <small class="text-muted">Preenche cliente, contato, executivo, parceiro e valores negociados.</small>
+                    <small class="text-muted">Preenche cliente, executivo, parceiro e valores negociados.</small>
                 </div>
                 {% endif %}
                 <div class="{{ 'col-lg-12' if edicao_omie else 'col-lg-6' }}">
-                    <label class="form-label">Contato do CRM</label>
+                    <label class="form-label">Representante Legal do CRM</label>
                     <select class="form-select" name="contato_id" id="contato_id">
-                        <option value="">Selecionar contato cadastrado...</option>
+                        <option value="">Selecionar representante legal cadastrado...</option>
                         {% for contato in contatos %}
                             <option value="{{ contato.id }}" {% if (contrato.contato_id|string) == (contato.id|string) %}selected{% endif %}>{{ contato.nome }}{% if contato.empresa %} - {{ contato.empresa }}{% endif %}{% if contato.email %} - {{ contato.email }}{% endif %}</option>
                         {% endfor %}
                     </select>
-                    <small class="text-muted">Preenche nome, e-mail e telefone do contato.</small>
+                    <small class="text-muted">Preenche nome, e-mail e telefone do representante legal.</small>
                 </div>
             </div>
 
@@ -69,7 +76,7 @@
                 <div class="col-lg-2"><label class="form-label">CNPJ</label><input class="form-control" id="cliente_cnpj" value="{{ contrato.cliente_cnpj or '' }}" readonly placeholder="CNPJ alfanumérico"></div>
                 <div class="col-lg-4"><label class="form-label">Razao Social</label><input class="form-control" id="cliente_razao" value="{{ contrato.cliente_razao_social or '' }}" readonly placeholder="Razao social"></div>
                 <div class="col-lg-4"><label class="form-label">Nome Fantasia</label><input class="form-control" id="cliente_nome" value="{{ contrato.cliente_nome or '' }}" readonly placeholder="Nome fantasia"></div>
-                <div class="col-lg-4"><label class="form-label">Contato *</label><input class="form-control" name="contato_nome" id="contato_nome" value="{{ contrato.contato_nome or '' }}" {% if not edicao_omie %}required{% endif %} placeholder="Nome do contato"></div>
+                <div class="col-lg-4"><label class="form-label">Representante Legal *</label><input class="form-control" name="contato_nome" id="contato_nome" value="{{ contrato.contato_nome or '' }}" {% if not edicao_omie %}required{% endif %} placeholder="Nome do representante legal"></div>
                 <div class="col-lg-2"><label class="form-label">E-mail *</label><input class="form-control" type="email" name="contato_email" id="contato_email" value="{{ contrato.contato_email or contrato.cliente_email or '' }}" {% if not edicao_omie %}required{% endif %} placeholder="email@empresa.com"></div>
                 <div class="col-lg-2"><label class="form-label">Telefone *</label><input class="form-control" name="contato_telefone" id="contato_telefone" value="{{ contrato.contato_telefone or contrato.cliente_telefone or '' }}" {% if not edicao_omie %}required{% endif %} placeholder="(11) 99999-9999"></div>
             </div>
@@ -142,14 +149,6 @@ function preencherProposta() {
         clienteSelect.value = proposta.cliente_id;
         preencherCliente();
     }
-    if (proposta.contato_id) {
-        contatoSelect.value = proposta.contato_id;
-        preencherContato(true);
-    } else {
-        setValue('contato_nome', proposta.contato_nome);
-        setValue('contato_email', proposta.contato_email);
-        setValue('contato_telefone', proposta.contato_telefone);
-    }
     setValue('executivo_id', proposta.executivo_id);
     setValue('parceiro_id', proposta.parceiro_id);
     setValue('valor_mensal', proposta.valor_mensal);
@@ -161,9 +160,9 @@ function preencherProposta() {
 clienteSelect.addEventListener('change', preencherCliente);
 contatoSelect.addEventListener('change', () => preencherContato(true));
 if (propostaSelect) propostaSelect.addEventListener('change', preencherProposta);
+if (propostaSelect && propostaSelect.value) preencherProposta();
 preencherCliente();
 preencherContato(false);
-if (propostaSelect && propostaSelect.value) preencherProposta();
 </script>
 
 {% endblock %}

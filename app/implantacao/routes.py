@@ -184,10 +184,15 @@ def cofre_senhas():
     ativo = request.args.get("ativo", "1")
     pagina = request.args.get("page", 1, type=int)
 
+    usuario_logado = _email_usuario_logado()
     selected_pasta = CofrePastaService.buscar_por_id(pasta_id) if pasta_id else None
     if selected_pasta and not parceiro_id:
         parceiro_id = selected_pasta.get("parceiro_id")
     if selected_pasta and parceiro_id and int(selected_pasta.get("parceiro_id") or 0) != int(parceiro_id):
+        selected_pasta = None
+        pasta_id = None
+    if selected_pasta and selected_pasta.get("tipo") == "usuario" and not _usuario_pode_acessar_pasta(selected_pasta, usuario_logado):
+        flash("Você não tem acesso a esta pasta particular do cofre.", "danger")
         selected_pasta = None
         pasta_id = None
 
@@ -222,6 +227,9 @@ def cofre_senhas():
         selected_pasta=selected_pasta,
         selected_ativo=ativo,
         parceiros_navegacao=CofrePastaService.listar_parceiros_navegacao(),
+        pastas_usuario=CofrePastaService.listar_pastas_usuario(usuario_logado),
+        pastas_compartilhadas=CofrePastaService.listar_pastas_compartilhadas_com_usuario(usuario_logado),
+        usuario_logado=usuario_logado,
         pastas_cliente=CofrePastaService.listar_pastas_cliente_por_parceiro(parceiro_id),
         pastas=CofrePastaService.listar_ativas(),
         pasta_tipo_options=TIPOS_COFRE_PASTA,
@@ -287,7 +295,7 @@ def excluir_pasta_cofre(pasta_id):
 
 @implantacao_bp.route("/cofre-senhas/novo", methods=["GET", "POST"])
 def nova_senha_cofre():
-    contexto = CofreSenhaService.contexto_form()
+    contexto = CofreSenhaService.contexto_form(_email_usuario_logado())
     if request.method == "POST":
         try:
             senha_id = CofreSenhaService.criar(_cofre_senha_form_data(), _email_usuario_logado(), request.remote_addr)
@@ -296,16 +304,21 @@ def nova_senha_cofre():
             return render_template("implantacao/cofre_senhas/form.html", senha=request.form, modo="novo", **contexto)
         flash("Credencial cadastrada no cofre.", "success")
         return redirect(url_for("implantacao.editar_senha_cofre", senha_id=senha_id))
-    return render_template("implantacao/cofre_senhas/form.html", senha={"ativo": 1}, modo="novo", **contexto)
+    senha = {"ativo": 1, "pasta_id": request.args.get("pasta_id")}
+    if senha.get("pasta_id"):
+        pasta = CofrePastaService.buscar_por_id(senha.get("pasta_id"))
+        if pasta and pasta.get("cliente_id"):
+            senha["cliente_id"] = pasta.get("cliente_id")
+    return render_template("implantacao/cofre_senhas/form.html", senha=senha, modo="novo", **contexto)
 
 
 @implantacao_bp.route("/cofre-senhas/<int:senha_id>/editar", methods=["GET", "POST"])
 def editar_senha_cofre(senha_id):
-    senha = CofreSenhaService.buscar_por_id(senha_id)
+    senha = CofreSenhaService.buscar_por_id(senha_id, _email_usuario_logado())
     if not senha:
         flash("Credencial não encontrada.", "danger")
         return redirect(url_for("implantacao.cofre_senhas"))
-    contexto = CofreSenhaService.contexto_form()
+    contexto = CofreSenhaService.contexto_form(_email_usuario_logado())
     auditoria = CofreSenhaService.listar_auditoria(senha_id)
     if request.method == "POST":
         try:
@@ -517,6 +530,7 @@ def revelar_integracao_config_segredo(integracao_id):
 def nova_integracao_config():
     grupo = request.args.get("grupo") or "tecnicas"
     tipo_options = IntegracaoConfigService.tipo_options(grupo)
+    tipo_padrao = request.args.get("tipo") if request.args.get("tipo") in tipo_options else None
     if request.method == "POST":
         try:
             integracao_id = IntegracaoConfigService.criar(request.form, _email_usuario_logado())
@@ -525,7 +539,7 @@ def nova_integracao_config():
             return render_template("implantacao/integracoes/form.html", integracao=request.form, tipo_options=tipo_options, grupo_integracao=grupo, modo="novo", historico_validacoes=[])
         flash("Integração cadastrada.", "success")
         return redirect(url_for("implantacao.editar_integracao_config", integracao_id=integracao_id))
-    return render_template("implantacao/integracoes/form.html", integracao={"ativo": 1, "verify_ssl": 1, "timeout_seconds": 30}, tipo_options=tipo_options, grupo_integracao=grupo, modo="novo", historico_validacoes=[])
+    return render_template("implantacao/integracoes/form.html", integracao={"tipo": tipo_padrao, "ativo": 1, "verify_ssl": 1, "timeout_seconds": 30}, tipo_options=tipo_options, grupo_integracao=grupo, modo="novo", historico_validacoes=[])
 
 
 @implantacao_bp.route("/integracoes/<int:integracao_id>/editar", methods=["GET", "POST"])
@@ -823,6 +837,24 @@ def atualizar_checklist(item_id):
     return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
 
 
+def _usuario_pode_acessar_pasta(pasta, usuario_email):
+    if not pasta or pasta.get("tipo") != "usuario":
+        return True
+    usuario_email = (usuario_email or "sistema").strip().lower()
+    if usuario_email == "sistema":
+        return True
+    if (pasta.get("owner_email") or "").strip().lower() == usuario_email:
+        return True
+    if not pasta.get("compartilhada"):
+        return False
+    compartilhados = {
+        item.strip().lower()
+        for item in str(pasta.get("compartilhada_com") or "").replace(";", ",").split(",")
+        if item.strip()
+    }
+    return usuario_email in compartilhados
+
+
 def _cofre_pasta_form_data():
     return {
         "nome": request.form.get("nome"),
@@ -831,7 +863,7 @@ def _cofre_pasta_form_data():
         "cliente_id": request.form.get("cliente_id"),
         "owner_email": request.form.get("owner_email") or _email_usuario_logado(),
         "compartilhada": request.form.get("compartilhada", "0"),
-        "compartilhada_com": request.form.get("compartilhada_com"),
+        "compartilhada_com": ",".join(request.form.getlist("compartilhada_com_multi")) or request.form.get("compartilhada_com"),
         "observacoes": request.form.get("observacoes"),
         "ativo": request.form.get("ativo", "1"),
     }

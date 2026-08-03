@@ -131,7 +131,8 @@ class ContatoRepository(BaseRepository):
                 cpf,
                 email,
                 telefone,
-                whatsapp
+                whatsapp,
+                tipo_contato
             FROM {cls.TABLE}
             WHERE ativo = 1
             ORDER BY nome

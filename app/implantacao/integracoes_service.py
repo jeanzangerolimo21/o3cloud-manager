@@ -1,6 +1,8 @@
 import os
 from urllib.parse import urlparse
 
+import requests
+
 from app.implantacao.cofre_senhas_service import CofreSenhaService
 from app.repositories.integracao_config_repository import IntegracaoConfigRepository
 
@@ -93,8 +95,8 @@ class IntegracaoConfigService:
             return None
         return {
             "titulo": "Plano de sincronismo Proxmox VE",
-            "status": "Preparado para Sprint 15",
-            "descricao": "Nesta sprint o Proxmox permanece em diagnostico estrutural. O sincronismo real de VMs sera somente leitura e entrara na proxima sprint.",
+            "status": "Sprint 15 em andamento",
+            "descricao": "Nesta sprint o Proxmox opera em modo somente leitura, com sincronismo manual e auditavel antes de qualquer agendamento.",
             "campos": [
                 "vmid",
                 "nome",
@@ -235,6 +237,8 @@ class IntegracaoConfigService:
         if not integracao:
             raise ValueError("Integração não encontrada.")
         status, mensagem = cls._validar_configuracao(integracao)
+        if status != "ERRO":
+            status, mensagem = cls._validar_conexao_real(integracao)
         cls.repository.registrar_teste(integracao_id, status, mensagem, usuario_email)
         return {"status": status, "mensagem": mensagem}
 
@@ -265,7 +269,7 @@ class IntegracaoConfigService:
                     "diagnostico_status": "pendente_credencial",
                     "diagnostico_label": "Pendente de credencial",
                     "diagnostico_classe": "warning",
-                    "diagnostico_mensagem": "Cadastre token ou senha antes da validação estrutural.",
+                    "diagnostico_mensagem": "Cadastre token ou senha antes da validação de conexão.",
                 }
             return {
                 "diagnostico_status": "erro_cadastro",
@@ -278,7 +282,7 @@ class IntegracaoConfigService:
                 "diagnostico_status": "pendente_teste",
                 "diagnostico_label": "Pendente de teste",
                 "diagnostico_classe": "info",
-                "diagnostico_mensagem": "Configuração cadastrada, aguardando validação estrutural não destrutiva.",
+                "diagnostico_mensagem": "Configuração cadastrada, aguardando validação real read-only.",
             }
         if integracao.get("ultimo_teste_status") == "ERRO":
             return {
@@ -293,6 +297,148 @@ class IntegracaoConfigService:
             "diagnostico_classe": "success",
             "diagnostico_mensagem": integracao.get("ultimo_teste_mensagem") or mensagem,
         }
+
+    @classmethod
+    def _validar_conexao_real(cls, integracao):
+        tipo = integracao.get("tipo")
+        if tipo not in ("proxmox", "pbs", "zabbix", "truenas"):
+            return "OK", "Configuração estrutural válida. Validação real ainda não implementada para este tipo."
+        try:
+            segredo = cls.revelar_segredo_config(integracao.get("id"))
+        except ValueError as erro:
+            return "ERRO", str(erro)
+        try:
+            if tipo == "proxmox":
+                return cls._testar_proxmox(integracao, segredo)
+            if tipo == "pbs":
+                return cls._testar_pbs(integracao, segredo)
+            if tipo == "zabbix":
+                return cls._testar_zabbix(integracao, segredo)
+            if tipo == "truenas":
+                return cls._testar_truenas(integracao, segredo)
+        except requests.exceptions.SSLError:
+            return "ERRO", "Falha na validação SSL do certificado. Ajuste a CA confiável ou desative Verificar SSL para este endpoint interno."
+        except requests.exceptions.Timeout:
+            return "ERRO", "Timeout ao conectar na API. Verifique host, porta, firewall e timeout configurado."
+        except requests.exceptions.ConnectionError:
+            return "ERRO", "Falha de conexão com a API. Verifique host, porta, rota de rede e firewall."
+        except requests.exceptions.RequestException as erro:
+            return "ERRO", f"Falha HTTP ao validar API: {cls._mensagem_segura(erro)}"
+        except ValueError:
+            return "ERRO", "Resposta inválida da API. Endpoint respondeu, mas não retornou JSON esperado."
+        return "ERRO", "Tipo de integração sem validador real."
+
+    @classmethod
+    def _testar_proxmox(cls, integracao, segredo):
+        token_nome = cls._token_api_nome(integracao)
+        headers = {"Authorization": f"PVEAPIToken={token_nome}={segredo}"}
+        response = requests.get(
+            f"{integracao.get('base_url').rstrip('/')}/api2/json/version",
+            headers=headers,
+            timeout=cls._timeout(integracao),
+            verify=cls._verify_ssl(integracao),
+        )
+        if response.status_code in (401, 403):
+            return "ERRO", "Proxmox respondeu, mas recusou autenticação/permissão do token."
+        response.raise_for_status()
+        version = ((response.json() or {}).get("data") or {}).get("version") or "ok"
+        return "OK", f"Conexão Proxmox VE validada em modo leitura. Versão: {version}."
+
+    @classmethod
+    def _testar_pbs(cls, integracao, segredo):
+        token_nome = cls._token_api_nome(integracao)
+        headers = {"Authorization": f"PBSAPIToken={token_nome}:{segredo}"}
+        response = requests.get(
+            f"{integracao.get('base_url').rstrip('/')}/api2/json/version",
+            headers=headers,
+            timeout=cls._timeout(integracao),
+            verify=cls._verify_ssl(integracao),
+        )
+        if response.status_code in (401, 403):
+            return "ERRO", "PBS respondeu, mas recusou autenticação/permissão do token."
+        response.raise_for_status()
+        version = ((response.json() or {}).get("data") or {}).get("version") or "ok"
+        return "OK", f"Conexão PBS validada em modo leitura. Versão: {version}."
+
+    @classmethod
+    def _testar_zabbix(cls, integracao, segredo):
+        url = f"{integracao.get('base_url').rstrip('/')}/api_jsonrpc.php"
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "host.get",
+            "params": {"output": ["hostid"], "limit": 1},
+            "auth": segredo,
+            "id": 1,
+        }
+        response = requests.post(
+            url,
+            json=payload,
+            timeout=cls._timeout(integracao),
+            verify=cls._verify_ssl(integracao),
+        )
+        body = response.json() if response.text else {}
+        if response.ok and isinstance(body, dict) and "result" in body:
+            return "OK", "Conexão Zabbix validada em modo leitura."
+        payload.pop("auth", None)
+        response = requests.post(
+            url,
+            json=payload,
+            headers={"Authorization": f"Bearer {segredo}"},
+            timeout=cls._timeout(integracao),
+            verify=cls._verify_ssl(integracao),
+        )
+        body = response.json() if response.text else {}
+        if response.ok and isinstance(body, dict) and "result" in body:
+            return "OK", "Conexão Zabbix validada em modo leitura."
+        if isinstance(body, dict) and body.get("error"):
+            return "ERRO", f"Zabbix recusou a validação: {cls._mensagem_zabbix(body.get('error'))}"
+        response.raise_for_status()
+        return "ERRO", "Zabbix respondeu, mas sem resultado válido para consulta read-only."
+
+    @classmethod
+    def _testar_truenas(cls, integracao, segredo):
+        response = requests.get(
+            f"{integracao.get('base_url').rstrip('/')}/api/v2.0/system/info",
+            headers={"Authorization": f"Bearer {segredo}"},
+            timeout=cls._timeout(integracao),
+            verify=cls._verify_ssl(integracao),
+        )
+        if response.status_code in (401, 403):
+            return "ERRO", "TrueNAS respondeu, mas recusou autenticação/permissão do token."
+        response.raise_for_status()
+        hostname = (response.json() or {}).get("hostname") or "ok"
+        return "OK", f"Conexão TrueNAS validada em modo leitura. Hostname: {hostname}."
+
+    @staticmethod
+    def _token_api_nome(integracao):
+        token_nome = (integracao.get("token_nome") or "").strip()
+        usuario = (integracao.get("usuario") or "").strip()
+        if "@" in token_nome and "!" in token_nome:
+            return token_nome
+        if usuario and token_nome:
+            return f"{usuario}!{token_nome}"
+        return token_nome or usuario
+
+    @staticmethod
+    def _timeout(integracao):
+        return int(integracao.get("timeout_seconds") or 30)
+
+    @staticmethod
+    def _verify_ssl(integracao):
+        return bool(integracao.get("verify_ssl"))
+
+    @staticmethod
+    def _mensagem_segura(erro):
+        mensagem = str(erro)
+        if len(mensagem) > 180:
+            return mensagem[:177] + "..."
+        return mensagem
+
+    @staticmethod
+    def _mensagem_zabbix(erro):
+        if not isinstance(erro, dict):
+            return "erro API"
+        return erro.get("message") or erro.get("data") or "erro API"
 
     @classmethod
     def _normalizar(cls, dados, exigir_segredo=False, existente=None):
@@ -341,7 +487,7 @@ class IntegracaoConfigService:
             return "ERRO", "Informe usuário ou nome do token."
         if integracao.get("tipo") in ("zabbix", "omie", "clicksign") and not integracao.get("token_nome"):
             return "AVISO", "Configuração estrutural válida. Recomenda-se informar nome do token para auditoria."
-        return "OK", "Configuração estrutural válida. Conexão externa será habilitada em etapa futura."
+        return "OK", "Configuração estrutural válida."
 
     @staticmethod
     def _normalizar_url(valor):

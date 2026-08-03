@@ -1,6 +1,9 @@
+from datetime import date
+
 from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 
 from app.contratos.service import ContratoService
+from app.propostas.service import PropostaService
 from app.implantacao.service import ImplantacaoService
 from app.integracoes.omie.sync import OmieSync
 from app.repositories.contrato_item_repository import ContratoItemRepository
@@ -118,6 +121,20 @@ def dashboard():
 @contratos_bp.route("/novo", methods=["GET", "POST"])
 def novo():
     contexto = ContratoService.contexto_form()
+    proposta_id = request.args.get("proposta_id", type=int)
+    if proposta_id and request.method == "GET":
+        proposta = PropostaService.buscar_por_id(proposta_id)
+        if proposta:
+            contexto["contrato"] = ContratoService._proposta_para_form(proposta_id)
+            contexto["contrato"].update({
+                "proposta_id": proposta_id,
+                "numero": proposta.get("codigo_proposta"),
+                "descricao": proposta.get("titulo"),
+                "data_fechamento": date.today().isoformat(),
+                "status": "RASCUNHO",
+            })
+        else:
+            flash("Proposta não encontrada para gerar contrato.", "danger")
 
     if request.method == "POST":
         dados = _form_data()
@@ -139,7 +156,6 @@ def editar(contrato_id):
     if not contrato:
         return redirect(url_for("contratos.index"))
     contexto = ContratoService.contexto_form()
-
     if request.method == "POST":
         dados = _form_data()
         try:

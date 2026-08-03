@@ -31,6 +31,29 @@ class CofrePastaRepository(BaseRepository):
 
 
     @classmethod
+    def listar_ativas_para_usuario(cls, usuario_email):
+        usuario_email = usuario_email or "sistema"
+        if usuario_email == "sistema":
+            return cls.listar_ativas()
+        return cls.fetch_all(
+            """
+            SELECT *
+            FROM implantacao_cofre_pastas
+            WHERE ativo = 1
+              AND (
+                tipo <> 'usuario'
+                OR owner_email = %s
+                OR (
+                    compartilhada = 1
+                    AND CONCAT(',', REPLACE(COALESCE(compartilhada_com, ''), ' ', ''), ',') LIKE %s
+                )
+              )
+            ORDER BY tipo ASC, nome ASC
+            """,
+            (usuario_email, f"%,{usuario_email.replace(' ', '')},%"),
+        )
+
+    @classmethod
     def listar_parceiros_navegacao(cls):
         return cls.fetch_all(
             """
@@ -97,6 +120,78 @@ class CofrePastaRepository(BaseRepository):
             ORDER BY COALESCE(cp.cliente_nome, cp.nome), cp.nome
             """,
             (parceiro_id,),
+        )
+
+    @classmethod
+    def listar_usuarios_sistema(cls):
+        consultas = (
+            "SELECT email, COALESCE(nome, email) AS nome FROM usuarios WHERE ativo = 1 AND email IS NOT NULL ORDER BY nome",
+            "SELECT email, COALESCE(name, email) AS nome FROM users WHERE active = 1 AND email IS NOT NULL ORDER BY nome",
+        )
+        for sql in consultas:
+            try:
+                usuarios = cls.fetch_all(sql)
+                if usuarios:
+                    return usuarios
+            except Exception:
+                pass
+        return cls.fetch_all(
+            """
+            SELECT email, email AS nome
+            FROM (
+                SELECT owner_email AS email FROM implantacao_cofre_pastas WHERE owner_email IS NOT NULL AND owner_email <> ''
+                UNION
+                SELECT created_by AS email FROM implantacao_cofre_senhas WHERE created_by IS NOT NULL AND created_by <> ''
+                UNION
+                SELECT updated_by AS email FROM implantacao_cofre_senhas WHERE updated_by IS NOT NULL AND updated_by <> ''
+            ) usuarios_cofre
+            WHERE email <> 'sistema'
+            ORDER BY email
+            """
+        )
+
+    @classmethod
+    def listar_pastas_usuario(cls, usuario_email):
+        usuario_email = usuario_email or "sistema"
+        return cls.fetch_all(
+            """
+            SELECT
+                cp.*,
+                COUNT(DISTINCT cs.id) AS total_credenciais,
+                SUM(CASE WHEN cs.ativo = 1 THEN 1 ELSE 0 END) AS credenciais_ativas
+            FROM implantacao_cofre_pastas cp
+            LEFT JOIN implantacao_cofre_senhas cs
+                ON cs.pasta_id = cp.id
+            WHERE cp.ativo = 1
+                AND cp.tipo = 'usuario'
+                AND cp.owner_email = %s
+            GROUP BY cp.id
+            ORDER BY cp.nome ASC, cp.id DESC
+            """,
+            (usuario_email,),
+        )
+
+    @classmethod
+    def listar_pastas_compartilhadas_com_usuario(cls, usuario_email):
+        usuario_email = usuario_email or "sistema"
+        return cls.fetch_all(
+            """
+            SELECT
+                cp.*,
+                COUNT(DISTINCT cs.id) AS total_credenciais,
+                SUM(CASE WHEN cs.ativo = 1 THEN 1 ELSE 0 END) AS credenciais_ativas
+            FROM implantacao_cofre_pastas cp
+            LEFT JOIN implantacao_cofre_senhas cs
+                ON cs.pasta_id = cp.id
+            WHERE cp.ativo = 1
+                AND cp.tipo = 'usuario'
+                AND cp.compartilhada = 1
+                AND cp.owner_email <> %s
+                AND CONCAT(',', REPLACE(COALESCE(cp.compartilhada_com, ''), ' ', ''), ',') LIKE %s
+            GROUP BY cp.id
+            ORDER BY cp.owner_email ASC, cp.nome ASC, cp.id DESC
+            """,
+            (usuario_email, f"%,{usuario_email.replace(' ', '')},%"),
         )
 
     @classmethod

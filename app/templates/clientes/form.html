@@ -117,6 +117,7 @@
 		        value="{{ cliente.cnpj if cliente else '' }}"
                         {% if modo == "editar" and cliente.origem == "OMIE" %}readonly{% endif %}
                         required>
+                    <div class="form-text" id="cnpj_lookup_status"></div>
 
                 </div>
 
@@ -264,5 +265,45 @@
     </div>
 
 </div>
+
+
+<script>
+const cnpjInput = document.querySelector('[name="cnpj"]');
+const cnpjStatus = document.getElementById('cnpj_lookup_status');
+const clienteFields = {
+    nome_fantasia: document.querySelector('[name="nome_fantasia"]'),
+    razao_social: document.querySelector('[name="razao_social"]'),
+    email: document.querySelector('[name="email"]'),
+    telefone: document.querySelector('[name="telefone"]'),
+    cidade: document.querySelector('[name="cidade"]'),
+    estado: document.querySelector('[name="estado"]'),
+};
+function onlyDigits(value) { return String(value || '').replace(/\D/g, ''); }
+function fillIfEmpty(field, value) { if (field && !field.value && value) field.value = value; }
+async function buscarCnpjReceita() {
+    if (!cnpjInput || cnpjInput.readOnly) return;
+    const cnpj = onlyDigits(cnpjInput.value);
+    if (cnpj.length !== 14) {
+        if (cnpjStatus) cnpjStatus.textContent = '';
+        return;
+    }
+    if (cnpjStatus) cnpjStatus.textContent = 'Buscando dados cadastrais...';
+    try {
+        const response = await fetch('https://brasilapi.com.br/api/cnpj/v1/' + cnpj);
+        if (!response.ok) throw new Error('CNPJ não encontrado');
+        const data = await response.json();
+        fillIfEmpty(clienteFields.razao_social, data.razao_social);
+        fillIfEmpty(clienteFields.nome_fantasia, data.nome_fantasia || data.razao_social);
+        fillIfEmpty(clienteFields.email, data.email);
+        fillIfEmpty(clienteFields.telefone, data.ddd_telefone_1);
+        fillIfEmpty(clienteFields.cidade, data.municipio);
+        fillIfEmpty(clienteFields.estado, data.uf);
+        if (cnpjStatus) cnpjStatus.textContent = 'Dados preenchidos pela consulta de CNPJ.';
+    } catch (error) {
+        if (cnpjStatus) cnpjStatus.textContent = 'Não foi possível buscar este CNPJ. Preencha manualmente.';
+    }
+}
+if (cnpjInput) cnpjInput.addEventListener('blur', buscarCnpjReceita);
+</script>
 
 {% endblock %}

@@ -19,24 +19,55 @@
             </div>
         </form>
         <div class="mb-3"><small class="text-muted">{{ total }} proposta(s) cadastradas</small></div>
-        <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Proposta</th><th>Cliente</th><th>Executivo</th><th>Status</th><th>ClickSign</th><th>Total Mensal</th><th>Total Geral</th><th width="220">Ações</th></tr></thead><tbody>
+        <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Proposta</th><th>Cliente</th><th>Executivo</th><th>Status</th><th>Fechamento</th><th>ClickSign</th><th>Total Mensal</th><th>Total Geral</th><th width="260">Ações</th></tr></thead><tbody>
             {% for proposta in propostas %}
             <tr>
                 <td><strong>{{ proposta.titulo }}</strong><br><small class="text-muted">{{ proposta.codigo_proposta or '-' }} • Versão {{ proposta.versao }}</small></td>
                 <td>{{ proposta.cliente_nome or '-' }}</td>
                 <td>{{ proposta.executivo_nome or '-' }}</td>
-                <td><span class="badge bg-secondary">{{ status_options.get(proposta.status, proposta.status) }}</span></td>
+                <td>
+                    <form method="POST" action="{{ url_for('propostas.atualizar_status', proposta_id=proposta.id) }}">
+                        <select class="form-select form-select-sm" name="status" onchange="this.form.submit()">
+                            {% for valor, descricao in status_options.items() %}
+                            <option value="{{ valor }}" {% if proposta.status == valor %}selected{% endif %}>{{ descricao }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </td>
+                {% set semaforo = proposta.semaforo_fechamento or ('QUENTE' if proposta.status == 'APROVADA' else ('MORNO' if proposta.status in ['ENVIADA', 'EM_ANALISE'] else 'FRIO')) %}
+                <td><span class="proposal-semaforo semaforo-{{ semaforo|lower }}"></span> {{ {'FRIO':'Frio','MORNO':'Morno','QUENTE':'Quente'}.get(semaforo, semaforo) }}</td>
                 <td><span class="badge bg-light text-dark border">{{ clicksign_status_options.get(proposta.clicksign_status, proposta.clicksign_status or 'NAO_ENVIADO') }}</span></td>
                 <td>{% if proposta.total_mensal is not none %}{{ proposta.total_mensal|moeda }}{% else %}-{% endif %}</td>
                 <td>{% if proposta.valor_total is not none %}{{ proposta.valor_total|moeda }}{% else %}-{% endif %}</td>
-                <td><div class="btn-group btn-group-sm"><a href="{{ url_for('propostas.visualizar', proposta_id=proposta.id) }}" class="btn btn-outline-secondary"><i class="bi bi-eye"></i></a><a href="{{ url_for('propostas.imprimir', proposta_id=proposta.id) }}" target="_blank" class="btn btn-outline-dark"><i class="bi bi-printer"></i></a><a href="{{ url_for('propostas.exportar_docx', proposta_id=proposta.id) }}" class="btn btn-outline-success"><i class="bi bi-file-earmark-word"></i></a><a href="{{ url_for('propostas.editar', proposta_id=proposta.id) }}" class="btn btn-outline-primary"><i class="bi bi-pencil"></i></a><a href="{{ url_for('propostas.excluir', proposta_id=proposta.id) }}" onclick="return confirm('Deseja realmente excluir esta proposta?')" class="btn btn-outline-danger"><i class="bi bi-trash"></i></a></div></td>
+                <td>
+                    <div class="d-flex gap-1 flex-wrap">
+                        <a href="{{ url_for('propostas.visualizar', proposta_id=proposta.id) }}" class="btn btn-outline-secondary btn-sm" title="Visualizar"><i class="bi bi-eye"></i></a>
+                        <a href="{{ url_for('propostas.imprimir', proposta_id=proposta.id) }}" target="_blank" class="btn btn-outline-dark btn-sm" title="Imprimir proposta"><i class="bi bi-printer"></i></a>
+                        <a href="{{ url_for('propostas.exportar_docx', proposta_id=proposta.id) }}" class="btn btn-outline-success btn-sm" title="Exportar DOCX"><i class="bi bi-file-earmark-word"></i></a>
+                        {% if proposta.status == 'APROVADA' and proposta.clicksign_status not in ['ASSINADO', 'CONCLUIDO'] %}
+                            <a href="{{ url_for('propostas.atualizar_clicksign', proposta_id=proposta.id, acao='preparar') }}" class="btn btn-outline-secondary btn-sm" title="Gerar documento do contrato"><i class="bi bi-file-earmark-text"></i> Gerar</a>
+                            {% if proposta.clicksign_document_key and not proposta.clicksign_envelope_id %}
+                            <a href="{{ url_for('propostas.atualizar_clicksign', proposta_id=proposta.id, acao='enviar') }}" class="btn btn-outline-primary btn-sm" title="Enviar para ClickSign"><i class="bi bi-send"></i> Enviar</a>
+                            {% endif %}
+                        {% endif %}
+                        <a href="{{ url_for('propostas.editar', proposta_id=proposta.id) }}" class="btn btn-outline-primary btn-sm" title="Editar"><i class="bi bi-pencil"></i></a>
+                        <a href="{{ url_for('propostas.excluir', proposta_id=proposta.id) }}" onclick="return confirm('Deseja realmente excluir esta proposta?')" class="btn btn-outline-danger btn-sm" title="Excluir"><i class="bi bi-trash"></i></a>
+                    </div>
+                </td>
             </tr>
             {% else %}
-                {% set colspan = 8 %}
+                {% set colspan = 9 %}
                 {% set empty_message = "Nenhuma proposta encontrada." %}
                 {% include "components/empty_state.html" %}
             {% endfor %}
         </tbody></table></div>
     </div></div>
 </div>
+<style>
+.proposal-semaforo{display:inline-block;width:.75rem;height:.75rem;border-radius:50%;border:1px solid rgba(0,0,0,.18);vertical-align:middle;margin-right:.25rem}
+.semaforo-frio{background:#3b82f6}
+.semaforo-morno{background:#f59e0b}
+.semaforo-quente{background:#22c55e}
+</style>
+
 {% endblock %}

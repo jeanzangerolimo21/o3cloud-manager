@@ -27,32 +27,6 @@
 
     {% include "components/rastreabilidade.html" %}
 
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
-            <div>
-                <strong>Diagnostico pre-Beta do contrato</strong><br>
-                <small class="text-muted">Leitura de pendencias sem bloquear contratos diretos ou dados financeiros ainda pendentes da Beta.</small>
-            </div>
-            <span class="badge text-bg-light border align-self-lg-center">Sprint 14</span>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                {% for item in diagnostico_pre_beta %}
-                    <div class="col-md-6 col-xl-4">
-                        <div class="border rounded-2 p-3 h-100">
-                            <div class="d-flex justify-content-between align-items-start gap-2">
-                                <div>
-                                    <strong>{{ item.titulo }}</strong><br>
-                                    <small class="text-muted">{{ item.detalhe }}</small>
-                                </div>
-                                <span class="badge text-bg-{{ item.classe }}"><i class="bi {{ item.icone }}"></i></span>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
 
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -73,7 +47,7 @@
                 <div class="col-md-3"><strong>Usuarios</strong><br>{{ contrato.quantidade_usuarios or '-' }}</div>
                 <div class="col-md-3"><strong>Executivo</strong><br>{{ contrato.executivo_nome or 'Nao informado' }}</div>
                 <div class="col-md-3"><strong>Parceiro</strong><br>{{ contrato.parceiro_nome or 'Sem parceiro' }}</div>
-                <div class="col-md-3"><strong>Contato</strong><br>{{ contrato.contato_nome or '-' }}</div>
+                <div class="col-md-3"><strong>Representante Legal</strong><br>{{ contrato.contato_nome or '-' }}</div>
                 <div class="col-md-3"><strong>E-mail</strong><br>{{ contrato.contato_email or contrato.cliente_email or '-' }}</div>
             </div>
 

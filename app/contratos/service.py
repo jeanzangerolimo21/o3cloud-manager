@@ -151,7 +151,7 @@ class ContratoService:
                 "telefone": contato.get("telefone") or contato.get("whatsapp") or "",
                 "whatsapp": contato.get("whatsapp") or "",
             }
-            for contato in ContatoService.listar_todos_ativos()
+            for contato in ContatoService.listar_todos_ativos("REPRESENTANTE_LEGAL")
         ]
 
     @classmethod
@@ -174,6 +174,7 @@ class ContratoService:
             "id": proposta.get("id"),
             "codigo": proposta.get("codigo_proposta") or "",
             "titulo": proposta.get("titulo") or "",
+            "cliente_nome": proposta.get("cliente_nome") or proposta.get("cliente_nome_fantasia") or proposta.get("cliente_razao_social") or "",
             "status": proposta.get("status") or "",
             "cliente_id": proposta.get("cliente_id"),
             "contato_id": proposta.get("contato_id"),
@@ -192,7 +193,7 @@ class ContratoService:
     @classmethod
     def criar(cls, dados, arquivo_preparado=None):
         dados = cls._normalizar(dados)
-        cls._validar(dados, arquivo_preparado=arquivo_preparado, exigir_pdf=True)
+        cls._validar(dados, arquivo_preparado=arquivo_preparado, exigir_pdf=False)
         cls._aplicar_arquivo_preparado(dados, arquivo_preparado)
         return ContratoRepository.inserir_manual(dados)
 
@@ -279,7 +280,7 @@ class ContratoService:
             "data_inicio_recorrencia",
             "data_ativacao",
         ):
-            dados[campo] = dados.get(campo) or None
+            dados[campo] = (dados.get(campo) or "").strip() or None
 
         cls._preencher_dados_contato(dados)
         for campo in ("contato_nome", "contato_email", "contato_telefone", "observacoes"):
@@ -304,6 +305,8 @@ class ContratoService:
         contato = ContatoService.buscar_por_id(dados.get("contato_id"))
         if not contato:
             return
+        if contato.get("tipo_contato") != "REPRESENTANTE_LEGAL":
+            raise ValueError("Selecione um contato do tipo Representante Legal para o contrato.")
         dados["contato_nome"] = dados.get("contato_nome") or contato.get("nome")
         dados["contato_email"] = dados.get("contato_email") or contato.get("email")
         dados["contato_telefone"] = dados.get("contato_telefone") or contato.get("telefone") or contato.get("whatsapp")
@@ -325,6 +328,22 @@ class ContratoService:
             erros.append("Informe o telefone do contato")
         if not dados.get("data_fechamento"):
             erros.append("Informe a data de fechamento")
+
+        for campo, label in (
+            ("inicio_vigencia", "Data de inicio da vigencia"),
+            ("fim_vigencia", "Data de fim da vigencia"),
+            ("data_fechamento", "Data de fechamento"),
+            ("data_inicio_recorrencia", "Data inicio recorrente"),
+            ("data_ativacao", "Data de ativacao"),
+        ):
+            valor = dados.get(campo)
+            if not valor:
+                continue
+            try:
+                datetime.strptime(valor, "%Y-%m-%d")
+            except ValueError:
+                erros.append(f"{label} invalida. Use uma data valida no formato AAAA-MM-DD")
+
         if not dados.get("valor_mensal") or dados["valor_mensal"] <= 0:
             erros.append("Informe o valor recorrente")
         if dados.get("quantidade_usuarios") is not None and dados["quantidade_usuarios"] < 0:

@@ -1,0 +1,28 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Editar Implantador" if modo == "editar" else "Novo Implantador" %}
+    {% set page_description = "Responsável cadastrado para seleção em ambientes e implantação." %}
+    {% set page_icon = "bi-person-badge" %}
+    {% set page_button_url = url_for("ambientes.implantadores") %}
+    {% set page_button_icon = "bi-arrow-left" %}
+    {% set page_button_text = "Voltar" %}
+    {% include "components/page_header.html" %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row g-3">
+                    <div class="col-md-5"><label class="form-label">Nome</label><input class="form-control" name="nome" value="{{ implantador.nome or '' }}" required></div>
+                    <div class="col-md-4"><label class="form-label">E-mail</label><input class="form-control" type="email" name="email" value="{{ implantador.email or '' }}"></div>
+                    <div class="col-md-3"><label class="form-label">Telefone</label><input class="form-control" name="telefone" value="{{ implantador.telefone or '' }}"></div>
+                    <div class="col-12"><label class="form-label">Observações</label><textarea class="form-control" name="observacoes" rows="4">{{ implantador.observacoes or '' }}</textarea></div>
+                    <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="ativo" value="1" {% if implantador.ativo is not defined or implantador.ativo %}checked{% endif %}><label class="form-check-label">Ativo</label></div></div>
+                    <div class="col-12 text-end"><a class="btn btn-secondary" href="{{ url_for('ambientes.implantadores') }}">Cancelar</a> <button class="btn btn-primary"><i class="bi bi-check-circle"></i> Salvar</button></div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

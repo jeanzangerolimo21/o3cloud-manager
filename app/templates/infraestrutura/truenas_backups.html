@@ -1,0 +1,123 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Backup NAS" %}
+    {% set page_description = "Status das pastas de backup dos clientes no TrueNAS." %}
+    {% set page_icon = "bi-device-hdd" %}
+    {% include "components/page_header.html" %}
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('infraestrutura.monitoramento_zabbix') }}"><i class="bi bi-activity"></i> Monitoramento Zabbix</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('infraestrutura.backups_pbs') }}"><i class="bi bi-server"></i> Backups PBS</a>
+    </div>
+
+    {% if status == "PENDENTE" %}
+    <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> {{ mensagem }}</div>
+    {% else %}
+    <div class="alert alert-secondary"><i class="bi bi-shield-lock-fill"></i> Leitura rápida via cache local. A varredura TrueNAS é executada somente ao clicar em Sincronizar TrueNAS.</div>
+    {% endif %}
+
+    {% if dashboard.alerta_total %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        {{ dashboard.alerta_total }} pasta(s) sem arquivo alterado nas últimas {{ periodo_horas }} hora(s).
+    </div>
+    {% endif %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Pastas</small><h4>{{ dashboard.total or 0 }}</h4></div></div></div>
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">OK</small><h4 class="text-success">{{ dashboard.ok_total or 0 }}</h4></div></div></div>
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Alertas</small><h4 class="text-warning">{{ dashboard.alerta_total or 0 }}</h4></div></div></div>
+        <div class="col-md-4 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Arquivos recentes</small><h4>{{ dashboard.arquivos_recentes or 0 }}</h4></div></div></div>
+        <div class="col-md-4 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Último sync</small><h4 class="fs-6">{{ dashboard.ultimo_sync.strftime('%d/%m/%Y %H:%M') if dashboard.ultimo_sync else 'Nunca' }}</h4></div></div></div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end mb-4">
+                <div class="col-md-4">
+                    <label class="form-label">Integração TrueNAS</label>
+                    <select class="form-select" name="integracao_id">
+                        {% for item in integracoes_truenas %}
+                        <option value="{{ item.id }}" {% if selected_integracao_id == item.id %}selected{% endif %}>{{ item.nome }} - {{ item.base_url }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2"><label class="form-label">Período</label><input class="form-control" type="number" name="periodo_horas" min="1" max="168" value="{{ periodo_horas }}"></div>
+                <div class="col-md-3"><label class="form-label">Pasta ou arquivo</label><input class="form-control" type="search" name="q" value="{{ pesquisa }}" placeholder="cliente, pasta ou arquivo"></div>
+                <input type="hidden" name="aba" value="{{ aba }}">
+                <div class="col-md-3"><button class="btn btn-primary w-100"><i class="bi bi-search"></i> Filtrar cache</button></div>
+            </form>
+
+            <div class="d-flex justify-content-end mb-3">
+                <form method="POST" action="{{ url_for('infraestrutura.sincronizar_backup_nas') }}">
+                    <input type="hidden" name="integracao_id" value="{{ selected_integracao_id or '' }}">
+                    <input type="hidden" name="periodo_horas" value="{{ periodo_horas }}">
+                    <input type="hidden" name="q" value="{{ pesquisa }}">
+                    <input type="hidden" name="aba" value="{{ aba }}">
+                    <button class="btn btn-success" type="submit"><i class="bi bi-arrow-repeat"></i> Sincronizar TrueNAS</button>
+                </form>
+            </div>
+
+            <ul class="nav nav-tabs mb-3">
+                <li class="nav-item"><a class="nav-link {% if aba == 'alertas' %}active{% endif %}" href="{{ url_for('infraestrutura.backup_nas', integracao_id=selected_integracao_id, periodo_horas=periodo_horas, q=pesquisa, aba='alertas') }}">Alertas <span class="badge text-bg-warning">{{ registros_alerta|length }}</span></a></li>
+                <li class="nav-item"><a class="nav-link {% if aba == 'ok' %}active{% endif %}" href="{{ url_for('infraestrutura.backup_nas', integracao_id=selected_integracao_id, periodo_horas=periodo_horas, q=pesquisa, aba='ok') }}">Backups OK <span class="badge text-bg-success">{{ registros_ok|length }}</span></a></li>
+            </ul>
+
+            <div class="tab-content">
+                <div class="tab-pane fade {% if aba == 'alertas' %}show active{% endif %}" id="tab-alertas">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light"><tr><th>Status</th><th>Cliente/Pasta</th><th>Mount</th><th>Arquivos recentes</th><th>Total arquivos</th><th>Último arquivo</th><th>Última alteração</th><th>Tempo sem alteração</th></tr></thead>
+                            <tbody>
+                            {% for item in registros_alerta %}
+                                <tr class="table-warning">
+                                    <td><span class="badge text-bg-warning">ALERTA</span></td>
+                                    <td><strong>{{ item.prefixo_proxmox }}</strong><br><small class="text-muted">{{ item.cliente_nome or '-' }}</small><br><small class="text-muted">{{ item.pasta_path }}</small></td>
+                                    <td>{{ item.mountpoint }}</td>
+                                    <td>{{ item.arquivos_recentes }}</td>
+                                    <td>{{ item.arquivos_total }}</td>
+                                    <td>{{ item.ultimo_arquivo or '-' }}</td>
+                                    <td>{{ item.ultimo_mtime.strftime('%d/%m/%Y %H:%M') if item.ultimo_mtime else '-' }}</td>
+                                    <td>{{ item.ultimo_mtime_ago }}</td>
+                                </tr>
+                            {% else %}
+                                {% set colspan = 8 %}
+                                {% set empty_message = "Nenhuma pasta em alerta." %}
+                                {% include "components/empty_state.html" %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade {% if aba == 'ok' %}show active{% endif %}" id="tab-ok">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light"><tr><th>Status</th><th>Cliente/Pasta</th><th>Mount</th><th>Arquivos recentes</th><th>Total arquivos</th><th>Último arquivo</th><th>Arquivos recentes com tamanho</th></tr></thead>
+                            <tbody>
+                            {% for item in registros_ok %}
+                                <tr>
+                                    <td><span class="badge text-bg-success">OK</span></td>
+                                    <td><strong>{{ item.prefixo_proxmox }}</strong><br><small class="text-muted">{{ item.cliente_nome or '-' }}</small><br><small class="text-muted">{{ item.pasta_path }}</small></td>
+                                    <td>{{ item.mountpoint }}</td>
+                                    <td>{{ item.arquivos_recentes }}</td>
+                                    <td>{{ item.arquivos_total }}</td>
+                                    <td>{{ item.ultimo_arquivo or '-' }}<br><small class="text-muted">{{ item.ultimo_mtime.strftime('%d/%m/%Y %H:%M') if item.ultimo_mtime else '-' }}</small></td>
+                                    <td>{% for detalhe in item.detalhes_lista %}<small class="d-block"><strong>{{ detalhe.nome }}</strong>{% if detalhe.size %} - {{ (detalhe.size / 1024 / 1024)|round(0)|int }}MB{% endif %}{% if detalhe.mtime %} - {{ detalhe.mtime }}{% endif %}</small>{% else %}<small class="text-muted">Nenhum arquivo recente.</small>{% endfor %}</td>
+                                </tr>
+                            {% else %}
+                                {% set colspan = 7 %}
+                                {% set empty_message = "Nenhuma pasta OK nas últimas horas." %}
+                                {% include "components/empty_state.html" %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

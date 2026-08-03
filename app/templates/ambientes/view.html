@@ -47,16 +47,16 @@
 
             <div class="row">
 
-                {% set label = "Cliente" %}
-                {% set value = ambiente.cliente_nome %}
+                {% set label = "Clientes" %}
+                {% set value = (ambiente.vinculos.clientes | map(attribute='nome_fantasia') | join(', ')) or ambiente.cliente_nome %}
                 {% include "components/info_item.html" %}
 
                 {% set label = "Parceiro" %}
                 {% set value = ambiente.parceiro_nome %}
                 {% include "components/info_item.html" %}
 
-                {% set label = "Contrato" %}
-                {% set value = ambiente.contrato_numero %}
+                {% set label = "Contratos" %}
+                {% set value = (ambiente.vinculos.contratos | map(attribute='numero') | join(', ')) or ambiente.contrato_numero %}
                 {% include "components/info_item.html" %}
 
                 {% set label = "Prefixo Proxmox" %}
@@ -111,28 +111,21 @@
 
             <div class="row">
 
-                {% set value = "--" %}
+                {% set recursos = ambiente.vinculos.recursos %}
+                {% set value = recursos | sum(attribute='cpu_cores') %}
                 {% set label = "CPU" %}
                 {% include "components/info_card.html" %}
 
-                {% set value = "--" %}
+                {% set value = ((recursos | sum(attribute='memoria_mb')) / 1024) | round(1) ~ ' GB' %}
                 {% set label = "RAM" %}
                 {% include "components/info_card.html" %}
 
-                {% set value = "--" %}
+                {% set value = (recursos | sum(attribute='disco_gb')) | round(1) ~ ' GB' %}
                 {% set label = "Disco" %}
                 {% include "components/info_card.html" %}
 
-                {% set value = "--" %}
-                {% set label = "Node" %}
-                {% include "components/info_card.html" %}
-
-                {% set value = "--" %}
-                {% set label = "Cluster" %}
-                {% include "components/info_card.html" %}
-
-                {% set value = "--" %}
-                {% set label = "Storage" %}
+                {% set value = recursos | length %}
+                {% set label = "VMs/Containers" %}
                 {% include "components/info_card.html" %}
 
             </div>

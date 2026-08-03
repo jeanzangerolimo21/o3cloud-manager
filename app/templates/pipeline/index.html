@@ -66,9 +66,16 @@
                 <article class="pipeline-card">
                     <div class="pipeline-card-title-row">
                         <h6 class="mb-1">{{ oportunidade.titulo }}</h6>
-                        {% if oportunidade.probabilidade is not none %}
-                        <span class="pipeline-probabilidade">{{ oportunidade.probabilidade }}%</span>
-                        {% endif %}
+                        <div class="d-flex align-items-center gap-1 flex-wrap">
+                            {% set semaforo = oportunidade.semaforo_fechamento or 'FRIO' %}
+                            <span class="pipeline-semaforo semaforo-{{ semaforo|lower }}" title="Fechamento {{ semaforo|lower }}"></span>
+                            {% if oportunidade.probabilidade is not none %}
+                            <span class="pipeline-probabilidade">{{ oportunidade.probabilidade }}%</span>
+                            {% endif %}
+                            {% if oportunidade.tipo_pipeline == 'PROPOSTA' %}
+                            <span class="badge bg-light text-dark border">Proposta</span>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <div class="pipeline-card-company">
@@ -79,17 +86,26 @@
                         <span><i class="bi bi-person"></i> {{ oportunidade.contato_nome or oportunidade.lead_empresa or '-' }}</span>
                         <span><i class="bi bi-grid"></i> {{ oportunidade.erp or '-' }}</span>
                         <span><i class="bi bi-people"></i> {{ oportunidade.quantidade_usuarios if oportunidade.quantidade_usuarios is not none else '-' }}</span>
-                        <span><i class="bi bi-cash-stack"></i> {% if oportunidade.valor_estimado is not none %}{{ oportunidade.valor_estimado|moeda }}{% else %}-{% endif %}</span>
+                        <span><i class="bi bi-cash-stack"></i> {% if oportunidade.valor_pipeline is not none %}{{ oportunidade.valor_pipeline|moeda }}{% else %}-{% endif %}</span>
                         <span><i class="bi bi-person-badge"></i> {{ oportunidade.executivo_responsavel_nome or '—' }}</span>
                     </div>
 
                     <div class="pipeline-card-actions">
+                        {% if oportunidade.tipo_pipeline == 'PROPOSTA' %}
+                        <a href="{{ url_for('propostas.visualizar', proposta_id=oportunidade.id) }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{{ url_for('propostas.editar', proposta_id=oportunidade.id) }}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% else %}
                         <a href="{{ url_for('oportunidades.visualizar', oportunidade_id=oportunidade.id) }}" class="btn btn-outline-secondary btn-sm">
                             <i class="bi bi-eye"></i>
                         </a>
                         <a href="{{ url_for('oportunidades.editar', oportunidade_id=oportunidade.id) }}" class="btn btn-outline-primary btn-sm">
                             <i class="bi bi-pencil"></i>
                         </a>
+                        {% endif %}
                     </div>
                 </article>
                 {% else %}
@@ -101,5 +117,12 @@
     </div>
 
 </div>
+
+<style>
+.pipeline-semaforo{display:inline-block;width:.75rem;height:.75rem;border-radius:50%;border:1px solid rgba(0,0,0,.18)}
+.semaforo-frio{background:#3b82f6}
+.semaforo-morno{background:#f59e0b}
+.semaforo-quente{background:#22c55e}
+</style>
 
 {% endblock %}

@@ -6,6 +6,7 @@ from flask import url_for
 from flask import flash
 
 from app.ambientes.service import AmbienteService
+from app.ambientes.implantador_service import ImplantadorService
 
 
 ambientes_bp = Blueprint(
@@ -25,9 +26,15 @@ def obter_dados_formulario():
 
         "cliente_id": request.form.get("cliente_id"),
 
+        "cliente_ids": request.form.getlist("cliente_ids"),
+
         "parceiro_id": request.form.get("parceiro_id"),
 
         "contrato_id": request.form.get("contrato_id"),
+
+        "contrato_ids": request.form.getlist("contrato_ids"),
+
+        "recurso_ids": request.form.getlist("recurso_ids"),
 
         "nome": request.form.get("nome"),
 
@@ -40,6 +47,8 @@ def obter_dados_formulario():
         "prefixo_proxmox": request.form.get("prefixo_proxmox"),
 
         "responsavel_implantacao": request.form.get("responsavel_implantacao"),
+
+        "implantador_id": request.form.get("implantador_id"),
 
         "descricao": request.form.get("descricao"),
 
@@ -86,6 +95,72 @@ def index():
     )
 
 
+
+
+def _dados_implantador_formulario():
+    return {
+        "nome": request.form.get("nome"),
+        "email": request.form.get("email"),
+        "telefone": request.form.get("telefone"),
+        "observacoes": request.form.get("observacoes"),
+        "ativo": 1 if request.form.get("ativo") else 0,
+    }
+
+
+@ambientes_bp.route("/implantadores")
+def implantadores():
+    pesquisa = request.args.get("q")
+    pagina = request.args.get("page", 1, type=int)
+    implantadores, total = ImplantadorService.listar(pesquisa=pesquisa, pagina=pagina)
+    return render_template(
+        "ambientes/implantadores/index.html",
+        implantadores=implantadores,
+        pesquisa=pesquisa,
+        pagina=pagina,
+        total=total,
+        total_paginas=(total + 49) // 50,
+        placeholder="Pesquisar por implantador",
+    )
+
+
+@ambientes_bp.route("/implantadores/novo", methods=["GET", "POST"])
+def novo_implantador():
+    if request.method == "POST":
+        try:
+            ImplantadorService.criar(_dados_implantador_formulario())
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            return render_template("ambientes/implantadores/form.html", implantador=request.form, modo="novo")
+        flash("Implantador cadastrado com sucesso.", "success")
+        return redirect(url_for("ambientes.implantadores"))
+    return render_template("ambientes/implantadores/form.html", implantador={"ativo": 1}, modo="novo")
+
+
+@ambientes_bp.route("/implantadores/<int:implantador_id>/editar", methods=["GET", "POST"])
+def editar_implantador(implantador_id):
+    implantador = ImplantadorService.buscar_por_id(implantador_id)
+    if not implantador:
+        flash("Implantador não encontrado.", "danger")
+        return redirect(url_for("ambientes.implantadores"))
+    if request.method == "POST":
+        try:
+            ImplantadorService.atualizar(implantador_id, _dados_implantador_formulario())
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            implantador = {**implantador, **request.form}
+            return render_template("ambientes/implantadores/form.html", implantador=implantador, modo="editar")
+        flash("Implantador atualizado com sucesso.", "success")
+        return redirect(url_for("ambientes.implantadores"))
+    return render_template("ambientes/implantadores/form.html", implantador=implantador, modo="editar")
+
+
+@ambientes_bp.route("/implantadores/<int:implantador_id>/excluir")
+def excluir_implantador(implantador_id):
+    ImplantadorService.inativar(implantador_id)
+    flash("Implantador inativado com sucesso.", "success")
+    return redirect(url_for("ambientes.implantadores"))
+
+
 @ambientes_bp.route("/novo", methods=["GET", "POST"])
 def novo():
 
@@ -93,11 +168,15 @@ def novo():
 
     if request.method == "POST":
 
-        AmbienteService.criar(
+        try:
+            AmbienteService.criar(
 
-            obter_dados_formulario()
+                obter_dados_formulario()
 
-        )
+            )
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            return render_template("ambientes/form.html", modo="novo", ambiente=request.form, **dependencias)
 
         flash(
 
@@ -163,13 +242,18 @@ def editar(ambiente_id):
 
     if request.method == "POST":
 
-        AmbienteService.atualizar(
+        try:
+            AmbienteService.atualizar(
 
-            ambiente_id,
+                ambiente_id,
 
-            obter_dados_formulario()
+                obter_dados_formulario()
 
-        )
+            )
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            ambiente = {**ambiente, **request.form}
+            return render_template("ambientes/form.html", ambiente=ambiente, modo="editar", **dependencias)
 
         flash(
 

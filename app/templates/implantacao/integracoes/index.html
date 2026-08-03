@@ -21,7 +21,7 @@
         <div class="col-md-3 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Erros cadastro</small><h4>{{ dashboard.diagnostico_erro_cadastro or dashboard.erros_cadastro or 0 }}</h4></div></div></div>
     </div>
 
-    <div class="alert alert-secondary"><i class="bi bi-shield-lock-fill"></i> Tokens e senhas ficam criptografados e mascarados por padrão. Nesta sprint as integrações técnicas são somente leitura/diagnóstico; a validação é estrutural e não executa automações destrutivas.</div>
+    <div class="alert alert-secondary"><i class="bi bi-shield-lock-fill"></i> Tokens e senhas ficam criptografados e mascarados por padrão. Nesta sprint as integrações técnicas são somente leitura/diagnóstico; a validação executa conexão real read-only e não executa automações destrutivas.</div>
 
     {% if plano_sincronismo_proxmox %}
     <div class="card border-0 shadow-sm mb-4">
@@ -137,7 +137,7 @@
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <a class="btn btn-outline-primary" href="{{ url_for('implantacao.editar_integracao_config', integracao_id=item.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
-                                    <form method="POST" action="{{ url_for('implantacao.testar_integracao_config', integracao_id=item.id) }}"><button class="btn btn-outline-info" title="Validar estrutura"><i class="bi bi-check2-circle"></i></button></form>
+                                    <form method="POST" action="{{ url_for('implantacao.testar_integracao_config', integracao_id=item.id) }}"><button class="btn btn-outline-info" title="Validar conexão read-only"><i class="bi bi-check2-circle"></i></button></form>
                                     {% if item.ativo %}<form method="POST" action="{{ url_for('implantacao.excluir_integracao_config', integracao_id=item.id) }}" onsubmit="return confirm('Inativar esta integração?');"><button class="btn btn-outline-danger" title="Inativar"><i class="bi bi-trash"></i></button></form>{% endif %}
                                 </div>
                             </td>
@@ -157,7 +157,7 @@
     <div class="card border-0 shadow-sm mt-4">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <strong>Validações recentes</strong>
-            <span class="badge text-bg-light border">Registro pre-Beta</span>
+            <span class="badge text-bg-light border">Registro read-only</span>
         </div>
         <div class="table-responsive">
             <table class="table align-middle mb-0">

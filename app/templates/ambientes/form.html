@@ -1,416 +1,235 @@
 {% extends "layout/base.html" %}
 
 {% block content %}
-
 <div class="container-fluid">
-
     {% set page_title = "Editar Ambiente" if modo == "editar" else "Novo Ambiente" %}
-    {% set page_description = "Cadastro de ambientes dos clientes." %}
+    {% set page_description = "Agrupamento operacional de clientes, contratos e recursos Proxmox." %}
     {% set page_icon = "bi-hdd-network" %}
     {% set page_button_url = url_for("ambientes.index") %}
     {% set page_button_icon = "bi-arrow-left" %}
     {% set page_button_text = "Voltar" %}
-
     {% include "components/page_header.html" %}
 
-    <div class="card shadow-sm">
+    {% set selected_clientes = ambiente.cliente_ids if ambiente and ambiente.cliente_ids is defined else ([ambiente.cliente_id] if ambiente and ambiente.cliente_id else []) %}
+    {% set selected_contratos = ambiente.contrato_ids if ambiente and ambiente.contrato_ids is defined else ([ambiente.contrato_id] if ambiente and ambiente.contrato_id else []) %}
+    {% set selected_recursos = ambiente.recurso_ids if ambiente and ambiente.recurso_ids is defined else [] %}
 
-        <div class="card-body">
-
-            <form method="POST">
-
-                <!-- ========================= -->
-                <!-- Cliente / Parceiro -->
-                <!-- ========================= -->
-
-                <div class="row">
-
-                    <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
-
-                            Cliente
-
-                        </label>
-
-                        <div class="input-group">
-
-                            <select
-                                class="form-select"
-                                name="cliente_id"
-                                required>
-
-                                <option value="">
-
-                                    Selecione...
-
-                                </option>
-
-                                {% for cliente in clientes %}
-
-                                    <option
-                                        value="{{ cliente.id }}"
-                                        {% if ambiente and ambiente.cliente_id == cliente.id %}
-                                            selected
-                                        {% endif %}>
-
-                                        {{ cliente.nome_fantasia }}
-
-                                    </option>
-
-                                {% endfor %}
-
-                            </select>
-
-                            <a
-                                href="{{ url_for('clientes.novo') }}"
-                                target="_blank"
-                                class="btn btn-outline-primary"
-                                title="Cadastrar Cliente">
-
-                                <i class="bi bi-plus-lg"></i>
-
-                            </a>
-
-                        </div>
-
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
-
-                            Parceiro
-
-                        </label>
-
-                        <div class="input-group">
-
-                            <select
-                                class="form-select"
-                                name="parceiro_id">
-
-                                <option value="">
-
-                                    Nenhum
-
-                                </option>
-
-                                {% for parceiro in parceiros %}
-
-                                    <option
-                                        value="{{ parceiro.id }}"
-                                        {% if ambiente and ambiente.parceiro_id == parceiro.id %}
-                                            selected
-                                        {% endif %}>
-
-                                        {{ parceiro.nome }}
-
-                                    </option>
-
-                                {% endfor %}
-
-                            </select>
-
-                            <a
-                                href="{{ url_for('parceiros.novo') }}"
-                                target="_blank"
-                                class="btn btn-outline-primary"
-                                title="Cadastrar Parceiro">
-
-                                <i class="bi bi-plus-lg"></i>
-
-                            </a>
-
-                        </div>
-
-                    </div>
-
+    <form method="POST">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white"><strong>Identificação</strong></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label">Nome do Ambiente</label><input class="form-control" name="nome" required value="{{ ambiente.nome if ambiente else "" }}"></div>
+                    <div class="col-md-3"><label class="form-label">Tipo</label><select class="form-select" name="ambiente_tipo">{% for valor, label in [("PRODUCAO", "Produção"), ("IMPLANTACAO", "Implantação"), ("HOMOLOGACAO", "Homologação"), ("TESTE", "Teste"), ("TEMPLATE", "Template"), ("OUTRO", "Outro")] %}<option value="{{ valor }}" {% if ambiente and ambiente.ambiente_tipo == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                    <div class="col-md-3"><label class="form-label">Situação</label><select class="form-select" name="situacao">{% for valor, label in [("IMPLANTACAO", "Implantação"), ("ATIVO", "Ativo"), ("SUSPENSO", "Suspenso"), ("DESATIVADO", "Desativado")] %}<option value="{{ valor }}" {% if ambiente and ambiente.situacao == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                    <div class="col-md-3"><label class="form-label">Origem</label><select class="form-select" name="origem">{% for valor in ["MANUAL", "PROXMOX", "OMIE", "API"] %}<option value="{{ valor }}" {% if ambiente and ambiente.origem == valor %}selected{% endif %}>{{ valor }}</option>{% endfor %}</select></div>
+                    <div class="col-md-3"><label class="form-label">Prefixo Proxmox</label><input class="form-control" name="prefixo_proxmox" value="{{ ambiente.prefixo_proxmox if ambiente else "" }}"></div>
+                    <div class="col-md-3"><label class="form-label">Implantador</label><select class="form-select" name="implantador_id"><option value="">Selecione...</option>{% for implantador in implantadores %}<option value="{{ implantador.id }}" {% if ambiente and ambiente.implantador_id == implantador.id %}selected{% endif %}>{{ implantador.nome }}</option>{% endfor %}</select></div>
+                    <div class="col-md-3"><label class="form-label">Responsável legado</label><input class="form-control" name="responsavel_implantacao" value="{{ ambiente.responsavel_implantacao if ambiente else "" }}"></div>
                 </div>
-
-                <!-- ========================= -->
-                <!-- Contrato / Origem -->
-                <!-- ========================= -->
-
-                <div class="row">
-
-                    <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
-
-                            Contrato
-
-                        </label>
-
-                        <div class="input-group">
-
-                            <select
-                                class="form-select"
-                                name="contrato_id">
-
-                                <option value="">
-
-                                    Nenhum
-
-                                </option>
-
-                                {% for contrato in contratos %}
-
-                                    <option
-                                        value="{{ contrato.id }}"
-                                        {% if ambiente and ambiente.contrato_id == contrato.id %}
-                                            selected
-                                        {% endif %}>
-
-				    {{ contrato.nome }}
-
-                                    </option>
-
-                                {% endfor %}
-
-                            </select>
-
-                            <a
-                                href="{{ url_for('contratos.novo') }}"
-                                target="_blank"
-                                class="btn btn-outline-primary">
-
-                                <i class="bi bi-plus-lg"></i>
-
-                            </a>
-
-                        </div>
-
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
-
-                            Origem
-
-                        </label>
-
-                        <select
-                            class="form-select"
-                            name="origem">
-
-                            <option value="MANUAL">Manual</option>
-
-                            <option value="PROXMOX">Proxmox</option>
-
-                            <option value="OMIE">OMIE</option>
-
-                            <option value="API">API</option>
-
-                        </select>
-
-                    </div>
-
-                </div>
-
-                <!-- ========================= -->
-                <!-- Nome -->
-                <!-- ========================= -->
-
-                <div class="mb-3">
-
-                    <label class="form-label">
-
-                        Nome do Ambiente
-
-                    </label>
-
-                    <input
-                        class="form-control"
-                        name="nome"
-                        required
-                        value="{{ ambiente.nome if ambiente else '' }}">
-
-                </div>
-
-                <!-- ========================= -->
-                <!-- Tipo / Situação -->
-                <!-- ========================= -->
-
-                <div class="row">
-
-                    <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
-
-                            Tipo
-
-                        </label>
-
-                        <select
-                            class="form-select"
-                            name="ambiente_tipo">
-
-                            <option value="PRODUCAO">Produção</option>
-
-                            <option value="IMPLANTACAO">Implantação</option>
-
-                            <option value="HOMOLOGACAO">Homologação</option>
-
-                            <option value="TESTE">Teste</option>
-
-                            <option value="TEMPLATE">Template</option>
-
-                            <option value="OUTRO">Outro</option>
-
-                        </select>
-
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
-
-                            Situação
-
-                        </label>
-
-                        <select
-                            class="form-select"
-                            name="situacao">
-
-                            <option value="IMPLANTACAO">Implantação</option>
-
-                            <option value="ATIVO">Ativo</option>
-
-                            <option value="SUSPENSO">Suspenso</option>
-
-                            <option value="DESATIVADO">Desativado</option>
-
-                        </select>
-
-                    </div>
-
-                </div>
-
-                <!-- ========================= -->
-                <!-- Prefixo / Responsável -->
-                <!-- ========================= -->
-
-                <div class="row">
-
-                    <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
-
-                            Prefixo Proxmox
-
-                        </label>
-
-                        <input
-                            class="form-control"
-                            name="prefixo_proxmox"
-                            value="{{ ambiente.prefixo_proxmox if ambiente else '' }}">
-
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
-
-                            Responsável Implantação
-
-                        </label>
-
-                        <input
-                            class="form-control"
-                            name="responsavel_implantacao"
-                            value="{{ ambiente.responsavel_implantacao if ambiente else '' }}">
-
-                    </div>
-
-                </div>
-
-                <!-- Descrição -->
-
-                <div class="mb-3">
-
-                    <label class="form-label">
-
-                        Descrição
-
-                    </label>
-
-                    <textarea
-                        class="form-control"
-                        rows="3"
-                        name="descricao">{{ ambiente.descricao if ambiente else '' }}</textarea>
-
-                </div>
-
-                <!-- Observações -->
-
-                <div class="mb-3">
-
-                    <label class="form-label">
-
-                        Observações
-
-                    </label>
-
-                    <textarea
-                        class="form-control"
-                        rows="4"
-                        name="observacoes">{{ ambiente.observacoes if ambiente else '' }}</textarea>
-
-                </div>
-
-                <div class="form-check mb-4">
-
-                    <input
-                        class="form-check-input"
-                        type="checkbox"
-                        name="ativo"
-                        value="1"
-                        {% if ambiente %}
-                            {% if ambiente.ativo %}
-                                checked
-                            {% endif %}
-                        {% else %}
-                            checked
-                        {% endif %}>
-
-                    <label class="form-check-label">
-
-                        Ambiente Ativo
-
-                    </label>
-
-                </div>
-
-                <div class="d-flex justify-content-end">
-
-                    <a
-                        href="{{ url_for('ambientes.index') }}"
-                        class="btn btn-secondary me-2">
-
-                        Cancelar
-
-                    </a>
-
-                    <button
-                        class="btn btn-primary">
-
-                        <i class="bi bi-check-circle"></i>
-
-                        Salvar
-
-                    </button>
-
-                </div>
-
-            </form>
-
+            </div>
         </div>
 
-    </div>
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white"><strong>Vínculos comerciais</strong></div>
+            <div class="card-body"><div class="row g-4">
+                <div class="col-lg-6" data-picker data-input-name="cliente_ids">
+                    <label class="form-label">Clientes</label>
+                    <div class="position-relative js-search-picker">
+                        <div class="input-group">
+                            <input class="form-control js-picker-search" type="search" autocomplete="off" placeholder="Digite nome, razao social ou CNPJ...">
+                            <button class="btn btn-outline-primary js-picker-add" type="button" title="Adicionar cliente"><i class="bi bi-plus-lg"></i></button>
+                        </div>
+                        <select class="d-none js-picker-select" tabindex="-1" aria-hidden="true"><option value="">Selecione um cliente...</option>{% for cliente in clientes %}{% set nome_cliente = cliente.nome_fantasia or cliente.razao_social or cliente.id %}<option value="{{ cliente.id }}" data-label="{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj }}{% endif %}" data-search="{{ nome_cliente }} {{ cliente.razao_social or '' }} {{ cliente.cnpj or '' }}">{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj }}{% endif %}</option>{% endfor %}</select>
+                        <div class="list-group position-absolute start-0 end-0 shadow-sm d-none js-picker-results" style="z-index: 1040; max-height: 260px; overflow-y: auto;"></div>
+                    </div>
+                    <div class="list-group mt-3 js-picker-list"></div>
+                    {% for cliente in clientes %}{% if cliente.id in selected_clientes %}<input type="hidden" name="cliente_ids" value="{{ cliente.id }}" data-label="{{ cliente.nome_fantasia or cliente.razao_social }}">{% endif %}{% endfor %}
+                </div>
+                <div class="col-lg-6" data-picker data-input-name="contrato_ids">
+                    <label class="form-label">Contratos</label>
+                    <div class="position-relative js-search-picker">
+                        <div class="input-group">
+                            <input class="form-control js-picker-search" type="search" autocomplete="off" placeholder="Digite numero, cliente ou descricao...">
+                            <button class="btn btn-outline-primary js-picker-add" type="button" title="Adicionar contrato"><i class="bi bi-plus-lg"></i></button>
+                        </div>
+                        <select class="d-none js-picker-select" tabindex="-1" aria-hidden="true"><option value="">Selecione um contrato...</option>{% for contrato in contratos %}{% set status_contrato = contrato.status or "SEM_STATUS" %}{% set label_contrato = (contrato.numero or contrato.nome or contrato.descricao or contrato.id) ~ " - " ~ (contrato.cliente_nome or contrato.cliente_razao_social or "Cliente nao informado") ~ " [" ~ status_contrato ~ "]" %}<option value="{{ contrato.id }}" data-label="{{ label_contrato }}" data-search="{{ label_contrato }} {{ contrato.descricao or '' }}">{{ label_contrato }}</option>{% endfor %}</select>
+                        <div class="list-group position-absolute start-0 end-0 shadow-sm d-none js-picker-results" style="z-index: 1040; max-height: 260px; overflow-y: auto;"></div>
+                    </div>
+                    <div class="list-group mt-3 js-picker-list"></div>
+                    {% for contrato in contratos %}{% if contrato.id in selected_contratos %}<input type="hidden" name="contrato_ids" value="{{ contrato.id }}" data-label="{{ contrato.numero or contrato.nome or contrato.descricao }} - {{ contrato.cliente_nome or contrato.cliente_razao_social }} [{{ contrato.status or 'SEM_STATUS' }}]">{% endif %}{% endfor %}
+                </div>
+                <div class="col-md-6"><label class="form-label">Parceiro</label><select class="form-select" name="parceiro_id"><option value="">Nenhum</option>{% for parceiro in parceiros %}<option value="{{ parceiro.id }}" {% if ambiente and ambiente.parceiro_id == parceiro.id %}selected{% endif %}>{{ parceiro.nome }}</option>{% endfor %}</select></div>
+            </div></div>
+        </div>
 
+        <div class="card border-0 shadow-sm mb-4" data-picker data-input-name="recurso_ids">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>Recursos Proxmox</strong><span class="badge text-bg-light border">VMs e Containers sincronizados</span></div>
+            <div class="card-body">
+                <div class="position-relative js-search-picker">
+                    <div class="input-group">
+                        <input class="form-control js-picker-search" type="search" autocomplete="off" placeholder="Digite VMID, nome ou node...">
+                        <button class="btn btn-outline-primary js-picker-add" type="button" title="Adicionar recurso"><i class="bi bi-plus-lg"></i></button>
+                    </div>
+                    <select class="d-none js-picker-select" tabindex="-1" aria-hidden="true"><option value="">Selecione uma VM ou container...</option>{% for recurso in recursos_proxmox %}<option value="{{ recurso.id }}" data-label="{{ recurso.tipo|upper }} {{ recurso.vmid }} - {{ recurso.nome or "-" }} | {{ recurso.node }} | CPU {{ recurso.cpu_cores or "-" }} | RAM {{ recurso.memoria_mb or "-" }} MB | Disco {{ recurso.disco_gb or "-" }} GB" data-search="{{ recurso.tipo }} {{ recurso.vmid }} {{ recurso.nome or '' }} {{ recurso.node or '' }}">{{ recurso.tipo|upper }} {{ recurso.vmid }} - {{ recurso.nome or "-" }} | {{ recurso.node }} | CPU {{ recurso.cpu_cores or "-" }} | RAM {{ recurso.memoria_mb or "-" }} MB | Disco {{ recurso.disco_gb or "-" }} GB</option>{% endfor %}</select>
+                    <div class="list-group position-absolute start-0 end-0 shadow-sm d-none js-picker-results" style="z-index: 1040; max-height: 260px; overflow-y: auto;"></div>
+                </div>
+                <div class="list-group mt-3 js-picker-list"></div>
+                {% for recurso in recursos_proxmox %}{% if recurso.id in selected_recursos %}<input type="hidden" name="recurso_ids" value="{{ recurso.id }}" data-label="{{ recurso.tipo|upper }} {{ recurso.vmid }} - {{ recurso.nome or "-" }} | {{ recurso.node }}">{% endif %}{% endfor %}
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4"><div class="card-body"><div class="mb-3"><label class="form-label">Descrição</label><textarea class="form-control" rows="3" name="descricao">{{ ambiente.descricao if ambiente else "" }}</textarea></div><div class="mb-3"><label class="form-label">Observações</label><textarea class="form-control" rows="4" name="observacoes">{{ ambiente.observacoes if ambiente else "" }}</textarea></div><div class="form-check"><input class="form-check-input" type="checkbox" name="ativo" value="1" {% if not ambiente or ambiente.ativo %}checked{% endif %}><label class="form-check-label">Ambiente Ativo</label></div></div></div>
+        <div class="d-flex justify-content-end gap-2"><a href="{{ url_for("ambientes.index") }}" class="btn btn-secondary">Cancelar</a><button class="btn btn-primary"><i class="bi bi-check-circle"></i> Salvar</button></div>
+    </form>
 </div>
 
+<script>
+document.querySelectorAll("[data-picker]").forEach(function (picker) {
+    const inputName = picker.dataset.inputName;
+    const select = picker.querySelector(".js-picker-select");
+    const search = picker.querySelector(".js-picker-search");
+    const results = picker.querySelector(".js-picker-results");
+    const list = picker.querySelector(".js-picker-list");
+    const options = Array.from(select.options).filter(function (option) {
+        return option.value;
+    }).map(function (option) {
+        const label = option.dataset.label || option.textContent.trim();
+        return {
+            value: option.value,
+            label: label,
+            search: normalizeText([label, option.dataset.search || "", option.textContent || ""].join(" "))
+        };
+    });
+    let activeIndex = 0;
+
+    function normalizeText(value) {
+        return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    }
+
+    function selectedValues() {
+        return Array.from(picker.querySelectorAll("input[type=\"hidden\"][name=\"" + inputName + "\"]")).map(function (input) {
+            return input.value;
+        });
+    }
+
+    function matchedOptions() {
+        const terms = normalizeText(search.value).split(/\s+/).filter(Boolean);
+        return options.filter(function (option) {
+            return !selectedValues().includes(option.value) && terms.every(function (term) {
+                return option.search.includes(term);
+            });
+        }).slice(0, 8);
+    }
+
+    function hideResults() {
+        results.classList.add("d-none");
+        results.innerHTML = "";
+    }
+
+    function chooseOption(option) {
+        addOption(option);
+    }
+
+    function renderResults() {
+        const matches = matchedOptions();
+        activeIndex = 0;
+        results.innerHTML = "";
+        if (!matches.length) {
+            hideResults();
+            select.value = "";
+            return;
+        }
+        matches.forEach(function (option, index) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "list-group-item list-group-item-action text-start" + (index === activeIndex ? " active" : "");
+            button.textContent = option.label;
+            button.addEventListener("mousedown", function (event) {
+                event.preventDefault();
+                chooseOption(option);
+            });
+            results.appendChild(button);
+        });
+        select.value = matches[activeIndex].value;
+        results.classList.remove("d-none");
+    }
+
+    function updateActive(nextIndex) {
+        const buttons = Array.from(results.querySelectorAll("button"));
+        if (!buttons.length) { return; }
+        activeIndex = (nextIndex + buttons.length) % buttons.length;
+        buttons.forEach(function (button, index) {
+            button.classList.toggle("active", index === activeIndex);
+        });
+        const option = matchedOptions()[activeIndex];
+        select.value = option ? option.value : "";
+    }
+
+    function renderItem(input) {
+        const label = input.dataset.label || input.value;
+        const item = document.createElement("div");
+        item.className = "list-group-item d-flex justify-content-between align-items-center gap-3";
+        item.dataset.value = input.value;
+        item.innerHTML = "<span class=\"text-break\"></span><button class=\"btn btn-sm btn-outline-danger\" type=\"button\" title=\"Remover\"><i class=\"bi bi-x-lg\"></i></button>";
+        item.querySelector("span").textContent = label;
+        item.querySelector("button").addEventListener("click", function () {
+            input.remove();
+            item.remove();
+            renderResults();
+        });
+        list.appendChild(item);
+    }
+
+    function addOption(option) {
+        if (!option || selectedValues().includes(option.value)) {
+            search.value = "";
+            select.value = "";
+            hideResults();
+            return;
+        }
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = inputName;
+        input.value = option.value;
+        input.dataset.label = option.label;
+        picker.appendChild(input);
+        renderItem(input);
+        search.value = "";
+        select.value = "";
+        hideResults();
+        search.focus();
+    }
+
+    function addSelected() {
+        let option = options.find(function (item) { return item.value === select.value; });
+        if (!option) { option = matchedOptions()[0]; }
+        addOption(option);
+    }
+
+    picker.querySelectorAll("input[type=\"hidden\"][name=\"" + inputName + "\"]").forEach(renderItem);
+    search.addEventListener("input", renderResults);
+    search.addEventListener("focus", renderResults);
+    search.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowDown") {
+            event.preventDefault();
+            updateActive(activeIndex + 1);
+        } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            updateActive(activeIndex - 1);
+        } else if (event.key === "Enter") {
+            event.preventDefault();
+            if (!results.classList.contains("d-none")) {
+                const option = matchedOptions()[activeIndex];
+                if (option) { chooseOption(option); return; }
+            }
+            addSelected();
+        }
+    });
+    picker.querySelector(".js-picker-add").addEventListener("click", addSelected);
+    document.addEventListener("click", function (event) {
+        if (!picker.contains(event.target)) { hideResults(); }
+    });
+});
+</script>
 {% endblock %}

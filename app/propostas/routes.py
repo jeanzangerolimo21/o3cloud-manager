@@ -122,6 +122,17 @@ def exportar_docx(proposta_id):
     return send_file(arquivo, as_attachment=True, download_name=nome, mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 
 
+@propostas_bp.route("/<int:proposta_id>/status", methods=["POST"])
+def atualizar_status(proposta_id):
+    try:
+        PropostaService.atualizar_status(proposta_id, request.form.get("status"))
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Status da proposta atualizado.", "success")
+    return redirect(request.referrer or url_for("propostas.index"))
+
+
 @propostas_bp.route("/<int:proposta_id>/editar", methods=["GET", "POST"])
 def editar(proposta_id):
     proposta = PropostaService.buscar_por_id(proposta_id)
@@ -215,6 +226,7 @@ def _coletar_dados_form():
         "oportunidade_id": request.form.get("oportunidade_id"),
         "cliente_id": request.form.get("cliente_id"),
         "contato_id": request.form.get("contato_id"),
+        "representante_legal_id": request.form.get("representante_legal_id"),
         "parceiro_id": request.form.get("parceiro_id"),
         "executivo_responsavel_id": request.form.get("executivo_responsavel_id"),
         "codigo_proposta": request.form.get("codigo_proposta"),
@@ -227,6 +239,8 @@ def _coletar_dados_form():
         "detalhes_negociacao": request.form.get("detalhes_negociacao"),
         "condicoes_comerciais": request.form.get("condicoes_comerciais"),
         "observacoes": request.form.get("observacoes"),
+        "comentarios_comerciais": request.form.get("comentarios_comerciais"),
+        "semaforo_fechamento": request.form.get("semaforo_fechamento"),
         "cliente_nome": request.form.get("cliente_nome"),
         "contato_nome": request.form.get("contato_nome"),
         "contato_email": request.form.get("contato_email"),

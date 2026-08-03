@@ -1,0 +1,69 @@
+{% extends "layout/base.html" %}
+
+{% macro barra(valor, classe) -%}
+<div class="progress" style="height: 6px;">
+    <div class="progress-bar bg-{{ classe }}" style="width: {{ [valor or 0, 100] | min }}%"></div>
+</div>
+{%- endmacro %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Clusters Proxmox" %}
+    {% set page_description = "Gerenciamento de clusters, nodes e capacidade consolidada do Proxmox VE." %}
+    {% set page_icon = "bi-diagram-3" %}
+    {% set page_button_url = novo_cluster_url %}
+    {% set page_button_icon = "bi-plus-circle" %}
+    {% set page_button_text = "Novo Cluster" %}
+    {% include "components/page_header.html" %}
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a class="btn btn-sm btn-primary" href="{{ url_for('infraestrutura.clusters') }}"><i class="bi bi-diagram-3"></i> Clusters</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('infraestrutura.nodes') }}"><i class="bi bi-hdd-network"></i> Nodes</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('infraestrutura.maquinas_virtuais') }}"><i class="bi bi-pc-display"></i> Máquinas Virtuais</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('infraestrutura.containers') }}"><i class="bi bi-boxes"></i> Containers</a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Clusters</small><h4>{{ dashboard.clusters_total or 0 }}</h4></div></div></div>
+        <div class="col-md-6 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Nodes</small><h4>{{ dashboard.online_total or 0 }}/{{ dashboard.nodes_total or 0 }}</h4><small class="text-muted">online/total</small></div></div></div>
+        <div class="col-md-6 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Recursos</small><h4>{{ dashboard.recursos_total or 0 }}</h4><small class="text-muted">VMs e containers</small></div></div></div>
+        <div class="col-md-6 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">CPU</small><h4>{{ dashboard.cpu_total or 0 }}</h4><small class="text-muted">{{ dashboard.cpu_alocada or 0 }} alocada · {{ dashboard.cpu_consumida_percent or 0 }}% uso</small></div></div></div>
+        <div class="col-md-6 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Memória</small><h4>{{ ((dashboard.memoria_total_mb or 0) / 1024)|round(1) }} GB</h4><small class="text-muted">{{ dashboard.memoria_alocada_percent or 0 }}% alocada · {{ dashboard.memoria_usada_percent or 0 }}% uso</small></div></div></div>
+        <div class="col-md-6 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Storage</small><h4>{{ (dashboard.disco_total_gb or 0)|round(1) }} GB</h4><small class="text-muted">{{ dashboard.disco_alocado_percent or 0 }}% alocado · {{ dashboard.disco_usado_percent or 0 }}% uso</small></div></div></div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        {% for cluster in clusters %}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-3">
+                    <div><strong>{{ cluster.nome }}</strong><div class="text-muted small">{{ cluster.base_url }}</div></div>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% if cluster.web_gui_url %}<a class="btn btn-sm btn-outline-primary" href="{{ cluster.web_gui_url }}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Web GUI</a>{% endif %}
+                        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('implantacao.editar_integracao_config', integracao_id=cluster.id) }}"><i class="bi bi-pencil"></i> Editar</a>
+                        <form method="POST" action="{{ url_for('infraestrutura.sincronizar_cluster_proxmox', integracao_id=cluster.id) }}"><button class="btn btn-sm btn-success" type="submit"><i class="bi bi-arrow-repeat"></i> Sincronizar</button></form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6 col-xl-3"><small class="text-muted">Nodes</small><h5 class="mb-0">{{ cluster.online_total or 0 }}/{{ cluster.nodes_total or 0 }}</h5><small class="text-muted">online/total</small></div>
+                        <div class="col-md-6 col-xl-3"><small class="text-muted">Recursos</small><h5 class="mb-0">{{ cluster.recursos_total or 0 }}</h5><small class="text-muted">{{ cluster.qemu_total or 0 }} VMs · {{ cluster.lxc_total or 0 }} CTs · {{ cluster.running_total or 0 }} running</small></div>
+                        <div class="col-md-6 col-xl-2"><small class="text-muted">CPU</small><h5 class="mb-0">{{ cluster.cpu_total or 0 }}</h5><small class="text-muted">{{ cluster.cpu_alocada or 0 }} alocada</small>{{ barra(cluster.cpu_alocada_percent, 'success' if (cluster.cpu_alocada_percent or 0) < 80 else 'warning') }}</div>
+                        <div class="col-md-6 col-xl-2"><small class="text-muted">Memória</small><h5 class="mb-0">{{ ((cluster.memoria_total_mb or 0) / 1024)|round(1) }} GB</h5><small class="text-muted">{{ ((cluster.memoria_alocada_mb or 0) / 1024)|round(1) }} GB alocada</small>{{ barra(cluster.memoria_alocada_percent, 'success' if (cluster.memoria_alocada_percent or 0) < 80 else 'warning') }}</div>
+                        <div class="col-md-6 col-xl-2"><small class="text-muted">Storage</small><h5 class="mb-0">{{ (cluster.disco_total_gb or 0)|round(1) }} GB</h5><small class="text-muted">{{ (cluster.disco_alocado_gb or 0)|round(1) }} GB alocado</small>{{ barra(cluster.disco_alocado_percent, 'success' if (cluster.disco_alocado_percent or 0) < 80 else 'warning') }}</div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-4"><small class="text-muted">CPU consumida de fato</small><div>{{ (cluster.cpu_consumida or 0)|round(1) }} / {{ cluster.cpu_total or 0 }} CPU · {{ cluster.cpu_consumida_percent or 0 }}%</div>{{ barra(cluster.cpu_consumida_percent, 'success' if (cluster.cpu_consumida_percent or 0) < 70 else 'warning') }}</div>
+                        <div class="col-md-4"><small class="text-muted">Memória consumida de fato</small><div>{{ ((cluster.memoria_usada_mb or 0) / 1024)|round(1) }} / {{ ((cluster.memoria_total_mb or 0) / 1024)|round(1) }} GB · {{ cluster.memoria_usada_percent or 0 }}%</div>{{ barra(cluster.memoria_usada_percent, 'success' if (cluster.memoria_usada_percent or 0) < 75 else 'warning') }}</div>
+                        <div class="col-md-4"><small class="text-muted">Storage consumido de fato</small><div>{{ (cluster.disco_usado_gb or 0)|round(1) }} / {{ (cluster.disco_total_gb or 0)|round(1) }} GB · {{ cluster.disco_usado_percent or 0 }}%</div>{{ barra(cluster.disco_usado_percent, 'success' if (cluster.disco_usado_percent or 0) < 75 else 'warning') }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12"><div class="alert alert-warning mb-0">Nenhum cluster Proxmox ativo cadastrado. Cadastre uma integração Proxmox para iniciar o gerenciamento.</div></div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

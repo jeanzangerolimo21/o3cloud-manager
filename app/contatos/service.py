@@ -8,6 +8,7 @@ from app.utils.telefone import formatar_telefone
 
 TIPO_CONTATO = {
     "COMERCIAL": "Comercial",
+    "REPRESENTANTE_LEGAL": "Representante Legal",
     "DECISOR": "Decisor",
     "FINANCEIRO": "Financeiro",
     "TECNICO": "Técnico",
@@ -68,9 +69,13 @@ class ContatoService:
         return LeadRepository.listar_todos_ativos()
 
     @classmethod
-    def listar_todos_ativos(cls):
+    def listar_todos_ativos(cls, tipo_contato=None):
         contatos = cls.repository.listar_todos_ativos()
-        return [cls._formatar_contato(contato) for contato in contatos]
+        contatos = [cls._formatar_contato(contato) for contato in contatos]
+        if tipo_contato:
+            tipo = str(tipo_contato).strip().upper()
+            contatos = [contato for contato in contatos if contato.get("tipo_contato") == tipo]
+        return contatos
 
     @classmethod
     def criar(cls, dados):

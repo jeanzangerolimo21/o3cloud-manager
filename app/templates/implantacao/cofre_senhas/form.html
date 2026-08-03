@@ -27,9 +27,9 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Faixa de rede *</label>
-                                <select class="form-select" name="faixa_rede_id" required>
-                                    <option value="">Selecionar faixa</option>
+                                <label class="form-label">Faixa de rede</label>
+                                <select class="form-select" name="faixa_rede_id">
+                                    <option value="">Sem vínculo de rede</option>
                                     {% for faixa in faixas_rede %}
                                         <option value="{{ faixa.id }}" {% if senha.faixa_rede_id|string == faixa.id|string %}selected{% endif %}>{{ faixa.cliente_nome }} - {{ faixa.rede }}</option>
                                     {% endfor %}

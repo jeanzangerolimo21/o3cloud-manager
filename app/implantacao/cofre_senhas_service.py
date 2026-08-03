@@ -51,16 +51,19 @@ class CofreSenhaService:
         return cls.repository.dashboard()
 
     @classmethod
-    def buscar_por_id(cls, senha_id):
-        return cls.repository.buscar_por_id(senha_id)
+    def buscar_por_id(cls, senha_id, usuario_email=None):
+        senha = cls.repository.buscar_por_id(senha_id)
+        if senha and usuario_email and not cls._usuario_tem_acesso(senha, usuario_email):
+            return None
+        return senha
 
     @classmethod
-    def contexto_form(cls):
+    def contexto_form(cls, usuario_email=None):
         return {
             "clientes": ClienteService.listar_para_importacao(),
             "faixas_rede": cls.repository.listar_faixas_ativas(),
             "licencas_o3web": cls.repository.listar_licencas_ativas(),
-            "pastas": CofrePastaRepository.listar_ativas(),
+            "pastas": CofrePastaRepository.listar_ativas_para_usuario(usuario_email),
             "pasta_tipo_options": TIPOS_COFRE_PASTA,
             "categoria_options": CATEGORIAS_COFRE_SENHAS,
             "senha_policy": cls.politica_gerador_senha(),
@@ -78,7 +81,7 @@ class CofreSenhaService:
 
     @classmethod
     def criar(cls, dados, usuario_email="sistema", ip_origem=None):
-        payload = cls._normalizar(dados, exigir_senha=True)
+        payload = cls._normalizar(dados, exigir_senha=True, usuario_email=usuario_email)
         payload["senha_encrypted"] = cls._encrypt(payload.pop("senha"))
         payload["created_by"] = usuario_email or "sistema"
         payload["updated_by"] = usuario_email or "sistema"
@@ -88,10 +91,10 @@ class CofreSenhaService:
 
     @classmethod
     def atualizar(cls, senha_id, dados, usuario_email="sistema", ip_origem=None):
-        existente = cls.repository.buscar_por_id(senha_id)
+        existente = cls.buscar_por_id(senha_id, usuario_email)
         if not existente:
             raise ValueError("Credencial não encontrada.")
-        payload = cls._normalizar(dados, exigir_senha=False)
+        payload = cls._normalizar(dados, exigir_senha=False, usuario_email=usuario_email)
         if payload.pop("senha", None):
             payload["senha_encrypted"] = cls._encrypt(dados.get("senha"))
         payload["updated_by"] = usuario_email or "sistema"
@@ -100,14 +103,14 @@ class CofreSenhaService:
 
     @classmethod
     def excluir(cls, senha_id, usuario_email="sistema", ip_origem=None):
-        if not cls.repository.buscar_por_id(senha_id):
+        if not cls.buscar_por_id(senha_id, usuario_email):
             raise ValueError("Credencial não encontrada.")
         cls.repository.excluir(senha_id, usuario_email)
         cls.repository.registrar_auditoria(senha_id, "INATIVAR", usuario_email, "Credencial inativada", ip_origem)
 
     @classmethod
     def revelar_senha(cls, senha_id, usuario_email="sistema", ip_origem=None):
-        senha = cls.repository.buscar_por_id(senha_id)
+        senha = cls.buscar_por_id(senha_id, usuario_email)
         if not senha or not senha.get("ativo"):
             raise ValueError("Credencial não encontrada ou inativa.")
         try:
@@ -117,12 +120,31 @@ class CofreSenhaService:
         cls.repository.registrar_auditoria(senha_id, "REVELAR", usuario_email, "Senha revelada na interface", ip_origem)
         return valor
 
+    @staticmethod
+    def _usuario_tem_acesso(senha, usuario_email):
+        if (senha.get("pasta_tipo") or "") != "usuario":
+            return True
+        usuario_email = (usuario_email or "sistema").strip().lower()
+        if usuario_email == "sistema":
+            return True
+        owner = (senha.get("pasta_owner_email") or "").strip().lower()
+        if owner == usuario_email:
+            return True
+        if not senha.get("pasta_compartilhada"):
+            return False
+        compartilhados = {
+            item.strip().lower()
+            for item in str(senha.get("pasta_compartilhada_com") or "").replace(";", ",").split(",")
+            if item.strip()
+        }
+        return usuario_email in compartilhados
+
     @classmethod
     def listar_auditoria(cls, senha_id):
         return cls.repository.listar_auditoria(senha_id)
 
     @classmethod
-    def _normalizar(cls, dados, exigir_senha=False):
+    def _normalizar(cls, dados, exigir_senha=False, usuario_email=None):
         cliente_id = cls._inteiro(dados.get("cliente_id"))
         if not cliente_id:
             raise ValueError("Cliente é obrigatório.")
@@ -131,20 +153,26 @@ class CofreSenhaService:
             raise ValueError("Cliente selecionado não encontrado.")
         cliente_nome = (cliente.get("nome_fantasia") or cliente.get("razao_social") or "").strip()
 
-        faixa_rede_id = cls._inteiro(dados.get("faixa_rede_id"))
-        if not faixa_rede_id:
-            raise ValueError("Faixa de rede é obrigatória.")
-        faixa = FaixaRedeRepository.buscar_por_id(faixa_rede_id)
-        if not faixa or not faixa.get("ativo"):
-            raise ValueError("Faixa de rede selecionada não encontrada ou inativa.")
-        if int(faixa.get("cliente_id") or 0) != cliente_id:
-            raise ValueError("A faixa de rede selecionada não pertence ao cliente informado.")
+        faixa_rede_id = cls._inteiro(dados.get("faixa_rede_id")) or None
+        if faixa_rede_id:
+            faixa = FaixaRedeRepository.buscar_por_id(faixa_rede_id)
+            if not faixa or not faixa.get("ativo"):
+                raise ValueError("Faixa de rede selecionada não encontrada ou inativa.")
+            if int(faixa.get("cliente_id") or 0) != cliente_id:
+                raise ValueError("A faixa de rede selecionada não pertence ao cliente informado.")
 
         pasta_id = cls._inteiro(dados.get("pasta_id")) or None
         if pasta_id:
             pasta = CofrePastaRepository.buscar_por_id(pasta_id)
             if not pasta or not pasta.get("ativo"):
                 raise ValueError("Pasta selecionada não encontrada ou inativa.")
+            if pasta.get("tipo") == "usuario" and not cls._usuario_tem_acesso({
+                "pasta_tipo": pasta.get("tipo"),
+                "pasta_owner_email": pasta.get("owner_email"),
+                "pasta_compartilhada": pasta.get("compartilhada"),
+                "pasta_compartilhada_com": pasta.get("compartilhada_com"),
+            }, usuario_email):
+                raise ValueError("Você não tem acesso a esta pasta particular do cofre.")
 
         licenca_o3web_id = cls._inteiro(dados.get("licenca_o3web_id")) or None
         if licenca_o3web_id:

@@ -575,6 +575,7 @@ class ImplantacaoService:
                 "id": row.get("proposta_id"),
                 "codigo": row.get("codigo_proposta"),
                 "titulo": row.get("proposta_titulo"),
+                "cliente_nome": row.get("proposta_cliente_nome"),
                 "status": row.get("proposta_status"),
                 "clicksign_status": row.get("clicksign_status"),
                 "clicksign_document_key": row.get("clicksign_document_key"),

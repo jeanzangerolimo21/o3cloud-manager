@@ -20,7 +20,8 @@
                         {% if rastreabilidade.proposta %}<span class="badge bg-light text-dark border">{{ status_options.get(rastreabilidade.proposta.status, rastreabilidade.proposta.status) if status_options is defined else rastreabilidade.proposta.status }}</span>{% endif %}
                     </div>
                     {% if rastreabilidade.proposta %}
-                    <div class="text-muted small mb-2">{{ rastreabilidade.proposta.titulo or "-" }}</div>
+                    <div class="text-muted small mb-1">{{ rastreabilidade.proposta.titulo or "-" }}</div>
+                    <div class="small mb-2"><strong>Cliente:</strong> {{ rastreabilidade.proposta.cliente_nome or rastreabilidade.proposta_cliente_nome or "-" }}</div>
                     <div class="small mb-2">ClickSign: <span class="badge bg-secondary">{{ clicksign_status_options.get(rastreabilidade.proposta.clicksign_status, rastreabilidade.proposta.clicksign_status) if clicksign_status_options is defined else rastreabilidade.proposta.clicksign_status }}</span></div>
                     {% if rastreabilidade.proposta.clicksign_envelope_id %}<div class="small text-muted mb-2">Envelope: {{ rastreabilidade.proposta.clicksign_envelope_id }}</div>{% endif %}
                     <a class="btn btn-sm btn-outline-primary" href="{{ url_for('propostas.visualizar', proposta_id=rastreabilidade.proposta.id) }}"><i class="bi bi-file-earmark-richtext"></i> Abrir Proposta</a>

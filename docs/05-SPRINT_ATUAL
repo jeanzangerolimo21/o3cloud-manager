@@ -4,7 +4,7 @@
 
 Versao: 3.0 Alpha
 
-Ultima atualizacao: 30/07/2026
+Ultima atualizacao: 03/08/2026
 
 Status: Oficial
 
@@ -18,7 +18,7 @@ Infraestrutura Operacional e Sincronismo Read-Only
 
 Status:
 
-🚧 Em andamento
+✅ Concluida em 03/08/2026
 
 ---
 
@@ -38,6 +38,10 @@ Documento de fechamento da sprint anterior:
 
 Iniciar a evolucao operacional de infraestrutura em modo seguro, com sincronismo Proxmox VE somente leitura, telas para inventario tecnico e consultas PBS, Zabbix e TrueNAS sem automacoes destrutivas.
 
+Documento de revisao de fechamento:
+
+- `docs/25-FECHAMENTO-SPRINT-15.md`
+
 ---
 
 # Escopo Inicial
@@ -46,53 +50,82 @@ Iniciar a evolucao operacional de infraestrutura em modo seguro, com sincronismo
 
 Status:
 
-🚧 Em andamento
+✅ Concluido tecnicamente
 
-Entregas previstas:
+Entregas realizadas:
 
-- Implementar cliente Proxmox VE com token de permissao minima e operacoes somente leitura.
-- Criar rotina manual de sincronismo inicial antes de qualquer agendamento.
-- Registrar execucoes de sincronismo, status, mensagem e usuario responsavel.
-- Gravar inventario de VMs/containers nas tabelas preparadas pela migration 036.
+- Cliente Proxmox VE com operacoes somente leitura.
+- Rotina manual de sincronismo.
+- Historico de execucoes com status, mensagem, data e usuario.
+- Inventario de VMs, containers, clusters e nodes.
+- Dashboards operacionais de clusters e nodes.
 
 ## 2. Telas Operacionais de Infraestrutura
 
 Status:
 
-🚧 Em andamento
+✅ Concluido tecnicamente
 
-Entregas previstas:
+Entregas realizadas:
 
-- Evoluir menu de Infraestrutura para telas reais de Clusters, Nodes, Maquinas Virtuais e Containers.
-- Exibir dados sincronizados com filtros por cliente, ambiente, node, status e tipo.
-- Permitir leitura operacional sem executar start, stop, reboot, migrate, delete ou alteracoes de configuracao.
-- Preparar vinculo futuro com cliente, contrato e implantacao para validacao assistida.
+- Telas reais de Clusters, Nodes, Maquinas Virtuais e Containers.
+- Filtros operacionais por tipo, status, node, pesquisa e cliente quando aplicavel.
+- Leitura operacional sem start, stop, reboot, migrate, delete ou alteracoes de configuracao.
+- Vinculo de recursos Proxmox com cliente preparado para validacao assistida.
 
 ## 3. Consultas PBS, Zabbix e TrueNAS
 
 Status:
 
-🚧 Em andamento
+✅ Concluido tecnicamente
 
-Entregas previstas:
+Entregas realizadas:
 
-- Evoluir Backups PBS para consulta de snapshots dos clientes.
-- Evoluir Monitoramento Zabbix para consulta de hosts, disponibilidade e alertas.
-- Evoluir Backup NAS para consulta de jobs/backups TrueNAS.
-- Manter todas as consultas em modo leitura e usando credenciais cadastradas em Integracoes Tecnicas.
+- Backups PBS com escopos, namespaces, snapshots e auditoria operacional.
+- Monitoramento Zabbix com cache, sincronismo manual, ordenacao por criticidade e filtros por status/criticidade.
+- Backup NAS/TrueNAS com cache, sincronismo manual, alertas por pasta sem alteracao recente e aba de Backups OK.
+- Consultas mantidas em modo leitura usando credenciais tecnicas sem exposicao nas telas operacionais.
 
 ## 4. Segurança e Beta Assistida
 
 Status:
 
-🚧 Em andamento
+✅ Concluida em 03/08/2026
 
-Entregas previstas:
+Entregas realizadas:
 
-- Preservar segredos mascarados e visualizacao temporaria sem cache.
-- Registrar falhas de sincronismo/consulta sem expor segredos.
-- Manter ausencia de dados reais como pendencia operacional quando depender de cadastro da equipe.
-- Deixar automacoes destrutivas fora do escopo ate aprovacao especifica.
+- Segredos preservados fora das telas operacionais.
+- Falhas de sincronismo/consulta tratadas sem expor token ou senha.
+- Ausencia de dados reais continua tratada como pendencia operacional quando depender de cadastro da equipe.
+- Automacoes destrutivas permaneceram fora do escopo.
+- Atalhos visiveis para Integracoes Tecnicas/Credenciais foram removidos da navegacao operacional.
+
+Pendencia encaminhada:
+
+- Controle formal por perfil/permissao para area tecnica avancada deve ser tratado em sprint propria de autenticacao/perfis.
+
+---
+
+# Melhorias Pre-Sprint 16
+
+Status:
+
+✅ Registradas em 03/08/2026
+
+Documento:
+
+- `docs/26-MELHORIAS-PRE-SPRINT-16.md`
+
+Resumo:
+
+- Propostas passaram a selecionar Representante Legal explicitamente para ClickSign.
+- Envio ClickSign passou a validar nome completo e CPF do representante legal.
+- Reenvio duplicado para ClickSign foi bloqueado quando ja existe envelope.
+- Cancelamento de proposta passa a cancelar envelope pendente na ClickSign quando aplicavel.
+- Listagem de propostas aprovadas mostra Gerar documento e Enviar apenas apos documento gerado.
+- Geracao de novo documento fica bloqueada para fluxos ja assinados/concluidos.
+- Pipeline, PDF de proposta, cofre de senhas e rastreabilidade receberam refinamentos operacionais.
+- Menu Configuracoes, Servicos de Email e Sidebar com rolagem propria foram revisados antes da Sprint 16.
 
 ---
 
@@ -138,7 +171,7 @@ Sprint Atual:
 
 Situacao:
 
-🚧 Em andamento
+✅ Concluida em 03/08/2026
 
 Sprint anterior:
 
@@ -146,4 +179,4 @@ Sprint anterior:
 
 Proxima Implementacao:
 
-Implementar sincronismo Proxmox VE em modo leitura e evoluir telas operacionais de infraestrutura.
+Abrir a Sprint 16 com escopo definido pela equipe. O pacote de melhorias pre-Sprint 16 ja foi registrado em `docs/26-MELHORIAS-PRE-SPRINT-16.md`. Itens candidatos para Sprint 16: controle formal de acesso/perfis, auditoria de sincronismos Zabbix/TrueNAS, relatorios operacionais ou novos refinamentos da Beta assistida.

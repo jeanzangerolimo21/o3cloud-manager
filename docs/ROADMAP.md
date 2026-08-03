@@ -4,7 +4,7 @@
 
 Versão: 3.0 Alpha
 
-Última atualização: Julho/2026
+Última atualização: 03/08/2026
 
 Status: Oficial
 
@@ -355,7 +355,7 @@ Proxima frente:
 
 ---
 
-# Sprint Atual
+# Ultima Sprint Encerrada
 
 ## Sprint 15
 
@@ -363,15 +363,35 @@ Infraestrutura Operacional e Sincronismo Read-Only
 
 Status:
 
-🚧 Em andamento
+✅ Concluida em 03/08/2026
 
-Objetivos:
+Documento de revisao:
 
-- Implementar sincronismo Proxmox VE em modo somente leitura
-- Evoluir telas operacionais de Clusters, Nodes, Maquinas Virtuais e Containers
-- Evoluir consultas Backups PBS, Monitoramento Zabbix e Backup NAS/TrueNAS
-- Manter automacoes destrutivas fora do escopo
-- Preparar base operacional para validacao Beta assistida
+- `docs/25-FECHAMENTO-SPRINT-15.md`
+
+Documento de melhorias pre-Sprint 16:
+
+- `docs/26-MELHORIAS-PRE-SPRINT-16.md`
+
+Entregas consolidadas:
+
+- Proxmox VE read-only com inventario de clusters, nodes, VMs e containers.
+- PBS com escopos, namespaces, snapshots e auditoria operacional.
+- Zabbix com cache, sincronismo manual, criticidade, filtros e abertura rapida da tela.
+- TrueNAS/Backup NAS com cache, sincronismo manual, alertas por pasta e aba de Backups OK.
+- Atalhos de Integracoes Tecnicas removidos da navegacao operacional.
+
+Pendencias encaminhadas:
+
+- Validacao assistida pela operacao.
+- Decisao futura sobre historico centralizado de sincronismos Zabbix/TrueNAS.
+- Controle formal de acesso/perfis encaminhado para sprint futura.
+
+Proximos passos:
+
+- Abrir Sprint 16 com escopo definido pela equipe.
+- Considerar que as melhorias comerciais/ClickSign, cofre, PDF e rastreabilidade ja foram registradas no pacote pre-Sprint 16.
+- Candidatos: autenticacao/perfis, auditoria formal, relatorios operacionais ou novos refinamentos da Beta assistida.
 
 ---
 
@@ -398,6 +418,32 @@ Objetivos:
 - Todas as ações deverão gerar auditoria.
 - As tabelas somente serão criadas após aprovação do diagrama funcional.
 - O módulo deverá respeitar o Architecture Freeze.
+
+---
+
+## Sprint Final - Integracao Receita Federal para Cadastro de Clientes
+
+Status:
+
+Planejada para a sprint final
+
+Objetivo:
+
+Automatizar o preenchimento de dados cadastrais de clientes a partir do CNPJ informado no cadastro manual, consultando uma API de dados da Receita Federal ou provedor homologado.
+
+Escopo previsto:
+
+- Ao informar o CNPJ em novo cliente, consultar automaticamente os dados publicos disponiveis.
+- Preencher razao social, nome fantasia quando disponivel, endereco, cidade, UF, CEP, situacao cadastral, atividade economica e demais campos compativeis com o cadastro interno.
+- Permitir revisao manual antes de salvar o cliente.
+- Registrar falhas de consulta sem bloquear o cadastro manual.
+- Definir provedor/API, limites de uso, autenticacao, cache e politica de atualizacao apenas na sprint final.
+
+Fora do escopo ate a sprint final:
+
+- Consulta automatica em producao antes da escolha formal do provedor.
+- Bloqueio de cadastro quando a Receita/API estiver indisponivel.
+- Sobrescrita automatica de dados ja revisados pela equipe.
 
 # Objetivos Estratégicos
 

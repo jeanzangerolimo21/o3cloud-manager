@@ -18,7 +18,7 @@
                 <div class="col-md-4"><strong>Origem</strong><br>{{ contrato.origem or '-' }}<br><small class="text-muted">{{ contrato.data_fechamento|date_br }}</small></div>
                 <div class="col-md-4"><strong>Executivo</strong><br>{{ contrato.executivo_nome or '-' }}<br><small class="text-muted">{{ contrato.executivo_email or '' }}</small></div>
                 <div class="col-md-4"><strong>Parceiro</strong><br>{{ contrato.parceiro_nome or '-' }}</div>
-                <div class="col-md-4"><strong>Contato</strong><br>{{ contrato.contato_nome or '-' }}<br><small class="text-muted">{{ contrato.contato_email or contrato.contato_telefone or '' }}</small></div>
+                <div class="col-md-4"><strong>Representante Legal</strong><br>{{ contrato.contato_nome or '-' }}<br><small class="text-muted">{{ contrato.contato_email or contrato.contato_telefone or '' }}</small></div>
                 <div class="col-md-4"><strong>Vigência</strong><br>{{ contrato.inicio_vigencia|date_br }} até {{ contrato.fim_vigencia|date_br }}</div>
                 <div class="col-md-8"><strong>Proposta</strong><br>{{ contrato.codigo_proposta or '-' }}{% if contrato.proposta_titulo %} - {{ contrato.proposta_titulo }}{% endif %}</div>
             </div>

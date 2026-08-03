@@ -52,19 +52,35 @@ Entregas principais da Sprint 14:
 - Menu de Infraestrutura recebeu Backups PBS, Monitoramento Zabbix e Backup NAS.
 - Cadastros finais e revisao assistida foram encaminhados para a fase Beta com a equipe.
 
-Sprint atual: Sprint 15 - Infraestrutura Operacional e Sincronismo Read-Only.
+Ultima sprint encerrada: Sprint 15 - Infraestrutura Operacional e Sincronismo Read-Only.
 
-Inicio registrado:
+Status atual:
 
-- 30/07/2026
+- Sprint 15 concluida em 03/08/2026. Proxima sprint aguardando abertura e definicao de escopo.
 
-Focos principais da Sprint 15:
+Entregas consolidadas da Sprint 15:
 
-- Implementar sincronismo Proxmox VE em modo somente leitura.
-- Evoluir telas operacionais de Clusters, Nodes, Maquinas Virtuais e Containers.
-- Evoluir consultas de Backups PBS, Monitoramento Zabbix e Backup NAS/TrueNAS.
-- Manter automacoes destrutivas fora do escopo ate aprovacao especifica.
-- Preparar base tecnica para validacao Beta assistida sem carga real prematura.
+- Sincronismo Proxmox VE em modo somente leitura.
+- Telas operacionais de Clusters, Nodes, Maquinas Virtuais e Containers.
+- Backups PBS com escopos, namespaces, snapshots e sincronismo manual.
+- Monitoramento Zabbix com cache, sincronismo manual, criticidade e filtros por status.
+- Backup NAS/TrueNAS com cache, alertas por pasta sem alteracao recente e aba de Backups OK.
+- Atalhos de Integracoes Tecnicas removidos da navegacao operacional.
+- Automacoes destrutivas permanecem fora do escopo ate aprovacao especifica.
+
+Documento de revisao:
+
+- `docs/25-FECHAMENTO-SPRINT-15.md`
+
+Melhorias registradas antes da Sprint 16:
+
+- `docs/26-MELHORIAS-PRE-SPRINT-16.md`
+
+Resumo do pacote pre-Sprint 16:
+
+- Propostas/ClickSign: Representante Legal selecionavel, CPF obrigatorio, nome completo obrigatorio, bloqueio de reenvio duplicado e cancelamento de envelope pendente.
+- Comercial: status na listagem, semaforo, comentarios, pipeline com propostas sem oportunidade e acoes Gerar/Enviar para propostas aprovadas.
+- Operacional: cofre particular/compartilhado, faixa de rede opcional e rastreabilidade com cliente.
 
 ---
 

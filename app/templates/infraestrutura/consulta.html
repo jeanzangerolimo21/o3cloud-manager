@@ -6,9 +6,6 @@
     {% set page_title = consulta.titulo %}
     {% set page_description = consulta.descricao %}
     {% set page_icon = consulta.icone %}
-    {% set page_button_url = integracoes_url %}
-    {% set page_button_icon = "bi-plug-fill" %}
-    {% set page_button_text = "Integrações Técnicas" %}
 
     {% include "components/page_header.html" %}
 
@@ -55,7 +52,7 @@
 
     <div class="alert alert-secondary mt-4 mb-0">
         <i class="bi bi-info-circle"></i>
-        Consulta preparada para sincronismo somente leitura. A coleta real deve usar as credenciais cadastradas em Integrações Técnicas.
+        Consulta preparada para sincronismo somente leitura usando integrações previamente cadastradas.
     </div>
 
 </div>

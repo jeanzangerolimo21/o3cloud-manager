@@ -8,13 +8,14 @@ class CofreSenhaRepository(BaseRepository):
             SELECT cs.id, cs.uuid, cs.pasta_id, cp.nome AS pasta_nome, cp.tipo AS pasta_tipo,
                    cs.cliente_id, cs.cliente_nome, cs.cliente_cnpj,
                    cs.faixa_rede_id, fr.rede AS faixa_rede,
+                   cp.owner_email AS pasta_owner_email, cp.compartilhada AS pasta_compartilhada, cp.compartilhada_com AS pasta_compartilhada_com,
                    cs.licenca_o3web_id, o3.id_licenca AS licenca_o3web_codigo,
                    cs.categoria, cs.titulo, cs.host, cs.porta, cs.url, cs.usuario,
                    cs.observacoes, cs.proxmox_node_id, cs.proxmox_vm_id,
                    cs.pbs_server_id, cs.zabbix_host_id, cs.ativo,
                    cs.created_by, cs.updated_by, cs.created_at, cs.updated_at
             FROM implantacao_cofre_senhas cs
-            JOIN implantacao_faixas_rede fr ON fr.id = cs.faixa_rede_id
+            LEFT JOIN implantacao_faixas_rede fr ON fr.id = cs.faixa_rede_id
             LEFT JOIN o3web_licencas o3 ON o3.id = cs.licenca_o3web_id
             LEFT JOIN implantacao_cofre_pastas cp ON cp.id = cs.pasta_id
             WHERE 1 = 1
@@ -33,7 +34,7 @@ class CofreSenhaRepository(BaseRepository):
         sql = """
             SELECT COUNT(*)
             FROM implantacao_cofre_senhas cs
-            JOIN implantacao_faixas_rede fr ON fr.id = cs.faixa_rede_id
+            LEFT JOIN implantacao_faixas_rede fr ON fr.id = cs.faixa_rede_id
             LEFT JOIN o3web_licencas o3 ON o3.id = cs.licenca_o3web_id
             LEFT JOIN implantacao_cofre_pastas cp ON cp.id = cs.pasta_id
             WHERE 1 = 1
@@ -60,9 +61,9 @@ class CofreSenhaRepository(BaseRepository):
     def buscar_por_id(cls, senha_id):
         return cls.fetch_one(
             """
-            SELECT cs.*, fr.rede AS faixa_rede, o3.id_licenca AS licenca_o3web_codigo, cp.nome AS pasta_nome, cp.tipo AS pasta_tipo
+            SELECT cs.*, fr.rede AS faixa_rede, o3.id_licenca AS licenca_o3web_codigo, cp.nome AS pasta_nome, cp.tipo AS pasta_tipo, cp.owner_email AS pasta_owner_email, cp.compartilhada AS pasta_compartilhada, cp.compartilhada_com AS pasta_compartilhada_com
             FROM implantacao_cofre_senhas cs
-            JOIN implantacao_faixas_rede fr ON fr.id = cs.faixa_rede_id
+            LEFT JOIN implantacao_faixas_rede fr ON fr.id = cs.faixa_rede_id
             LEFT JOIN o3web_licencas o3 ON o3.id = cs.licenca_o3web_id
             LEFT JOIN implantacao_cofre_pastas cp ON cp.id = cs.pasta_id
             WHERE cs.id = %s
@@ -217,7 +218,7 @@ class CofreSenhaRepository(BaseRepository):
                     OR cs.usuario LIKE %s
                     OR COALESCE(cs.host, '') LIKE %s
                     OR COALESCE(cs.url, '') LIKE %s
-                    OR fr.rede LIKE %s
+                    OR COALESCE(fr.rede, '') LIKE %s
                     OR COALESCE(o3.id_licenca, '') LIKE %s
                     OR COALESCE(cs.observacoes, '') LIKE %s
                     OR COALESCE(cp.nome, '') LIKE %s

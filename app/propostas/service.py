@@ -35,6 +35,7 @@ STATUS_PROPOSTA = {
     "APROVADA": "Aprovada",
     "REJEITADA": "Rejeitada",
     "EXPIRADA": "Expirada",
+    "CANCELADA": "Cancelada",
 }
 
 STATUS_CLICKSIGN = {
@@ -44,6 +45,7 @@ STATUS_CLICKSIGN = {
     "AGUARDANDO_ASSINATURAS": "Aguardando Assinaturas",
     "ASSINADO": "Assinado",
     "CONCLUIDO": "Concluído",
+    "CANCELADO": "Cancelado",
     "ERRO": "Erro",
 }
 
@@ -53,6 +55,7 @@ ACAO_CLICKSIGN = {
     "aguardar": "AGUARDANDO_ASSINATURAS",
     "assinado": "ASSINADO",
     "concluir": "CONCLUIDO",
+    "cancelar": "CANCELADO",
     "erro": "ERRO",
 }
 
@@ -88,7 +91,8 @@ class PropostaService:
         return {
             "oportunidades": OportunidadeRepository.listar_todos_ativos(),
             "clientes": ClienteService.listar_para_importacao(),
-            "contatos": ContatoService.listar_todos_ativos(),
+            "contatos": ContatoService.listar_todos_ativos("COMERCIAL"),
+            "representantes_legais": ContatoService.listar_todos_ativos("REPRESENTANTE_LEGAL"),
             "executivos": executivos,
             "produtos_fechados": cls.listar_produtos_fechados(),
             "licencas_catalogo": PrecoCatalogoRepository.listar_licenciamento(),
@@ -134,6 +138,19 @@ class PropostaService:
         return cls.repository.atualizar(proposta_id, dados)
 
     @classmethod
+    def atualizar_status(cls, proposta_id, status):
+        proposta = cls.buscar_por_id(proposta_id)
+        if not proposta:
+            raise ValueError("Proposta não encontrada.")
+        status = (status or "").strip().upper()
+        if status not in STATUS_PROPOSTA:
+            raise ValueError("Status da proposta inválido.")
+        if status in ("REJEITADA", "EXPIRADA", "CANCELADA"):
+            cls._cancelar_clicksign_se_pendente(proposta)
+        cls.repository.atualizar_status(proposta_id, status, cls._semaforo_padrao(status))
+        return cls.buscar_por_id(proposta_id)
+
+    @classmethod
     def excluir(cls, proposta_id):
         proposta = cls.buscar_por_id(proposta_id)
         if proposta and proposta.get("arquivo"):
@@ -158,6 +175,7 @@ class PropostaService:
             "AGUARDANDO_ASSINATURAS": "Documento aguardando assinaturas.",
             "ASSINADO": "Documento assinado eletronicamente.",
             "CONCLUIDO": "Fluxo de ClickSign concluído e pronto para contrato.",
+            "CANCELADO": "Envelope cancelado na ClickSign.",
             "ERRO": "Fluxo de ClickSign marcado com pendência/erro.",
         }[novo_status]
         eventos.append({
@@ -171,25 +189,28 @@ class PropostaService:
             "clicksign_eventos": json.dumps(eventos, ensure_ascii=False),
             "clicksign_last_sync_at": agora,
         }
+        if novo_status == "CANCELADO":
+            return cls._cancelar_clicksign_se_pendente(proposta, usuario_email)
         if novo_status == "DOCUMENTO_GERADO":
+            if (proposta.get("clicksign_status") or "").upper() in ("ASSINADO", "CONCLUIDO"):
+                raise ValueError("Esta proposta já consta como assinada na ClickSign. Não é permitido gerar um novo documento para este fluxo. Cancele a proposta atual e gere uma nova se houver alterações.")
             documento = cls.gerar_contrato_clicksign(proposta)
             atualizacao["clicksign_document_key"] = documento["nome"]
             atualizacao["clicksign_document_url"] = documento["url"]
         if novo_status == "ENVIADO":
             if proposta.get("clicksign_envelope_id"):
-                atualizacao["clicksign_sent_at"] = agora
-            else:
-                try:
-                    documento, envio = cls.enviar_contrato_clicksign(proposta)
-                except ClicksignError as erro:
-                    raise ValueError(str(erro)) from erro
-                atualizacao["clicksign_document_key"] = documento["nome"]
-                atualizacao["clicksign_document_url"] = documento["url"]
-                atualizacao["clicksign_envelope_id"] = envio["envelope_id"]
-                atualizacao["clicksign_sent_at"] = agora
-                eventos[-1]["descricao"] = f"Documento enviado ao ClickSign. Envelope: {envio['envelope_id']}."
-                eventos[-1]["clicksign"] = envio
-                atualizacao["clicksign_eventos"] = json.dumps(eventos, ensure_ascii=False)
+                raise ValueError("Esta proposta já foi enviada para a ClickSign. Para alterar dados ou contrato, cancele a proposta atual e gere uma nova proposta para evitar duplicidade de assinatura para o cliente.")
+            try:
+                documento, envio = cls.enviar_contrato_clicksign(proposta)
+            except ClicksignError as erro:
+                raise ValueError(str(erro)) from erro
+            atualizacao["clicksign_document_key"] = documento["nome"]
+            atualizacao["clicksign_document_url"] = documento["url"]
+            atualizacao["clicksign_envelope_id"] = envio["envelope_id"]
+            atualizacao["clicksign_sent_at"] = agora
+            eventos[-1]["descricao"] = f"Documento enviado ao ClickSign. Envelope: {envio['envelope_id']}."
+            eventos[-1]["clicksign"] = envio
+            atualizacao["clicksign_eventos"] = json.dumps(eventos, ensure_ascii=False)
         if novo_status == "ASSINADO":
             atualizacao["clicksign_signed_at"] = agora
         if novo_status == "CONCLUIDO":
@@ -274,11 +295,48 @@ class PropostaService:
     def _status_clicksign_por_envelope(status_api):
         if status_api == "closed":
             return "ASSINADO"
+        if status_api == "canceled":
+            return "CANCELADO"
         if status_api == "running":
             return "AGUARDANDO_ASSINATURAS"
         if status_api in ("draft", "created"):
             return "ENVIADO"
         return "AGUARDANDO_ASSINATURAS"
+
+    @classmethod
+    def _cancelar_clicksign_se_pendente(cls, proposta, usuario_email=None):
+        envelope_id = proposta.get("clicksign_envelope_id")
+        if not envelope_id:
+            return cls.buscar_por_id(proposta.get("id"))
+        if (proposta.get("clicksign_status") or "").upper() == "CANCELADO":
+            return cls.buscar_por_id(proposta.get("id"))
+        if (proposta.get("clicksign_status") or "").upper() not in ("ENVIADO", "AGUARDANDO_ASSINATURAS"):
+            return cls.buscar_por_id(proposta.get("id"))
+
+        agora = datetime.now()
+        client = ClicksignClient()
+        try:
+            envelope = client.cancelar_envelope(envelope_id)
+        except ClicksignError as erro:
+            raise ValueError(f"Não foi possível cancelar o envelope na ClickSign: {erro}") from erro
+
+        eventos = list(proposta.get("clicksign_eventos") or [])
+        eventos.append({
+            "status": "CANCELADO",
+            "descricao": f"Envelope cancelado na ClickSign. Envelope: {envelope_id}.",
+            "autor": usuario_email or "sistema",
+            "data": agora.isoformat(timespec="seconds"),
+            "clicksign": {
+                "envelope_id": envelope_id,
+                "status": ((envelope.get("attributes") or {}).get("status") if isinstance(envelope, dict) else None) or "canceled",
+            },
+        })
+        cls.repository.atualizar_clicksign(proposta.get("id"), {
+            "clicksign_status": "CANCELADO",
+            "clicksign_last_sync_at": agora,
+            "clicksign_eventos": json.dumps(eventos, ensure_ascii=False),
+        })
+        return cls.buscar_por_id(proposta.get("id"))
 
     @classmethod
     def sincronizar_clicksign_pendentes(cls, usuario_email="sistema"):
@@ -356,23 +414,56 @@ class PropostaService:
 
     @classmethod
     def _signatarios_clicksign(cls, proposta):
-        signatarios = [
+        return [
             cls._signatario_cliente_clicksign(proposta),
             cls._signatario_o3cloud_clicksign(),
         ]
-        executivo = cls._signatario_executivo_clicksign(proposta)
-        if executivo:
-            signatarios.append(executivo)
-        return signatarios
+
+    @classmethod
+    def _signatario_cliente_clicksign(cls, proposta):
+        representante = cls._representante_legal_clicksign(proposta)
+        return {
+            "name": representante.get("nome"),
+            "email": representante.get("email"),
+            "phone_number": representante.get("telefone") or representante.get("whatsapp"),
+            "documentation": representante.get("cpf"),
+        }
 
     @staticmethod
-    def _signatario_cliente_clicksign(proposta):
-        return {
-            "name": proposta.get("contato_nome") or proposta.get("cliente_nome") or proposta.get("cliente_razao_social"),
-            "email": proposta.get("contato_email"),
-            "phone_number": proposta.get("contato_telefone") or proposta.get("contato_whatsapp"),
-            "documentation": proposta.get("contato_cpf"),
+    def _representante_legal_clicksign(proposta):
+        representante_id = PropostaService._normalizar_inteiro(proposta.get("representante_legal_id"))
+        if representante_id:
+            contato = ContatoService.buscar_por_id(representante_id)
+            if not contato or not contato.get("ativo"):
+                raise ClicksignError("Selecione um contato ativo do tipo Representante Legal antes de enviar o contrato para a ClickSign.")
+            if contato.get("tipo_contato") != "REPRESENTANTE_LEGAL":
+                raise ClicksignError("O contato selecionado para assinatura precisa ser do tipo Representante Legal.")
+            if not PropostaService._cpf_valido_clicksign(contato.get("cpf")):
+                raise ClicksignError("Cadastre o CPF do representante legal antes de enviar o contrato para a ClickSign.")
+            return contato
+
+        nomes_cliente = [
+            proposta.get("cliente_razao_social"),
+            proposta.get("cliente_nome_fantasia"),
+            proposta.get("cliente_nome"),
+            proposta.get("oportunidade_empresa"),
+        ]
+        chaves_cliente = {
+            re.sub(r"[^a-z0-9]+", "", str(nome).lower())
+            for nome in nomes_cliente
+            if nome
         }
+        for contato in ContatoService.listar_todos_ativos("REPRESENTANTE_LEGAL"):
+            empresa = re.sub(r"[^a-z0-9]+", "", str(contato.get("empresa") or "").lower())
+            if empresa and any(empresa in chave or chave in empresa for chave in chaves_cliente):
+                if not PropostaService._cpf_valido_clicksign(contato.get("cpf")):
+                    raise ClicksignError("Cadastre o CPF do representante legal antes de enviar o contrato para a ClickSign.")
+                return contato
+        raise ClicksignError("Selecione um contato ativo do tipo Representante Legal na proposta antes de enviar o contrato para a ClickSign. Caso ele não exista, cadastre pelo atalho de contato na proposta.")
+
+    @staticmethod
+    def _cpf_valido_clicksign(valor):
+        return len(re.sub(r"\D+", "", str(valor or ""))) == 11
 
     @staticmethod
     def _signatario_o3cloud_clicksign():
@@ -381,20 +472,6 @@ class PropostaService:
             "email": os.getenv("CLICKSIGN_O3_SIGNER_EMAIL", "jean@o3cloud.com.br"),
             "phone_number": os.getenv("CLICKSIGN_O3_SIGNER_PHONE", ""),
             "documentation": os.getenv("CLICKSIGN_O3_SIGNER_DOCUMENTATION", ""),
-        }
-
-    @staticmethod
-    def _signatario_executivo_clicksign(proposta):
-        nome = proposta.get("executivo_nome")
-        email = proposta.get("executivo_email")
-        if not nome or not email:
-            return None
-        return {
-            "name": nome,
-            "email": email,
-            "phone_number": proposta.get("executivo_telefone"),
-            "documentation": "",
-            "role": "witness",
         }
 
     @classmethod
@@ -436,20 +513,21 @@ class PropostaService:
 
     @classmethod
     def _dados_contrato_da_proposta(cls, proposta, documento):
+        representante = cls._representante_legal_clicksign(proposta)
         valor_setup = (proposta.get("setup_ambiente_cloud") or Decimal("0.00")) + (proposta.get("instalacao_servidores") or Decimal("0.00"))
         quantidade_usuarios = sum(cls._normalizar_inteiro(item.get("quantidade")) or 0 for item in proposta.get("licencas_items") or []) or None
         return {
             "cliente_id": proposta.get("cliente_id"),
-            "contato_id": proposta.get("contato_id"),
+            "contato_id": representante.get("id"),
             "proposta_id": proposta.get("id"),
             "numero": proposta.get("codigo_proposta") or f"PROP-{proposta.get('id')}",
             "descricao": proposta.get("titulo"),
             "status": "CONCLUIDO",
             "inicio_vigencia": None,
             "fim_vigencia": None,
-            "contato_nome": proposta.get("contato_nome"),
-            "contato_email": proposta.get("contato_email"),
-            "contato_telefone": proposta.get("contato_telefone"),
+            "contato_nome": representante.get("nome"),
+            "contato_email": representante.get("email"),
+            "contato_telefone": representante.get("telefone") or representante.get("whatsapp"),
             "data_fechamento": date.today(),
             "executivo_id": proposta.get("executivo_responsavel_id"),
             "parceiro_id": proposta.get("parceiro_id"),
@@ -636,8 +714,8 @@ class PropostaService:
     def _placeholders_contrato(cls, proposta):
         nome_cliente = proposta.get("cliente_razao_social") or proposta.get("cliente_nome") or proposta.get("cliente_nome_fantasia") or ""
         nome_fantasia = proposta.get("cliente_nome_fantasia") or proposta.get("cliente_nome") or nome_cliente
-        contato_nome = proposta.get("contato_nome") or ""
-        cargo = proposta.get("contato_cargo") or "Representante legal"
+        contato_nome = proposta.get("representante_legal_nome") or proposta.get("contato_nome") or ""
+        cargo = proposta.get("representante_legal_cargo") or proposta.get("contato_cargo") or "Representante legal"
         prazo = cls._normalizar_inteiro(proposta.get("prazo_contratual_meses"), 24) or 24
         software = cls._software_cliente(proposta)
         return {
@@ -652,7 +730,7 @@ class PropostaService:
             "[ENDERECO_DO_CLIENTE]": cls._endereco_cliente(proposta),
             "[NOME_REPRESENTANTE]": contato_nome,
             "[CARGO_REPRESENTANTE]": cargo,
-            "[CPF_REPRESENTANTE]": proposta.get("contato_cpf") or "",
+            "[CPF_REPRESENTANTE]": proposta.get("representante_legal_cpf") or proposta.get("contato_cpf") or "",
             "[VALOR_SETUP]": cls._moeda_sem_prefixo(proposta.get("setup_ambiente_cloud")),
             "[VALOR_PROJETO]": cls._moeda_sem_prefixo(proposta.get("parametrizacao_sistema")),
             "[TOTAL_INSTALACAO]": cls._moeda_sem_prefixo(proposta.get("total_instalacao")),
@@ -779,6 +857,7 @@ class PropostaService:
             "cliente_nome_fantasia": dados.get("cliente_nome_fantasia") or "",
             "cliente_cnpj": dados.get("cliente_cnpj") or "",
             "contato_id": dados.get("contato_id"),
+            "representante_legal_id": dados.get("representante_legal_id"),
             "parceiro_id": dados.get("parceiro_id"),
             "executivo_responsavel_id": dados.get("executivo_responsavel_id"),
             "codigo_proposta": dados.get("codigo_proposta") or codigo_sugerido or cls.gerar_codigo_proposta(),
@@ -791,6 +870,8 @@ class PropostaService:
             "detalhes_negociacao": dados.get("detalhes_negociacao") or "",
             "condicoes_comerciais": dados.get("condicoes_comerciais") or "",
             "observacoes": dados.get("observacoes") or "",
+            "comentarios_comerciais": dados.get("comentarios_comerciais") or "",
+            "semaforo_fechamento": dados.get("semaforo_fechamento") or cls._semaforo_padrao(dados.get("status")),
             "cliente_nome": dados.get("cliente_nome") or "",
             "contato_nome": dados.get("contato_nome") or "",
             "contato_email": dados.get("contato_email") or "",
@@ -823,7 +904,7 @@ class PropostaService:
     @classmethod
     def normalizar(cls, dados):
         dados = dict(dados)
-        for campo in ("oportunidade_id", "cliente_id", "contato_id", "parceiro_id", "executivo_responsavel_id"):
+        for campo in ("oportunidade_id", "cliente_id", "contato_id", "representante_legal_id", "parceiro_id", "executivo_responsavel_id"):
             dados[campo] = cls._normalizar_inteiro(dados.get(campo))
         dados["codigo_proposta"] = (dados.get("codigo_proposta") or "").strip()
         dados["titulo"] = (dados.get("titulo") or "").strip()
@@ -832,15 +913,16 @@ class PropostaService:
         dados["setup_dias"] = cls._normalizar_inteiro(dados.get("setup_dias"), 7)
         dados["mensalidade_dias"] = cls._normalizar_inteiro(dados.get("mensalidade_dias"), 30)
         dados["prazo_contratual_meses"] = cls._normalizar_inteiro(dados.get("prazo_contratual_meses"), 24)
-        for campo in ("detalhes_negociacao", "condicoes_comerciais", "observacoes", "cliente_nome", "contato_nome", "contato_telefone", "executivo_nome", "executivo_telefone"):
+        for campo in ("detalhes_negociacao", "condicoes_comerciais", "observacoes", "comentarios_comerciais", "cliente_nome", "contato_nome", "contato_telefone", "executivo_nome", "executivo_telefone"):
             dados[campo] = (dados.get(campo) or "").strip()
+        dados["semaforo_fechamento"] = (dados.get("semaforo_fechamento") or cls._semaforo_padrao(dados.get("status"))).strip().upper()
         dados["contato_email"] = (dados.get("contato_email") or "").strip().lower()
         dados["executivo_email"] = (dados.get("executivo_email") or "").strip().lower()
         dados["licencas_items"] = cls._normalizar_licencas(dados.get("licencas_snapshot"))
         dados["servidores_items"] = cls._normalizar_servidores(dados.get("servidores_snapshot"))
         cls._herdar_relacionamentos(dados)
         resumo = cls._calcular_totais(dados["licencas_items"], dados["servidores_items"])
-        dados["total_mensal"] = cls._decimal(dados.get("total_mensal")) or resumo["total_mensal"]
+        dados["total_mensal"] = resumo["total_mensal"]
         dados["parametrizacao_sistema"] = cls._decimal(dados.get("parametrizacao_sistema"))
         if dados["parametrizacao_sistema"] is None:
             dados["parametrizacao_sistema"] = resumo["parametrizacao_padrao"]
@@ -875,6 +957,8 @@ class PropostaService:
             raise ValueError("Status da proposta inválido.")
         if dados.get("clicksign_status") not in STATUS_CLICKSIGN:
             raise ValueError("Status de ClickSign inválido.")
+        if dados.get("semaforo_fechamento") not in ("FRIO", "MORNO", "QUENTE"):
+            raise ValueError("Semáforo de fechamento inválido.")
         if not dados["licencas_items"] and not dados["servidores_items"]:
             raise ValueError("Adicione ao menos uma licença ou um servidor na proposta.")
         if dados["prazo_contratual_meses"] <= 0:
@@ -885,6 +969,18 @@ class PropostaService:
         if oportunidade and not dados.get("cliente_nome"):
             raise ValueError("Não foi possível resolver o cliente da oportunidade.")
         return True
+
+    @staticmethod
+    def _semaforo_padrao(status):
+        return {
+            "APROVADA": "QUENTE",
+            "ENVIADA": "MORNO",
+            "EM_ANALISE": "MORNO",
+            "RASCUNHO": "FRIO",
+            "REJEITADA": "FRIO",
+            "EXPIRADA": "FRIO",
+            "CANCELADA": "FRIO",
+        }.get((status or "").strip().upper(), "FRIO")
 
     @classmethod
     def gerar_codigo_proposta(cls):
@@ -918,6 +1014,8 @@ class PropostaService:
         proposta["valor_total"] = cls._decimal(proposta.get("valor_total")) or (proposta["total_mensal"] + proposta["total_instalacao"])
         proposta["instalacao_servidores"] = resumo["instalacao_servidores"]
         proposta["status_label"] = STATUS_PROPOSTA.get(proposta.get("status"), proposta.get("status"))
+        proposta["semaforo_fechamento"] = (proposta.get("semaforo_fechamento") or cls._semaforo_padrao(proposta.get("status"))).upper()
+        proposta["semaforo_fechamento_label"] = {"FRIO": "Frio", "MORNO": "Morno", "QUENTE": "Quente"}.get(proposta["semaforo_fechamento"], proposta["semaforo_fechamento"])
         proposta["clicksign_status"] = proposta.get("clicksign_status") or "NAO_ENVIADO"
         proposta["clicksign_status_label"] = STATUS_CLICKSIGN.get(proposta.get("clicksign_status"), proposta.get("clicksign_status"))
         proposta["clicksign_eventos"] = cls._carregar_lista_json(proposta.get("clicksign_eventos"))
@@ -928,6 +1026,7 @@ class PropostaService:
         proposta["codigo_proposta"] = proposta.get("codigo_proposta") or cls.gerar_codigo_proposta()
         cls._enriquecer_cliente(proposta)
         cls._enriquecer_contato(proposta)
+        cls._enriquecer_representante_legal(proposta)
         return proposta
 
     @classmethod
@@ -950,11 +1049,19 @@ class PropostaService:
         if dados.get("contato_id"):
             contato = ContatoService.buscar_por_id(dados["contato_id"])
             if contato:
+                if contato.get("tipo_contato") != "COMERCIAL":
+                    raise ValueError("Selecione um contato do tipo Comercial para a proposta.")
                 dados["contato_nome"] = contato.get("nome") or dados.get("contato_nome")
                 dados["contato_email"] = contato.get("email") or dados.get("contato_email")
                 dados["contato_telefone"] = contato.get("telefone") or contato.get("whatsapp") or dados.get("contato_telefone")
                 dados["parceiro_id"] = dados.get("parceiro_id") or contato.get("parceiro_id")
                 dados["executivo_responsavel_id"] = dados.get("executivo_responsavel_id") or contato.get("executivo_responsavel_id")
+        if dados.get("representante_legal_id"):
+            representante = ContatoService.buscar_por_id(dados["representante_legal_id"])
+            if not representante or not representante.get("ativo"):
+                raise ValueError("Selecione um representante legal ativo para a proposta.")
+            if representante.get("tipo_contato") != "REPRESENTANTE_LEGAL":
+                raise ValueError("Selecione um contato do tipo Representante Legal para a proposta.")
         if dados.get("executivo_responsavel_id"):
             for executivo in ParceiroExecutivoService.listar_todos_ativos():
                 if executivo.get("id") == dados["executivo_responsavel_id"]:
@@ -993,6 +1100,8 @@ class PropostaService:
         contato = ContatoService.buscar_por_id(dados.get("contato_id"))
         if not contato:
             return dados
+        if contato.get("tipo_contato") != "COMERCIAL":
+            return dados
         dados["contato_nome"] = contato.get("nome") or dados.get("contato_nome") or ""
         dados["contato_email"] = contato.get("email") or dados.get("contato_email") or ""
         dados["contato_telefone"] = contato.get("telefone") or contato.get("whatsapp") or dados.get("contato_telefone") or ""
@@ -1002,14 +1111,60 @@ class PropostaService:
         return dados
 
     @classmethod
+    def _enriquecer_representante_legal(cls, dados):
+        dados.setdefault("representante_legal_nome", "")
+        dados.setdefault("representante_legal_email", "")
+        dados.setdefault("representante_legal_telefone", "")
+        dados.setdefault("representante_legal_cargo", "")
+        dados.setdefault("representante_legal_cpf", "")
+        if not dados.get("representante_legal_id"):
+            return dados
+        contato = ContatoService.buscar_por_id(dados.get("representante_legal_id"))
+        if not contato or contato.get("tipo_contato") != "REPRESENTANTE_LEGAL":
+            return dados
+        dados["representante_legal_nome"] = contato.get("nome") or ""
+        dados["representante_legal_email"] = contato.get("email") or ""
+        dados["representante_legal_telefone"] = contato.get("telefone") or contato.get("whatsapp") or ""
+        dados["representante_legal_cargo"] = contato.get("cargo") or "Representante legal"
+        dados["representante_legal_cpf"] = contato.get("cpf") or ""
+        return dados
+
+    @classmethod
     def _normalizar_licencas(cls, bruto):
         itens = cls._carregar_lista_json(bruto)
         resposta = []
         for item in itens:
+            preco_id = cls._normalizar_inteiro(item.get("preco_id"))
+            preco = PrecoCatalogoRepository.buscar_licenciamento(preco_id) if preco_id else None
             quantidade = cls._normalizar_inteiro(item.get("quantidade"), 1) or 1
+            if preco:
+                minimo = cls._normalizar_inteiro(preco.get("usuarios_inicio"))
+                maximo = cls._normalizar_inteiro(preco.get("usuarios_fim"))
+                nome = preco.get("software") or preco.get("produto") or "Licença"
+                if minimo and quantidade < minimo:
+                    raise ValueError(f"{nome}: quantidade de usuários deve ser no mínimo {minimo}.")
+                if maximo and quantidade > maximo:
+                    raise ValueError(f"{nome}: quantidade de usuários deve ser no máximo {maximo}.")
+                valor = cls._decimal(preco.get("valor_mensal")) or Decimal("0.00")
+                valor_setup = cls._decimal(preco.get("valor_setup")) or Decimal("0.00")
+                resposta.append({
+                    "preco_id": preco_id,
+                    "faixa_id": cls._normalizar_inteiro(preco.get("faixa_id")),
+                    "produto": (preco.get("produto") or "").strip(),
+                    "software": (preco.get("software") or "").strip(),
+                    "descricao": (preco.get("descricao") or "").strip(),
+                    "quantidade": quantidade,
+                    "valor_unitario": cls._string_decimal(valor),
+                    "valor_setup": cls._string_decimal(valor_setup),
+                    "tem_projeto": str(preco.get("tem_projeto", "0")).lower() in ("1", "true", "sim"),
+                    "usuarios_inicio": minimo,
+                    "usuarios_fim": maximo,
+                    "total_mensal": cls._string_decimal((valor * quantidade).quantize(Decimal("0.01"))),
+                })
+                continue
             valor = cls._decimal(item.get("valor_unitario")) or Decimal("0.00")
             resposta.append({
-                "preco_id": cls._normalizar_inteiro(item.get("preco_id")),
+                "preco_id": preco_id,
                 "faixa_id": cls._normalizar_inteiro(item.get("faixa_id")),
                 "produto": (item.get("produto") or "").strip(),
                 "software": (item.get("software") or "").strip(),

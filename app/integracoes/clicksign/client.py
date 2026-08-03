@@ -1,5 +1,6 @@
 import base64
 import os
+import re
 from pathlib import Path
 from urllib.parse import unquote
 from urllib.parse import urlparse
@@ -34,6 +35,8 @@ class ClicksignClient:
             signatarios_envio.insert(0, signatario)
         if not signatarios_envio:
             raise ClicksignError("Informe ao menos um signatario para envio ao Clicksign.")
+        for item in signatarios_envio:
+            self._validar_signatario(item)
 
         envelope = self.criar_envelope(nome_envelope)
         envelope_id = envelope["id"]
@@ -83,6 +86,7 @@ class ClicksignClient:
         }
         if not atributos["name"] or not atributos["email"]:
             raise ClicksignError("Informe nome e e-mail do contato antes de enviar para Clicksign.")
+        self._validar_signatario(atributos)
 
         payload = {
             "data": {
@@ -90,7 +94,23 @@ class ClicksignClient:
                 "attributes": atributos,
             }
         }
-        return self._data(self._request("POST", f"/envelopes/{envelope_id}/signers", json=payload))
+        try:
+            return self._data(self._request("POST", f"/envelopes/{envelope_id}/signers", json=payload))
+        except ClicksignError as erro:
+            raise ClicksignError(f"Erro ao adicionar signatário {atributos['name']} ({atributos['email']}): {erro}") from erro
+
+    @staticmethod
+    def _validar_signatario(signatario):
+        nome = re.sub(r"\s+", " ", (signatario.get("name") or "").strip())
+        email = (signatario.get("email") or "").strip().lower()
+        if not nome or not email:
+            raise ClicksignError("Informe nome e e-mail do contato antes de enviar para Clicksign.")
+        if any(ch.isdigit() for ch in nome):
+            raise ClicksignError(f"O signatário {nome} possui número no nome. Cadastre o nome completo da pessoa física antes de enviar para a ClickSign.")
+        partes_nome = [parte for parte in nome.split(" ") if any(ch.isalpha() for ch in parte)]
+        if len(partes_nome) < 2:
+            raise ClicksignError(f"O signatário {nome} precisa estar com nome completo. Cadastre nome e sobrenome antes de enviar para a ClickSign.")
+        return True
 
     def criar_requisito_assinatura(self, envelope_id, document_id, signer_id, role="sign"):
         payload = self._payload_requisito(
@@ -114,6 +134,16 @@ class ClicksignClient:
                 "id": envelope_id,
                 "type": "envelopes",
                 "attributes": {"status": "running"},
+            }
+        }
+        return self._data(self._request("PATCH", f"/envelopes/{envelope_id}", json=payload))
+
+    def cancelar_envelope(self, envelope_id):
+        payload = {
+            "data": {
+                "id": envelope_id,
+                "type": "envelopes",
+                "attributes": {"status": "canceled"},
             }
         }
         return self._data(self._request("PATCH", f"/envelopes/{envelope_id}", json=payload))

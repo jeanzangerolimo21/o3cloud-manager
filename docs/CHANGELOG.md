@@ -46,6 +46,61 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+## 2026-08-03 - Melhorias Pre-Sprint 16
+
+### Comercial e ClickSign
+
+- Criado `docs/26-MELHORIAS-PRE-SPRINT-16.md` para registrar refinamentos aplicados apos o fechamento tecnico da Sprint 15 e antes da abertura da Sprint 16.
+- Propostas passaram a armazenar `representante_legal_id` e selecionar explicitamente contato do tipo Representante Legal.
+- Envio para ClickSign passou a exigir nome completo e CPF valido do representante legal antes de chamar a API.
+- Bloqueado reenvio duplicado quando a proposta ja possui envelope ClickSign.
+- Cancelamento de proposta rejeitada/expirada/cancelada passa a cancelar envelope pendente na ClickSign quando aplicavel.
+- Listagem de propostas aprovadas passou a mostrar Gerar documento e Enviar apenas apos documento gerado e sem envelope existente.
+- Geracao de documento foi bloqueada para fluxos ClickSign assinados ou concluidos.
+
+### Operacional
+
+- Registrados refinamentos de PDF de proposta, pipeline comercial, rastreabilidade, contratos e cofre de senhas.
+- Menu Configuracoes voltou a exibir Integracoes Tecnicas, mantendo removidos apenas os atalhos das telas operacionais.
+- Sidebar recebeu rolagem interna propria e cabecalho compactado para acessar opcoes inferiores sem mover o conteudo principal.
+- Configuracao SMTP de naoresponda@o3cloud.com.br e automacoes de email de implantacao foram validadas por teste/simulacao.
+
+## 2026-08-03 - Fechamento Oficial Sprint 15
+
+### Documentacao
+
+- Dashboard principal `Visao Geral` passou a exibir Sprint 15 concluida e as acoes propostas para a Sprint 16.
+- Sprint 15 marcada como concluida em `docs/25-FECHAMENTO-SPRINT-15.md`, `docs/05-SPRINT_ATUAL`, `docs/17-SPRINTS.md`, `docs/ROADMAP.md` e `docs/00-VISAO-GERAL.md`.
+- Validacao final registrou 11 rotas de infraestrutura com HTTP 200, AST OK em 13 modulos e `git diff --check` sem erros.
+- Pendencias remanescentes foram encaminhadas para validacao assistida ou sprint futura, sem bloquear o fechamento tecnico.
+
+## 2026-08-03 - Revisao de Fechamento Sprint 15
+
+### Documentacao
+
+- Criado `docs/25-FECHAMENTO-SPRINT-15.md` com entregas consolidadas, validacoes, dados locais e pendencias finais para aceite operacional.
+- `docs/05-SPRINT_ATUAL`, `docs/17-SPRINTS.md`, `docs/ROADMAP.md` e `docs/00-VISAO-GERAL.md` passaram a indicar Sprint 15 em revisao final para fechamento.
+- Pendencias finais da Sprint 15 foram separadas entre validacao assistida, controle formal de acesso/perfis e historico centralizado opcional para sincronismos Zabbix/TrueNAS.
+
+## 2026-08-03 - Sprint 15 Monitoramento Zabbix
+
+### Infraestrutura
+
+- Tela `/infraestrutura/monitoramento-zabbix` passou a consultar alarmes recentes do Zabbix em modo read-only.
+- Alarmes abertos ficam no topo, ordenados por criticidade e data.
+- Criticidade media/alta media usa amarelo, alta usa vermelho, critica usa vermelho escuro e resolvidos usam verde.
+- Consulta usa a integracao Zabbix ativa cadastrada em Integracoes Tecnicas, sem alterar hosts, itens ou triggers.
+- Alarmes Zabbix passaram a usar cache local persistido em `zabbix_alarm_cache`; a tela abre pelo cache e a API so e consultada ao clicar em Sincronizar Zabbix.
+- Sincronismo Zabbix passou a limitar a consulta de eventos aos ultimos 30 dias, usar timeout efetivo minimo de 60s e regravar o cache como snapshot para evitar timeout/acumulo de eventos antigos.
+- Tela Monitoramento Zabbix ganhou filtro de exibicao por status/criticidade no cache: Todos, Abertos, Resolvidos, Media, Alta media, Alta e Critica.
+- Telas operacionais de infraestrutura deixaram de exibir atalhos para Integracoes Tecnicas/Credenciais, mantendo essa area restrita a usuarios avancados.
+- Tela `/infraestrutura/backup-nas` passou a monitorar pastas de clientes em `/mnt/BKP1` a `/mnt/BKP7` no TrueNAS, com cache em `truenas_backup_cache` e sincronizacao manual read-only.
+- Pastas sem arquivos alterados nas ultimas 24 horas aparecem como alerta amarelo, mantendo a abertura da tela pelo cache local.
+- Backup NAS recebeu abas separadas para Alertas e Backups OK com navegacao por link, permitindo abrir a lista de OK mesmo sem JavaScript de abas.
+- Tela Backup NAS ganhou filtro de cache por cliente, pasta, ultimo arquivo ou arquivo recente.
+- Varredura TrueNAS passou a combinar pastas raiz dos clientes em `/mnt/BKP1` a `/mnt/BKP7` com dumps em `Backup-BD`/`Backups-BD` e `Postgres-BKPs`.
+- Alertas Backup NAS passaram a exibir o ultimo arquivo modificado de qualquer extensao, data e tempo desde a ultima alteracao, mantendo tamanho dos arquivos recentes na aba OK.
+
 ## 2026-07-30 - Abertura da Sprint 15
 
 ### Visao Geral

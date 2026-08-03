@@ -1,0 +1,127 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Backups PBS" %}
+    {% set page_description = "Auditoria de snapshots PBS cruzada com o inventário Proxmox." %}
+    {% set page_icon = "bi-server" %}
+    {% include "components/page_header.html" %}
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('infraestrutura.clusters') }}"><i class="bi bi-diagram-3"></i> Clusters</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('infraestrutura.nodes') }}"><i class="bi bi-hdd-network"></i> Nodes</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('infraestrutura.maquinas_virtuais') }}"><i class="bi bi-pc-display"></i> Máquinas Virtuais</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('infraestrutura.containers') }}"><i class="bi bi-boxes"></i> Containers</a>
+        {% if integracoes_pbs %}
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('infraestrutura.novo_escopo_pbs') }}"><i class="bi bi-plus-circle"></i> Novo Escopo PBS</a>
+        {% if escopo %}<form method="POST" action="{{ url_for('infraestrutura.sincronizar_pbs') }}" class="d-flex gap-2">
+            <input type="hidden" name="escopo_id" value="{{ escopo.id }}">
+            <button class="btn btn-sm btn-success" type="submit"><i class="bi bi-arrow-repeat"></i> Sincronizar escopo</button>
+        </form>{% endif %}
+        {% if escopos %}<form method="POST" action="{{ url_for('infraestrutura.sincronizar_todos_pbs') }}" class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-success" type="submit"><i class="bi bi-arrow-repeat"></i> Sincronizar todos</button>
+        </form>{% endif %}
+        {% endif %}
+    </div>
+
+    {% if not integracoes_pbs %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i> Integração PBS ativa não encontrada. Solicite a configuração para um usuário avançado.
+    </div>
+    {% elif not escopos %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Nenhum escopo PBS cadastrado. Crie um escopo informando o datastore e os namespaces que devem ser monitorados.
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <strong>Escopos PBS</strong>
+            <span class="badge text-bg-light border">1 PBS pode ter vários datastores</span>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end mb-3">
+                <div class="col-md-6"><label class="form-label">Escopo monitorado</label><select class="form-select" name="escopo_id" onchange="this.form.submit()">{% for item in escopos %}<option value="{{ item.id }}" {% if selected_escopo_id == item.id %}selected{% endif %}>{{ item.nome }} - {{ item.datastore }}</option>{% endfor %}</select></div>
+                <div class="col-md-3"><button class="btn btn-outline-primary w-100"><i class="bi bi-check2"></i> Selecionar</button></div>
+                {% if escopo %}<div class="col-md-3"><a class="btn btn-outline-secondary w-100" href="{{ url_for('infraestrutura.editar_escopo_pbs', escopo_id=escopo.id) }}"><i class="bi bi-pencil"></i> Editar escopo</a></div>{% endif %}
+            </form>
+            {% if escopo %}<div class="row g-3">
+                <div class="col-md-4"><small class="text-muted">Integração</small><div>{{ escopo.integracao_nome }}</div></div>
+                <div class="col-md-3"><small class="text-muted">Datastore</small><div>{{ escopo.datastore }}</div></div>
+                <div class="col-md-5"><small class="text-muted">Namespaces</small><div>{{ escopo.namespaces_lista|join(', ') }}</div><small class="text-muted">Cada escopo representa um datastore/disco do PBS.</small></div>
+            </div>{% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if dashboard.alerta_total %}
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        {{ dashboard.alerta_total }} recurso(s) sem backup dentro do prazo esperado. Verifique os itens marcados como alerta.
+    </div>
+    {% endif %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Recursos</small><h4>{{ dashboard.total_recursos or 0 }}</h4></div></div></div>
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">OK</small><h4 class="text-success">{{ dashboard.ok_total or 0 }}</h4></div></div></div>
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Alertas</small><h4 class="text-danger">{{ dashboard.alerta_total or 0 }}</h4></div></div></div>
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Sem backup</small><h4>{{ dashboard.sem_backup or 0 }}</h4></div></div></div>
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Semanais</small><h4>{{ dashboard.semanais_total or 0 }}</h4></div></div></div>
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Snapshots PBS</small><h4>{{ dashboard.backups_total or 0 }}</h4></div></div></div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="mb-4"><input type="hidden" name="escopo_id" value="{{ selected_escopo_id or '' }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2"><label class="form-label">Datastore</label><input class="form-control" name="datastore" value="{{ datastore }}" readonly></div>
+                    <div class="col-md-2"><label class="form-label">Status</label><select class="form-select" name="status"><option value="">Todos</option><option value="com_alerta" {% if selected_status == 'com_alerta' %}selected{% endif %}>Com alerta</option><option value="ok" {% if selected_status == 'ok' %}selected{% endif %}>OK</option><option value="sem_backup" {% if selected_status == 'sem_backup' %}selected{% endif %}>Sem backup</option></select></div>
+                    <div class="col-md-2"><label class="form-label">Tipo</label><select class="form-select" name="tipo"><option value="">Todos</option><option value="qemu" {% if selected_tipo == 'qemu' %}selected{% endif %}>VM</option><option value="lxc" {% if selected_tipo == 'lxc' %}selected{% endif %}>Container</option></select></div>
+                    <div class="col-md-2"><label class="form-label">Node</label><select class="form-select" name="node"><option value="">Todos</option>{% for item in nodes %}<option value="{{ item.node }}" {% if selected_node == item.node %}selected{% endif %}>{{ item.node }}</option>{% endfor %}</select></div>
+                    <div class="col-md-3"><label class="form-label">Pesquisa</label><input class="form-control" name="q" value="{{ pesquisa }}" placeholder="Nome, VMID ou node"></div>
+                    <div class="col-md-1"><button class="btn btn-primary w-100"><i class="bi bi-search"></i></button></div>
+                </div>
+            </form>
+
+            <form method="POST" action="{{ url_for('infraestrutura.atualizar_politicas_pbs') }}">
+                <input type="hidden" name="escopo_id" value="{{ selected_escopo_id or '' }}">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light"><tr><th>VMID</th><th>Nome</th><th>Ambiente</th><th>Node/Namespace</th><th>Status Backup</th><th>Último backup</th><th>Qtd. PBS</th><th>Prazo</th><th>Semanal</th></tr></thead>
+                        <tbody>
+                        {% for item in recursos %}
+                            <tr class="{% if not item.backup_ok %}table-danger{% endif %}">
+                                <td><strong>{{ item.vmid }}</strong><br><span class="badge bg-secondary">{{ 'VM' if item.tipo == 'qemu' else 'CT' }}</span></td>
+                                <td>{{ item.nome or '-' }}<br><small class="text-muted">{{ item.vm_status or '-' }}</small></td>
+                                <td><small>{{ item.cliente_nomes or '-' }}</small>{% if item.ambiente_nomes %}<br><small class="text-muted">{{ item.ambiente_nomes }}</small>{% endif %}</td>
+                                <td>{{ item.node }}<br><small class="text-muted">{{ item.namespace or item.node }}</small></td>
+                                <td><span class="badge text-bg-{{ 'success' if item.backup_status == 'OK' else 'danger' }}">{{ item.backup_status }}</span>{% if item.horas_desde_backup is not none %}<br><small class="text-muted">{{ item.horas_desde_backup }}h atrás</small>{% endif %}</td>
+                                <td>{{ item.ultimo_backup_em.strftime('%d/%m/%Y %H:%M') if item.ultimo_backup_em else '-' }}</td>
+                                <td>{{ item.backups_total or 0 }}</td>
+                                <td>{{ item.prazo_label }}</td>
+                                <td><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="recurso_ids_semanais" value="{{ item.id }}" {% if item.backup_semanal %}checked{% endif %}></div></td>
+                            </tr>
+                        {% else %}
+                            {% set colspan = 9 %}
+                            {% set empty_message = "Nenhuma VM ou container encontrada no inventário Proxmox." %}
+                            {% include "components/empty_state.html" %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-end mt-3"><button class="btn btn-primary"><i class="bi bi-check-circle"></i> Salvar políticas</button></div>
+            </form>
+        </div>
+    </div>
+
+    {% if execucoes %}
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white"><strong>Sincronismos recentes</strong></div>
+        <div class="table-responsive"><table class="table align-middle mb-0"><thead class="table-light"><tr><th>Integração</th><th>Datastore</th><th>Status</th><th>Namespaces</th><th>Snapshots</th><th>Mensagem</th><th>Data</th></tr></thead><tbody>
+            {% for item in execucoes %}
+            <tr><td>{{ item.integracao_nome }}</td><td>{{ item.datastore }}</td><td><span class="badge bg-{{ 'success' if item.status == 'OK' else 'danger' if item.status == 'ERRO' else 'secondary' }}">{{ item.status }}</span></td><td>{{ item.namespaces_lidos }}</td><td>{{ item.snapshots_lidos }}</td><td><small class="text-muted">{{ item.mensagem or '-' }}</small></td><td>{{ item.finalizada_em.strftime('%d/%m/%Y %H:%M') if item.finalizada_em else item.iniciada_em.strftime('%d/%m/%Y %H:%M') if item.iniciada_em else '-' }}</td></tr>
+            {% endfor %}
+        </tbody></table></div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

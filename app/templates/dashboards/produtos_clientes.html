@@ -40,7 +40,7 @@
             <div class="row g-3 align-items-end">
                 <div class="col-lg-4">
                     <label class="form-label">Buscar</label>
-                    <input class="form-control" name="q" value="{{ filtros.q or '' }}" placeholder="Cliente, contrato, item ou codigo">
+                    <input class="form-control" name="q" value="{{ filtros.q or '' }}" placeholder="Cliente, contrato, ambiente, recurso ou codigo">
                 </div>
                 <div class="col-lg-2">
                     <label class="form-label">Status contrato</label>
@@ -82,6 +82,70 @@
         <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Itens contratados</small><h3 class="mb-1">{{ resumo.itens_total or 0 }}</h3><small class="text-muted">{{ resumo.clientes_total or 0 }} cliente(s)</small></div></div></div>
         <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Cobertura catalogo</small><h3 class="mb-1 {{ 'text-danger' if not resumo.cobertura_catalogo else '' }}">{{ resumo.cobertura_catalogo or 0 }}%</h3><small class="text-muted">{{ resumo.itens_com_produto_catalogo or 0 }}/{{ resumo.itens_total or 0 }} itens vinculados</small></div></div></div>
         <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Cobertura custo</small><h3 class="mb-1 {{ 'text-danger' if not resumo.cobertura_custo else '' }}">{{ resumo.cobertura_custo or 0 }}%</h3><small class="text-muted">{{ resumo.itens_com_custo or 0 }}/{{ resumo.itens_total or 0 }} itens com custo</small></div></div></div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        {% set ambientes_resumo = dashboard.ambientes_resumo or {} %}
+        <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Receita mensal contratos</small><h3 class="mb-1">{{ resumo.receita_mensal_contratos|moeda }}</h3><small class="text-muted">Base comercial filtrada</small></div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Ambientes vinculados</small><h3 class="mb-1">{{ ambientes_resumo.ambientes_total or 0 }}</h3><small class="text-muted">{{ ambientes_resumo.recursos_total or 0 }} recurso(s) Proxmox</small></div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">CPU / Memoria</small><h3 class="mb-1">{{ ambientes_resumo.cpu_total or 0 }}</h3><small class="text-muted">{{ ((ambientes_resumo.memoria_total_mb or 0) / 1024)|round(1) }} GB RAM</small></div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Disco alocado</small><h3 class="mb-1">{{ (ambientes_resumo.disco_total_gb or 0)|round(1) }} GB</h3><small class="text-muted">{{ ambientes_resumo.vms_total or 0 }} VM(s) / {{ ambientes_resumo.containers_total or 0 }} CT(s)</small></div></div></div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-xl-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white"><strong>Ambientes vinculados ao filtro</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for ambiente in dashboard.ambientes %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between gap-3">
+                                <div>
+                                    <strong>{{ ambiente.nome }}</strong><br>
+                                    <small class="text-muted">{{ ambiente.clientes_nomes or 'Cliente nao informado' }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span>{{ ambiente.recursos_total or 0 }} recurso(s)</span><br>
+                                    <small class="text-muted">{{ ambiente.vms_total or 0 }} VM / {{ ambiente.containers_total or 0 }} CT</small>
+                                </div>
+                            </div>
+                            <small class="text-muted">CPU {{ ambiente.cpu_total or 0 }} · RAM {{ ((ambiente.memoria_total_mb or 0) / 1024)|round(1) }} GB · Disco {{ (ambiente.disco_total_gb or 0)|round(1) }} GB</small><br>
+                            <small class="text-muted">Contratos: {{ ambiente.contratos_numeros or 'sem contrato vinculado' }}</small>
+                        </div>
+                    {% else %}
+                        <div class="list-group-item text-muted">Nenhum ambiente vinculado para os filtros selecionados.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong>Recursos do ambiente</strong>
+                    <span class="badge text-bg-light border">Amostra ate 100 recursos</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light"><tr><th>Ambiente</th><th>Recurso</th><th>Node</th><th>Status</th><th class="text-end">CPU</th><th class="text-end">RAM</th><th class="text-end">Disco</th></tr></thead>
+                        <tbody>
+                            {% for recurso in dashboard.ambiente_recursos %}
+                                <tr>
+                                    <td><strong>{{ recurso.ambiente_nome }}</strong><br><small class="text-muted">{{ recurso.cliente_nome }}</small></td>
+                                    <td><strong>{{ recurso.tipo|upper }} {{ recurso.vmid }}</strong> - {{ recurso.recurso_nome or '-' }}<br><small class="text-muted">Contratos: {{ recurso.contratos_numeros or '-' }}</small></td>
+                                    <td>{{ recurso.node or '-' }}</td>
+                                    <td><span class="badge text-bg-{{ 'success' if recurso.status == 'running' else 'secondary' }}">{{ recurso.status or '-' }}</span></td>
+                                    <td class="text-end">{{ recurso.cpu_cores or 0 }}</td>
+                                    <td class="text-end">{{ ((recurso.memoria_mb or 0) / 1024)|round(1) }} GB</td>
+                                    <td class="text-end">{{ (recurso.disco_gb or 0)|round(1) }} GB</td>
+                                </tr>
+                            {% else %}
+                                <tr><td colspan="7" class="text-muted">Nenhum recurso Proxmox vinculado aos ambientes filtrados.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="row g-4 mb-4">

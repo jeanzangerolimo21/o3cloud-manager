@@ -1,0 +1,35 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Editar Escopo PBS" if modo == "editar" else "Novo Escopo PBS" %}
+    {% set page_description = "Cadastro de datastore e namespaces monitorados no Proxmox Backup Server." %}
+    {% set page_icon = "bi-server" %}
+    {% set page_button_url = url_for("infraestrutura.backups_pbs") %}
+    {% set page_button_icon = "bi-arrow-left" %}
+    {% set page_button_text = "Voltar" %}
+    {% include "components/page_header.html" %}
+
+    {% if not integracoes_pbs %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i> Integração PBS ativa não encontrada. Solicite a configuração para um usuário avançado antes de criar escopos de backup.
+    </div>
+    {% else %}
+    <form method="POST">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label">Nome</label><input class="form-control" name="nome" required value="{{ escopo.nome if escopo else '' }}" placeholder="Cluster C1 - DISCO2"></div>
+                    <div class="col-md-6"><label class="form-label">Integração PBS</label><select class="form-select" name="integracao_id" required>{% for item in integracoes_pbs %}<option value="{{ item.id }}" {% if escopo and escopo.integracao_id == item.id %}selected{% endif %}>{{ item.nome }} - {{ item.base_url }}</option>{% endfor %}</select></div>
+                    <div class="col-md-4"><label class="form-label">Datastore</label><input class="form-control" name="datastore" required value="{{ escopo.datastore if escopo else 'DISCO2' }}" placeholder="DISCO2"></div>
+                    <div class="col-md-8"><label class="form-label">Observações</label><input class="form-control" name="observacoes" value="{{ escopo.observacoes if escopo else '' }}"></div>
+                    <div class="col-12"><label class="form-label">Namespaces</label><textarea class="form-control" name="namespaces" rows="9" required placeholder="Um namespace por linha">{{ escopo.namespaces if escopo else '' }}</textarea></div>
+                    <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="ativo" value="1" {% if not escopo or escopo.ativo %}checked{% endif %}><label class="form-check-label">Escopo ativo</label></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4"><a class="btn btn-secondary" href="{{ url_for('infraestrutura.backups_pbs') }}">Cancelar</a><button class="btn btn-primary"><i class="bi bi-check-circle"></i> Salvar</button></div>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

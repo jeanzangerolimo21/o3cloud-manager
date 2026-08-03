@@ -1,0 +1,98 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Monitoramento Zabbix" %}
+    {% set page_description = "Alarmes recentes consultados no Zabbix em modo somente leitura." %}
+    {% set page_icon = "bi-activity" %}
+    {% include "components/page_header.html" %}
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('infraestrutura.clusters') }}"><i class="bi bi-diagram-3"></i> Clusters</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('infraestrutura.maquinas_virtuais') }}"><i class="bi bi-pc-display"></i> Máquinas Virtuais</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('infraestrutura.backups_pbs') }}"><i class="bi bi-server"></i> Backups PBS</a>
+    </div>
+
+    {% if status == "ERRO" %}
+    <div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill"></i> {{ mensagem }}</div>
+    {% elif status == "PENDENTE" %}
+    <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> {{ mensagem }}</div>
+    {% else %}
+    <div class="alert alert-secondary"><i class="bi bi-shield-lock-fill"></i> Leitura rápida via cache local. Use Sincronizar Zabbix quando precisar consultar a API em modo read-only e atualizar os alarmes recentes.</div>
+    {% endif %}
+
+    {% if dashboard.desastre %}
+    <div class="alert alert-danger border-0" style="background:#4b0b0b;color:#fff;">
+        <i class="bi bi-exclamation-octagon-fill"></i>
+        {{ dashboard.desastre }} alarme(s) crítico(s) aberto(s) no topo. Pode indicar incidente grave ou desastre se não tratado.
+    </div>
+    {% endif %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Recentes</small><h4>{{ dashboard.total or 0 }}</h4></div></div></div>
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Abertos</small><h4 class="text-danger">{{ dashboard.abertos or 0 }}</h4></div></div></div>
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Resolvidos</small><h4 class="text-success">{{ dashboard.resolvidos or 0 }}</h4></div></div></div>
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Média/Alta média</small><h4 class="text-warning">{{ dashboard.media or 0 }}</h4></div></div></div>
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Alta</small><h4 class="text-danger">{{ dashboard.alta or 0 }}</h4></div></div></div>
+        <div class="col-md-4 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Crítica</small><h4 style="color:#4b0b0b;">{{ dashboard.critica or 0 }}</h4></div></div></div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end mb-4">
+                <div class="col-md-4">
+                    <label class="form-label">Integração Zabbix</label>
+                    <select class="form-select" name="integracao_id">
+                        {% for item in integracoes_zabbix %}
+                        <option value="{{ item.id }}" {% if selected_integracao_id == item.id %}selected{% endif %}>{{ item.nome }} - {{ item.base_url }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2"><label class="form-label">Limite</label><input class="form-control" type="number" name="limite" min="1" max="200" value="{{ limite }}"></div>
+                <div class="col-md-3">
+                    <label class="form-label">Status/Criticidade</label>
+                    <select class="form-select" name="status">
+                        {% for filtro in filtros_status %}
+                        <option value="{{ filtro.valor }}" {% if selected_status == filtro.valor %}selected{% endif %}>{{ filtro.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3"><button class="btn btn-primary w-100"><i class="bi bi-search"></i> Filtrar cache</button></div>
+            </form>
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div class="text-muted small">Último sync: {{ ultimo_sync.strftime('%d/%m/%Y %H:%M') if ultimo_sync else 'Nunca sincronizado' }}</div>
+                <form method="POST" action="{{ url_for('infraestrutura.sincronizar_zabbix') }}" class="d-flex gap-2">
+                    <input type="hidden" name="integracao_id" value="{{ selected_integracao_id or '' }}">
+                    <input type="hidden" name="limite" value="{{ limite }}">
+                    <input type="hidden" name="status" value="{{ selected_status }}">
+                    <button class="btn btn-success" type="submit"><i class="bi bi-arrow-repeat"></i> Sincronizar Zabbix</button>
+                </form>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light"><tr><th>Status</th><th>Criticidade</th><th>Host</th><th>Alarme</th><th>Reconhecido</th><th>Data</th><th>Integração</th></tr></thead>
+                    <tbody>
+                    {% for item in alarmes %}
+                        <tr class="{{ item.linha_classe }}">
+                            <td><span class="badge text-bg-{{ item.status_classe }}">{{ item.status_label }}</span></td>
+                            <td><span class="badge text-bg-{{ item.severidade_classe }}">{{ item.severidade_label }}</span></td>
+                            <td>{{ item.host }}</td>
+                            <td><strong>{{ item.nome }}</strong><br><small class="text-muted">Evento {{ item.eventid }}</small></td>
+                            <td>{{ 'Sim' if item.acknowledged else 'Não' }}</td>
+                            <td>{{ item.data_evento.strftime('%d/%m/%Y %H:%M') if item.data_evento else '-' }}</td>
+                            <td>{{ item.integracao_nome }}</td>
+                        </tr>
+                    {% else %}
+                        {% set colspan = 7 %}
+                        {% set empty_message = "Nenhum alarme encontrado para o filtro selecionado." %}
+                        {% include "components/empty_state.html" %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -18,6 +18,56 @@
         <span>As senhas ficam criptografadas no banco e toda revelação é registrada na auditoria.</span>
     </div>
 
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
+                <div>
+                    <h6 class="mb-1">Meu Cofre</h6>
+                    <small class="text-muted">Pastas particulares de {{ usuario_logado }} e pastas compartilhadas com você.</small>
+                </div>
+                <a class="btn btn-outline-primary" href="{{ url_for('implantacao.nova_pasta_cofre') }}?tipo=usuario"><i class="bi bi-folder-plus"></i> Nova Pasta Particular</a>
+            </div>
+            <div class="row g-3">
+                {% for pasta in pastas_usuario %}
+                    <div class="col-sm-6 col-xl-3">
+                        <a class="text-decoration-none" href="{{ url_for('implantacao.cofre_senhas', pasta_id=pasta.id) }}">
+                            <div class="card h-100 {% if selected_pasta_id == pasta.id %}border-primary shadow-sm{% else %}border-0 bg-light{% endif %}">
+                                <div class="card-body d-flex gap-3 align-items-start">
+                                    <div class="fs-3 {% if selected_pasta_id == pasta.id %}text-primary{% else %}text-secondary{% endif %}"><i class="bi bi-person-lock"></i></div>
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="fw-semibold text-body text-truncate" title="{{ pasta.nome }}">{{ pasta.nome }}</div>
+                                        <small class="text-muted">Particular{% if pasta.compartilhada %} compartilhada{% endif %}</small>
+                                        <div class="mt-2"><span class="badge text-bg-light border">{{ pasta.credenciais_ativas or 0 }} item(ns)</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                {% endfor %}
+                {% for pasta in pastas_compartilhadas %}
+                    <div class="col-sm-6 col-xl-3">
+                        <a class="text-decoration-none" href="{{ url_for('implantacao.cofre_senhas', pasta_id=pasta.id) }}">
+                            <div class="card h-100 {% if selected_pasta_id == pasta.id %}border-primary shadow-sm{% else %}border-0 bg-light{% endif %}">
+                                <div class="card-body d-flex gap-3 align-items-start">
+                                    <div class="fs-3 {% if selected_pasta_id == pasta.id %}text-primary{% else %}text-info{% endif %}"><i class="bi bi-people"></i></div>
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="fw-semibold text-body text-truncate" title="{{ pasta.nome }}">{{ pasta.nome }}</div>
+                                        <small class="text-muted">Compartilhada por {{ pasta.owner_email }}</small>
+                                        <div class="mt-2"><span class="badge text-bg-light border">{{ pasta.credenciais_ativas or 0 }} item(ns)</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                {% endfor %}
+                {% if not pastas_usuario and not pastas_compartilhadas %}
+                    <div class="col-12"><div class="text-center text-muted py-4 border rounded bg-light"><i class="bi bi-person-lock fs-3 d-block mb-2"></i>Nenhuma pasta particular criada para este usuário.</div></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
             <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
@@ -107,7 +157,10 @@
                         <h6 class="mb-1"><i class="bi bi-folder2-open text-primary"></i> {{ selected_pasta.cliente_nome or selected_pasta.nome }}</h6>
                         <small class="text-muted">Itens da pasta {{ selected_pasta.nome }}</small>
                     </div>
-                    <a class="btn btn-outline-secondary" href="{{ url_for('implantacao.editar_pasta_cofre', pasta_id=selected_pasta.id) }}"><i class="bi bi-pencil"></i> Editar Pasta</a>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a class="btn btn-outline-primary" href="{{ url_for('implantacao.nova_senha_cofre', pasta_id=selected_pasta.id) }}"><i class="bi bi-plus-circle"></i> Nova Credencial</a>
+                        <a class="btn btn-outline-secondary" href="{{ url_for('implantacao.editar_pasta_cofre', pasta_id=selected_pasta.id) }}"><i class="bi bi-pencil"></i> Editar Pasta</a>
+                    </div>
                 </div>
 
                 <form method="GET" class="mb-4">
@@ -163,7 +216,7 @@
                                         <button class="btn btn-outline-secondary cofre-copy-password" type="button" title="Copiar senha"><i class="bi bi-clipboard"></i></button>
                                     </div>
                                 </td>
-                                <td><small class="text-muted">Rede</small><br>{{ item.faixa_rede }}{% if item.licenca_o3web_id %}<br><small class="text-muted">O3Web {{ item.licenca_o3web_codigo or item.licenca_o3web_id }}</small>{% endif %}</td>
+                                <td><small class="text-muted">Rede</small><br>{{ item.faixa_rede or 'Sem faixa vinculada' }}{% if item.licenca_o3web_id %}<br><small class="text-muted">O3Web {{ item.licenca_o3web_codigo or item.licenca_o3web_id }}</small>{% endif %}</td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         <a class="btn btn-outline-primary" href="{{ url_for('implantacao.editar_senha_cofre', senha_id=item.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
@@ -203,7 +256,7 @@
     {% else %}
         <div class="text-center text-muted py-4 border rounded bg-light">
             <i class="bi bi-building fs-3 d-block mb-2"></i>
-            Selecione um parceiro para começar a navegação por pastas.
+            Selecione um parceiro ou uma pasta do Meu Cofre para começar a navegação.
         </div>
     {% endif %}
 </div>

@@ -115,6 +115,31 @@ class ContratoRepository(BaseRepository):
         return contratos
 
     @classmethod
+    def listar_para_ambientes(cls, limit=1000, offset=0):
+        return cls.fetch_all(
+            """
+            SELECT
+                c.id,
+                c.numero,
+                c.descricao,
+                c.status,
+                c.valor_mensal,
+                c.data_fechamento,
+                cli.nome_fantasia AS cliente_nome,
+                cli.razao_social AS cliente_razao_social,
+                cli.cnpj AS cliente_cnpj
+            FROM contratos c
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            WHERE c.ativo = 1
+              AND c.status IN ('ATIVO', 'ENCAMINHADO_PROJETO', 'EM_ELABORACAO')
+            ORDER BY FIELD(c.status, 'ENCAMINHADO_PROJETO', 'EM_ELABORACAO', 'ATIVO'),
+                     COALESCE(c.data_fechamento, c.created_at) DESC, c.id DESC
+            LIMIT %s OFFSET %s
+            """,
+            (limit, offset),
+        )
+
+    @classmethod
     def dashboard(cls, pesquisa=None, status=None, origem=None, data_de=None, data_ate=None):
         conn = cls.connection()
         cursor = conn.cursor(dictionary=True)

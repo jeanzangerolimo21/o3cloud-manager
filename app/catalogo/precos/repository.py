@@ -69,6 +69,40 @@ class PrecoCatalogoRepository(BaseRepository):
         return cls.fetch_all(sql)
 
     @classmethod
+    def buscar_licenciamento(cls, preco_id):
+        sql = f"""
+            SELECT
+                cp.id,
+                cp.faixa_id,
+                p.codigo AS produto_codigo,
+                p.nome AS produto,
+                COALESCE(
+                    NULLIF(pf.nome, ''),
+                    CONCAT(p.nome, ' ', pf.usuarios_inicio, '-', pf.usuarios_fim)
+                ) AS software,
+                COALESCE(NULLIF(pf.descricao, ''), NULLIF(p.descricao, ''), p.nome) AS descricao,
+                cp.valor_mensal,
+                cp.valor_setup,
+                pf.usuarios_inicio AS qtd_minima,
+                cp.tem_projeto,
+                cp.ativo,
+                pf.usuarios_inicio,
+                pf.usuarios_fim
+            FROM {cls.TABLE} cp
+            INNER JOIN produto_faixas pf
+                ON pf.id = cp.faixa_id
+            INNER JOIN produto_modelos pm
+                ON pm.id = pf.modelo_id
+            INNER JOIN produtos p
+                ON p.id = pm.produto_id
+            WHERE cp.id = %s
+              AND p.tipo_recurso = 'LICENCA'
+              AND cp.ativo = 1
+        """
+
+        return cls.fetch_one(sql, (preco_id,))
+
+    @classmethod
     def inserir(cls, dados):
         sql = f"""
             INSERT INTO {cls.TABLE}

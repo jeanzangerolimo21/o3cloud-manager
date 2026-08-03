@@ -21,7 +21,20 @@
                     <div class="col-md-6 pasta-contexto" data-tipos="cliente"><label class="form-label">Cliente</label><select class="form-select" name="cliente_id"><option value="">Selecionar cliente</option>{% for cliente in clientes %}{% set nome_cliente = cliente.nome_fantasia or cliente.razao_social %}<option value="{{ cliente.id }}" {% if pasta.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj }}{% endif %}</option>{% endfor %}</select></div>
                     <div class="col-md-6"><label class="form-label">Dono</label><input class="form-control" name="owner_email" value="{{ pasta.owner_email or owner_email or 'sistema' }}"></div>
                     <div class="col-md-3"><label class="form-label">Compartilhar</label><select class="form-select" name="compartilhada"><option value="0" {% if not pasta.compartilhada %}selected{% endif %}>Não</option><option value="1" {% if pasta.compartilhada %}selected{% endif %}>Sim</option></select></div>
-                    <div class="col-md-9"><label class="form-label">Compartilhar com</label><input class="form-control" name="compartilhada_com" value="{{ pasta.compartilhada_com or '' }}" placeholder="E-mails ou grupos separados por vírgula"></div>
+                    <div class="col-md-9">
+                        <label class="form-label">Compartilhar com</label>
+                        {% if usuarios_sistema %}
+                            {% set compartilhados = (pasta.compartilhada_com or '').replace(';', ',').replace(' ', '').split(',') %}
+                            <select class="form-select" name="compartilhada_com_multi" multiple size="5">
+                                {% for usuario in usuarios_sistema %}
+                                    <option value="{{ usuario.email }}" {% if usuario.email in compartilhados %}selected{% endif %}>{{ usuario.nome or usuario.email }} - {{ usuario.email }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Use Ctrl/Cmd para selecionar mais de um usuário.</small>
+                        {% else %}
+                            <input class="form-control" name="compartilhada_com" value="{{ pasta.compartilhada_com or '' }}" placeholder="E-mails separados por vírgula">
+                        {% endif %}
+                    </div>
                     <div class="col-12"><label class="form-label">Observações</label><textarea class="form-control" rows="4" name="observacoes">{{ pasta.observacoes or '' }}</textarea></div>
                 </div>
                 <div class="text-end mt-4"><button class="btn btn-primary"><i class="bi bi-floppy"></i> Salvar</button></div>

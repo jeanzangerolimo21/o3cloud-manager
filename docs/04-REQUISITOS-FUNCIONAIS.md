@@ -129,3 +129,35 @@ Cadastrar:
 
 Registrar eventos relevantes do cliente para consulta histórica.
 
+---
+
+# RF011 - Consulta de CNPJ na Receita Federal
+
+Planejado para a sprint final.
+
+O sistema devera permitir, no cadastro manual de cliente, consultar dados cadastrais a partir do CNPJ informado usando API da Receita Federal ou provedor homologado.
+
+Regras previstas:
+
+* Preencher automaticamente dados publicos compativeis com o cadastro interno.
+* Permitir conferencia e edicao manual antes de salvar.
+* Nao bloquear o cadastro quando a API estiver indisponivel.
+* Definir provedor, autenticacao, limites de consulta e cache apenas na sprint final.
+
+---
+
+# RF012 - Propostas, ClickSign e Representante Legal
+
+O sistema devera permitir que a proposta comercial informe explicitamente o Representante Legal responsavel pela assinatura eletronica.
+
+Regras funcionais:
+
+* Selecionar contato ativo do tipo Representante Legal na proposta.
+* Oferecer atalho para cadastrar Representante Legal quando ele nao existir.
+* Exigir nome completo e CPF do Representante Legal antes do envio para ClickSign.
+* Bloquear reenvio para ClickSign quando ja existir envelope vinculado a proposta.
+* Cancelar envelope pendente na ClickSign quando proposta for cancelada/rejeitada/expirada.
+* Exibir acao de gerar documento para propostas aprovadas.
+* Exibir acao de enviar somente quando o documento ja tiver sido gerado.
+* Bloquear nova geracao de documento quando o fluxo ClickSign ja estiver assinado ou concluido.
+

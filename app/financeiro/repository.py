@@ -997,6 +997,145 @@ class FinanceiroRepository(BaseRepository):
             resumo.get("itens_total"),
         )
 
+        receita_contratos = cls.fetch_one(
+            f"""
+            SELECT COALESCE(SUM(base.receita_mensal), 0) AS receita_mensal_contratos
+            FROM (
+                SELECT DISTINCT
+                    c.id,
+                    COALESCE(NULLIF(c.valor_promocional, 0), c.valor_mensal, 0) AS receita_mensal
+                FROM contratos c
+                INNER JOIN clientes cli ON cli.id = c.cliente_id
+                LEFT JOIN contratos_itens ci ON ci.contrato_id = c.id
+                LEFT JOIN produtos prod ON prod.ativo = 1 AND (
+                    (ci.codigo_servico IS NOT NULL AND (
+                        (prod.codigo_externo REGEXP '^[0-9]+$' AND CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_servico)
+                        OR (prod.codigo REGEXP '^[0-9]+$' AND CAST(prod.codigo AS UNSIGNED) = ci.codigo_servico)
+                    ))
+                    OR (ci.codigo_item IS NOT NULL AND (
+                        (prod.codigo_externo REGEXP '^[0-9]+$' AND CAST(prod.codigo_externo AS UNSIGNED) = ci.codigo_item)
+                        OR (prod.codigo REGEXP '^[0-9]+$' AND CAST(prod.codigo AS UNSIGNED) = ci.codigo_item)
+                    ))
+                )
+                WHERE c.ativo = 1 {where}
+            ) base
+            """,
+            tuple(params),
+        ) or {}
+        resumo["receita_mensal_contratos"] = receita_contratos.get("receita_mensal_contratos") or 0
+
+        ambiente_where, ambiente_params = cls._filtros_ambientes_produtos_clientes(filtros)
+        ambientes_resumo = cls.fetch_one(
+            f"""
+            SELECT
+                COUNT(DISTINCT base.ambiente_id) AS ambientes_total,
+                COUNT(DISTINCT base.recurso_id) AS recursos_total,
+                COUNT(DISTINCT CASE WHEN base.tipo = 'qemu' THEN base.recurso_id END) AS vms_total,
+                COUNT(DISTINCT CASE WHEN base.tipo = 'lxc' THEN base.recurso_id END) AS containers_total,
+                COUNT(DISTINCT CASE WHEN base.status = 'running' THEN base.recurso_id END) AS recursos_ativos,
+                COALESCE(SUM(COALESCE(base.cpu_cores, 0)), 0) AS cpu_total,
+                COALESCE(SUM(COALESCE(base.memoria_mb, 0)), 0) AS memoria_total_mb,
+                COALESCE(SUM(COALESCE(base.disco_gb, 0)), 0) AS disco_total_gb
+            FROM (
+                SELECT DISTINCT
+                    a.id AS ambiente_id,
+                    p.id AS recurso_id,
+                    p.tipo,
+                    p.status,
+                    p.cpu_cores,
+                    p.memoria_mb,
+                    p.disco_gb
+                FROM ambientes a
+                INNER JOIN ambiente_clientes ac ON ac.ambiente_id = a.id
+                INNER JOIN clientes cli ON cli.id = ac.cliente_id
+                LEFT JOIN ambiente_contratos act ON act.ambiente_id = a.id
+                LEFT JOIN contratos c ON c.id = act.contrato_id AND c.ativo = 1
+                LEFT JOIN ambiente_proxmox_recursos apr ON apr.ambiente_id = a.id
+                LEFT JOIN proxmox_vm_inventory p ON p.id = apr.proxmox_inventory_id AND p.ativo = 1
+                WHERE a.ativo = 1 {ambiente_where}
+            ) base
+            """,
+            tuple(ambiente_params),
+        ) or {}
+
+        ambientes = cls.fetch_all(
+            f"""
+            SELECT
+                a.id,
+                a.nome,
+                a.ambiente_tipo,
+                a.situacao,
+                GROUP_CONCAT(DISTINCT COALESCE(cli.nome_fantasia, cli.razao_social) ORDER BY COALESCE(cli.nome_fantasia, cli.razao_social) SEPARATOR ', ') AS clientes_nomes,
+                GROUP_CONCAT(DISTINCT c.numero ORDER BY c.numero SEPARATOR ', ') AS contratos_numeros,
+                COALESCE(ar.recursos_total, 0) AS recursos_total,
+                COALESCE(ar.vms_total, 0) AS vms_total,
+                COALESCE(ar.containers_total, 0) AS containers_total,
+                COALESCE(ar.cpu_total, 0) AS cpu_total,
+                COALESCE(ar.memoria_total_mb, 0) AS memoria_total_mb,
+                COALESCE(ar.disco_total_gb, 0) AS disco_total_gb
+            FROM ambientes a
+            INNER JOIN ambiente_clientes ac ON ac.ambiente_id = a.id
+            INNER JOIN clientes cli ON cli.id = ac.cliente_id
+            LEFT JOIN ambiente_contratos act ON act.ambiente_id = a.id
+            LEFT JOIN contratos c ON c.id = act.contrato_id AND c.ativo = 1
+            LEFT JOIN ambiente_proxmox_recursos apr ON apr.ambiente_id = a.id
+            LEFT JOIN proxmox_vm_inventory p ON p.id = apr.proxmox_inventory_id AND p.ativo = 1
+            LEFT JOIN (
+                SELECT
+                    apr2.ambiente_id,
+                    COUNT(DISTINCT p2.id) AS recursos_total,
+                    COUNT(DISTINCT CASE WHEN p2.tipo = 'qemu' THEN p2.id END) AS vms_total,
+                    COUNT(DISTINCT CASE WHEN p2.tipo = 'lxc' THEN p2.id END) AS containers_total,
+                    COALESCE(SUM(COALESCE(p2.cpu_cores, 0)), 0) AS cpu_total,
+                    COALESCE(SUM(COALESCE(p2.memoria_mb, 0)), 0) AS memoria_total_mb,
+                    COALESCE(SUM(COALESCE(p2.disco_gb, 0)), 0) AS disco_total_gb
+                FROM ambiente_proxmox_recursos apr2
+                INNER JOIN proxmox_vm_inventory p2 ON p2.id = apr2.proxmox_inventory_id AND p2.ativo = 1
+                GROUP BY apr2.ambiente_id
+            ) ar ON ar.ambiente_id = a.id
+            WHERE a.ativo = 1 {ambiente_where}
+            GROUP BY a.id, a.nome, a.ambiente_tipo, a.situacao, ar.recursos_total, ar.vms_total,
+                     ar.containers_total, ar.cpu_total, ar.memoria_total_mb, ar.disco_total_gb
+            ORDER BY recursos_total DESC, cpu_total DESC, a.nome ASC
+            LIMIT 12
+            """,
+            tuple(ambiente_params),
+        )
+
+        ambiente_recursos = cls.fetch_all(
+            f"""
+            SELECT
+                a.id AS ambiente_id,
+                a.nome AS ambiente_nome,
+                COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
+                GROUP_CONCAT(DISTINCT c.numero ORDER BY c.numero SEPARATOR ', ') AS contratos_numeros,
+                p.id AS recurso_id,
+                p.node,
+                p.vmid,
+                p.tipo,
+                p.nome AS recurso_nome,
+                p.status,
+                p.cpu_cores,
+                p.memoria_mb,
+                p.disco_gb,
+                p.discos_qtd,
+                p.interfaces_qtd
+            FROM ambientes a
+            INNER JOIN ambiente_clientes ac ON ac.ambiente_id = a.id
+            INNER JOIN clientes cli ON cli.id = ac.cliente_id
+            LEFT JOIN ambiente_contratos act ON act.ambiente_id = a.id
+            LEFT JOIN contratos c ON c.id = act.contrato_id AND c.ativo = 1
+            INNER JOIN ambiente_proxmox_recursos apr ON apr.ambiente_id = a.id
+            INNER JOIN proxmox_vm_inventory p ON p.id = apr.proxmox_inventory_id AND p.ativo = 1
+            WHERE a.ativo = 1 {ambiente_where}
+            GROUP BY a.id, a.nome, cliente_nome, p.id, p.node, p.vmid, p.tipo, p.nome, p.status,
+                     p.cpu_cores, p.memoria_mb, p.disco_gb, p.discos_qtd, p.interfaces_qtd
+            ORDER BY a.nome ASC, p.node ASC, p.vmid ASC
+            LIMIT 100
+            """,
+            tuple(ambiente_params),
+        )
+
         itens = cls.fetch_all(
             f"""
             SELECT
@@ -1167,15 +1306,47 @@ class FinanceiroRepository(BaseRepository):
             lacunas.append("Vincular codigos de itens do Omie ao catalogo de produtos.")
         if not resumo.get("itens_com_custo"):
             lacunas.append("Preencher custos dos produtos para preparar rentabilidade.")
+        if ambientes_resumo.get("recursos_total"):
+            lacunas.append("Definir custo operacional por CPU, memoria e disco para calcular lucro/prejuizo dos ambientes.")
 
         return {
             "resumo": resumo,
             "itens": itens,
             "clientes": clientes,
+            "ambientes_resumo": ambientes_resumo,
+            "ambientes": ambientes,
+            "ambiente_recursos": ambiente_recursos,
             "itens_sem_catalogo": itens_sem_catalogo,
             "produtos_sem_custo": produtos_sem_custo,
             "lacunas": lacunas,
         }
+
+    @classmethod
+    def _filtros_ambientes_produtos_clientes(cls, filtros):
+        where = []
+        params = []
+        pesquisa = (filtros.get("q") or "").strip()
+        if pesquisa:
+            like = f"%{pesquisa}%"
+            where.append("""
+                (
+                    COALESCE(cli.nome_fantasia, cli.razao_social) LIKE %s
+                    OR cli.cnpj LIKE %s
+                    OR a.nome LIKE %s
+                    OR c.numero LIKE %s
+                    OR p.nome LIKE %s
+                    OR p.node LIKE %s
+                    OR CAST(p.vmid AS CHAR) LIKE %s
+                )
+            """)
+            params.extend([like, like, like, like, like, like, like])
+        if filtros.get("status"):
+            where.append("c.status = %s")
+            params.append(filtros.get("status"))
+        if filtros.get("origem"):
+            where.append("c.origem = %s")
+            params.append(filtros.get("origem"))
+        return (" AND " + " AND ".join(where) if where else ""), params
 
     @classmethod
     def _filtros_produtos_clientes(cls, filtros):

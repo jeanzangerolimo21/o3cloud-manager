@@ -58,6 +58,11 @@
                 Ambientes
             </a>
 
+            <a href="{{ url_for('ambientes.implantadores') }}" class="submenu-item">
+                <i class="bi bi-person-badge"></i>
+                Implantadores
+            </a>
+
             <a href="/clientes" class="submenu-item">
                 <i class="bi bi-people"></i>
                 Clientes
@@ -161,22 +166,22 @@
                 Infraestrutura
             </div>
 
-            <a href="#" class="submenu-item">
+            <a href="{{ url_for('infraestrutura.clusters') }}" class="submenu-item">
                 <i class="bi bi-diagram-3"></i>
                 Clusters
             </a>
 
-            <a href="#" class="submenu-item">
+            <a href="{{ url_for('infraestrutura.nodes') }}" class="submenu-item">
                 <i class="bi bi-hdd-network"></i>
                 Nodes
             </a>
 
-            <a href="#" class="submenu-item">
+            <a href="{{ url_for('infraestrutura.maquinas_virtuais') }}" class="submenu-item">
                 <i class="bi bi-pc-display"></i>
                 Máquinas Virtuais
             </a>
 
-            <a href="#" class="submenu-item">
+            <a href="{{ url_for('infraestrutura.containers') }}" class="submenu-item">
                 <i class="bi bi-boxes"></i>
                 Containers
             </a>

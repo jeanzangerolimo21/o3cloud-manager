@@ -31,9 +31,9 @@
 
                             <th>Ambiente</th>
 
-                            <th>Cliente</th>
+                            <th>Clientes</th>
 
-                            <th>Parceiro</th>
+                            <th>Contratos</th>
 
                             <th>Tipo</th>
 
@@ -41,7 +41,7 @@
 
                             <th>Origem</th>
 
-                            <th>Prefixo</th>
+                            <th>Recursos</th>
 
                             <th width="140">Ações</th>
 
@@ -67,13 +67,13 @@
 
                             <td>
 
-                                {{ ambiente.cliente_nome }}
+                                {{ ambiente.clientes_nomes or ambiente.cliente_nome }}
 
                             </td>
 
                             <td>
 
-                                {{ ambiente.parceiro_nome or "-" }}
+                                {{ ambiente.contratos_numeros or ambiente.contrato_numero or "-" }}
 
                             </td>
 
@@ -97,7 +97,7 @@
 
                             <td>
 
-                                {{ ambiente.prefixo_proxmox or "-" }}
+                                {{ ambiente.recursos_total or 0 }}
 
                             </td>
 

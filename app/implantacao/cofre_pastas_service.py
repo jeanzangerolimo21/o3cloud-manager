@@ -23,6 +23,18 @@ class CofrePastaService:
         return cls.repository.listar_ativas()
 
     @classmethod
+    def listar_pastas_usuario(cls, usuario_email):
+        return cls.repository.listar_pastas_usuario(usuario_email)
+
+    @classmethod
+    def listar_pastas_compartilhadas_com_usuario(cls, usuario_email):
+        return cls.repository.listar_pastas_compartilhadas_com_usuario(usuario_email)
+
+    @classmethod
+    def listar_usuarios_sistema(cls):
+        return cls.repository.listar_usuarios_sistema()
+
+    @classmethod
     def buscar_por_id(cls, pasta_id):
         return cls.repository.buscar_por_id(pasta_id)
 
@@ -48,6 +60,7 @@ class CofrePastaService:
             "clientes": ClienteService.listar_para_importacao(),
             "parceiros": ParceiroService.listar_todos_ativos(),
             "tipo_options": TIPOS_COFRE_PASTA,
+            "usuarios_sistema": cls.listar_usuarios_sistema(),
         }
 
     @classmethod

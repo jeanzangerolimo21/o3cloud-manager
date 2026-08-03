@@ -1,0 +1,45 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Implantadores" %}
+    {% set page_description = "Cadastro de responsáveis por implantação." %}
+    {% set page_icon = "bi-person-badge" %}
+    {% set page_button_url = url_for("ambientes.novo_implantador") %}
+    {% set page_button_icon = "bi-plus-circle" %}
+    {% set page_button_text = "Novo Implantador" %}
+    {% include "components/page_header.html" %}
+
+    {% include "components/filter_bar.html" %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light"><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Status</th><th width="140">Ações</th></tr></thead>
+                <tbody>
+                    {% for item in implantadores %}
+                    <tr>
+                        <td><strong>{{ item.nome }}</strong></td>
+                        <td>{{ item.email or '-' }}</td>
+                        <td>{{ item.telefone or '-' }}</td>
+                        <td><span class="badge bg-{{ 'success' if item.ativo else 'secondary' }}">{{ 'Ativo' if item.ativo else 'Inativo' }}</span></td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a class="btn btn-outline-primary" href="{{ url_for('ambientes.editar_implantador', implantador_id=item.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
+                                {% if item.ativo %}<a class="btn btn-outline-danger" href="{{ url_for('ambientes.excluir_implantador', implantador_id=item.id) }}" onclick="return confirm('Inativar este implantador?');" title="Inativar"><i class="bi bi-trash"></i></a>{% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                        {% set colspan = 5 %}
+                        {% set empty_message = "Nenhum implantador cadastrado." %}
+                        {% include "components/empty_state.html" %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% include "components/pagination.html" %}
+</div>
+{% endblock %}
