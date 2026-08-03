@@ -1,0 +1,68 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = 'Novo Provedor' if modo == 'novo' else 'Editar Provedor' %}
+    {% set page_description = 'Configuração de FreeIPA, LDAP ou Active Directory' %}
+    {% set page_icon = 'bi-hdd-network' %}
+    {% set page_button_url = url_for('configuracoes.usuarios_index') %}
+    {% set page_button_icon = 'bi-arrow-left' %}
+    {% set page_button_text = 'Voltar' %}
+    {% include "components/page_header.html" %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row g-3">
+                    <div class="col-md-4"><label class="form-label">Nome</label><input class="form-control" name="nome" value="{{ provedor.nome or '' }}" required></div>
+                    <div class="col-md-2">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" name="tipo">
+                            {% for tipo in ['FREEIPA', 'LDAP', 'AD'] %}
+                            <option value="{{ tipo }}" {% if (provedor.tipo or 'LDAP') == tipo %}selected{% endif %}>{{ tipo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4"><label class="form-label">Host</label><input class="form-control" name="host" value="{{ provedor.host or '' }}" required placeholder="ldap.exemplo.local"></div>
+                    <div class="col-md-2"><label class="form-label">Porta</label><input class="form-control" type="number" min="1" max="65535" name="porta" value="{{ provedor.porta or 389 }}"></div>
+                    <div class="col-md-4"><label class="form-label">Domínio</label><input class="form-control" name="dominio" value="{{ provedor.dominio or '' }}" placeholder="exemplo.local"></div>
+                    <div class="col-md-4"><label class="form-label">Base DN</label><input class="form-control" name="base_dn" value="{{ provedor.base_dn or '' }}" placeholder="dc=exemplo,dc=local"></div>
+                    <div class="col-md-4"><label class="form-label">UPN Suffix</label><input class="form-control" name="upn_suffix" value="{{ provedor.upn_suffix or '' }}" placeholder="exemplo.local"></div>
+                    <div class="col-md-6"><label class="form-label">Bind DN / Conta de Serviço</label><input class="form-control" name="bind_dn" value="{{ provedor.bind_dn or '' }}"></div>
+                    <div class="col-md-6"><label class="form-label">Senha Bind</label><input class="form-control" type="password" name="bind_password" placeholder="{{ 'Manter atual se vazio' if modo == 'editar' else 'Senha da conta de serviço' }}"></div>
+                    <div class="col-md-3"><label class="form-label">Atributo Login</label><input class="form-control" name="atributo_login" value="{{ provedor.atributo_login or 'uid' }}"></div>
+                    <div class="col-md-3"><label class="form-label">Atributo E-mail</label><input class="form-control" name="atributo_email" value="{{ provedor.atributo_email or 'mail' }}"></div>
+                    <div class="col-md-3"><label class="form-label">Atributo Nome</label><input class="form-control" name="atributo_nome" value="{{ provedor.atributo_nome or 'cn' }}"></div>
+                    <div class="col-md-3">
+                        <div class="form-check form-switch mt-4">
+                            <input type="hidden" name="ativo" value="0">
+                            <input class="form-check-input" type="checkbox" name="ativo" value="1" id="ativo" {% if provedor.ativo is not defined or provedor.ativo %}checked{% endif %}>
+                            <label class="form-check-label" for="ativo">Ativo</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6"><label class="form-label">Filtro de Usuários</label><input class="form-control" name="filtro_usuarios" value="{{ provedor.filtro_usuarios or '' }}" placeholder="(objectClass=person)"></div>
+                    <div class="col-md-6"><label class="form-label">Filtro de Grupos</label><input class="form-control" name="filtro_grupos" value="{{ provedor.filtro_grupos or '' }}" placeholder="(objectClass=groupOfNames)"></div>
+                    <div class="col-md-3">
+                        <div class="form-check form-switch mt-2">
+                            <input type="hidden" name="usar_tls" value="0">
+                            <input class="form-check-input" type="checkbox" name="usar_tls" value="1" id="usar_tls" {% if provedor.usar_tls %}checked{% endif %}>
+                            <label class="form-check-label" for="usar_tls">TLS/LDAPS</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check form-switch mt-2">
+                            <input type="hidden" name="usar_starttls" value="0">
+                            <input class="form-check-input" type="checkbox" name="usar_starttls" value="1" id="usar_starttls" {% if provedor.usar_starttls %}checked{% endif %}>
+                            <label class="form-check-label" for="usar_starttls">StartTLS</label>
+                        </div>
+                    </div>
+                    <div class="col-12 text-end">
+                        <a class="btn btn-secondary" href="{{ url_for('configuracoes.usuarios_index') }}">Cancelar</a>
+                        <button class="btn btn-primary"><i class="bi bi-check-circle"></i> Salvar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

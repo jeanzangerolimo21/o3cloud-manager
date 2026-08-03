@@ -1,0 +1,127 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include "components/page_header.html" %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Usuários</small><h4>{{ total_usuarios }}</h4></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Ativos</small><h4>{{ usuarios_ativos }}</h4></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Convites Pendentes</small><h4>{{ convites_pendentes }}</h4></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Provedores Ativos</small><h4>{{ provedores_ativos }}</h4></div></div></div>
+    </div>
+
+    <div class="d-flex justify-content-end mb-3">
+        <a class="btn btn-outline-primary" href="{{ url_for('configuracoes.usuarios_provedor_novo') }}">
+            <i class="bi bi-hdd-network"></i> Novo Provedor
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white"><strong>Usuários</strong></div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Usuário</th>
+                        <th>Origem</th>
+                        <th>Perfil</th>
+                        <th>Status</th>
+                        <th>Convite</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td><strong>{{ usuario.nome }}</strong><br><small class="text-muted">{{ usuario.email }}</small></td>
+                        <td><span class="badge text-bg-light border">{{ usuario.origem }}</span></td>
+                        <td>{{ usuario.perfil_nome or '-' }}</td>
+                        <td>
+                            {% set status_class = {'ATIVO':'success','CONVIDADO':'warning','BLOQUEADO':'danger','INATIVO':'secondary'}.get(usuario.status, 'secondary') %}
+                            <span class="badge bg-{{ status_class }}">{{ usuario.status }}</span>
+                        </td>
+                        <td>
+                            {% if usuario.convite_status %}
+                                <span class="badge text-bg-light border">{{ usuario.convite_status }}</span><br>
+                                <small class="text-muted">{{ usuario.convite_expira_em|date_br if usuario.convite_expira_em else '-' }}</small>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if usuario.origem == 'LOCAL' %}
+                            <form method="POST" action="{{ url_for('configuracoes.usuarios_convidar', usuario_id=usuario.id) }}" class="d-inline">
+                                <button class="btn btn-sm btn-outline-primary" title="Enviar convite"><i class="bi bi-envelope"></i></button>
+                            </form>
+                            {% endif %}
+                            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('configuracoes.usuarios_editar', usuario_id=usuario.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum usuário cadastrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white"><strong>Provedores de Autenticação</strong></div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Provedor</th>
+                        <th>Servidor</th>
+                        <th>Segurança</th>
+                        <th>Último Teste</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for provedor in provedores %}
+                    <tr>
+                        <td><strong>{{ provedor.nome }}</strong><br><span class="badge text-bg-light border">{{ provedor.tipo }}</span> {% if provedor.ativo %}<span class="badge bg-success">Ativo</span>{% else %}<span class="badge bg-secondary">Inativo</span>{% endif %}</td>
+                        <td>{{ provedor.host or '-' }}<br><small class="text-muted">Porta {{ provedor.porta or '-' }}</small></td>
+                        <td>{% if provedor.usar_tls %}<span class="badge bg-primary">TLS/LDAPS</span>{% endif %} {% if provedor.usar_starttls %}<span class="badge bg-info text-dark">StartTLS</span>{% endif %}</td>
+                        <td>
+                            {% if provedor.ultimo_teste_status %}
+                                <span class="badge bg-{{ 'success' if provedor.ultimo_teste_status == 'OK' else 'warning' }}">{{ provedor.ultimo_teste_status }}</span><br>
+                                <small class="text-muted">{{ provedor.ultimo_teste_mensagem or '-' }}</small>
+                            {% else %}
+                                <span class="text-muted">Não testado</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <form method="POST" action="{{ url_for('configuracoes.usuarios_provedor_testar', provedor_id=provedor.id) }}" class="d-inline-flex gap-2 align-items-center">
+                                <input class="form-control form-control-sm" name="usuario_teste" placeholder="usuário" style="width: 130px;">
+                                <input class="form-control form-control-sm" type="password" name="senha_teste" placeholder="senha" style="width: 130px;">
+                                <button class="btn btn-sm btn-outline-primary" title="Testar"><i class="bi bi-plug"></i></button>
+                            </form>
+                            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('configuracoes.usuarios_provedor_editar', provedor_id=provedor.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">Nenhum provedor configurado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white"><strong>Auditoria Recente</strong></div>
+        <div class="list-group list-group-flush">
+            {% for item in auditoria %}
+            <div class="list-group-item">
+                <strong>{{ item.acao }}</strong> em {{ item.entidade }}{% if item.entidade_id %} #{{ item.entidade_id }}{% endif %}
+                <br><small class="text-muted">{{ item.usuario_email or 'sistema' }} - {{ item.created_at|date_br }}</small>
+            </div>
+            {% else %}
+            <div class="list-group-item text-muted">Nenhuma auditoria registrada.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -48,6 +48,18 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 
 
+
+## 2026-08-03 - Usuarios e Acessos Sprint 16
+
+### Configuracoes
+
+- Criada base inicial de Usuarios e Acessos em Configuracoes.
+- Adicionada migration `050_create_auth_usuarios_acessos.sql` com perfis, usuarios, convites, provedores e auditoria.
+- Implementado cadastro/edicao de usuarios locais e externos com origem Local, FreeIPA, LDAP ou Active Directory.
+- Implementado convite por e-mail para usuario local cadastrar senha propria.
+- Implementado cadastro de provedores FreeIPA, LDAP e Active Directory com teste de comunicacao.
+- Adicionado atalho `Usuarios e Acessos` no menu Configuracoes.
+
 ## 2026-08-03 - Escopo de Autenticacao Sprint 16
 
 ### Documentacao

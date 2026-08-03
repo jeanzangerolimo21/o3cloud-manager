@@ -1,0 +1,47 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = 'Convite de Acesso' %}
+    {% set page_description = 'Cadastro de senha do O3Cloud Manager' %}
+    {% set page_icon = 'bi-shield-lock' %}
+    {% include "components/page_header.html" %}
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    {% if convite and convite.valido %}
+                    <form method="POST">
+                        <div class="mb-3">
+                            <small class="text-muted">Usuário</small>
+                            <h5>{{ convite.usuario_nome }}</h5>
+                            <div class="text-muted">{{ convite.usuario_email }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Senha</label>
+                            <input class="form-control" type="password" name="senha" minlength="8" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Confirmar Senha</label>
+                            <input class="form-control" type="password" name="confirmacao_senha" minlength="8" required>
+                        </div>
+                        <div class="text-end">
+                            <button class="btn btn-primary"><i class="bi bi-check-circle"></i> Cadastrar Senha</button>
+                        </div>
+                    </form>
+                    {% elif convite %}
+                    <div class="alert alert-warning mb-0">
+                        Convite expirado ou já utilizado. Solicite um novo convite ao administrador.
+                    </div>
+                    {% else %}
+                    <div class="alert alert-danger mb-0">
+                        Convite inválido.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

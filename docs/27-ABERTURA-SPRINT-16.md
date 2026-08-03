@@ -34,7 +34,13 @@ Preparar a plataforma para uso mais controlado na fase Beta assistida, evoluindo
 
 ## 1. Controle de Acesso e Perfis
 
-Status: em planejamento
+Status: em implementacao
+
+Entregas iniciais:
+
+- Base inicial de Usuarios e Acessos implementada em Configuracoes.
+- Migration 050 criada para usuarios, perfis, convites, provedores e auditoria.
+- Cadastro de usuarios locais/externos e provedores FreeIPA/LDAP/AD disponivel.
 
 Objetivo:
 

@@ -183,6 +183,33 @@ O desenho definitivo deve ser validado antes da migration para evitar conflito c
 
 ---
 
+# Implementacao Inicial
+
+Status: implementada parcialmente em 03/08/2026
+
+Entregas realizadas:
+
+- Criada migration `database/migrations/050_create_auth_usuarios_acessos.sql`.
+- Criadas tabelas candidatas para perfis, usuarios, convites, provedores e auditoria.
+- Criada tela `Configuracoes > Usuarios e Acessos`.
+- Permitido cadastrar e editar usuarios com origem Local, FreeIPA, LDAP ou Active Directory.
+- Permitido reenviar convite para usuario local.
+- Criada tela de aceite de convite para cadastro de senha.
+- Permitido cadastrar provedores FreeIPA, LDAP e Active Directory.
+- Permitido testar comunicacao de provedor e, quando `ldap3` estiver disponivel, validar autenticacao LDAP/AD.
+- Senhas de bind e senhas locais ficam protegidas por criptografia/hash, sem exibicao em texto puro.
+- Acoes administrativas registram auditoria basica.
+
+Pendencias da proxima etapa:
+
+- Implementar tela de login global.
+- Proteger rotas sensiveis por sessao/permissao.
+- Implementar sincronismo real de usuarios e grupos por FreeIPA/LDAP/AD.
+- Implementar mapeamento visual de grupos externos para perfis internos.
+- Definir bootstrap seguro do primeiro administrador.
+
+---
+
 # Criterios de Aceite
 
 - Configuracoes deve exibir Usuarios e Acessos.

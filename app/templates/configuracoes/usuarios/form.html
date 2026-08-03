@@ -1,0 +1,67 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = 'Novo Usuário' if modo == 'novo' else 'Editar Usuário' %}
+    {% set page_description = 'Cadastro administrativo de usuário e origem de autenticação' %}
+    {% set page_icon = 'bi-person-gear' %}
+    {% set page_button_url = url_for('configuracoes.usuarios_index') %}
+    {% set page_button_icon = 'bi-arrow-left' %}
+    {% set page_button_text = 'Voltar' %}
+    {% include "components/page_header.html" %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label">Nome</label>
+                        <input class="form-control" name="nome" value="{{ usuario.nome or '' }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">E-mail</label>
+                        <input class="form-control" type="email" name="email" value="{{ usuario.email or '' }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Login</label>
+                        <input class="form-control" name="login" value="{{ usuario.login or usuario.email or '' }}" placeholder="usa o e-mail se vazio">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Origem</label>
+                        <select class="form-select" name="origem">
+                            {% for origem in ['LOCAL', 'FREEIPA', 'LDAP', 'AD'] %}
+                            <option value="{{ origem }}" {% if (usuario.origem or 'LOCAL') == origem %}selected{% endif %}>{{ origem }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Perfil</label>
+                        <select class="form-select" name="perfil_id">
+                            <option value="">Sem perfil</option>
+                            {% for perfil in perfis %}
+                            <option value="{{ perfil.id }}" {% if usuario.perfil_id|string == perfil.id|string %}selected{% endif %}>{{ perfil.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status">
+                            {% for status in ['CONVIDADO', 'ATIVO', 'BLOQUEADO', 'INATIVO'] %}
+                            <option value="{{ status }}" {% if (usuario.status or 'CONVIDADO') == status %}selected{% endif %}>{{ status }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">ID Externo</label>
+                        <input class="form-control" name="externo_id" value="{{ usuario.externo_id or '' }}" placeholder="uid, dn ou objectGUID">
+                    </div>
+                    <div class="col-12 text-end">
+                        <a class="btn btn-secondary" href="{{ url_for('configuracoes.usuarios_index') }}">Cancelar</a>
+                        <button class="btn btn-primary"><i class="bi bi-check-circle"></i> Salvar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
