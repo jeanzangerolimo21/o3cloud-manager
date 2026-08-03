@@ -419,10 +419,14 @@ Inicio registrado em 03/08/2026.
 Documento de abertura:
 
 - `docs/27-ABERTURA-SPRINT-16.md`
+- `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
 
 Objetivos iniciais:
 
 - Definir controle de acesso e perfis por area operacional.
+- Criar Configuracoes > Usuarios e Acessos.
+- Prever usuarios locais convidados por e-mail.
+- Prever sincronismo FreeIPA, configuracao LDAP e autenticacao Active Directory.
 - Mapear telas administrativas e integracoes tecnicas para restricao por permissao.
 - Priorizar auditoria operacional para acoes sensiveis.
 - Criar roteiro de validacao assistida da Beta por area.

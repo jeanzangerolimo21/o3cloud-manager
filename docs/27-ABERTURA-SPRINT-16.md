@@ -39,6 +39,11 @@ Status: em planejamento
 Objetivo:
 
 - Definir perfis de usuario por area operacional.
+- Criar tela Configuracoes > Usuarios e Acessos para gestao administrativa.
+- Permitir usuario local com convite por e-mail e cadastro de senha propria.
+- Permitir sincronismo FreeIPA quando houver integracao configurada.
+- Permitir configuracao LDAP com teste de comunicacao.
+- Permitir configuracao Active Directory com validacao de autenticacao.
 - Restringir telas administrativas e integracoes tecnicas a usuarios autorizados.
 - Preparar base para auditoria de acoes sensiveis.
 

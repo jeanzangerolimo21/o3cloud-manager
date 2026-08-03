@@ -67,6 +67,7 @@ Documentos de referencia:
 - `docs/25-FECHAMENTO-SPRINT-15.md`
 - `docs/26-MELHORIAS-PRE-SPRINT-16.md`
 - `docs/27-ABERTURA-SPRINT-16.md`
+- `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
 
 Entregas consolidadas da Sprint 15:
 
@@ -87,6 +88,7 @@ Resumo do pacote pre-Sprint 16:
 Escopo inicial da Sprint 16:
 
 - Controle de acesso e perfis por area operacional.
+- Configuracoes > Usuarios e Acessos para usuarios locais, convites por e-mail, FreeIPA, LDAP e Active Directory.
 - Auditoria operacional de acoes sensiveis.
 - Roteiro de validacao assistida da Beta.
 - Refinamentos operacionais priorizados pela equipe.

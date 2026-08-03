@@ -47,6 +47,16 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 ---
 
 
+
+## 2026-08-03 - Escopo de Autenticacao Sprint 16
+
+### Documentacao
+
+- Criado `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md` com o desenho inicial de Usuarios e Acessos.
+- Definido que Configuracoes deve ter tela para gerenciamento de usuarios, perfis, convites e provedores externos.
+- Registradas regras para usuario local convidado por e-mail, sincronismo FreeIPA, configuracao LDAP e autenticacao Active Directory.
+- Atualizados requisitos funcionais, modelo de permissoes, roadmap e documentos da Sprint 16.
+
 ## 2026-08-03 - Abertura Sprint 16
 
 ### Documentacao

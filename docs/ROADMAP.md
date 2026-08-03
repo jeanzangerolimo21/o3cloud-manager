@@ -406,10 +406,16 @@ Aberta em 03/08/2026
 Documento de abertura:
 
 - `docs/27-ABERTURA-SPRINT-16.md`
+- `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
 
 Escopo inicial candidato:
 
 - Controle de acesso e perfis por area operacional.
+- Tela Configuracoes > Usuarios e Acessos.
+- Usuarios locais convidados por e-mail com cadastro de senha propria.
+- Sincronismo FreeIPA quando houver integracao configurada.
+- Configuracao LDAP com teste de comunicacao.
+- Configuracao Active Directory com validacao de autenticacao.
 - Restricao de telas administrativas e integracoes tecnicas por permissao.
 - Auditoria operacional de acoes sensiveis.
 - Roteiro de validacao assistida da Beta.

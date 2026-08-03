@@ -161,3 +161,25 @@ Regras funcionais:
 * Exibir acao de enviar somente quando o documento ja tiver sido gerado.
 * Bloquear nova geracao de documento quando o fluxo ClickSign ja estiver assinado ou concluido.
 
+---
+
+# RF013 - Autenticacao, Usuarios e Acessos
+
+O sistema devera disponibilizar em Configuracoes uma tela de Usuarios e Acessos para administrar usuarios locais, convites por e-mail, perfis, permissoes e provedores externos de autenticacao.
+
+Regras funcionais:
+
+* Permitir cadastro manual de usuario local com envio de convite por e-mail.
+* Permitir que o usuario convidado cadastre a propria senha por link seguro e temporario.
+* Permitir sincronizar usuarios pelo FreeIPA quando houver integracao ativa configurada.
+* Permitir configurar servidor LDAP generico e testar comunicacao antes de ativar.
+* Permitir configurar Active Directory e validar autenticacao de usuario.
+* Permitir mapear grupos externos para perfis internos.
+* Permitir bloquear, inativar, reativar e alterar perfil de usuario.
+* Auditar acoes administrativas sensiveis.
+* Manter senhas, tokens e segredos mascarados na interface e fora dos logs.
+
+Documento de detalhamento:
+
+* `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
+

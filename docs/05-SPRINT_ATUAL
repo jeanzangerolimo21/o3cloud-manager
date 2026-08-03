@@ -33,6 +33,7 @@ Documentos de referencia:
 - `docs/25-FECHAMENTO-SPRINT-15.md`
 - `docs/26-MELHORIAS-PRE-SPRINT-16.md`
 - `docs/27-ABERTURA-SPRINT-16.md`
+- `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
 
 ---
 
@@ -53,6 +54,11 @@ Em planejamento
 Objetivos:
 
 - Definir perfis de usuario por area operacional.
+- Criar tela Configuracoes > Usuarios e Acessos para gestao administrativa.
+- Permitir usuario local com convite por e-mail e cadastro de senha propria.
+- Permitir sincronismo FreeIPA quando houver integracao configurada.
+- Permitir configuracao LDAP com teste de comunicacao.
+- Permitir configuracao Active Directory com validacao de autenticacao.
 - Restringir telas administrativas e integracoes tecnicas a usuarios autorizados.
 - Preparar base para auditoria de acoes sensiveis.
 
@@ -139,6 +145,7 @@ Pacote pre-Sprint 16:
 Documento de abertura:
 
 - `docs/27-ABERTURA-SPRINT-16.md`
+- `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
 
 Proxima definicao:
 
