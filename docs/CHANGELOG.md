@@ -46,6 +46,16 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 
 ---
 
+
+## 2026-08-03 - Abertura Sprint 16
+
+### Documentacao
+
+- Criado `docs/27-ABERTURA-SPRINT-16.md` para registrar a Sprint 16 como aberta.
+- `docs/05-SPRINT_ATUAL` passou a apontar a Sprint 16 como sprint atual.
+- `docs/17-SPRINTS.md`, `docs/ROADMAP.md` e `docs/00-VISAO-GERAL.md` foram atualizados com o escopo inicial candidato.
+- Sprint 16 registrada com foco em governanca, acessos, auditoria operacional, validacao assistida da Beta e refinamentos priorizados.
+
 ## 2026-08-03 - Melhorias Pre-Sprint 16
 
 ### Comercial e ClickSign

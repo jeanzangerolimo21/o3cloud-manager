@@ -1,56 +1,42 @@
-# O3Cloud Manager v3.0
-
-# 05 - SPRINT ATUAL
+# Abertura Sprint 16
 
 Versao: 3.0 Alpha
 
-Ultima atualizacao: 03/08/2026
+Data de abertura: 03/08/2026
 
-Status: Oficial
+Status: Aberta
 
 ---
 
-# Sprint Registrada
+# Nome da Sprint
 
-## Sprint 16
-
-Governanca, Acessos e Operacao Assistida
-
-Status:
-
-Aberta em 03/08/2026
+Sprint 16 - Governanca, Acessos e Operacao Assistida
 
 ---
 
 # Contexto
 
-A Sprint 15 foi concluida em 03/08/2026 com foco em infraestrutura operacional e sincronismo read-only.
+A Sprint 15 foi concluida em 03/08/2026 com foco em infraestrutura operacional read-only.
 
-Antes da abertura da Sprint 16, foi registrado o pacote de melhorias pre-Sprint 16 com refinamentos de propostas, ClickSign, cofre de senhas, pipeline, rastreabilidade, configuracoes, e-mail e sidebar.
+Antes da abertura da Sprint 16, foi registrado o pacote `docs/26-MELHORIAS-PRE-SPRINT-16.md`, consolidando refinamentos de propostas, ClickSign, cofre de senhas, pipeline, rastreabilidade, configuracoes, e-mail e sidebar.
 
-Documentos de referencia:
-
-- `docs/25-FECHAMENTO-SPRINT-15.md`
-- `docs/26-MELHORIAS-PRE-SPRINT-16.md`
-- `docs/27-ABERTURA-SPRINT-16.md`
+A Sprint 16 inicia com foco em organizar os proximos passos para uso assistido da plataforma, especialmente controle de acesso, auditoria, validacoes operacionais e refinamentos priorizados pela equipe.
 
 ---
 
-# Objetivo da Sprint
+# Objetivo Inicial
 
 Preparar a plataforma para uso mais controlado na fase Beta assistida, evoluindo governanca, acesso, auditoria e validacoes operacionais sem comprometer a estabilidade das entregas ja homologadas.
 
 ---
 
-# Escopo Inicial
+# Escopo Inicial Candidato
 
 ## 1. Controle de Acesso e Perfis
 
-Status:
+Status: em planejamento
 
-Em planejamento
-
-Objetivos:
+Objetivo:
 
 - Definir perfis de usuario por area operacional.
 - Restringir telas administrativas e integracoes tecnicas a usuarios autorizados.
@@ -58,11 +44,9 @@ Objetivos:
 
 ## 2. Auditoria Operacional
 
-Status:
+Status: em planejamento
 
-Em planejamento
-
-Objetivos:
+Objetivo:
 
 - Registrar acoes relevantes executadas no sistema.
 - Priorizar eventos de integracoes, configuracoes, cofre de senhas, contratos, propostas e implantacao.
@@ -70,11 +54,9 @@ Objetivos:
 
 ## 3. Validacao Assistida da Beta
 
-Status:
+Status: em planejamento
 
-Em planejamento
-
-Objetivos:
+Objetivo:
 
 - Criar roteiro de validacao por area: Comercial, Operacoes, Financeiro e Engenharia.
 - Registrar pendencias encontradas durante uso assistido.
@@ -82,11 +64,9 @@ Objetivos:
 
 ## 4. Refinamentos Operacionais Priorizados
 
-Status:
+Status: em planejamento
 
-Em planejamento
-
-Objetivos:
+Objetivo:
 
 - Enderecar ajustes de usabilidade identificados pela equipe.
 - Priorizar correcoes que reduzam retrabalho operacional.
@@ -103,43 +83,29 @@ Objetivos:
 
 ---
 
-# Criterios de Aceite
+# Criterios de Aceite Iniciais
 
 - Escopo final da Sprint 16 validado pela equipe.
 - Telas administrativas sensiveis mapeadas para controle de acesso.
 - Eventos auditaveis priorizados e documentados.
 - Roteiro de validacao assistida definido.
-- Qualquer implementacao deve seguir Repository / Service / Routes / Templates quando houver codigo.
-- Validacoes tecnicas devem incluir AST OK, rotas principais via Flask test client e `git diff --check` quando houver alteracao de codigo.
+- Qualquer implementacao seguir padrao Repository / Service / Routes / Templates.
+- Validacoes tecnicas devem incluir `AST OK`, rotas principais via Flask test client e `git diff --check`.
 
 ---
 
-# Status Geral
-
-Versao:
-
-3.0 Alpha
-
-Sprint Atual:
-
-16
-
-Situacao:
-
-Aberta em 03/08/2026
-
-Sprint anterior:
+# Documentos Relacionados
 
 - `docs/25-FECHAMENTO-SPRINT-15.md`
-
-Pacote pre-Sprint 16:
-
 - `docs/26-MELHORIAS-PRE-SPRINT-16.md`
+- `docs/05-SPRINT_ATUAL`
+- `docs/17-SPRINTS.md`
+- `docs/ROADMAP.md`
 
-Documento de abertura:
+---
 
-- `docs/27-ABERTURA-SPRINT-16.md`
+# Encaminhamento
 
-Proxima definicao:
+A Sprint 16 esta aberta em 03/08/2026.
 
-Confirmar prioridade inicial entre controle de acesso/perfis, auditoria operacional, roteiro de validacao Beta ou novos refinamentos assistidos.
+O proximo passo e a equipe confirmar a prioridade entre controle de acesso/perfis, auditoria operacional, roteiro de validacao Beta ou novos refinamentos assistidos.

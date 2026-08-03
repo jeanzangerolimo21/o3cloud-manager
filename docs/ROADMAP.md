@@ -389,9 +389,31 @@ Pendencias encaminhadas:
 
 Proximos passos:
 
-- Abrir Sprint 16 com escopo definido pela equipe.
+- Sprint 16 aberta em 03/08/2026 com escopo inicial de governanca, acessos e operacao assistida.
 - Considerar que as melhorias comerciais/ClickSign, cofre, PDF e rastreabilidade ja foram registradas no pacote pre-Sprint 16.
-- Candidatos: autenticacao/perfis, auditoria formal, relatorios operacionais ou novos refinamentos da Beta assistida.
+- Detalhar prioridades da Sprint 16 com a equipe antes das implementacoes de codigo.
+
+---
+
+## Sprint 16
+
+Governanca, Acessos e Operacao Assistida
+
+Status:
+
+Aberta em 03/08/2026
+
+Documento de abertura:
+
+- `docs/27-ABERTURA-SPRINT-16.md`
+
+Escopo inicial candidato:
+
+- Controle de acesso e perfis por area operacional.
+- Restricao de telas administrativas e integracoes tecnicas por permissao.
+- Auditoria operacional de acoes sensiveis.
+- Roteiro de validacao assistida da Beta.
+- Refinamentos operacionais priorizados pela equipe.
 
 ---
 

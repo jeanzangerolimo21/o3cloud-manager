@@ -54,9 +54,19 @@ Entregas principais da Sprint 14:
 
 Ultima sprint encerrada: Sprint 15 - Infraestrutura Operacional e Sincronismo Read-Only.
 
+Sprint atual: Sprint 16 - Governanca, Acessos e Operacao Assistida.
+
 Status atual:
 
-- Sprint 15 concluida em 03/08/2026. Proxima sprint aguardando abertura e definicao de escopo.
+- Sprint 15 concluida em 03/08/2026.
+- Pacote de melhorias pre-Sprint 16 registrado em 03/08/2026.
+- Sprint 16 aberta em 03/08/2026 para planejamento operacional da Beta assistida.
+
+Documentos de referencia:
+
+- `docs/25-FECHAMENTO-SPRINT-15.md`
+- `docs/26-MELHORIAS-PRE-SPRINT-16.md`
+- `docs/27-ABERTURA-SPRINT-16.md`
 
 Entregas consolidadas da Sprint 15:
 
@@ -68,19 +78,18 @@ Entregas consolidadas da Sprint 15:
 - Atalhos de Integracoes Tecnicas removidos da navegacao operacional.
 - Automacoes destrutivas permanecem fora do escopo ate aprovacao especifica.
 
-Documento de revisao:
-
-- `docs/25-FECHAMENTO-SPRINT-15.md`
-
-Melhorias registradas antes da Sprint 16:
-
-- `docs/26-MELHORIAS-PRE-SPRINT-16.md`
-
 Resumo do pacote pre-Sprint 16:
 
 - Propostas/ClickSign: Representante Legal selecionavel, CPF obrigatorio, nome completo obrigatorio, bloqueio de reenvio duplicado e cancelamento de envelope pendente.
 - Comercial: status na listagem, semaforo, comentarios, pipeline com propostas sem oportunidade e acoes Gerar/Enviar para propostas aprovadas.
 - Operacional: cofre particular/compartilhado, faixa de rede opcional e rastreabilidade com cliente.
+
+Escopo inicial da Sprint 16:
+
+- Controle de acesso e perfis por area operacional.
+- Auditoria operacional de acoes sensiveis.
+- Roteiro de validacao assistida da Beta.
+- Refinamentos operacionais priorizados pela equipe.
 
 ---
 

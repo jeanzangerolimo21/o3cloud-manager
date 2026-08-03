@@ -407,6 +407,33 @@ Status:
 
 ---
 
+
+# Sprint Atual
+
+## Sprint 16
+
+Governanca, Acessos e Operacao Assistida
+
+Inicio registrado em 03/08/2026.
+
+Documento de abertura:
+
+- `docs/27-ABERTURA-SPRINT-16.md`
+
+Objetivos iniciais:
+
+- Definir controle de acesso e perfis por area operacional.
+- Mapear telas administrativas e integracoes tecnicas para restricao por permissao.
+- Priorizar auditoria operacional para acoes sensiveis.
+- Criar roteiro de validacao assistida da Beta por area.
+- Enderecar refinamentos operacionais priorizados pela equipe.
+
+Status:
+
+Aberta em 03/08/2026
+
+---
+
 # Sprint Final Planejada
 
 ## Integracao Receita Federal para Cadastro de Clientes
