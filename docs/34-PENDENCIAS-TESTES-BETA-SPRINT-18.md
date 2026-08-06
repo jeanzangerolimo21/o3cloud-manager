@@ -25,6 +25,8 @@ O Sprint 17 permanece fora do corte atual e sera retomado apos o alinhamento dos
 - Confirmar que o perfil Administrativo Gestor pode criar, editar, cancelar e acompanhar demandas.
 - Confirmar que o perfil Administrativo Colaborador entra diretamente em Minha Agenda e não visualiza a Agenda Corporativa.
 - Confirmar que somente Administrativo Gestor, Diretoria e Administrador visualizam a Agenda Corporativa com todos os responsáveis.
+- Atribuir Possui Agenda a outro perfil com acesso Administrativo e confirmar que ele entra diretamente em Minha Agenda.
+- Confirmar o botão Formato calendário na Agenda Corporativa e a abertura da semana visual em cinco colunas.
 - Confirmar que o colaborador visualiza apenas as próprias demandas, não vê o comando Nova Demanda e não pode editar, cancelar ou reagendar.
 - Confirmar que o colaborador pode incluir comentários somente nas próprias demandas, sem editar ou excluir demandas ou comentários.
 - Validar leitura e edicao pela matriz de permissoes do grupo Administrativo.

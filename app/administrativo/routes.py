@@ -12,12 +12,14 @@ administrativo_bp = Blueprint("administrativo", __name__, url_prefix="/administr
 def _usuario_email(): return session.get("usuario_email") or "sistema"
 def _usuario_id(): return session.get("usuario_id")
 def _colaborador(): return session.get("usuario_perfil") == "ADMINISTRATIVO_COLABORADOR"
+def _agenda_corporativa(): return session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "ADMINISTRATIVO_GESTOR")
+def _possui_agenda(): return bool(session.get("usuario_possui_agenda"))
 def _moderador(): return session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR", "ADMINISTRATIVO_GESTOR")
 
 
 @administrativo_bp.route("/")
 def index():
-    if _colaborador():
+    if _colaborador() or (_possui_agenda() and not _agenda_corporativa()):
         return redirect(url_for("administrativo.agenda"))
     filtros = {"q": request.args.get("q"), "status": request.args.get("status"), "responsavel_id": request.args.get("responsavel_id"), "departamento_id": request.args.get("departamento_id")}
     if _colaborador():
@@ -94,7 +96,7 @@ def excluir_comentario(demanda_id, comentario_id):
 
 @administrativo_bp.route("/agenda")
 def agenda():
-    gestor = session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "ADMINISTRATIVO_GESTOR")
+    gestor = _agenda_corporativa()
     usuario_id = request.args.get("usuario_id", type=int) if gestor else _usuario_id()
     visao = request.args.get("visao", "hoje")
     if visao not in ("hoje", "semana", "mes", "lista"):

@@ -2,6 +2,9 @@
 
 ## 2026-08-06 - Agenda e Recorrencia
 
+- Usuários de outros perfis com `Possui Agenda = SIM` passam a entrar em Minha Agenda quando recebem acesso ao módulo Administrativo.
+- Agenda Corporativa ganhou o botão explícito `Formato calendário` para gestores, Diretoria e Administradores.
+
 - Colaboradores passam a entrar diretamente em Minha Agenda; a Agenda Corporativa fica restrita a gestores administrativos, Diretoria e Administradores.
 
 - Agenda recebeu botao Voltar, visualizacao em lista e calendario semanal de segunda a sexta.

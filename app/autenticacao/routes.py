@@ -41,6 +41,7 @@ def login():
             session["usuario_nome"] = usuario.get("nome")
             session["usuario_email"] = usuario.get("email") or usuario.get("login")
             session["usuario_perfil"] = usuario.get("perfil_codigo")
+            session["usuario_possui_agenda"] = bool(usuario.get("possui_agenda"))
             session.permanent = True
             return redirect(request.form.get("next") or url_for("financeiro.dashboard"))
     return render_template("autenticacao/login.html", next_url=request.args.get("next") or request.form.get("next") or "")
