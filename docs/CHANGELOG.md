@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-06 - Perfis Administrativos
+
+- Criados os perfis `Administrativo Gestor` e `Administrativo Colaborador` na migration `069_create_perfis_administrativo.sql`.
+- Colaboradores visualizam apenas suas demandas e podem comentar nelas, enquanto criação, edição, cancelamento, reagendamento e moderação ficam restritos ao gestor.
+
+
 ## 2026-08-06 - Sprint 18 Etapa 7
 
 ### Fechamento Tecnico

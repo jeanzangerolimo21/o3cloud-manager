@@ -20,7 +20,7 @@ class AdministrativoService:
     @classmethod
     def criar(cls, dados, arquivos, usuario_email):
         payload = cls._normalizar(dados)
-        payload["possui_anexos"] = bool(arquivos) or payload.get("possui_anexos") or anterior.get("possui_anexos")
+        payload["possui_anexos"] = bool(arquivos) or payload.get("possui_anexos")
         payload["criado_por"] = usuario_email; payload["updated_by"] = usuario_email
         cls._validar(payload)
         demanda_id = cls.repository.inserir_demanda(payload)
@@ -46,10 +46,11 @@ class AdministrativoService:
         cls._salvar_anexos(demanda_id, arquivos)
 
     @classmethod
-    def comentar(cls, demanda_id, comentario, arquivos, usuario_email):
+    def comentar(cls, demanda_id, comentario, arquivos, usuario_email, usuario_id=None, colaborador=False):
         demanda = cls.repository.buscar_demanda(demanda_id)
         if not demanda: raise ValueError("Demanda não encontrada.")
         if not demanda.get("permitir_comentarios"): raise ValueError("Comentários estão desabilitados para esta demanda.")
+        if colaborador and int(demanda.get("responsavel_id") or 0) != int(usuario_id or 0): raise ValueError("Você só pode comentar nas suas próprias demandas.")
         texto = (comentario or "").strip()
         if not texto: raise ValueError("Informe um comentário.")
         comentario_id = cls.repository.inserir_comentario(demanda_id, texto, usuario_email)

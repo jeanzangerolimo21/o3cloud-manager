@@ -11,12 +11,15 @@ administrativo_bp = Blueprint("administrativo", __name__, url_prefix="/administr
 
 def _usuario_email(): return session.get("usuario_email") or "sistema"
 def _usuario_id(): return session.get("usuario_id")
-def _moderador(): return session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR")
+def _colaborador(): return session.get("usuario_perfil") == "ADMINISTRATIVO_COLABORADOR"
+def _moderador(): return session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR", "ADMINISTRATIVO_GESTOR")
 
 
 @administrativo_bp.route("/")
 def index():
     filtros = {"q": request.args.get("q"), "status": request.args.get("status"), "responsavel_id": request.args.get("responsavel_id"), "departamento_id": request.args.get("departamento_id")}
+    if _colaborador():
+        filtros["responsavel_id"] = _usuario_id()
     contexto = AdministrativoService.contexto_index(filtros, _usuario_id())
     contexto.update(filtros=filtros, categorias=AdministrativoService.CATEGORIAS, prioridades=AdministrativoService.PRIORIDADES, status_options=AdministrativoService.STATUS)
     return render_template("administrativo/index.html", **contexto)
@@ -37,6 +40,8 @@ def nova_demanda():
 @administrativo_bp.route("/demandas/<int:demanda_id>")
 def detalhe(demanda_id):
     demanda = AdministrativoService.detalhe(demanda_id)
+    if demanda and _colaborador() and int(demanda.get("responsavel_id") or 0) != int(_usuario_id() or 0):
+        demanda = None
     if not demanda: flash("Demanda não encontrada.", "danger"); return redirect(url_for("administrativo.index"))
     return render_template("administrativo/detalhe.html", demanda=demanda)
 
@@ -65,7 +70,7 @@ def cancelar(demanda_id):
 
 @administrativo_bp.route("/demandas/<int:demanda_id>/comentarios", methods=["POST"])
 def comentar(demanda_id):
-    try: AdministrativoService.comentar(demanda_id, request.form.get("comentario"), request.files.getlist("anexos"), _usuario_email())
+    try: AdministrativoService.comentar(demanda_id, request.form.get("comentario"), request.files.getlist("anexos"), _usuario_email(), _usuario_id(), _colaborador())
     except (ValueError, OSError) as erro: flash(str(erro), "danger")
     else: registrar_evento("ADMIN_COMENTARIO_CRIADO", "administrativo_comentarios", demanda_id); flash("Comentário registrado.", "success")
     return redirect(url_for("administrativo.detalhe", demanda_id=demanda_id))
@@ -87,7 +92,7 @@ def excluir_comentario(demanda_id, comentario_id):
 
 @administrativo_bp.route("/agenda")
 def agenda():
-    gestor = session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR")
+    gestor = session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR", "ADMINISTRATIVO_GESTOR")
     usuario_id = request.args.get("usuario_id", type=int) if gestor else _usuario_id()
     visao = request.args.get("visao", "hoje")
     if visao not in ("hoje", "semana", "mes", "lista"):
@@ -154,7 +159,7 @@ def ler_todas_notificacoes():
 
 @administrativo_bp.route("/relatorios")
 def relatorios():
-    usuario_id = None if session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR") else _usuario_id()
+    usuario_id = None if session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR", "ADMINISTRATIVO_GESTOR") else _usuario_id()
     inicio = request.args.get("data_inicio") or None
     fim = request.args.get("data_fim") or None
     return render_template("administrativo/relatorios.html", dashboard=AdministrativoService.repository.dashboard_completo(usuario_id), linhas=AdministrativoService.repository.relatorio_periodo(usuario_id, inicio, fim), data_inicio=inicio, data_fim=fim)

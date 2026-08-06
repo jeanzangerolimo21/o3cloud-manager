@@ -1,5 +1,8 @@
 from flask import abort, flash, has_request_context, redirect, request, session, url_for
 
+ADMINISTRATIVO_GESTOR = "ADMINISTRATIVO_GESTOR"
+ADMINISTRATIVO_COLABORADOR = "ADMINISTRATIVO_COLABORADOR"
+
 from app.repositories.auth_repository import AuthRepository
 
 
@@ -267,6 +270,13 @@ def pode_editar(menu_key):
 
 
 def pode_acessar_endpoint(menu_key, endpoint, method):
+    if menu_key == "administrativo" and session.get("usuario_perfil") == ADMINISTRATIVO_COLABORADOR:
+        bloqueados = ("administrativo.nova_demanda", "administrativo.editar", "administrativo.cancelar", "administrativo.reagendar", "administrativo.editar_comentario", "administrativo.excluir_comentario")
+        permitidos_especiais = ("administrativo.comentar", "administrativo.ler_notificacao", "administrativo.ler_todas_notificacoes")
+        if endpoint in bloqueados:
+            return False
+        if endpoint in permitidos_especiais:
+            return True
     nivel = permissoes_niveis_usuario_atual().get(menu_key)
     if not nivel:
         return False

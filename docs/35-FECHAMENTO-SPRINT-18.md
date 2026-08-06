@@ -36,6 +36,9 @@ Status: Concluida tecnicamente
 
 # Pendencias para a Release Beta
 
+- Validar os perfis `Administrativo Gestor` e `Administrativo Colaborador` na tela Usuarios e Acessos.
+- Confirmar que o colaborador somente comenta nas próprias demandas e que as operações de gestão ficam disponíveis apenas ao gestor.
+
 O roteiro completo esta em `docs/34-PENDENCIAS-TESTES-BETA-SPRINT-18.md` e cobre as validacoes assistidas das etapas 1 a 7.
 
 Permanecem pendentes a execucao com usuarios, perfis, dados controlados, SMTP homologado e evidencias de aceite. A implementacao tecnica nao representa homologacao Beta concluida.
