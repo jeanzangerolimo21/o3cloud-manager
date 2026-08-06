@@ -92,3 +92,6 @@ O Sprint 17 permanece fora do corte atual e sera retomado apos o alinhamento dos
 Para cada etapa, registrar data, ambiente, responsavel, perfil utilizado, resultado, evidencia e pendencia encontrada. Os resultados devem ser classificados como aprovado, aprovado com ajuste ou reprovado.
 
 Falhas encontradas devem ser encaminhadas para correcao ou nova sprint, sem considerar a homologacao Beta como concluida automaticamente pela implementacao tecnica.
+
+- [ ] Validar cadastro de Dashboard principal por perfil e redirecionamento no login para a tela configurada.
+- [ ] Validar fallback para o primeiro menu permitido quando o dashboard selecionado não estiver autorizado ao perfil.

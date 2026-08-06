@@ -19,6 +19,16 @@ class AuthConfigService:
     STATUS_USUARIO = ("CONVIDADO", "ATIVO", "BLOQUEADO", "INATIVO")
     TIPOS_PROVEDOR = ("FREEIPA", "LDAP", "AD")
     MENU_PERMISSOES = MENU_PERMISSOES
+    DASHBOARDS_PRINCIPAIS = (
+        {"valor": "financeiro.dashboard", "label": "Visao Geral", "menu_key": "visao_geral"},
+        {"valor": "financeiro.dashboard_executivo", "label": "Dashboard Executivo", "menu_key": "dashboard_executivo"},
+        {"valor": "propostas.dashboard", "label": "Dashboard Comercial", "menu_key": "dashboard_comercial"},
+        {"valor": "administrativo.index", "label": "Administrativo", "menu_key": "administrativo"},
+        {"valor": "administrativo.agenda", "label": "Minha Agenda", "menu_key": "administrativo"},
+        {"valor": "implantacao.index", "label": "Implantacao", "menu_key": "implantacao"},
+        {"valor": "configuracoes.usuarios_index", "label": "Usuarios e Acessos", "menu_key": "usuarios_acessos"},
+        {"valor": "infraestrutura.monitoramento_zabbix", "label": "Monitoramento Zabbix", "menu_key": "monitoramento_zabbix"},
+    )
 
     @classmethod
     def dashboard(cls):
@@ -181,7 +191,7 @@ class AuthConfigService:
 
     @classmethod
     def novo_perfil_payload(cls):
-        return {"ativo": 1, "mostrar_valores": 0, "permissoes": [], "permissoes_niveis": {}}
+        return {"ativo": 1, "mostrar_valores": 0, "dashboard_principal": "financeiro.dashboard", "permissoes": [], "permissoes_niveis": {}}
 
     @classmethod
     def buscar_perfil(cls, perfil_id):
@@ -447,12 +457,16 @@ class AuthConfigService:
             raise ValueError("Código do perfil é obrigatório.")
         if codigo == "ADMIN":
             raise ValueError("O perfil Administrador é reservado e não pode ser criado ou alterado.")
+        dashboard_principal = cls._texto(dados.get("dashboard_principal")) or "financeiro.dashboard"
+        if dashboard_principal not in {item["valor"] for item in cls.DASHBOARDS_PRINCIPAIS}:
+            raise ValueError("Dashboard principal inválido.")
         return {
             "nome": nome,
             "codigo": codigo,
             "descricao": cls._texto(dados.get("descricao")),
             "ativo": cls._flag(dados, "ativo"),
             "mostrar_valores": cls._flag(dados, "mostrar_valores"),
+            "dashboard_principal": dashboard_principal,
         }
 
     @classmethod

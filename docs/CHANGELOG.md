@@ -1140,3 +1140,9 @@ Situação:
 Próxima Implementação:
 
 Homologação de Servidores e consolidação da base de Dimensionamento.
+
+## 2026-08-06
+
+- Adicionado Dashboard principal configurável por perfil de acesso, com redirecionamento seguro no login e fallback conforme permissões.
+
+- Perfil SUPORTE configurado para iniciar no Monitoramento Zabbix.

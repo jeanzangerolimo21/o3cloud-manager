@@ -6,7 +6,7 @@ class AuthRepository(BaseRepository):
     def listar_perfis(cls):
         return cls.fetch_all(
             """
-            SELECT id, uuid, nome, codigo, descricao, ativo, mostrar_valores
+            SELECT id, uuid, nome, codigo, descricao, ativo, mostrar_valores, dashboard_principal
             FROM auth_perfis
             WHERE ativo = 1
             ORDER BY codigo = \"ADMIN\" DESC, nome ASC
@@ -17,7 +17,7 @@ class AuthRepository(BaseRepository):
     def buscar_perfil(cls, perfil_id):
         return cls.fetch_one(
             """
-            SELECT id, uuid, nome, codigo, descricao, ativo, mostrar_valores
+            SELECT id, uuid, nome, codigo, descricao, ativo, mostrar_valores, dashboard_principal
             FROM auth_perfis
             WHERE id = %s
             """,
@@ -28,7 +28,7 @@ class AuthRepository(BaseRepository):
     def buscar_perfil_por_codigo(cls, codigo):
         return cls.fetch_one(
             """
-            SELECT id, uuid, nome, codigo, descricao, ativo, mostrar_valores
+            SELECT id, uuid, nome, codigo, descricao, ativo, mostrar_valores, dashboard_principal
             FROM auth_perfis
             WHERE codigo = %s
             """,
@@ -50,12 +50,12 @@ class AuthRepository(BaseRepository):
     def inserir_perfil(cls, dados):
         return cls.execute_insert(
             """
-            INSERT INTO auth_perfis (uuid, nome, codigo, descricao, ativo, mostrar_valores)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO auth_perfis (uuid, nome, codigo, descricao, ativo, mostrar_valores, dashboard_principal)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 cls.generate_uuid(), dados.get("nome"), dados.get("codigo"), dados.get("descricao"),
-                cls.bool_to_int(dados.get("ativo")), cls.bool_to_int(dados.get("mostrar_valores")),
+                cls.bool_to_int(dados.get("ativo")), cls.bool_to_int(dados.get("mostrar_valores")), dados.get("dashboard_principal"),
             ),
         )
 
@@ -64,12 +64,12 @@ class AuthRepository(BaseRepository):
         return cls.execute(
             """
             UPDATE auth_perfis
-            SET nome=%s, codigo=%s, descricao=%s, ativo=%s, mostrar_valores=%s
+            SET nome=%s, codigo=%s, descricao=%s, ativo=%s, mostrar_valores=%s, dashboard_principal=%s
             WHERE id=%s
             """,
             (
                 dados.get("nome"), dados.get("codigo"), dados.get("descricao"),
-                cls.bool_to_int(dados.get("ativo")), cls.bool_to_int(dados.get("mostrar_valores")), perfil_id,
+                cls.bool_to_int(dados.get("ativo")), cls.bool_to_int(dados.get("mostrar_valores")), dados.get("dashboard_principal"), perfil_id,
             ),
         )
 
@@ -151,7 +151,7 @@ class AuthRepository(BaseRepository):
     def buscar_usuario_por_login(cls, identificador):
         return cls.fetch_one(
             """
-            SELECT u.*, p.nome AS perfil_nome, p.codigo AS perfil_codigo, p.mostrar_valores
+            SELECT u.*, p.nome AS perfil_nome, p.codigo AS perfil_codigo, p.mostrar_valores, p.dashboard_principal
             FROM auth_usuarios u
             LEFT JOIN auth_perfis p ON p.id = u.perfil_id
             WHERE u.email = %s OR u.login = %s
@@ -164,7 +164,7 @@ class AuthRepository(BaseRepository):
     def buscar_usuario_por_email_ou_login(cls, identificador):
         return cls.fetch_one(
             """
-            SELECT u.*, p.nome AS perfil_nome, p.codigo AS perfil_codigo, p.mostrar_valores
+            SELECT u.*, p.nome AS perfil_nome, p.codigo AS perfil_codigo, p.mostrar_valores, p.dashboard_principal
             FROM auth_usuarios u
             LEFT JOIN auth_perfis p ON p.id = u.perfil_id
             WHERE u.email = %s OR u.login = %s
@@ -177,7 +177,7 @@ class AuthRepository(BaseRepository):
     def buscar_usuario_por_email_com_perfil(cls, email):
         return cls.fetch_one(
             """
-            SELECT u.*, p.nome AS perfil_nome, p.codigo AS perfil_codigo, p.mostrar_valores
+            SELECT u.*, p.nome AS perfil_nome, p.codigo AS perfil_codigo, p.mostrar_valores, p.dashboard_principal
             FROM auth_usuarios u
             LEFT JOIN auth_perfis p ON p.id = u.perfil_id
             WHERE u.email = %s

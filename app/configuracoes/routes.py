@@ -28,6 +28,7 @@ def usuarios_perfil_novo():
                 "configuracoes/usuarios/perfil_form.html",
                 perfil={**request.form, "permissoes": request.form.getlist("menu_keys")},
                 grupos_menus=AuthConfigService.menus_por_grupo(),
+                dashboards_principais=AuthConfigService.DASHBOARDS_PRINCIPAIS,
                 modo="novo",
                 admin_bloqueado=False,
             )
@@ -37,6 +38,7 @@ def usuarios_perfil_novo():
         "configuracoes/usuarios/perfil_form.html",
         perfil=AuthConfigService.novo_perfil_payload(),
         grupos_menus=AuthConfigService.menus_por_grupo(),
+        dashboards_principais=AuthConfigService.DASHBOARDS_PRINCIPAIS,
         modo="novo",
         admin_bloqueado=False,
     )
@@ -64,6 +66,7 @@ def usuarios_perfil_editar(perfil_id):
         grupos_menus=AuthConfigService.menus_por_grupo(),
         modo="editar",
         admin_bloqueado=admin_bloqueado,
+        dashboards_principais=AuthConfigService.DASHBOARDS_PRINCIPAIS,
     )
 
 

@@ -50,3 +50,12 @@ O Sprint 17 permanece fora deste fechamento e sera retomado apos o alinhamento c
 # Decisao de Fechamento
 
 O Sprint 18 esta concluido tecnicamente em 06/08/2026. As entregas ficam encaminhadas para a release Beta, enquanto os testes assistidos e a homologacao operacional permanecem como pendencias controladas.
+
+
+# Atualizacao Pos-Fechamento
+
+- Configuracao de Dashboard principal adicionada ao cadastro de perfis em Usuarios e Acessos.
+- Login passa a direcionar o usuario para o dashboard definido no perfil, respeitando as permissoes autorizadas e usando fallback seguro.
+- Perfil SUPORTE configurado para iniciar no Monitoramento Zabbix.
+- Migrations `071_dashboard_principal_perfis.sql` e `072_dashboard_suporte_zabbix.sql` aplicadas e registradas no ambiente local.
+- Validacoes assistidas dessas configuracoes permanecem no roteiro da release Beta.

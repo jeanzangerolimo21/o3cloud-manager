@@ -33,6 +33,14 @@
                         <label class="form-label">Descrição</label>
                         <input class="form-control" name="descricao" value="{{ perfil.descricao or '' }}" {% if admin_bloqueado %}readonly{% endif %}>
                     </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Dashboard principal</label>
+                        <select class="form-select" name="dashboard_principal" {% if admin_bloqueado %}disabled{% endif %}>
+                            {% for dashboard in dashboards_principais %}
+                            <option value="{{ dashboard.valor }}" {% if (perfil.dashboard_principal or "financeiro.dashboard") == dashboard.valor %}selected{% endif %}>{{ dashboard.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <div class="col-md-3">
                         <div class="form-check form-switch mt-2">
                             <input type="hidden" name="ativo" value="0">

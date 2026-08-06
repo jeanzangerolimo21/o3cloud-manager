@@ -7,9 +7,28 @@ from flask import session
 from flask import url_for
 
 from app.configuracoes.auth_service import AuthConfigService
+from app.repositories.auth_repository import AuthRepository
 
 
 autenticacao_bp = Blueprint("autenticacao", __name__)
+
+
+_DASHBOARD_MENU_KEYS = {item["valor"]: item["menu_key"] for item in AuthConfigService.DASHBOARDS_PRINCIPAIS}
+
+def _dashboard_principal(usuario):
+    endpoint = usuario.get("dashboard_principal") or "financeiro.dashboard"
+    if endpoint not in _DASHBOARD_MENU_KEYS:
+        endpoint = "financeiro.dashboard"
+    if usuario.get("perfil_codigo") == "ADMIN":
+        return endpoint
+    email = usuario.get("email") or usuario.get("login")
+    permitidos = {item.get("menu_key") for item in AuthRepository.listar_menu_keys_usuario(email)} if email else set()
+    if _DASHBOARD_MENU_KEYS.get(endpoint) in permitidos:
+        return endpoint
+    for candidato, menu_key in _DASHBOARD_MENU_KEYS.items():
+        if menu_key in permitidos:
+            return candidato
+    return "financeiro.dashboard"
 
 
 def _ip_origem():
@@ -23,7 +42,8 @@ def _user_agent():
 @autenticacao_bp.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("usuario_email"):
-        return redirect(request.args.get("next") or url_for("financeiro.dashboard"))
+        endpoint = session.get("usuario_dashboard_principal") or "financeiro.dashboard"
+        return redirect(request.args.get("next") or url_for(endpoint))
     if request.method == "POST":
         identificador = request.form.get("identificador")
         try:
@@ -42,8 +62,10 @@ def login():
             session["usuario_email"] = usuario.get("email") or usuario.get("login")
             session["usuario_perfil"] = usuario.get("perfil_codigo")
             session["usuario_possui_agenda"] = bool(usuario.get("possui_agenda"))
+            endpoint = _dashboard_principal(usuario)
+            session["usuario_dashboard_principal"] = endpoint
             session.permanent = True
-            return redirect(request.form.get("next") or url_for("financeiro.dashboard"))
+            return redirect(request.form.get("next") or url_for(endpoint))
     return render_template("autenticacao/login.html", next_url=request.args.get("next") or request.form.get("next") or "")
 
 
