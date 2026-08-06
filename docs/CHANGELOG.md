@@ -40,6 +40,14 @@ Junho/2026
 
 # CHANGELOG
 
+## 2026-08-06 - Visao Geral e Proxima Sprint
+
+### Dashboard
+
+- Visao Geral passou a exibir a Sprint 16 como concluida tecnicamente.
+- Pendencias de testes assistidos foram indicadas como encaminhadas para a release Beta.
+- Dashboard passou a apresentar a proxima sprint de integracao cadastral por CNPJ e suas etapas previstas.
+
 ## 2026-08-06 - Fechamento Tecnico Sprint 16
 
 ### Documentacao

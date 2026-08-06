@@ -19,8 +19,8 @@
     <div class="alert alert-success d-flex align-items-start gap-2" role="alert">
         <i class="bi bi-check-circle-fill mt-1"></i>
         <div>
-            <strong>Sprint 15 concluida em 03/08/2026.</strong>
-            Infraestrutura operacional entregue em modo read-only com Proxmox, PBS, Zabbix e TrueNAS, mantendo automacoes destrutivas fora do escopo.
+            <strong>Sprint 16 concluida tecnicamente em 06/08/2026.</strong>
+            Governanca, acessos, auditoria e refinamentos operacionais foram entregues. Os testes assistidos das etapas 1 a 7 foram encaminhados para a release Beta.
         </div>
     </div>
 
@@ -77,18 +77,18 @@
                 <div class="card-body">
                     <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
                         <div>
-                            <h5 class="mb-1">Sprint 16 - Controle e operacao assistida</h5>
-                            <p class="text-muted mb-3">Proxima frente proposta para transformar as telas entregues na Sprint 15 em operacao controlada, com acesso por perfil, trilha de sincronismos e validacao assistida da equipe.</p>
+                            <h5 class="mb-1">Proxima Sprint - Integracao Receita Federal</h5>
+                            <p class="text-muted mb-3">Automatizar a consulta cadastral por CNPJ no cadastro de clientes, com revisao manual, fallback seguro e provedor homologado.</p>
                             <div class="d-flex flex-wrap gap-2">
-                                <span class="badge text-bg-light border">Perfis e permissoes</span>
-                                <span class="badge text-bg-light border">Trilha de sincronismos</span>
-                                <span class="badge text-bg-light border">Relatorios operacionais</span>
-                                <span class="badge text-bg-light border">Validacao assistida</span>
-                                <span class="badge text-bg-light border">Beta controlada</span>
+                                <span class="badge text-bg-light border">Consulta por CNPJ</span>
+                                <span class="badge text-bg-light border">Dados cadastrais</span>
+                                <span class="badge text-bg-light border">Revisao manual</span>
+                                <span class="badge text-bg-light border">Fallback sem bloqueio</span>
+                                <span class="badge text-bg-light border">Cache e limites</span>
                             </div>
                         </div>
                         <div class="align-self-md-center">
-                            <a class="btn btn-primary" href="{{ url_for('financeiro.dashboard_executivo') }}"><i class="bi bi-box-arrow-up-right"></i> Abrir Dashboard Executivo</a>
+                            <a class="btn btn-primary" href="{{ url_for('clientes.index') }}"><i class="bi bi-person-vcard"></i> Abrir Clientes</a>
                         </div>
                     </div>
                 </div>
@@ -96,13 +96,14 @@
         </div>
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white"><strong>Acoes da Sprint 16</strong></div>
+                <div class="card-header bg-white"><strong>Etapas da Proxima Sprint</strong></div>
                 <div class="list-group list-group-flush">
-                    <div class="list-group-item">Definir perfis de acesso para usuarios operacionais e avancados</div>
-                    <div class="list-group-item">Criar historico centralizado para sincronismos Zabbix e TrueNAS</div>
-                    <div class="list-group-item">Preparar relatorios operacionais de infraestrutura, backups e alertas</div>
-                    <div class="list-group-item">Executar validacao assistida das telas com a operacao</div>
-                    <div class="list-group-item">Registrar ajustes finais para a Beta controlada</div>
+                    <div class="list-group-item">1. Definir provedor/API, autenticacao, limites e politica de cache</div>
+                    <div class="list-group-item">2. Consultar dados publicos ao informar o CNPJ</div>
+                    <div class="list-group-item">3. Mapear razao social, endereco, situacao e atividade economica</div>
+                    <div class="list-group-item">4. Permitir revisao manual antes de salvar</div>
+                    <div class="list-group-item">5. Registrar falhas sem bloquear o cadastro manual</div>
+                    <div class="list-group-item">6. Homologar o fluxo com dados controlados e documentar o resultado</div>
                 </div>
             </div>
         </div>

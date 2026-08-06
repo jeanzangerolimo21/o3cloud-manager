@@ -52,15 +52,15 @@ Entregas principais da Sprint 14:
 - Menu de Infraestrutura recebeu Backups PBS, Monitoramento Zabbix e Backup NAS.
 - Cadastros finais e revisao assistida foram encaminhados para a fase Beta com a equipe.
 
-Ultima sprint encerrada: Sprint 15 - Infraestrutura Operacional e Sincronismo Read-Only.
+Ultima sprint encerrada: Sprint 16 - Governanca, Acessos e Operacao Assistida.
 
-Sprint atual: Sprint 16 - Governanca, Acessos e Operacao Assistida.
+Proxima sprint planejada: Integracao Receita Federal para Cadastro de Clientes.
 
 Status atual:
 
 - Sprint 15 concluida em 03/08/2026.
-- Pacote de melhorias pre-Sprint 16 registrado em 03/08/2026.
-- Sprint 16 aberta em 03/08/2026 para planejamento operacional da Beta assistida.
+- Sprint 16 concluida tecnicamente em 06/08/2026.
+- Testes assistidos das etapas 1 a 7 encaminhados para a release Beta.
 
 Documentos de referencia:
 
@@ -68,6 +68,8 @@ Documentos de referencia:
 - `docs/26-MELHORIAS-PRE-SPRINT-16.md`
 - `docs/27-ABERTURA-SPRINT-16.md`
 - `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
+- `docs/32-PENDENCIAS-TESTES-BETA-SPRINT-16.md`
+- `docs/33-FECHAMENTO-SPRINT-16.md`
 
 Entregas consolidadas da Sprint 15:
 

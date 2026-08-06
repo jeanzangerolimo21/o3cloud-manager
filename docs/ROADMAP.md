@@ -401,7 +401,7 @@ Governanca, Acessos e Operacao Assistida
 
 Status:
 
-Aberta em 03/08/2026
+✅ Concluida tecnicamente em 06/08/2026
 
 Documento de abertura:
 
@@ -449,11 +449,11 @@ Escopo inicial candidato:
 
 ---
 
-## Sprint Final - Integracao Receita Federal para Cadastro de Clientes
+## Proxima Sprint - Integracao Receita Federal para Cadastro de Clientes
 
 Status:
 
-Planejada para a sprint final
+Planejada como proxima sprint
 
 Objetivo:
 
