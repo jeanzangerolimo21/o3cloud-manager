@@ -207,13 +207,13 @@ class AuthRepository(BaseRepository):
         return cls.execute_insert(
             """
             INSERT INTO auth_usuarios (
-                uuid, nome, email, login, origem, perfil_id, status,
+                uuid, nome, email, login, origem, perfil_id, status, possui_agenda,
                 externo_id, senha_hash, created_by, updated_by
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 cls.generate_uuid(), dados.get("nome"), dados.get("email"), dados.get("login"),
-                dados.get("origem"), dados.get("perfil_id"), dados.get("status"),
+                dados.get("origem"), dados.get("perfil_id"), dados.get("status"), cls.bool_to_int(dados.get("possui_agenda")),
                 dados.get("externo_id"), dados.get("senha_hash"), dados.get("created_by"), dados.get("updated_by"),
             ),
         )
@@ -224,12 +224,12 @@ class AuthRepository(BaseRepository):
             """
             UPDATE auth_usuarios
             SET nome=%s, email=%s, login=%s, origem=%s, perfil_id=%s,
-                status=%s, externo_id=%s, updated_by=%s
+                status=%s, possui_agenda=%s, externo_id=%s, updated_by=%s
             WHERE id=%s
             """,
             (
                 dados.get("nome"), dados.get("email"), dados.get("login"), dados.get("origem"),
-                dados.get("perfil_id"), dados.get("status"), dados.get("externo_id"),
+                dados.get("perfil_id"), dados.get("status"), cls.bool_to_int(dados.get("possui_agenda")), dados.get("externo_id"),
                 dados.get("updated_by"), usuario_id,
             ),
         )

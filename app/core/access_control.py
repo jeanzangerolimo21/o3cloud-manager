@@ -5,6 +5,7 @@ from app.repositories.auth_repository import AuthRepository
 
 MENU_PERMISSOES = (
     {"grupo": "Geral", "key": "visao_geral", "label": "Visao Geral"},
+    {"grupo": "Administrativo", "key": "administrativo", "label": "Administrativo"},
     {"grupo": "Financeiro", "key": "dashboard_executivo", "label": "Dashboard Executivo"},
     {"grupo": "Financeiro", "key": "produtos_clientes", "label": "Produtos por Cliente"},
     {"grupo": "Financeiro", "key": "faturamento", "label": "Faturamento"},
@@ -48,6 +49,7 @@ MENU_PERMISSOES = (
 TODAS_PERMISSOES = frozenset(item["key"] for item in MENU_PERMISSOES)
 
 ENDPOINT_PERMISSOES = {
+    "administrativo": "administrativo",
     "financeiro.dashboard": "visao_geral",
     "financeiro.dashboard_executivo": "dashboard_executivo",
     "financeiro.produtos_clientes": "produtos_clientes",
@@ -241,6 +243,7 @@ def init_access_control(app):
             "permissao_endpoint": permissao_endpoint,
             "usuario_pode_ver_valores": usuario_pode_ver_valores,
             "usuario_logado": usuario_logado,
+            "notificacoes_pendentes": notificacoes_pendentes(),
         }
 
 
@@ -310,6 +313,17 @@ def permissoes_niveis_usuario_atual():
         item["menu_key"]: item.get("nivel_acesso") or "LEITURA"
         for item in AuthRepository.listar_menu_keys_usuario(email)
     }
+
+
+def notificacoes_pendentes():
+    usuario_id = session.get("usuario_id")
+    if not usuario_id:
+        return 0
+    try:
+        from app.repositories.administrativo_repository import AdministrativoRepository
+        return AdministrativoRepository.contar_notificacoes(usuario_id)
+    except Exception:
+        return 0
 
 
 def _email_sessao():

@@ -423,6 +423,16 @@ Escopo inicial candidato:
 
 ---
 
+## Sprint 18 - Modulo Administrativo
+
+Status:
+
+Em implementacao
+
+Documento de testes Beta:
+
+- `docs/34-PENDENCIAS-TESTES-BETA-SPRINT-18.md`
+
 ## Sprint futura — Identidade e Controle de Acesso com FreeIPA
 
 **Objetivo:** integrar o O3Cloud Manager ao FreeIPA para autenticação centralizada, sincronização de usuários e grupos, gerenciamento de hosts Linux, políticas HBAC, regras sudo e automação de acessos durante o provisionamento Proxmox.

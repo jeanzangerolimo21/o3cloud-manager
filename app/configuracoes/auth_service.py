@@ -13,7 +13,6 @@ from app.core.storage import StorageService
 from app.implantacao.cofre_senhas_service import CofreSenhaService
 from app.repositories.auth_repository import AuthRepository
 
-
 class AuthConfigService:
     repository = AuthRepository
     ORIGENS = ("LOCAL", "FREEIPA", "LDAP", "AD")
@@ -141,7 +140,6 @@ class AuthConfigService:
             "entidades": [item.get("entidade") for item in cls.repository.listar_entidades_auditoria()],
         }
 
-
     @classmethod
     def bootstrap_admin(cls, nome, email, senha, login=None, permitir_atualizar=False):
         nome = cls._texto(nome) or "Administrador"
@@ -247,6 +245,7 @@ class AuthConfigService:
         payload["created_by"] = usuario_email or "sistema"
         payload["updated_by"] = usuario_email or "sistema"
         usuario_id = cls.repository.inserir_usuario(payload)
+        cls._sincronizar_agenda(usuario_id, payload.get("possui_agenda"), usuario_email)
         cls._auditar(usuario_email, "USUARIO_CRIADO", "auth_usuarios", usuario_id, payload["email"])
         if payload["origem"] == "LOCAL" and payload["status"] == "CONVIDADO":
             cls.enviar_convite(usuario_id, usuario_email)
@@ -263,6 +262,7 @@ class AuthConfigService:
             raise ValueError("Já existe outro usuário cadastrado com este e-mail.")
         payload["updated_by"] = usuario_email or "sistema"
         cls.repository.atualizar_usuario(usuario_id, payload)
+        cls._sincronizar_agenda(usuario_id, payload.get("possui_agenda"), usuario_email)
         cls._auditar(usuario_email, "USUARIO_ATUALIZADO", "auth_usuarios", usuario_id, payload["email"])
 
     @classmethod
@@ -437,7 +437,6 @@ class AuthConfigService:
         cls.repository.registrar_teste_provedor(provedor_id, "OK", mensagem)
         return {"status": "OK", "mensagem": mensagem}
 
-
     @classmethod
     def _normalizar_perfil(cls, dados):
         nome = cls._texto(dados.get("nome"))
@@ -513,7 +512,17 @@ class AuthConfigService:
             "status": status,
             "externo_id": cls._texto(dados.get("externo_id")),
             "senha_hash": None,
+            "possui_agenda": cls._flag(dados, "possui_agenda"),
         }
+
+    @classmethod
+    def _sincronizar_agenda(cls, usuario_id, possui_agenda, usuario_email):
+        try:
+            from app.repositories.administrativo_repository import AdministrativoRepository
+            AdministrativoRepository.garantir_agenda(usuario_id, possui_agenda, usuario_email)
+        except Exception:
+            return False
+        return True
 
     @classmethod
     def _normalizar_grupo_perfil_mapa(cls, dados):

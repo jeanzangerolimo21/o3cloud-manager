@@ -98,6 +98,9 @@ def create_app():
     from app.conhecimentos.routes import conhecimentos_bp
     app.register_blueprint(conhecimentos_bp)
 
+    from app.administrativo.routes import administrativo_bp
+    app.register_blueprint(administrativo_bp)
+
 
     @app.route("/storage/<path:filename>")
     def storage(filename):

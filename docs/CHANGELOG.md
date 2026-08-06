@@ -40,6 +40,15 @@ Junho/2026
 
 # CHANGELOG
 
+## 2026-08-06 - Inicio da Implementacao do Sprint 18
+
+### Modulo Administrativo
+
+- Criada a fundacao do modulo Administrativo com demandas, agenda, comentarios, historico, anexos, notificacoes e relatorios.
+- Adicionado o grupo Administrativo ao controle de acessos e ao menu lateral.
+- Notificacoes visuais e por e-mail foram preparadas para o responsavel da demanda.
+- Testes e homologacao encaminhados para `docs/34-PENDENCIAS-TESTES-BETA-SPRINT-18.md`.
+
 ## 2026-08-06 - Visao Geral e Proxima Sprint
 
 ### Dashboard

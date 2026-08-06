@@ -54,6 +54,9 @@
                         </select>
                         <div class="form-text" id="convite_help">Convite por e-mail será enviado somente se Origem for Local e Status for Convidado.</div>
                     </div>
+                    <div class="col-md-3 d-flex align-items-center">
+                        <div class="form-check mt-3"><input class="form-check-input" type="checkbox" name="possui_agenda" value="1" {% if usuario.possui_agenda %}checked{% endif %}><label class="form-check-label">Possui Agenda</label></div>
+                    </div>
                     <div class="col-md-3">
                         <label class="form-label">ID Externo</label>
                         <input class="form-control" name="externo_id" value="{{ usuario.externo_id or '' }}" placeholder="uid, dn ou objectGUID">
