@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-06 - Sprint 18 Etapa 3
+
+### Comentarios, Historico e Anexos
+
+- Comentarios administrativos agora podem ser editados pelo autor ou moderados por gestores, diretoria e administradores.
+- Inativacao de comentarios preserva o historico da acao e remove o item da conversa ativa.
+- Anexos enviados na criacao e edicao passam a atualizar corretamente o indicador da demanda.
+
+
 ## v2.0.0-alpha
 
 Data:

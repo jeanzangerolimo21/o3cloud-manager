@@ -11,6 +11,7 @@ administrativo_bp = Blueprint("administrativo", __name__, url_prefix="/administr
 
 def _usuario_email(): return session.get("usuario_email") or "sistema"
 def _usuario_id(): return session.get("usuario_id")
+def _moderador(): return session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR")
 
 
 @administrativo_bp.route("/")
@@ -67,6 +68,20 @@ def comentar(demanda_id):
     try: AdministrativoService.comentar(demanda_id, request.form.get("comentario"), request.files.getlist("anexos"), _usuario_email())
     except (ValueError, OSError) as erro: flash(str(erro), "danger")
     else: registrar_evento("ADMIN_COMENTARIO_CRIADO", "administrativo_comentarios", demanda_id); flash("Comentário registrado.", "success")
+    return redirect(url_for("administrativo.detalhe", demanda_id=demanda_id))
+
+@administrativo_bp.route("/demandas/<int:demanda_id>/comentarios/<int:comentario_id>/editar", methods=["POST"])
+def editar_comentario(demanda_id, comentario_id):
+    try: AdministrativoService.editar_comentario(demanda_id, comentario_id, request.form.get("comentario"), _usuario_email(), _moderador())
+    except ValueError as erro: flash(str(erro), "danger")
+    else: registrar_evento("ADMIN_COMENTARIO_EDITADO", "administrativo_comentarios", comentario_id, {"demanda_id": demanda_id}); flash("Comentário atualizado.", "success")
+    return redirect(url_for("administrativo.detalhe", demanda_id=demanda_id))
+
+@administrativo_bp.route("/demandas/<int:demanda_id>/comentarios/<int:comentario_id>/excluir", methods=["POST"])
+def excluir_comentario(demanda_id, comentario_id):
+    try: AdministrativoService.excluir_comentario(demanda_id, comentario_id, _usuario_email(), _moderador())
+    except ValueError as erro: flash(str(erro), "danger")
+    else: registrar_evento("ADMIN_COMENTARIO_INATIVADO", "administrativo_comentarios", comentario_id, {"demanda_id": demanda_id}); flash("Comentário inativado.", "success")
     return redirect(url_for("administrativo.detalhe", demanda_id=demanda_id))
 
 

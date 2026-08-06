@@ -79,6 +79,18 @@ class AdministrativoRepository(BaseRepository):
         return cls.execute_insert("INSERT INTO administrativo_comentarios (uuid,demanda_id,comentario,autor_email) VALUES (%s,%s,%s,%s)", (cls.generate_uuid(), demanda_id, comentario, autor_email))
 
     @classmethod
+    def buscar_comentario(cls, comentario_id, demanda_id):
+        return cls.fetch_one("SELECT * FROM administrativo_comentarios WHERE id=%s AND demanda_id=%s", (comentario_id, demanda_id))
+
+    @classmethod
+    def atualizar_comentario(cls, comentario_id, comentario):
+        return cls.execute("UPDATE administrativo_comentarios SET comentario=%s,updated_at=NOW() WHERE id=%s", (comentario, comentario_id))
+
+    @classmethod
+    def inativar_comentario(cls, comentario_id):
+        return cls.execute("UPDATE administrativo_comentarios SET ativo=0,updated_at=NOW() WHERE id=%s", (comentario_id,))
+
+    @classmethod
     def listar_comentarios(cls, demanda_id):
         return cls.fetch_all("SELECT * FROM administrativo_comentarios WHERE demanda_id=%s AND ativo=1 ORDER BY created_at DESC,id DESC", (demanda_id,))
 

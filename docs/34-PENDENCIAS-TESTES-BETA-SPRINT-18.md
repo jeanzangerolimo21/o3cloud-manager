@@ -37,6 +37,8 @@ O Sprint 17 permanece fora do corte atual e sera retomado apos o alinhamento dos
 ## 3. Comentarios, Historico e Anexos
 
 - Adicionar comentarios em demandas permitidas.
+- Editar comentario pelo proprio autor e confirmar que gestor, diretoria ou administrador pode moderar comentarios de terceiros.
+- Inativar comentario e confirmar que ele deixa de aparecer na conversa sem remover os registros de historico ou auditoria.
 - Confirmar historico de criacao, alteracao, reatribuicao, comentario e cancelamento.
 - Anexar arquivos permitidos e confirmar acesso ao arquivo salvo.
 - Validar limites de extensao e tamanho conforme o storage existente.

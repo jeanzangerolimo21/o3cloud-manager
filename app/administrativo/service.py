@@ -20,6 +20,7 @@ class AdministrativoService:
     @classmethod
     def criar(cls, dados, arquivos, usuario_email):
         payload = cls._normalizar(dados)
+        payload["possui_anexos"] = bool(arquivos) or payload.get("possui_anexos") or anterior.get("possui_anexos")
         payload["criado_por"] = usuario_email; payload["updated_by"] = usuario_email
         cls._validar(payload)
         demanda_id = cls.repository.inserir_demanda(payload)
@@ -32,7 +33,7 @@ class AdministrativoService:
     def atualizar(cls, demanda_id, dados, arquivos, usuario_email):
         anterior = cls.repository.buscar_demanda(demanda_id)
         if not anterior: raise ValueError("Demanda não encontrada.")
-        payload = cls._normalizar(dados); payload["updated_by"] = usuario_email; cls._validar(payload)
+        payload = cls._normalizar(dados); payload["possui_anexos"] = bool(arquivos) or payload.get("possui_anexos"); payload["updated_by"] = usuario_email; cls._validar(payload)
         cls.repository.atualizar_demanda(demanda_id, payload)
         if anterior.get("status") != payload.get("status") or anterior.get("responsavel_id") != payload.get("responsavel_id"):
             cls.repository.inserir_historico(demanda_id, {"tipo": "ALTERACAO", "comentario": "Demanda atualizada.", "status_anterior": anterior.get("status"), "status_novo": payload.get("status"), "responsavel_anterior_id": anterior.get("responsavel_id"), "responsavel_novo_id": payload.get("responsavel_id"), "autor_email": usuario_email})
@@ -54,6 +55,29 @@ class AdministrativoService:
         comentario_id = cls.repository.inserir_comentario(demanda_id, texto, usuario_email)
         cls.repository.inserir_historico(demanda_id, {"tipo": "COMENTARIO", "comentario": texto, "autor_email": usuario_email})
         cls._salvar_anexos(demanda_id, arquivos, comentario_id)
+
+    @classmethod
+    def editar_comentario(cls, demanda_id, comentario_id, texto, usuario_email, moderador=False):
+        comentario = cls.repository.buscar_comentario(comentario_id, demanda_id)
+        if not comentario or not comentario.get("ativo"):
+            raise ValueError("Comentário não encontrado.")
+        if not moderador and (comentario.get("autor_email") or "").lower() != (usuario_email or "").lower():
+            raise ValueError("Somente o autor ou um gestor pode editar este comentário.")
+        texto = (texto or "").strip()
+        if not texto:
+            raise ValueError("Informe um comentário.")
+        cls.repository.atualizar_comentario(comentario_id, texto)
+        cls.repository.inserir_historico(demanda_id, {"tipo": "COMENTARIO_EDITADO", "comentario": texto, "autor_email": usuario_email})
+
+    @classmethod
+    def excluir_comentario(cls, demanda_id, comentario_id, usuario_email, moderador=False):
+        comentario = cls.repository.buscar_comentario(comentario_id, demanda_id)
+        if not comentario or not comentario.get("ativo"):
+            raise ValueError("Comentário não encontrado.")
+        if not moderador and (comentario.get("autor_email") or "").lower() != (usuario_email or "").lower():
+            raise ValueError("Somente o autor ou um gestor pode excluir este comentário.")
+        cls.repository.inativar_comentario(comentario_id)
+        cls.repository.inserir_historico(demanda_id, {"tipo": "COMENTARIO_INATIVADO", "comentario": "Comentário inativado.", "autor_email": usuario_email})
 
     @classmethod
     def cancelar(cls, demanda_id, usuario_email):
