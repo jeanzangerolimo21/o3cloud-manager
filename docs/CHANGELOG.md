@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-06 - Sprint 18 Etapa 5
+
+### Dashboard e Relatorios
+
+- Dashboard Administrativo passou a apresentar agenda do dia e da semana, urgencias, pendencias, tempo medio e ranking de produtividade.
+- Relatorios passaram a permitir filtro por periodo e agrupamento por responsavel e departamento.
+
+
 ## 2026-08-06 - Sprint 18 Etapa 4
 
 ### Notificacoes

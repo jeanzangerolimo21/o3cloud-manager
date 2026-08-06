@@ -14,7 +14,7 @@ class AdministrativoService:
     @classmethod
     def contexto_index(cls, filtros, usuario_id):
         demandas = cls.repository.listar_demandas(filtros, 50, 0)
-        return {"demandas": demandas, "total": cls.repository.total_demandas(filtros), "dashboard": cls.repository.dashboard(usuario_id),
+        return {"demandas": demandas, "total": cls.repository.total_demandas(filtros), "dashboard": cls.repository.dashboard_completo(usuario_id),
                 "departamentos": cls.repository.listar_departamentos(), "usuarios": cls.repository.listar_usuarios_ativos()}
 
     @classmethod

@@ -58,7 +58,10 @@ O Sprint 17 permanece fora do corte atual e sera retomado apos o alinhamento dos
 
 - Conferir totais de demandas abertas, pendentes, em andamento, concluidas e atrasadas.
 - Validar visao do gestor e visao restrita do colaborador.
-- Conferir relatorio por responsavel, concluidas e atrasadas.
+- Conferir relatorio por responsavel, departamento, periodo, concluidas e atrasadas.
+- Validar filtros por data inicial e data final.
+- Conferir widgets de agenda hoje, agenda da semana, urgentes, produtividade e tempo medio.
+- Validar ranking de produtividade e visao restrita para colaboradores.
 - Confirmar que demandas canceladas nao aparecem como pendencias abertas.
 
 ## 6. Auditoria

@@ -154,4 +154,6 @@ def ler_todas_notificacoes():
 @administrativo_bp.route("/relatorios")
 def relatorios():
     usuario_id = None if session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR") else _usuario_id()
-    return render_template("administrativo/relatorios.html", dashboard=AdministrativoService.repository.dashboard(usuario_id), linhas=AdministrativoService.repository.relatorio(usuario_id))
+    inicio = request.args.get("data_inicio") or None
+    fim = request.args.get("data_fim") or None
+    return render_template("administrativo/relatorios.html", dashboard=AdministrativoService.repository.dashboard_completo(usuario_id), linhas=AdministrativoService.repository.relatorio_periodo(usuario_id, inicio, fim), data_inicio=inicio, data_fim=fim)

@@ -127,8 +127,8 @@ class AdministrativoRepository(BaseRepository):
             return cls.execute_insert("INSERT INTO administrativo_agendas (uuid,usuario_id,ativo,created_by) VALUES (%s,%s,1,%s)", (cls.generate_uuid(), usuario_id, usuario_email))
         return None
 
-    
-    
+
+
     @classmethod
     def criar_notificacao(cls, usuario_id, demanda_id, tipo, titulo, mensagem):
         return cls.execute_insert("INSERT INTO administrativo_notificacoes (uuid,usuario_id,demanda_id,tipo,titulo,mensagem) VALUES (%s,%s,%s,%s,%s,%s)", (cls.generate_uuid(), usuario_id, demanda_id, tipo, titulo, mensagem))
@@ -166,6 +166,33 @@ class AdministrativoRepository(BaseRepository):
             SUM(d.status='CONCLUIDA') concluidas, SUM(d.status NOT IN ('CONCLUIDA','CANCELADA') AND d.data_limite < CURRENT_DATE) atrasadas
             FROM administrativo_demandas d LEFT JOIN auth_usuarios u ON u.id=d.responsavel_id {filtro}
             GROUP BY d.responsavel_id,u.nome ORDER BY total DESC""", params)
+
+
+    @classmethod
+    def dashboard_completo(cls, usuario_id=None):
+        resumo = cls.dashboard(usuario_id)
+        filtro = "WHERE d.responsavel_id=%s" if usuario_id else ""
+        params = (usuario_id,) if usuario_id else ()
+        agenda = cls.fetch_one(f"SELECT SUM(d.data_limite=CURRENT_DATE AND d.status NOT IN (\'CANCELADA\')) agenda_hoje, SUM(d.data_limite BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, INTERVAL 6 DAY) AND d.status NOT IN (\'CANCELADA\')) agenda_semana FROM administrativo_demandas d {filtro}", params) or {}
+        tempo = cls.fetch_one(f"SELECT ROUND(AVG(TIMESTAMPDIFF(HOUR, d.created_at, d.concluida_em)), 1) tempo_medio_horas FROM administrativo_demandas d {filtro} AND d.concluida_em IS NOT NULL" if filtro else "SELECT ROUND(AVG(TIMESTAMPDIFF(HOUR, d.created_at, d.concluida_em)), 1) tempo_medio_horas FROM administrativo_demandas d WHERE d.concluida_em IS NOT NULL", params) or {}
+        ranking = cls.fetch_all(f"SELECT COALESCE(u.nome, \"Sem responsavel\") responsavel, COUNT(*) total, SUM(d.status=\'CONCLUIDA\') concluidas, SUM(d.status NOT IN (\'CONCLUIDA\',\'CANCELADA\') AND d.data_limite < CURRENT_DATE) atrasadas FROM administrativo_demandas d LEFT JOIN auth_usuarios u ON u.id=d.responsavel_id {filtro} GROUP BY d.responsavel_id,u.nome ORDER BY concluidas DESC,total DESC LIMIT 10", params)
+        resumo.update(agenda); resumo.update(tempo); resumo["ranking"] = ranking
+        return resumo
+
+
+    @classmethod
+    def relatorio_periodo(cls, usuario_id=None, data_inicio=None, data_fim=None):
+        where = ["1=1"]
+        params = []
+        if usuario_id:
+            where.append("d.responsavel_id=%s"); params.append(usuario_id)
+        if data_inicio:
+            where.append("d.data_limite >= %s"); params.append(data_inicio)
+        if data_fim:
+            where.append("d.data_limite <= %s"); params.append(data_fim)
+        clausula = "WHERE " + " AND ".join(where)
+        return cls.fetch_all(f"SELECT COALESCE(u.nome, \"Sem responsavel\") responsavel, COALESCE(dep.nome, \"Sem departamento\") departamento, COUNT(*) total, SUM(d.status=\'PENDENTE\') pendentes, SUM(d.status=\'EM_ANDAMENTO\') andamento, SUM(d.status=\'CONCLUIDA\') concluidas, SUM(d.status NOT IN (\'CONCLUIDA\',\'CANCELADA\') AND d.data_limite < CURRENT_DATE) atrasadas FROM administrativo_demandas d LEFT JOIN auth_usuarios u ON u.id=d.responsavel_id LEFT JOIN administrativo_departamentos dep ON dep.id=d.departamento_id {clausula} GROUP BY d.responsavel_id,u.nome,d.departamento_id,dep.nome ORDER BY total DESC", tuple(params))
+
 
     @staticmethod
     def _filtros_demandas(filtros):
