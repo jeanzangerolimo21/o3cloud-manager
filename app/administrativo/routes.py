@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
 from app.administrativo.service import AdministrativoService
@@ -70,9 +72,52 @@ def comentar(demanda_id):
 
 @administrativo_bp.route("/agenda")
 def agenda():
-    usuario_id = request.args.get("usuario_id", type=int) if session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR") else _usuario_id()
-    return render_template("administrativo/agenda.html", demandas=AdministrativoService.repository.listar_agenda(usuario_id), usuarios=AdministrativoService.repository.listar_usuarios_ativos(), usuario_id=usuario_id)
+    gestor = session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR")
+    usuario_id = request.args.get("usuario_id", type=int) if gestor else _usuario_id()
+    visao = request.args.get("visao", "hoje")
+    if visao not in ("hoje", "semana", "mes", "lista"):
+        visao = "hoje"
+    referencia = _data_query(request.args.get("data")) or date.today()
+    inicio, fim = _intervalo_agenda(visao, referencia)
+    return render_template("administrativo/agenda.html", demandas=AdministrativoService.repository.listar_agenda(usuario_id, inicio, fim), usuarios=AdministrativoService.repository.listar_usuarios_ativos(), usuario_id=usuario_id, gestor=gestor, visao=visao, referencia=referencia, data_inicio=inicio, data_fim=fim)
 
+@administrativo_bp.route("/demandas/<int:demanda_id>/reagendar", methods=["POST"])
+def reagendar(demanda_id):
+    demanda = AdministrativoService.detalhe(demanda_id)
+    if not demanda:
+        flash("Demanda não encontrada.", "danger")
+        return redirect(url_for("administrativo.agenda"))
+    dados = {"titulo": demanda.get("titulo"), "descricao": demanda.get("descricao"), "categoria": demanda.get("categoria"), "prioridade": demanda.get("prioridade"), "responsavel_id": demanda.get("responsavel_id"), "departamento_id": demanda.get("departamento_id"), "data_inicial": demanda.get("data_inicial"), "data_limite": request.form.get("data_limite"), "hora": demanda.get("hora"), "status": demanda.get("status"), "observacoes": demanda.get("observacoes"), "permitir_comentarios": demanda.get("permitir_comentarios")}
+    try:
+        AdministrativoService.atualizar(demanda_id, dados, [], _usuario_email())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        registrar_evento("ADMIN_DEMANDA_REAGENDADA", "administrativo_demandas", demanda_id, {"data_limite": request.form.get("data_limite")})
+        flash("Demanda reagendada.", "success")
+    return redirect(request.referrer or url_for("administrativo.agenda"))
+
+
+def _data_query(valor):
+    if not valor:
+        return None
+    try:
+        return date.fromisoformat(valor)
+    except ValueError:
+        return None
+
+
+def _intervalo_agenda(visao, referencia):
+    if visao == "hoje":
+        return referencia, referencia
+    if visao == "semana":
+        inicio = referencia - timedelta(days=referencia.weekday())
+        return inicio, inicio + timedelta(days=6)
+    if visao == "mes":
+        inicio = referencia.replace(day=1)
+        proximo = inicio.replace(year=inicio.year + 1, month=1) if inicio.month == 12 else inicio.replace(month=inicio.month + 1)
+        return inicio, proximo - timedelta(days=1)
+    return None, None
 
 @administrativo_bp.route("/notificacoes")
 def notificacoes():

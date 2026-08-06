@@ -40,6 +40,13 @@ Junho/2026
 
 # CHANGELOG
 
+## 2026-08-06 - Sprint 18 Etapa 2
+
+### Agenda
+
+- Agenda Administrativa passou a oferecer visoes Hoje, Semana, Mes e Lista.
+- Adicionados filtros por periodo e responsavel, regras de visibilidade e reagendamento rapido.
+
 ## 2026-08-06 - Inicio da Implementacao do Sprint 18
 
 ### Modulo Administrativo

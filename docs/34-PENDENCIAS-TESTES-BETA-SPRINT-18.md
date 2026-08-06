@@ -28,6 +28,8 @@ O Sprint 17 permanece fora do corte atual e sera retomado apos o alinhamento dos
 ## 2. Agenda
 
 - Consultar agenda geral e agenda individual.
+- Validar visoes Hoje, Semana, Mes e Lista.
+- Reagendar uma demanda diretamente pela agenda e conferir o historico da alteracao.
 - Validar filtro por responsável e prazo.
 - Confirmar que colaborador nao visualiza agendas de terceiros.
 - Validar demanda sem prazo e demanda atrasada calculada pela data limite.
