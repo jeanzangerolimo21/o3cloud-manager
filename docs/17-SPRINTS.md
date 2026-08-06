@@ -942,7 +942,7 @@ A arquitetura deverá permitir futuras integrações com:
 
 ## Status
 
-Em implementacao
+Concluida tecnicamente em 06/08/2026
 
 ---
 
@@ -1471,6 +1471,10 @@ Na versão 2.0 as notificações, workflows e automações poderão ser migradas
 Documento de testes Beta:
 
 - `docs/34-PENDENCIAS-TESTES-BETA-SPRINT-18.md`
+
+Documento de fechamento:
+
+- `docs/35-FECHAMENTO-SPRINT-18.md`
 
 ---
 

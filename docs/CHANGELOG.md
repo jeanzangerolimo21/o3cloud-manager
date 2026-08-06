@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-06 - Sprint 18 Etapa 7
+
+### Fechamento Tecnico
+
+- Sprint 18 registrada como concluida tecnicamente, com as validacoes assistidas das etapas 1 a 7 encaminhadas para a release Beta.
+- Criado `docs/35-FECHAMENTO-SPRINT-18.md` com entregas, validacoes e pendencias de homologacao.
+- Sprint 17 permanece fora do fechamento ate o alinhamento com as equipes Comercial e Financeiro.
+
 ## 2026-08-06 - Sprint 18 Etapa 6
 
 ### Alertas e Auditoria

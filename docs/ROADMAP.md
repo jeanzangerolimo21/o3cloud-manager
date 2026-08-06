@@ -427,11 +427,15 @@ Escopo inicial candidato:
 
 Status:
 
-Em implementacao
+Concluida tecnicamente em 06/08/2026
 
 Documento de testes Beta:
 
 - `docs/34-PENDENCIAS-TESTES-BETA-SPRINT-18.md`
+
+Documento de fechamento:
+
+- `docs/35-FECHAMENTO-SPRINT-18.md`
 
 ## Sprint futura — Identidade e Controle de Acesso com FreeIPA
 

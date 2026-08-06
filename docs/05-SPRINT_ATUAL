@@ -12,9 +12,9 @@ Status: Oficial
 
 # Sprint Registrada
 
-## Sprint 16
+## Sprint 18
 
-Governanca, Acessos e Operacao Assistida
+Modulo Administrativo
 
 Status:
 
@@ -185,6 +185,7 @@ Documento de abertura:
 Documento de fechamento:
 
 - `docs/33-FECHAMENTO-SPRINT-16.md`
+- `docs/35-FECHAMENTO-SPRINT-18.md`
 
 Pendencias para a release Beta:
 
