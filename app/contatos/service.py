@@ -99,6 +99,10 @@ class ContatoService:
         return cls.repository.excluir(contato_id)
 
     @classmethod
+    def excluir_em_massa(cls, contato_ids):
+        return cls.repository.excluir_em_massa(contato_ids)
+
+    @classmethod
     def normalizar(cls, dados):
         dados = dict(dados)
         dados["lead_id"] = cls._normalizar_inteiro(dados.get("lead_id"))

@@ -8,6 +8,9 @@ def formatar_telefone(valor):
 
     digitos = re.sub(r"\D", "", telefone)
 
+    if len(digitos) in (12, 13) and digitos.startswith("55"):
+        digitos = digitos[2:]
+
     if len(digitos) == 11:
         return f"({digitos[:2]}) {digitos[2:7]}-{digitos[7:]}"
 

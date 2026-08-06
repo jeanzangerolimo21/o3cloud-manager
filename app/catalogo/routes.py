@@ -21,6 +21,7 @@ from app.catalogo.produtos.service import ProdutoService
 from app.catalogo.recursos.service import ProdutoRecursoService
 from app.core.storage import StorageService
 from app.catalogo.servidores.service import ProdutoServidorService
+from app.catalogo.hardware_parceiros_service import HardwareParceirosService
 from app.importadores.base44 import Base44Importer
 
 
@@ -971,10 +972,14 @@ def desativar_faixa(faixa_id):
 
 @catalogo_bp.route("/servidores")
 def listar_servidores():
+    parceiro = request.args.get("parceiro")
 
     return render_template(
         "catalogo/servidores/index.html",
-        servidores=ProdutoServidorService.listar()
+        servidores=ProdutoServidorService.listar(),
+        hardware_base=HardwareParceirosService.listar(parceiro),
+        parceiros_hardware=HardwareParceirosService.listar_parceiros(),
+        parceiro_selecionado=parceiro,
     )
 
 
@@ -1100,6 +1105,72 @@ def desativar_servidor(servidor_id):
         flash(str(erro), "danger")
 
     return redirect(url_for("catalogo.listar_servidores"))
+
+
+####################################################################
+# BASE DE HARDWARE DOS PARCEIROS
+####################################################################
+
+@catalogo_bp.route("/servidores/hardware/importar", methods=["POST"])
+def importar_hardware_parceiros():
+    arquivo = request.files.get("arquivo")
+    if not arquivo or not arquivo.filename:
+        flash("Selecione um arquivo CSV.", "danger")
+        return redirect(url_for("catalogo.listar_servidores"))
+    try:
+        total = HardwareParceirosService.importar_csv(arquivo.stream)
+        flash(f"{total} item(ns) importado(s) para a base de hardware.", "success")
+    except Exception as erro:
+        flash(str(erro), "danger")
+    return redirect(url_for("catalogo.listar_servidores"))
+
+
+@catalogo_bp.route("/servidores/hardware/novo", methods=["GET", "POST"])
+def novo_hardware_parceiro():
+    if request.method == "POST":
+        try:
+            HardwareParceirosService.criar(_dados_hardware_form())
+            flash("Item de hardware cadastrado com sucesso.", "success")
+            return redirect(url_for("catalogo.listar_servidores"))
+        except Exception as erro:
+            flash(str(erro), "danger")
+    return render_template("catalogo/servidores/hardware_form.html", item=None)
+
+
+@catalogo_bp.route("/servidores/hardware/<int:item_id>/editar", methods=["GET", "POST"])
+def editar_hardware_parceiro(item_id):
+    item = HardwareParceirosService.buscar(item_id)
+    if not item:
+        flash("Item de hardware nao encontrado.", "danger")
+        return redirect(url_for("catalogo.listar_servidores"))
+    if request.method == "POST":
+        try:
+            HardwareParceirosService.atualizar(item_id, _dados_hardware_form())
+            flash("Item de hardware atualizado com sucesso.", "success")
+            return redirect(url_for("catalogo.listar_servidores"))
+        except Exception as erro:
+            flash(str(erro), "danger")
+    return render_template("catalogo/servidores/hardware_form.html", item=item)
+
+
+@catalogo_bp.route("/servidores/hardware/<int:item_id>/excluir", methods=["POST"])
+def excluir_hardware_parceiro(item_id):
+    HardwareParceirosService.excluir(item_id)
+    flash("Item de hardware excluido com sucesso.", "success")
+    return redirect(url_for("catalogo.listar_servidores"))
+
+
+def _dados_hardware_form():
+    return {
+        "parceiro": request.form.get("parceiro"),
+        "secao": request.form.get("secao"),
+        "faixa_usuarios": request.form.get("faixa_usuarios"),
+        "memoria": request.form.get("memoria"),
+        "processador": request.form.get("processador"),
+        "disco": request.form.get("disco"),
+        "ordem": request.form.get("ordem", 0),
+        "ativo": bool(request.form.get("ativo")),
+    }
 
 
 ####################################################################

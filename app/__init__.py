@@ -1,8 +1,10 @@
 from flask import Flask
-from app.core.filters import date_br, moeda
+from app.core.filters import date_br, datetime_br, moeda
 from app.core.config import Config
+from app.core.access_control import init_access_control
 from app.core.database import init_db
 from flask import send_from_directory
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 def create_app():
 
@@ -10,11 +12,26 @@ def create_app():
 
     app.config.from_object(Config)
 
+    if app.config.get("TRUST_PROXY"):
+        hops = max(1, int(app.config.get("PROXY_FIX_HOPS", 1)))
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=hops, x_proto=hops, x_host=hops, x_prefix=hops)
+
     init_db(app)
 
     #Moeda e Data/Hora
     app.jinja_env.filters["date_br"] = date_br
+    app.jinja_env.filters["datetime_br"] = datetime_br
     app.jinja_env.filters["moeda"] = moeda
+    from app.core.filters import telefone_br
+    app.jinja_env.filters["telefone_br"] = telefone_br
+    init_access_control(app)
+
+    from app.cli import init_cli
+    init_cli(app)
+
+    # Autenticação
+    from app.autenticacao.routes import autenticacao_bp
+    app.register_blueprint(autenticacao_bp)
 
     # Cadastros
     from app.financeiro.routes import financeiro_bp
@@ -32,9 +49,15 @@ def create_app():
     from app.parceiros.routes import parceiros_bp
     app.register_blueprint(parceiros_bp)
 
+    # Regras de Campanhas
+    from app.regras_campanhas.routes import regras_campanhas_bp
+    app.register_blueprint(regras_campanhas_bp)
+
     # Leads CRM
     from app.leads.routes import leads_bp
     app.register_blueprint(leads_bp)
+    from app.leads.evento_routes import eventos_bp
+    app.register_blueprint(eventos_bp)
 
     # Contatos CRM
     from app.contatos.routes import contatos_bp
@@ -71,6 +94,9 @@ def create_app():
     # Infraestrutura
     from app.infraestrutura.routes import infraestrutura_bp
     app.register_blueprint(infraestrutura_bp)
+
+    from app.conhecimentos.routes import conhecimentos_bp
+    app.register_blueprint(conhecimentos_bp)
 
 
     @app.route("/storage/<path:filename>")

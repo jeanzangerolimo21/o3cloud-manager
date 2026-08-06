@@ -91,6 +91,7 @@ class ContratoRepository(BaseRepository):
                 c.fim_vigencia,
                 c.arquivo_assinado,
                 c.arquivo_assinado_original,
+                c.clicksign_assinado_em,
                 cli.nome_fantasia AS cliente_nome,
                 cli.razao_social AS cliente_razao_social,
                 cli.cnpj AS cliente_cnpj,
@@ -178,7 +179,17 @@ class ContratoRepository(BaseRepository):
             "parceiros": parceiros,
         }
 
-
+    @classmethod
+    def contar_encaminhados_sem_arquivo(cls):
+        return cls.scalar(
+            """
+            SELECT COUNT(*)
+            FROM contratos
+            WHERE ativo = 1
+              AND status = 'ENCAMINHADO_PROJETO'
+              AND (arquivo_assinado IS NULL OR arquivo_assinado = '')
+            """
+        ) or 0
 
     @classmethod
     def buscar_assinado_sem_codigo_por_cliente_valor(cls, cliente_id, valor_mensal):
@@ -488,7 +499,7 @@ class ContratoRepository(BaseRepository):
         cls.close(conn, cursor)
 
     @classmethod
-    def atualizar_arquivo_assinado(cls, contrato_id, arquivo, arquivo_original):
+    def atualizar_arquivo_assinado(cls, contrato_id, arquivo, arquivo_original, assinado_em=None):
         conn = cls.connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -497,10 +508,10 @@ class ContratoRepository(BaseRepository):
             SET arquivo_assinado=%s,
                 arquivo_assinado_original=%s,
                 clicksign_status='ASSINADO',
-                clicksign_assinado_em=NOW()
+                clicksign_assinado_em=COALESCE(%s, NOW())
             WHERE id=%s AND ativo=1
             """,
-            (arquivo, arquivo_original, contrato_id),
+            (arquivo, arquivo_original, assinado_em, contrato_id),
         )
         conn.commit()
         cls.close(conn, cursor)

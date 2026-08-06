@@ -23,49 +23,6 @@
 
     <div class="alert alert-secondary"><i class="bi bi-shield-lock-fill"></i> Tokens e senhas ficam criptografados e mascarados por padrão. Nesta sprint as integrações técnicas são somente leitura/diagnóstico; a validação executa conexão real read-only e não executa automações destrutivas.</div>
 
-    {% if plano_sincronismo_proxmox %}
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
-            <div>
-                <strong>{{ plano_sincronismo_proxmox.titulo }}</strong><br>
-                <small class="text-muted">{{ plano_sincronismo_proxmox.descricao }}</small>
-            </div>
-            <span class="badge text-bg-light border align-self-lg-center">{{ plano_sincronismo_proxmox.status }}</span>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-lg-4">
-                    <h6>Campos previstos</h6>
-                    <div class="d-flex flex-wrap gap-2">
-                        {% for campo in plano_sincronismo_proxmox.campos %}
-                            <span class="badge text-bg-light border">{{ campo }}</span>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <h6>Regras de segurança</h6>
-                    <ul class="mb-0 small text-muted">
-                        {% for regra in plano_sincronismo_proxmox.regras %}
-                            <li>{{ regra }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                <div class="col-lg-4">
-                    <h6>Fases</h6>
-                    <div class="d-grid gap-2">
-                        {% for fase in plano_sincronismo_proxmox.fases %}
-                            <div class="border rounded-2 p-2">
-                                <strong>{{ fase.nome }}</strong><br>
-                                <small class="text-muted">{{ fase.descricao }}</small>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
     {% if integracoes_ambiente %}
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">

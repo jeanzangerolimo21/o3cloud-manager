@@ -1,0 +1,332 @@
+FLUXO DO CRM COMERCIAL
+O3Cloud Manager
+Documento para apresentacao aos executivos
+
+Data: 05/08/2026
+
+
+1. VISAO GERAL DO PROCESSO
+
+O CRM Comercial organiza o processo desde a entrada de um potencial cliente ate o fechamento da oportunidade.
+
+Fluxo principal:
+
+1. Lead ou contato entra no sistema.
+2. Lead pode ser originado por site, indicacao, parceiro, evento ou prospeccao.
+3. Equipe comercial analisa e qualifica o lead.
+4. Lead pode gerar uma oportunidade comercial.
+5. A oportunidade avanca pelo Pipeline Comercial.
+6. A equipe registra atividades, valores, probabilidade e proximos passos.
+7. Quando necessario, e criada uma proposta comercial.
+8. A proposta pode seguir para aprovacao, assinatura e fechamento.
+9. O resultado final e registrado como oportunidade ganha ou perdida.
+
+
+2. TELA DE LEADS
+
+Objetivo:
+Centralizar os potenciais clientes e oportunidades iniciais identificadas pela equipe comercial.
+
+Principais informacoes:
+
+- Empresa.
+- Nome do contato.
+- E-mail.
+- Telefone.
+- Origem do lead.
+- Interesse.
+- Status.
+- Executivo responsavel.
+- Cidade e UF.
+
+Processo:
+
+1. Acessar CRM Comercial > Leads.
+2. Pesquisar ou filtrar os leads existentes.
+3. Cadastrar um novo lead quando surgir uma nova oportunidade comercial.
+4. Informar a empresa e o contato principal.
+5. Definir a origem do lead.
+6. Registrar o interesse inicial.
+7. Definir o executivo responsavel.
+8. Atualizar o status conforme o contato evolui.
+9. Abrir o detalhe do lead para consultar ou editar informacoes.
+10. Criar uma oportunidade quando houver potencial comercial real.
+
+
+3. TELA DE EVENTOS
+
+Objetivo:
+Controlar os contatos recebidos em feiras, eventos, congressos e outras acoes comerciais.
+
+Criacao do evento:
+
+1. Acessar Leads > Eventos.
+2. Selecionar Novo Evento.
+3. Informar o nome do evento.
+4. Informar a data do evento.
+5. Salvar.
+
+O nome e a data podem ser editados posteriormente sem alterar os participantes ja importados.
+
+Importacao de participantes:
+
+1. Abrir o evento desejado.
+2. Selecionar Importar planilha.
+3. Enviar arquivo CSV, XLS ou XLSX.
+4. O sistema identifica automaticamente as colunas de:
+   - Nome.
+   - Telefone.
+   - E-mail.
+   - Empresa.
+   - CNPJ.
+5. Conferir o mapeamento sugerido.
+6. Ajustar manualmente alguma coluna, se necessario.
+7. Revisar as linhas validas e invalidas.
+8. Confirmar a importacao.
+
+Regras importantes:
+
+- Os participantes ficam vinculados somente ao evento escolhido.
+- O mesmo participante pode aparecer em eventos diferentes.
+- Linhas sem nome sao rejeitadas.
+- E necessario ter e-mail ou telefone.
+- E-mails invalidos sao rejeitados.
+- Duplicidades no mesmo evento sao identificadas.
+- CNPJ numerico e validado.
+- CNPJ alfanumerico de 14 caracteres e aceito.
+- Somente as linhas validas sao gravadas apos a confirmacao.
+
+Criacao de oportunidade pelo evento:
+
+1. Localizar o participante na lista do evento.
+2. Selecionar o botao Nova Oportunidade.
+3. O sistema abre o cadastro de oportunidade.
+4. Titulo, empresa e observacoes sao preenchidos com os dados do evento.
+5. O executivo complementa os dados comerciais.
+6. Salva a nova oportunidade.
+
+
+4. TELA DE CONTATOS
+
+Objetivo:
+Manter a agenda de pessoas relacionadas ao negocio.
+
+Principais informacoes:
+
+- Nome.
+- Empresa.
+- Cargo.
+- E-mail.
+- Telefone.
+- Lead relacionado.
+- Parceiro relacionado.
+- Executivo responsavel.
+
+Processo:
+
+1. Acessar CRM Comercial > Contatos.
+2. Cadastrar o contato ou abrir um contato existente.
+3. Informar os dados da pessoa.
+4. Relacionar o contato a um lead, parceiro ou executivo quando aplicavel.
+5. Atualizar os dados sempre que houver mudanca.
+6. Usar o contato como referencia em oportunidades e propostas.
+
+Diferenca entre Lead e Contato:
+
+- Lead representa uma oportunidade ou potencial negocio ainda em qualificacao.
+- Contato representa uma pessoa que deve ser mantida na agenda comercial.
+- Um contato pode estar relacionado a um lead ou oportunidade.
+
+
+5. TELA DE OPORTUNIDADES
+
+Objetivo:
+Registrar negocios com potencial comercial confirmado.
+
+Quando criar uma oportunidade:
+
+- O lead demonstrou interesse real.
+- Existe uma demanda identificada.
+- Existe possibilidade de apresentar uma solucao.
+- Existe previsao de negociacao.
+
+Principais informacoes:
+
+- Titulo da oportunidade.
+- Empresa.
+- ERP ou solucao atual.
+- Quantidade de usuarios.
+- Valor estimado.
+- Probabilidade de fechamento.
+- Status comercial.
+- Lead vinculado.
+- Contato vinculado.
+- Cliente vinculado.
+- Parceiro vinculado.
+- Responsavel comercial.
+- Observacoes.
+
+Processo:
+
+1. Acessar CRM Comercial > Oportunidades.
+2. Selecionar Nova Oportunidade ou criar pelo detalhe de um lead/evento.
+3. Informar um titulo claro.
+4. Informar a empresa e o contato relacionado.
+5. Registrar a necessidade identificada.
+6. Informar quantidade de usuarios, quando aplicavel.
+7. Estimar o valor comercial.
+8. Definir a probabilidade de fechamento.
+9. Definir o status inicial como Nova.
+10. Registrar observacoes e proximos passos.
+11. Salvar.
+
+Exemplo de titulo:
+
+Expansao ERP para 120 usuarios - Cliente ABC
+
+
+6. TELA DE PIPELINE COMERCIAL
+
+Objetivo:
+Visualizar a evolucao das oportunidades no funil comercial.
+
+Etapas disponiveis:
+
+- Nova.
+- Qualificacao.
+- Levantamento.
+- Dimensionamento.
+- Precificacao.
+- Proposta.
+- Negociacao.
+- Ganha.
+- Perdida.
+
+Processo:
+
+1. Acessar CRM Comercial > Pipeline Comercial.
+2. Localizar a oportunidade na etapa atual.
+3. Avaliar o proximo passo necessario.
+4. Mover a oportunidade para a etapa correspondente.
+5. Atualizar valor, probabilidade e observacoes.
+6. Manter a previsao de fechamento atualizada.
+7. Registrar como Ganha quando o negocio for confirmado.
+8. Registrar como Perdida quando nao houver continuidade.
+
+Boas praticas:
+
+- Nao avancar a oportunidade sem uma acao comercial concreta.
+- Atualizar a probabilidade conforme novas informacoes.
+- Registrar o motivo quando a oportunidade for perdida.
+- Manter sempre um proximo passo definido.
+
+
+7. TELA DE PROPOSTAS
+
+Objetivo:
+Criar e acompanhar propostas comerciais relacionadas as oportunidades.
+
+Processo:
+
+1. Acessar CRM Comercial > Propostas.
+2. Selecionar uma oportunidade.
+3. Criar uma nova proposta.
+4. Informar a validade.
+5. Informar valores e condicoes comerciais.
+6. Adicionar os itens e servicos.
+7. Revisar o documento.
+8. Gerar o PDF da proposta.
+9. Enviar para aprovacao ou assinatura quando aplicavel.
+10. Acompanhar o status da proposta.
+11. Atualizar a oportunidade conforme o resultado.
+
+Status comuns:
+
+- Rascunho.
+- Enviada.
+- Aprovada.
+- Rejeitada.
+- Expirada.
+- Cancelada.
+- Assinada ou concluida, quando houver assinatura digital.
+
+Cuidados:
+
+- Conferir empresa, contato, valores e validade antes do envio.
+- Evitar gerar ou enviar documentos duplicados.
+- Manter o representante legal correto quando a assinatura for necessaria.
+- Registrar observacoes relevantes da negociacao.
+
+
+8. TELA DE PARCEIROS
+
+Objetivo:
+Manter empresas e pessoas que participam da origem ou conducao comercial.
+
+Usos no CRM:
+
+- Relacionar leads a parceiros.
+- Relacionar oportunidades a parceiros.
+- Associar executivos comerciais.
+- Identificar a origem de negocios indicados.
+- Consultar o historico comercial relacionado.
+
+Processo:
+
+1. Cadastrar ou localizar o parceiro.
+2. Manter os dados comerciais atualizados.
+3. Associar executivos ao parceiro quando aplicavel.
+4. Utilizar o parceiro nos relacionamentos de leads, oportunidades e propostas.
+
+
+9. RESPONSABILIDADE DO EXECUTIVO
+
+Cada oportunidade deve possuir:
+
+- Empresa identificada.
+- Contato principal.
+- Necessidade registrada.
+- Responsavel definido.
+- Status atualizado.
+- Probabilidade coerente.
+- Proximo passo descrito.
+- Prazo ou previsao de fechamento.
+- Historico suficiente para outra pessoa entender o negocio.
+
+O CRM deve refletir a situacao real da negociacao. Uma oportunidade sem atualizacao perde valor como ferramenta de gestao.
+
+
+10. FLUXO RESUMIDO PARA APRESENTACAO
+
+Entrada:
+Lead, contato, indicacao, parceiro ou evento.
+
+Qualificacao:
+Entender empresa, contato, necessidade e potencial.
+
+Oportunidade:
+Registrar o negocio com valor, probabilidade e responsavel.
+
+Pipeline:
+Mover a oportunidade pelas etapas comerciais.
+
+Proposta:
+Formalizar a solucao e as condicoes comerciais.
+
+Fechamento:
+Registrar o negocio como ganho ou perdido e manter o historico.
+
+
+11. RESULTADO ESPERADO
+
+Com o processo organizado no CRM, a equipe consegue:
+
+- Saber de onde veio cada negocio.
+- Identificar o responsavel por cada oportunidade.
+- Evitar perda de informacoes.
+- Acompanhar o funil comercial.
+- Priorizar negocios mais maduros.
+- Medir previsao de vendas.
+- Registrar o historico dos contatos.
+- Transformar participantes de eventos em oportunidades.
+- Dar continuidade ao atendimento mesmo quando houver troca de responsavel.

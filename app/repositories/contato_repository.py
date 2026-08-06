@@ -280,3 +280,11 @@ class ContatoRepository(BaseRepository):
     def excluir(cls, contato_id):
         sql = f"DELETE FROM {cls.TABLE} WHERE id = %s"
         return cls.execute(sql, (contato_id,))
+
+    @classmethod
+    def excluir_em_massa(cls, contato_ids):
+        ids = [int(item) for item in contato_ids if str(item).isdigit()]
+        if not ids:
+            return 0
+        marks = ",".join(["%s"] * len(ids))
+        return cls.execute(f"DELETE FROM {cls.TABLE} WHERE id IN ({marks})", tuple(ids))

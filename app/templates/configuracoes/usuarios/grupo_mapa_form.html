@@ -1,0 +1,63 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Editar Mapeamento" if modo == "editar" else "Novo Mapeamento" %}
+    {% set page_description = "Vincule grupos externos FreeIPA, LDAP ou AD a perfis internos." %}
+    {% set page_icon = "bi-diagram-3" %}
+    {% set page_button_url = url_for('configuracoes.usuarios_index') %}
+    {% set page_button_icon = "bi-arrow-left" %}
+    {% set page_button_text = "Voltar" %}
+    {% include "components/page_header.html" %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Integração de Identidade</label>
+                        <select class="form-select" name="integracao_id">
+                            <option value="">Mapeamento geral por tipo</option>
+                            {% for integracao in integracoes_identidade %}
+                            <option value="{{ integracao.id }}" {% if mapa.integracao_id|string == integracao.id|string %}selected{% endif %}>{{ integracao.nome }} - {{ integracao.tipo|upper }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Tipo *</label>
+                        <select class="form-select" name="provedor_tipo" required>
+                            {% for tipo in ["FREEIPA", "LDAP", "AD"] %}
+                            <option value="{{ tipo }}" {% if (mapa.provedor_tipo or "LDAP") == tipo %}selected{% endif %}>{{ tipo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Grupo Externo *</label>
+                        <input class="form-control" name="grupo_externo" maxlength="180" required value="{{ mapa.grupo_externo or '' }}" placeholder="Ex: o3-comercial">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Perfil Interno *</label>
+                        <select class="form-select" name="perfil_id" required>
+                            <option value="">Selecionar perfil</option>
+                            {% for perfil in perfis %}
+                            <option value="{{ perfil.id }}" {% if mapa.perfil_id|string == perfil.id|string %}selected{% endif %}>{{ perfil.nome }} ({{ perfil.codigo }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input type="hidden" name="ativo" value="0">
+                            <input class="form-check-input" type="checkbox" name="ativo" value="1" id="ativo" {% if mapa.ativo is not defined or mapa.ativo %}checked{% endif %}>
+                            <label class="form-check-label" for="ativo">Mapeamento ativo</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a class="btn btn-secondary" href="{{ url_for('configuracoes.usuarios_index') }}">Cancelar</a>
+                    <button class="btn btn-primary"><i class="bi bi-floppy"></i> Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

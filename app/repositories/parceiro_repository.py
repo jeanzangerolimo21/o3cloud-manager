@@ -63,7 +63,8 @@ class ParceiroRepository(BaseRepository):
                 email,
                 telefone,
                 ativo,
-                COALESCE(status_negociacao, 'PRIMEIRO_CONTATO') AS status_negociacao
+                COALESCE(status_negociacao, 'PRIMEIRO_CONTATO') AS status_negociacao,
+                categoria_parceiro
             FROM parceiros
         """
 
@@ -145,6 +146,7 @@ class ParceiroRepository(BaseRepository):
                 p.updated_at,
                 p.cnpj,
                 p.segmento,
+                p.categoria_parceiro,
                 p.razao_social,
                 p.nome_fantasia,
                 p.endereco,
@@ -193,6 +195,7 @@ class ParceiroRepository(BaseRepository):
                 ativo,
                 cnpj,
                 segmento,
+                categoria_parceiro,
                 razao_social,
                 nome_fantasia,
                 endereco,
@@ -214,7 +217,8 @@ class ParceiroRepository(BaseRepository):
             VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                %s
             )
         """, (
             cls.generate_uuid(),
@@ -230,6 +234,7 @@ class ParceiroRepository(BaseRepository):
             dados["ativo"],
             dados.get("cnpj"),
             dados.get("segmento"),
+            dados.get("categoria_parceiro"),
             dados.get("razao_social"),
             dados.get("nome_fantasia"),
             dados.get("endereco"),
@@ -273,6 +278,7 @@ class ParceiroRepository(BaseRepository):
                 ativo = %s,
                 cnpj = %s,
                 segmento = %s,
+                categoria_parceiro = %s,
                 razao_social = %s,
                 nome_fantasia = %s,
                 endereco = %s,
@@ -304,6 +310,7 @@ class ParceiroRepository(BaseRepository):
             dados["ativo"],
             dados.get("cnpj"),
             dados.get("segmento"),
+            dados.get("categoria_parceiro"),
             dados.get("razao_social"),
             dados.get("nome_fantasia"),
             dados.get("endereco"),

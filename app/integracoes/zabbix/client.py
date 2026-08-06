@@ -13,6 +13,21 @@ class ZabbixClient:
         if not self.verify_ssl:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+    def listar_hosts(self):
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "host.get",
+            "params": {
+                "output": ["hostid", "host", "name", "status"],
+                "selectInterfaces": ["ip", "dns", "port", "type", "main", "useip"],
+                "sortfield": "name",
+                "sortorder": "ASC",
+            },
+            "auth": self.token,
+            "id": 2,
+        }
+        return self._post(payload)
+
     def eventos_recentes(self, limite=80):
         payload = {
             "jsonrpc": "2.0",

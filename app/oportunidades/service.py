@@ -96,6 +96,10 @@ class OportunidadeService:
         return cls.repository.excluir(oportunidade_id)
 
     @classmethod
+    def excluir_em_massa(cls, oportunidade_ids):
+        return cls.repository.excluir_em_massa(oportunidade_ids)
+
+    @classmethod
     def normalizar(cls, dados):
         dados = dict(dados)
         dados["lead_id"] = cls._normalizar_inteiro(dados.get("lead_id"))

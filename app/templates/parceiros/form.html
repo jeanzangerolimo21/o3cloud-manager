@@ -71,6 +71,17 @@
                     </div>
 
                     <div class="col-md-4">
+                        <label class="form-label">Categoria do Parceiro</label>
+                        <select class="form-select" name="categoria_parceiro">
+                            <option value="">Sem categoria</option>
+                            {% set selected_categoria = parceiro.categoria_parceiro if parceiro and parceiro.categoria_parceiro else '' %}
+                            {% for valor, descricao in categoria_options.items() %}
+                            <option value="{{ valor }}" {% if selected_categoria == valor %}selected{% endif %}>{{ descricao }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
                         <label class="form-label">UF</label>
                         <input class="form-control text-uppercase" maxlength="2" name="uf" placeholder="SP" value="{{ parceiro.uf if parceiro else '' }}">
                     </div>

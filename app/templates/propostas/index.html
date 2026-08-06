@@ -18,10 +18,11 @@
                 <div class="col-md-1"><a href="{{ request.path }}" class="btn btn-outline-secondary w-100">Limpar</a></div>
             </div>
         </form>
-        <div class="mb-3"><small class="text-muted">{{ total }} proposta(s) cadastradas</small></div>
-        <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Proposta</th><th>Cliente</th><th>Executivo</th><th>Status</th><th>Fechamento</th><th>ClickSign</th><th>Total Mensal</th><th>Total Geral</th><th width="260">Ações</th></tr></thead><tbody>
+        <div class="mb-3"><small class="text-muted">{{ total }} proposta(s) cadastradas</small></div><form method="post" action="{{ url_for('propostas.excluir_em_massa') }}" id="bulkForm" onsubmit="return confirm('Excluir selecionadas?')"><div class="d-flex justify-content-between align-items-center mb-2"><span class="small text-muted">Selecione as propostas desta pagina.</span><button class="btn btn-outline-danger btn-sm" type="submit" id="bulkDelete" disabled><i class="bi bi-trash"></i> Excluir selecionadas</button></div></form>
+        <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th><input type="checkbox" class="form-check-input" id="bulkAll"></th><th>Proposta</th><th>Cliente</th><th>Executivo</th><th>Status</th><th>Fechamento</th><th>ClickSign</th><th>Total Mensal</th><th>Total Geral</th><th width="260">Ações</th></tr></thead><tbody>
             {% for proposta in propostas %}
             <tr>
+                <td><input type="checkbox" class="form-check-input bulk-check" form="bulkForm" name="proposta_ids" value="{{ proposta.id }}"></td>
                 <td><strong>{{ proposta.titulo }}</strong><br><small class="text-muted">{{ proposta.codigo_proposta or '-' }} • Versão {{ proposta.versao }}</small></td>
                 <td>{{ proposta.cliente_nome or '-' }}</td>
                 <td>{{ proposta.executivo_nome or '-' }}</td>
@@ -42,6 +43,7 @@
                 <td>
                     <div class="d-flex gap-1 flex-wrap">
                         <a href="{{ url_for('propostas.visualizar', proposta_id=proposta.id) }}" class="btn btn-outline-secondary btn-sm" title="Visualizar"><i class="bi bi-eye"></i></a>
+                        <a href="{{ url_for('propostas.comentarios_internos', proposta_id=proposta.id) }}" class="btn btn-outline-info btn-sm" title="Comentário interno"><i class="bi bi-chat-left-text"></i>{% if proposta.total_comentarios_internos %} {{ proposta.total_comentarios_internos }}{% endif %}</a>
                         <a href="{{ url_for('propostas.imprimir', proposta_id=proposta.id) }}" target="_blank" class="btn btn-outline-dark btn-sm" title="Imprimir proposta"><i class="bi bi-printer"></i></a>
                         <a href="{{ url_for('propostas.exportar_docx', proposta_id=proposta.id) }}" class="btn btn-outline-success btn-sm" title="Exportar DOCX"><i class="bi bi-file-earmark-word"></i></a>
                         {% if proposta.status == 'APROVADA' and proposta.clicksign_status not in ['ASSINADO', 'CONCLUIDO'] %}
@@ -71,3 +73,5 @@
 </style>
 
 {% endblock %}
+
+<script>document.addEventListener("DOMContentLoaded",function(){const a=document.getElementById("bulkAll"),c=[...document.querySelectorAll(".bulk-check")],b=document.getElementById("bulkDelete"),u=()=>b.disabled=!c.some(x=>x.checked);a.onchange=()=>{c.forEach(x=>x.checked=a.checked);u()};c.forEach(x=>x.onchange=u)});</script>

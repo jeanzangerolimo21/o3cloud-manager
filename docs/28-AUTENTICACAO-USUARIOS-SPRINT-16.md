@@ -4,7 +4,7 @@ Versao: 3.0 Alpha
 
 Data: 03/08/2026
 
-Status: Escopo definido para detalhamento tecnico
+Status: Implementado para validacao assistida
 
 ---
 
@@ -185,7 +185,7 @@ O desenho definitivo deve ser validado antes da migration para evitar conflito c
 
 # Implementacao Inicial
 
-Status: implementada parcialmente em 03/08/2026
+Status: implementada para validacao assistida em 06/08/2026
 
 Entregas realizadas:
 
@@ -199,14 +199,21 @@ Entregas realizadas:
 - Permitido testar comunicacao de provedor e, quando `ldap3` estiver disponivel, validar autenticacao LDAP/AD.
 - Senhas de bind e senhas locais ficam protegidas por criptografia/hash, sem exibicao em texto puro.
 - Acoes administrativas registram auditoria basica.
+- Criada migration `database/migrations/060_create_auth_grupo_perfil_mapas.sql`.
+- Criada tela administrativa de mapeamento de grupos externos para perfis internos em Usuarios e Acessos.
+- Criada tela de login global em `app/autenticacao`.
+- Implementada protecao gradual de rotas por sessao e permissao.
+- Criada matriz de permissoes por menu em `auth_perfil_permissoes`.
+- Adicionado nivel de acesso por permissao: visualizacao ou edicao.
+- Adicionado controle `mostrar_valores` por perfil.
+- Adicionada foto de usuario.
+- Expandida auditoria com IP de origem, user agent e sanitizacao de detalhes sensiveis.
 
 Pendencias da proxima etapa:
 
-- Implementar tela de login global.
-- Proteger rotas sensiveis por sessao/permissao.
 - Implementar sincronismo real de usuarios e grupos por FreeIPA/LDAP/AD.
-- Implementar mapeamento visual de grupos externos para perfis internos.
-- Definir bootstrap seguro do primeiro administrador.
+- Validar matriz de permissoes por perfil com a equipe.
+- Validar comportamento de visualizacao/edicao em rotas sensiveis.
 
 ---
 
@@ -218,18 +225,25 @@ Pendencias da proxima etapa:
 - FreeIPA deve permitir sincronismo apenas quando houver integracao ativa configurada.
 - LDAP deve permitir cadastrar configuracao e testar comunicacao.
 - Active Directory deve permitir cadastrar servidor e validar autenticacao.
-- Provedores externos devem permitir mapeamento de grupos para perfis internos.
+- Provedores externos permitem mapeamento administrativo de grupos para perfis internos.
 - Acoes administrativas devem gerar auditoria.
 - Segredos devem permanecer mascarados e fora dos logs.
+- Rotas protegidas devem exigir sessao autenticada.
+- Perfis sem edicao devem conseguir visualizar apenas quando a permissao permitir.
 
 ---
 
 # Encaminhamento Tecnico
 
-Implementar em fases:
+Fases atendidas para validacao assistida:
 
 1. Base local de usuarios, perfis, permissoes e auditoria.
 2. Convite por e-mail e cadastro de senha.
 3. Tela de provedores externos com LDAP/AD configuravel e teste de comunicacao.
-4. Sincronismo FreeIPA/LDAP/AD e mapeamento de grupos para perfis.
-5. Protecao gradual das rotas sensiveis por permissao.
+4. Bootstrap seguro do primeiro administrador.
+5. Login global e protecao gradual das rotas sensiveis por permissao.
+
+Fases pendentes de ambiente externo homologado:
+
+- Sincronismo real de usuarios e grupos por FreeIPA/LDAP/AD.
+- Revisao da matriz de permissoes por perfil com a equipe.

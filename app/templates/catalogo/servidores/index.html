@@ -32,6 +32,86 @@
 
 {% block table %}
 
+<form method="get" class="row g-2 align-items-end mb-3">
+    <div class="col-md-5">
+        <label class="form-label">Filtrar por parceiro</label>
+        <select class="form-select" name="parceiro">
+            <option value="">Todos os parceiros</option>
+            {% for parceiro in parceiros_hardware %}
+            <option value="{{ parceiro.parceiro }}" {% if parceiro_selecionado == parceiro.parceiro %}selected{% endif %}>{{ parceiro.parceiro }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary w-100" type="submit"><i class="bi bi-filter"></i> Filtrar</button>
+    </div>
+    {% if parceiro_selecionado %}
+    <div class="col-md-2">
+        <a class="btn btn-outline-secondary w-100" href="{{ url_for('catalogo.listar_servidores') }}">Limpar</a>
+    </div>
+    {% endif %}
+</form>
+
+<div class="card border mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h5 class="mb-1">Base de Hardware dos Parceiros</h5>
+                <small class="text-muted">Tabela importada para orientar novas configuracoes e pacotes de upgrade.</small>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-primary btn-sm" href="{{ url_for('catalogo.novo_hardware_parceiro') }}"><i class="bi bi-plus-circle"></i> Novo item</a>
+                <form method="post" action="{{ url_for('catalogo.importar_hardware_parceiros') }}" enctype="multipart/form-data" class="d-flex gap-2">
+                    <input class="form-control form-control-sm" type="file" name="arquivo" accept=".csv,text/csv" required>
+                    <button class="btn btn-outline-success btn-sm" type="submit"><i class="bi bi-upload"></i> Importar CSV</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="table-responsive mb-5">
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th>Parceiro</th>
+            <th>Secao</th>
+            <th>Faixa de usuarios</th>
+            <th>Memoria</th>
+            <th>Processador</th>
+            <th>Disco</th>
+            <th>Origem</th>
+            <th class="text-center">Acoes</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in hardware_base %}
+        <tr>
+            <td>{{ item.parceiro }}</td>
+            <td>{{ item.secao }}</td>
+            <td>{{ item.faixa_usuarios }}</td>
+            <td>{{ item.memoria or '-' }}</td>
+            <td>{{ item.processador or '-' }}</td>
+            <td>{{ item.disco or '-' }}</td>
+            <td><span class="badge bg-light text-dark border">{{ item.origem }}</span></td>
+            <td class="text-center">
+                <div class="btn-group btn-group-sm">
+                    <a class="btn btn-outline-warning" href="{{ url_for('catalogo.editar_hardware_parceiro', item_id=item.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
+                    <form method="post" action="{{ url_for('catalogo.excluir_hardware_parceiro', item_id=item.id) }}" onsubmit="return confirm('Excluir este item da base de hardware?')">
+                        <button class="btn btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-4">Nenhum item na base de hardware.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<h5 class="mb-3">Cadastros de servidores do catalogo</h5>
+
 <table class="table table-hover align-middle"> 
 
     <thead>

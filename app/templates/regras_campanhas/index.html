@@ -1,0 +1,71 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include "components/page_header.html" %}
+    {% set card_title = "Regras cadastradas" %}
+    {% include "components/card_header.html" %}
+
+        <form method="GET" class="mb-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label">Pesquisar</label>
+                    <input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="{{ placeholder }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Situação</label>
+                    <select class="form-select" name="ativo">
+                        <option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativas</option>
+                        <option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativas</option>
+                        <option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todas</option>
+                    </select>
+                </div>
+                <div class="col-md-2"><button class="btn btn-primary w-100"><i class="bi bi-search"></i></button></div>
+                <div class="col-md-2"><a href="{{ url_for('regras_campanhas.index') }}" class="btn btn-outline-secondary w-100">Limpar</a></div>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Campanha</th>
+                        <th>Parceiro</th>
+                        <th>Executivos</th>
+                        <th>Vigência</th>
+                        <th>Situação</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for regra in regras %}
+                    <tr>
+                        <td><strong>{{ regra.nome }}</strong>{% if regra.descricao %}<br><small class="text-muted">{{ regra.descricao }}</small>{% endif %}</td>
+                        <td><span class="badge text-bg-light border">{{ ('%.2f'|format(regra.percentual_parceiro or 0)).replace('.', ',') }}%</span></td>
+                        <td><span class="badge text-bg-light border">{{ ('%.2f'|format(regra.percentual_executivo or 0)).replace('.', ',') }}%</span></td>
+                        <td>{{ regra.vigencia_inicio|date_br }} até {{ regra.vigencia_fim|date_br }}</td>
+                        <td>{% set ativo = regra.ativo %}{% include "components/status_badge.html" %}</td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a class="btn btn-outline-primary" href="{{ url_for('regras_campanhas.editar', regra_id=regra.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
+                                {% if regra.ativo %}
+                                <form method="POST" action="{{ url_for('regras_campanhas.excluir', regra_id=regra.id) }}" onsubmit="return confirm('Inativar esta regra de campanha?');">
+                                    <button class="btn btn-outline-danger" title="Inativar"><i class="bi bi-trash"></i></button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                        {% set colspan = 6 %}
+                        {% set empty_message = "Nenhuma regra de campanha encontrada." %}
+                        {% include "components/empty_state.html" %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% include "components/pagination.html" %}
+    </div>
+</div>
+{% endblock %}

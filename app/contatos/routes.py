@@ -152,6 +152,14 @@ def editar(contato_id):
     )
 
 
+@contatos_bp.route("/excluir-em-massa", methods=["POST"])
+def excluir_em_massa():
+    ids = request.form.getlist("contato_ids")
+    if ids:
+        ContatoService.excluir_em_massa(ids)
+        flash(f"{len(ids)} contato(s) removido(s) com sucesso.", "success")
+    return redirect(url_for("contatos.index"))
+
 @contatos_bp.route("/<int:contato_id>/excluir")
 def excluir(contato_id):
     contato = ContatoService.buscar_por_id(contato_id)

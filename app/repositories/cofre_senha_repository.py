@@ -78,8 +78,10 @@ class CofreSenhaRepository(BaseRepository):
             INSERT INTO implantacao_cofre_senhas (
                 uuid, pasta_id, cliente_id, cliente_nome, cliente_cnpj, faixa_rede_id, licenca_o3web_id,
                 categoria, titulo, host, porta, url, usuario, senha_encrypted, observacoes,
-                proxmox_node_id, proxmox_vm_id, pbs_server_id, zabbix_host_id, ativo, created_by, updated_by
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                proxmox_node_id, proxmox_vm_id, pbs_server_id, zabbix_host_id,
+                proxmox_node_inventory_id, proxmox_inventory_id, pbs_backup_snapshot_id,
+                zabbix_host_inventory_id, ativo, created_by, updated_by
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (cls.generate_uuid(),) + cls._params(dados, incluir_senha=True),
         )
@@ -111,6 +113,10 @@ class CofreSenhaRepository(BaseRepository):
                 proxmox_vm_id=%s,
                 pbs_server_id=%s,
                 zabbix_host_id=%s,
+                proxmox_node_inventory_id=%s,
+                proxmox_inventory_id=%s,
+                pbs_backup_snapshot_id=%s,
+                zabbix_host_inventory_id=%s,
                 ativo=%s{campos_senha},
                 updated_by=%s
             WHERE id=%s
@@ -148,6 +154,100 @@ class CofreSenhaRepository(BaseRepository):
             """,
             (senha_id, limit),
         )
+
+    @classmethod
+    def criar_compartilhamento(cls, dados):
+        return cls.execute_insert(
+            """
+            INSERT INTO implantacao_cofre_compartilhamentos (
+                uuid, cofre_senha_id, token_hash, expires_at, created_by, created_ip
+            ) VALUES (%s, %s, %s, DATE_ADD(NOW(), INTERVAL %s MINUTE), %s, %s)
+            """,
+            (
+                cls.generate_uuid(), dados.get("cofre_senha_id"), dados.get("token_hash"),
+                dados.get("ttl_minutos", 5), dados.get("created_by") or "sistema",
+                dados.get("created_ip"),
+            ),
+        )
+
+    @classmethod
+    def consumir_compartilhamento(cls, token_hash, accessed_ip=None):
+        conn = cls.connection()
+        cursor = conn.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                """
+                UPDATE implantacao_cofre_compartilhamentos
+                SET accessed_at = NOW(), accessed_ip = %s
+                WHERE token_hash = %s AND expires_at > NOW()
+                  AND accessed_at IS NULL AND revoked_at IS NULL
+                """,
+                (accessed_ip, token_hash),
+            )
+            if cursor.rowcount != 1:
+                conn.rollback()
+                return None
+            cursor.execute(
+                """
+                SELECT cc.cofre_senha_id, cs.titulo, cs.senha_encrypted, cc.expires_at
+                FROM implantacao_cofre_compartilhamentos cc
+                JOIN implantacao_cofre_senhas cs ON cs.id = cc.cofre_senha_id
+                WHERE cc.token_hash = %s AND cs.ativo = 1
+                """,
+                (token_hash,),
+            )
+            compartilhamento = cursor.fetchone()
+            if not compartilhamento:
+                conn.rollback()
+                return None
+            conn.commit()
+            return compartilhamento
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cls.close(conn, cursor)
+
+    @classmethod
+    def listar_vinculos_infraestrutura(cls):
+        nodes = cls.fetch_all(
+            """
+            SELECT n.id, n.integracao_id, i.nome AS integracao_nome, n.node, n.status
+            FROM proxmox_node_inventory n
+            JOIN implantacao_integracoes_config i ON i.id = n.integracao_id
+            WHERE n.ativo = 1 AND i.tipo = 'proxmox' AND i.ativo = 1
+            ORDER BY i.nome, n.node
+            """
+        )
+        vms = cls.fetch_all(
+            """
+            SELECT p.id, p.integracao_id, p.node, p.vmid, p.tipo, p.nome, p.status,
+                   n.id AS node_inventory_id, i.nome AS integracao_nome
+            FROM proxmox_vm_inventory p
+            JOIN implantacao_integracoes_config i ON i.id = p.integracao_id
+            LEFT JOIN proxmox_node_inventory n
+              ON n.integracao_id = p.integracao_id AND n.node = p.node AND n.ativo = 1
+            WHERE p.ativo = 1 AND i.tipo = 'proxmox' AND i.ativo = 1
+            ORDER BY i.nome, p.node, p.vmid
+            """
+        )
+        snapshots = cls.fetch_all(
+            """
+            SELECT s.id, s.proxmox_inventory_id, s.integracao_id, s.datastore,
+                   s.namespace, s.backup_type, s.backup_id, s.backup_time,
+                   s.snapshot_name, i.nome AS integracao_nome
+            FROM pbs_backup_snapshots s
+            JOIN implantacao_integracoes_config i ON i.id = s.integracao_id
+            WHERE i.tipo = 'pbs' AND i.ativo = 1
+            ORDER BY s.backup_time DESC, s.snapshot_name
+            """
+        )
+        return {
+            "proxmox_nodes": nodes,
+            "proxmox_vms": vms,
+            "pbs_snapshots": snapshots,
+            "zabbix_hosts": [],
+        }
 
     @classmethod
     def listar_faixas_ativas(cls):
@@ -195,6 +295,10 @@ class CofreSenhaRepository(BaseRepository):
             dados.get("proxmox_vm_id"),
             dados.get("pbs_server_id"),
             dados.get("zabbix_host_id"),
+            dados.get("proxmox_node_inventory_id"),
+            dados.get("proxmox_inventory_id"),
+            dados.get("pbs_backup_snapshot_id"),
+            dados.get("zabbix_host_inventory_id"),
             dados.get("ativo", 1),
             dados.get("updated_by") or dados.get("created_by") or "sistema",
             dados.get("updated_by") or dados.get("created_by") or "sistema",

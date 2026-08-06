@@ -150,6 +150,14 @@ def editar(lead_id):
     )
 
 
+@leads_bp.route("/excluir-em-massa", methods=["POST"])
+def excluir_em_massa():
+    ids = request.form.getlist("lead_ids")
+    if ids:
+        LeadService.excluir_em_massa(ids)
+        flash(f"{len(ids)} lead(s) removido(s) com sucesso.", "success")
+    return redirect(url_for("leads.index"))
+
 @leads_bp.route("/<int:lead_id>/excluir")
 def excluir(lead_id):
     lead = LeadService.buscar_por_id(lead_id)

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Senha compartilhada | O3Cloud Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <main class="container py-5" style="max-width: 560px">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                {% if indisponivel %}
+                    <div class="text-center mb-3"><i class="bi bi-link-45deg text-warning fs-1"></i><h1 class="h4 mt-2">Link indisponivel</h1></div>
+                    <p class="text-muted mb-0">Este link ja foi utilizado, expirou ou foi revogado. Gere um novo link no cofre, se necessario.</p>
+                {% elif senha is none %}
+                    <div class="text-center mb-3"><i class="bi bi-shield-lock-fill text-warning fs-1"></i><h1 class="h4 mt-2">Senha compartilhada</h1></div>
+                    <p class="text-muted">Este link permite uma unica visualizacao. O acesso sera consumido somente quando voce confirmar abaixo.</p>
+                    <form method="POST"><button class="btn btn-warning w-100"><i class="bi bi-eye me-2"></i>Visualizar senha</button></form>
+                {% else %}
+                    <div class="text-center mb-4"><i class="bi bi-shield-lock-fill text-warning fs-1"></i><h1 class="h4 mt-2">Senha compartilhada</h1></div>
+                    <p class="text-muted">Esta senha foi disponibilizada por um link de uso unico. Ela nao ficara disponivel novamente apos esta visualizacao.</p>
+                    <label class="form-label fw-semibold" for="senha">{{ titulo }}</label>
+                    <div class="input-group">
+                        <input id="senha" class="form-control" type="text" value="{{ senha }}" readonly autocomplete="off">
+                        <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('senha').value); this.innerHTML='<i class=&quot;bi bi-check2&quot;></i>'" title="Copiar senha"><i class="bi bi-clipboard"></i></button>
+                    </div>
+                    <div class="alert alert-warning mt-4 mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Nao compartilhe este link nem a senha com outras pessoas.</div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+</body>
+</html>

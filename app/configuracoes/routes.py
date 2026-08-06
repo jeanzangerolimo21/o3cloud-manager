@@ -17,6 +17,56 @@ def _email_usuario_logado():
     return session.get("usuario_email") or session.get("email") or "sistema"
 
 
+@configuracoes_bp.route("/usuarios/perfis/novo", methods=["GET", "POST"])
+def usuarios_perfil_novo():
+    if request.method == "POST":
+        try:
+            perfil_id = AuthConfigService.criar_perfil(request.form, _email_usuario_logado())
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            return render_template(
+                "configuracoes/usuarios/perfil_form.html",
+                perfil={**request.form, "permissoes": request.form.getlist("menu_keys")},
+                grupos_menus=AuthConfigService.menus_por_grupo(),
+                modo="novo",
+                admin_bloqueado=False,
+            )
+        flash("Perfil cadastrado.", "success")
+        return redirect(url_for("configuracoes.usuarios_perfil_editar", perfil_id=perfil_id))
+    return render_template(
+        "configuracoes/usuarios/perfil_form.html",
+        perfil=AuthConfigService.novo_perfil_payload(),
+        grupos_menus=AuthConfigService.menus_por_grupo(),
+        modo="novo",
+        admin_bloqueado=False,
+    )
+
+
+@configuracoes_bp.route("/usuarios/perfis/<int:perfil_id>/editar", methods=["GET", "POST"])
+def usuarios_perfil_editar(perfil_id):
+    perfil = AuthConfigService.buscar_perfil(perfil_id)
+    if not perfil:
+        flash("Perfil não encontrado.", "danger")
+        return redirect(url_for("configuracoes.usuarios_index"))
+    admin_bloqueado = perfil.get("codigo") == "ADMIN"
+    if request.method == "POST":
+        try:
+            AuthConfigService.atualizar_perfil(perfil_id, request.form, _email_usuario_logado())
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            perfil = {**perfil, **request.form, "permissoes": request.form.getlist("menu_keys")}
+        else:
+            flash("Perfil atualizado.", "success")
+            return redirect(url_for("configuracoes.usuarios_index"))
+    return render_template(
+        "configuracoes/usuarios/perfil_form.html",
+        perfil=perfil,
+        grupos_menus=AuthConfigService.menus_por_grupo(),
+        modo="editar",
+        admin_bloqueado=admin_bloqueado,
+    )
+
+
 @configuracoes_bp.route("/usuarios")
 def usuarios_index():
     contexto = AuthConfigService.dashboard()
@@ -24,7 +74,7 @@ def usuarios_index():
         "configuracoes/usuarios/index.html",
         **contexto,
         page_title="Usuários e Acessos",
-        page_description="Gestão de usuários, convites e provedores de autenticação.",
+        page_description="Gestão de usuários, perfis, convites e permissões. Provedores externos ficam em Integrações Técnicas.",
         page_icon="bi-person-gear",
         page_button_text="Novo Usuário",
         page_button_icon="bi-person-plus",
@@ -41,7 +91,7 @@ def usuarios_novo():
         except ValueError as erro:
             flash(str(erro), "danger")
             return render_template("configuracoes/usuarios/form.html", usuario=request.form, perfis=perfis, modo="novo")
-        flash("Usuário cadastrado. Se for local e convidado, o convite foi enviado por e-mail.", "success")
+        flash("Usuário cadastrado. Convite por e-mail é enviado apenas para usuário Local com status Convidado.", "success")
         return redirect(url_for("configuracoes.usuarios_editar", usuario_id=usuario_id))
     return render_template("configuracoes/usuarios/form.html", usuario=AuthConfigService.novo_usuario_payload(), perfis=perfis, modo="novo")
 
@@ -95,46 +145,99 @@ def usuarios_aceitar_convite(token):
     return render_template("configuracoes/usuarios/convite.html", convite=convite)
 
 
-@configuracoes_bp.route("/usuarios/provedores/novo", methods=["GET", "POST"])
-def usuarios_provedor_novo():
+@configuracoes_bp.route("/usuarios/grupos/novo", methods=["GET", "POST"])
+def usuarios_grupo_mapa_novo():
+    perfis = AuthConfigService.repository.listar_perfis()
+    integracoes_identidade = AuthConfigService.repository.listar_integracoes_identidade()
     if request.method == "POST":
         try:
-            provedor_id = AuthConfigService.criar_provedor(request.form, _email_usuario_logado())
+            AuthConfigService.criar_grupo_perfil_mapa(request.form, _email_usuario_logado())
         except ValueError as erro:
             flash(str(erro), "danger")
-            return render_template("configuracoes/usuarios/provedor_form.html", provedor=request.form, modo="novo")
-        flash("Provedor cadastrado.", "success")
-        return redirect(url_for("configuracoes.usuarios_provedor_editar", provedor_id=provedor_id))
-    return render_template("configuracoes/usuarios/provedor_form.html", provedor=AuthConfigService.novo_provedor_payload(), modo="novo")
+            return render_template(
+                "configuracoes/usuarios/grupo_mapa_form.html",
+                mapa=request.form,
+                perfis=perfis,
+                integracoes_identidade=integracoes_identidade,
+                modo="novo",
+            )
+        flash("Mapeamento de grupo externo cadastrado.", "success")
+        return redirect(url_for("configuracoes.usuarios_index"))
+    return render_template(
+        "configuracoes/usuarios/grupo_mapa_form.html",
+        mapa=AuthConfigService.novo_grupo_perfil_mapa_payload(),
+        perfis=perfis,
+        integracoes_identidade=integracoes_identidade,
+        modo="novo",
+    )
+
+
+@configuracoes_bp.route("/usuarios/grupos/<int:mapa_id>/editar", methods=["GET", "POST"])
+def usuarios_grupo_mapa_editar(mapa_id):
+    mapa = AuthConfigService.buscar_grupo_perfil_mapa(mapa_id)
+    if not mapa:
+        flash("Mapeamento de grupo externo não encontrado.", "danger")
+        return redirect(url_for("configuracoes.usuarios_index"))
+    perfis = AuthConfigService.repository.listar_perfis()
+    integracoes_identidade = AuthConfigService.repository.listar_integracoes_identidade()
+    if request.method == "POST":
+        try:
+            AuthConfigService.atualizar_grupo_perfil_mapa(mapa_id, request.form, _email_usuario_logado())
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            mapa = {**mapa, **request.form}
+        else:
+            flash("Mapeamento de grupo externo atualizado.", "success")
+            return redirect(url_for("configuracoes.usuarios_index"))
+    return render_template(
+        "configuracoes/usuarios/grupo_mapa_form.html",
+        mapa=mapa,
+        perfis=perfis,
+        integracoes_identidade=integracoes_identidade,
+        modo="editar",
+    )
+
+
+@configuracoes_bp.route("/usuarios/grupos/<int:mapa_id>/excluir", methods=["POST"])
+def usuarios_grupo_mapa_excluir(mapa_id):
+    try:
+        AuthConfigService.inativar_grupo_perfil_mapa(mapa_id, _email_usuario_logado())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Mapeamento de grupo externo inativado.", "success")
+    return redirect(url_for("configuracoes.usuarios_index"))
+
+
+@configuracoes_bp.route("/usuarios/provedores/novo", methods=["GET", "POST"])
+def usuarios_provedor_novo():
+    flash("Provedores FreeIPA, LDAP e Active Directory agora devem ser cadastrados em Integrações Técnicas.", "info")
+    return redirect(url_for("implantacao.integracoes_tecnicas"))
 
 
 @configuracoes_bp.route("/usuarios/provedores/<int:provedor_id>/editar", methods=["GET", "POST"])
 def usuarios_provedor_editar(provedor_id):
-    provedor = AuthConfigService.buscar_provedor(provedor_id)
-    if not provedor:
-        flash("Provedor não encontrado.", "danger")
-        return redirect(url_for("configuracoes.usuarios_index"))
-    if request.method == "POST":
-        try:
-            AuthConfigService.atualizar_provedor(provedor_id, request.form, _email_usuario_logado())
-        except ValueError as erro:
-            flash(str(erro), "danger")
-            provedor = {**provedor, **request.form}
-        else:
-            flash("Provedor atualizado.", "success")
-            return redirect(url_for("configuracoes.usuarios_index"))
-    return render_template("configuracoes/usuarios/provedor_form.html", provedor=provedor, modo="editar")
+    flash("Provedores externos agora devem ser mantidos em Integrações Técnicas.", "info")
+    return redirect(url_for("implantacao.integracoes_tecnicas"))
 
 
 @configuracoes_bp.route("/usuarios/provedores/<int:provedor_id>/testar", methods=["POST"])
 def usuarios_provedor_testar(provedor_id):
-    try:
-        resultado = AuthConfigService.testar_provedor(provedor_id, request.form)
-    except ValueError as erro:
-        flash(str(erro), "danger")
-    else:
-        flash(resultado.get("mensagem") or "Teste concluído.", "success")
-    return redirect(request.referrer or url_for("configuracoes.usuarios_index"))
+    flash("Valide FreeIPA, LDAP e Active Directory em Integrações Técnicas.", "info")
+    return redirect(url_for("implantacao.integracoes_tecnicas"))
+
+
+@configuracoes_bp.route("/auditoria")
+def auditoria():
+    contexto = AuthConfigService.contexto_auditoria(request.args)
+    return render_template(
+        "configuracoes/auditoria/index.html",
+        **contexto,
+        page_title="Auditoria",
+        page_description="Eventos dos últimos 30 dias com filtros por usuário, ação e entidade.",
+        page_icon="bi-clipboard-data",
+        page_button_text=None,
+    )
 
 
 @configuracoes_bp.route("/email")
@@ -163,7 +266,7 @@ def email_novo():
         return redirect(url_for("configuracoes.email_editar", config_id=config_id))
     return render_template(
         "configuracoes/email/form.html",
-        config={"nome": "SMTP Principal", "smtp_port": 587, "usar_tls": 1, "ativo": 1},
+        config={"nome": "SMTP Principal", "provedor": "SMTP", "smtp_port": 587, "usar_tls": 1, "ativo": 1, "brevo_api_url": "https://api.brevo.com/v3", "brevo_environment": "production"},
         modo="novo",
     )
 

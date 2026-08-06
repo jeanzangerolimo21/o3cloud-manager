@@ -1,4 +1,5 @@
 from flask import Blueprint
+from flask import current_app
 from flask import flash
 from flask import jsonify
 from flask import redirect
@@ -7,6 +8,7 @@ from flask import request
 from flask import session
 from flask import url_for
 
+from app.core.auditoria import registrar_evento
 from app.implantacao.service import ImplantacaoService
 from app.implantacao.service import KANBAN_COLUNAS
 from app.implantacao.service import KANBAN_LABELS
@@ -229,7 +231,7 @@ def cofre_senhas():
         parceiros_navegacao=CofrePastaService.listar_parceiros_navegacao(),
         pastas_usuario=CofrePastaService.listar_pastas_usuario(usuario_logado),
         pastas_compartilhadas=CofrePastaService.listar_pastas_compartilhadas_com_usuario(usuario_logado),
-        usuario_logado=usuario_logado,
+        usuario_email_logado=usuario_logado,
         pastas_cliente=CofrePastaService.listar_pastas_cliente_por_parceiro(parceiro_id),
         pastas=CofrePastaService.listar_ativas(),
         pasta_tipo_options=TIPOS_COFRE_PASTA,
@@ -319,7 +321,6 @@ def editar_senha_cofre(senha_id):
         flash("Credencial não encontrada.", "danger")
         return redirect(url_for("implantacao.cofre_senhas"))
     contexto = CofreSenhaService.contexto_form(_email_usuario_logado())
-    auditoria = CofreSenhaService.listar_auditoria(senha_id)
     if request.method == "POST":
         try:
             CofreSenhaService.atualizar(senha_id, _cofre_senha_form_data(), _email_usuario_logado(), request.remote_addr)
@@ -329,7 +330,7 @@ def editar_senha_cofre(senha_id):
         else:
             flash("Credencial atualizada.", "success")
             return redirect(url_for("implantacao.cofre_senhas"))
-    return render_template("implantacao/cofre_senhas/form.html", senha=senha, modo="editar", auditoria=auditoria, **contexto)
+    return render_template("implantacao/cofre_senhas/form.html", senha=senha, modo="editar", **contexto)
 
 
 @implantacao_bp.route("/cofre-senhas/<int:senha_id>/revelar", methods=["POST"])
@@ -339,6 +340,45 @@ def revelar_senha_cofre(senha_id):
     except ValueError as erro:
         return jsonify({"ok": False, "erro": str(erro)}), 400
     return jsonify({"ok": True, "senha": senha})
+
+
+@implantacao_bp.route("/cofre-senhas/<int:senha_id>/compartilhar", methods=["POST"])
+def compartilhar_senha_cofre(senha_id):
+    try:
+        token = CofreSenhaService.criar_compartilhamento(
+            senha_id, _email_usuario_logado(), request.remote_addr
+        )
+    except ValueError as erro:
+        return jsonify({"ok": False, "erro": str(erro)}), 400
+    caminho = url_for("implantacao.acessar_compartilhamento_senha", token=token)
+    base_url = current_app.config.get("PUBLIC_BASE_URL")
+    link = f"{base_url}{caminho}" if base_url else url_for(
+        "implantacao.acessar_compartilhamento_senha", token=token, _external=True
+    )
+    return jsonify({"ok": True, "link": link})
+
+
+@implantacao_bp.route("/compartilhar-senha/<token>", methods=["GET", "POST"])
+def acessar_compartilhamento_senha(token):
+    compartilhamento = None
+    status = 200
+    if request.method == "POST":
+        compartilhamento = CofreSenhaService.consumir_compartilhamento(token, request.remote_addr)
+        if not compartilhamento:
+            status = 410
+    response = current_app.make_response(render_template(
+        "implantacao/cofre_senhas/compartilhamento.html",
+        titulo=compartilhamento.get("titulo") if compartilhamento else None,
+        senha=compartilhamento.get("senha") if compartilhamento else None,
+        token=token,
+        indisponivel=status == 410,
+    ))
+    response.status_code = status
+    response.headers["Cache-Control"] = "no-store, no-cache, max-age=0, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+    return response
 
 
 @implantacao_bp.route("/cofre-senhas/<int:senha_id>/excluir", methods=["POST"])
@@ -483,7 +523,6 @@ def _render_integracoes_config(grupo):
         "implantacao/integracoes/index.html",
         integracoes=IntegracaoConfigService.listar(tipo=tipo, ativo=ativo, grupo=contexto["grupo"]),
         integracoes_ambiente=IntegracaoConfigService.integracoes_ambiente(contexto["grupo"]),
-        plano_sincronismo_proxmox=IntegracaoConfigService.plano_sincronismo_proxmox(contexto["grupo"]),
         validacoes_recentes=IntegracaoConfigService.validacoes_recentes(contexto["grupo"]),
         dashboard=IntegracaoConfigService.dashboard(contexto["grupo"]),
         tipo_options=tipo_options,
@@ -504,6 +543,7 @@ def _render_integracoes_config(grupo):
 def revelar_integracao_ambiente_segredo():
     try:
         valor = IntegracaoConfigService.revelar_segredo_ambiente(request.form.get("chave"))
+        registrar_evento("INTEGRACAO_SEGREDO_AMBIENTE_REVELADO", "integracoes_ambiente", None, {"chave": request.form.get("chave")})
     except ValueError as erro:
         response = jsonify({"erro": str(erro)})
         response.status_code = 400
@@ -517,6 +557,7 @@ def revelar_integracao_ambiente_segredo():
 def revelar_integracao_config_segredo(integracao_id):
     try:
         valor = IntegracaoConfigService.revelar_segredo_config(integracao_id)
+        registrar_evento("INTEGRACAO_SEGREDO_REVELADO", "integracoes_config", integracao_id)
     except ValueError as erro:
         response = jsonify({"erro": str(erro)})
         response.status_code = 400
@@ -534,6 +575,7 @@ def nova_integracao_config():
     if request.method == "POST":
         try:
             integracao_id = IntegracaoConfigService.criar(request.form, _email_usuario_logado())
+            registrar_evento("INTEGRACAO_CRIADA", "integracoes_config", integracao_id, {"tipo": request.form.get("tipo"), "nome": request.form.get("nome")})
         except ValueError as erro:
             flash(str(erro), "danger")
             return render_template("implantacao/integracoes/form.html", integracao=request.form, tipo_options=tipo_options, grupo_integracao=grupo, modo="novo", historico_validacoes=[])
@@ -551,6 +593,7 @@ def editar_integracao_config(integracao_id):
     if request.method == "POST":
         try:
             IntegracaoConfigService.atualizar(integracao_id, request.form, _email_usuario_logado())
+            registrar_evento("INTEGRACAO_ATUALIZADA", "integracoes_config", integracao_id, {"tipo": request.form.get("tipo"), "nome": request.form.get("nome")})
         except ValueError as erro:
             flash(str(erro), "danger")
             integracao = {**integracao, **request.form}
@@ -568,6 +611,7 @@ def editar_integracao_config(integracao_id):
 def testar_integracao_config(integracao_id):
     try:
         resultado = IntegracaoConfigService.testar_configuracao(integracao_id, _email_usuario_logado())
+        registrar_evento("INTEGRACAO_TESTADA", "integracoes_config", integracao_id, {"status": resultado.get("status"), "mensagem": resultado.get("mensagem")})
     except ValueError as erro:
         flash(str(erro), "danger")
     else:
@@ -580,6 +624,7 @@ def testar_integracao_config(integracao_id):
 def excluir_integracao_config(integracao_id):
     try:
         IntegracaoConfigService.inativar(integracao_id, _email_usuario_logado())
+        registrar_evento("INTEGRACAO_INATIVADA", "integracoes_config", integracao_id)
     except ValueError as erro:
         flash(str(erro), "danger")
     else:
@@ -620,6 +665,7 @@ def kanban_colunas():
 def criar_coluna_kanban():
     try:
         ImplantacaoService.criar_coluna_kanban(request.form)
+        registrar_evento("KANBAN_COLUNA_CRIADA", "implantacao_kanban_colunas", None, {"nome": request.form.get("nome"), "status": request.form.get("status")})
     except ValueError as erro:
         flash(str(erro), "danger")
     else:
@@ -631,6 +677,7 @@ def criar_coluna_kanban():
 def editar_coluna_kanban(coluna_id):
     try:
         ImplantacaoService.atualizar_coluna_kanban(coluna_id, request.form)
+        registrar_evento("KANBAN_COLUNA_ATUALIZADA", "implantacao_kanban_colunas", coluna_id, {"nome": request.form.get("nome"), "status": request.form.get("status")})
     except ValueError as erro:
         flash(str(erro), "danger")
     else:
@@ -646,6 +693,7 @@ def mover_kanban():
             int(dados.get("implantacao_id")),
             dados.get("etapa_kanban"),
         )
+        registrar_evento("IMPLANTACAO_KANBAN_MOVIMENTADO", "implantacoes", dados.get("implantacao_id"), {"etapa_kanban": dados.get("etapa_kanban")})
     except (TypeError, ValueError) as erro:
         return jsonify({"ok": False, "erro": str(erro)}), 400
     return jsonify({"ok": True, **resultado})
@@ -658,6 +706,7 @@ def novo():
         dados = _form_data()
         try:
             implantacao_id = ImplantacaoService.criar(dados)
+            registrar_evento("IMPLANTACAO_CRIADA", "implantacoes", implantacao_id, {"contrato_id": dados.get("contrato_id"), "status": dados.get("status")})
         except ValueError as erro:
             flash(str(erro), "danger")
             return render_template(
@@ -733,6 +782,7 @@ def editar(implantacao_id):
         dados = _form_data()
         try:
             ImplantacaoService.atualizar(implantacao_id, dados)
+            registrar_evento("IMPLANTACAO_ATUALIZADA", "implantacoes", implantacao_id, {"status": dados.get("status"), "provisionamento_status": dados.get("provisionamento_status")})
         except ValueError as erro:
             flash(str(erro), "danger")
             implantacao = {**implantacao, **dados}
@@ -757,6 +807,7 @@ def editar(implantacao_id):
 def adicionar_comentario(implantacao_id):
     try:
         email = ImplantacaoService.adicionar_comentario(implantacao_id, request.form, request.files.getlist("anexos"))
+        registrar_evento("IMPLANTACAO_COMENTARIO_ADICIONADO", "implantacoes", implantacao_id, {"enviar_email": request.form.get("enviar_email"), "anexos": len(request.files.getlist("anexos"))})
     except ValueError as erro:
         flash(str(erro), "danger")
     else:
@@ -775,6 +826,7 @@ def editar_comentario(historico_id):
     except ValueError as erro:
         flash(str(erro), "danger")
         return redirect(request.referrer or url_for("implantacao.index"))
+    registrar_evento("IMPLANTACAO_COMENTARIO_ATUALIZADO", "implantacao_historico", historico_id, {"implantacao_id": implantacao_id})
     flash("Comentário atualizado.", "success")
     return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
 
@@ -786,6 +838,7 @@ def excluir_comentario(historico_id):
     except ValueError as erro:
         flash(str(erro), "danger")
         return redirect(request.referrer or url_for("implantacao.index"))
+    registrar_evento("IMPLANTACAO_COMENTARIO_EXCLUIDO", "implantacao_historico", historico_id, {"implantacao_id": implantacao_id})
     flash("Comentário excluído.", "success")
     return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
 
@@ -795,6 +848,7 @@ def excluir_comentario(historico_id):
 def adicionar_item_checklist(implantacao_id):
     try:
         ImplantacaoService.adicionar_item_checklist(implantacao_id, request.form)
+        registrar_evento("IMPLANTACAO_CHECKLIST_ITEM_ADICIONADO", "implantacoes", implantacao_id, {"titulo": request.form.get("titulo")})
     except ValueError as erro:
         flash(str(erro), "danger")
     else:
@@ -806,6 +860,7 @@ def adicionar_item_checklist(implantacao_id):
 def aplicar_modelo_checklist(implantacao_id):
     try:
         criados = ImplantacaoService.aplicar_modelo_checklist(implantacao_id, request.form.get("modelo"))
+        registrar_evento("IMPLANTACAO_CHECKLIST_MODELO_APLICADO", "implantacoes", implantacao_id, {"modelo": request.form.get("modelo"), "criados": criados})
     except ValueError as erro:
         flash(str(erro), "danger")
     else:
@@ -823,6 +878,7 @@ def excluir_item_checklist(item_id):
     except ValueError as erro:
         flash(str(erro), "danger")
         return redirect(request.referrer or url_for("implantacao.index"))
+    registrar_evento("IMPLANTACAO_CHECKLIST_ITEM_EXCLUIDO", "implantacao_checklist", item_id, {"implantacao_id": implantacao_id})
     flash("Item removido do checklist.", "success")
     return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
 
@@ -833,6 +889,7 @@ def atualizar_checklist(item_id):
     except ValueError as erro:
         flash(str(erro), "danger")
         return redirect(request.referrer or url_for("implantacao.index"))
+    registrar_evento("IMPLANTACAO_CHECKLIST_ATUALIZADO", "implantacao_checklist", item_id, {"implantacao_id": implantacao_id, "status": request.form.get("status")})
     flash("Checklist atualizado.", "success")
     return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
 
@@ -887,6 +944,10 @@ def _cofre_senha_form_data():
         "proxmox_vm_id": request.form.get("proxmox_vm_id"),
         "pbs_server_id": request.form.get("pbs_server_id"),
         "zabbix_host_id": request.form.get("zabbix_host_id"),
+        "proxmox_node_inventory_id": request.form.get("proxmox_node_inventory_id"),
+        "proxmox_inventory_id": request.form.get("proxmox_inventory_id"),
+        "pbs_backup_snapshot_id": request.form.get("pbs_backup_snapshot_id"),
+        "zabbix_host_inventory_id": request.form.get("zabbix_host_inventory_id"),
         "ativo": request.form.get("ativo", "1"),
     }
 

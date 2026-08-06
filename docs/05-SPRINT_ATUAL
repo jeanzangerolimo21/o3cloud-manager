@@ -4,7 +4,7 @@
 
 Versao: 3.0 Alpha
 
-Ultima atualizacao: 03/08/2026
+Ultima atualizacao: 06/08/2026
 
 Status: Oficial
 
@@ -18,7 +18,7 @@ Governanca, Acessos e Operacao Assistida
 
 Status:
 
-Aberta em 03/08/2026
+Concluida tecnicamente em 06/08/2026
 
 ---
 
@@ -34,6 +34,11 @@ Documentos de referencia:
 - `docs/26-MELHORIAS-PRE-SPRINT-16.md`
 - `docs/27-ABERTURA-SPRINT-16.md`
 - `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
+- `docs/29-BOOTSTRAP-ADMIN-SPRINT-16.md`
+- `docs/30-ENTREGAS-OPERACIONAIS-SPRINT-16.md`
+- `docs/31-ENTREGAS-GOVERNANCA-INTEGRACOES-SPRINT-16.md`
+- `docs/32-PENDENCIAS-TESTES-BETA-SPRINT-16.md`
+- `docs/33-FECHAMENTO-SPRINT-16.md`
 
 ---
 
@@ -49,13 +54,16 @@ Preparar a plataforma para uso mais controlado na fase Beta assistida, evoluindo
 
 Status:
 
-Em implementacao
+Implementado para validacao assistida
 
 Entregas iniciais:
 
 - Base inicial de Usuarios e Acessos implementada em Configuracoes.
 - Migration 050 criada para usuarios, perfis, convites, provedores e auditoria.
 - Cadastro de usuarios locais/externos e provedores FreeIPA/LDAP/AD disponivel.
+- Login global, sessao e protecao gradual de rotas implementados.
+- Matriz de permissoes por menu, nivel de acesso e controle de visualizacao de valores implementados.
+- Bootstrap seguro do primeiro administrador implementado.
 
 Objetivos:
 
@@ -72,7 +80,7 @@ Objetivos:
 
 Status:
 
-Em planejamento
+Implementada para validacao assistida
 
 Objetivos:
 
@@ -80,11 +88,18 @@ Objetivos:
 - Priorizar eventos de integracoes, configuracoes, cofre de senhas, contratos, propostas e implantacao.
 - Evitar exposicao de segredos, tokens ou senhas em logs e historicos.
 
+Entregas iniciais:
+
+- Registro centralizado em `auth_auditoria`.
+- Captura de usuario, acao, entidade, IP e user agent.
+- Sanitizacao de campos sensiveis em detalhes auditados.
+- Tela administrativa de auditoria em Configuracoes.
+
 ## 3. Validacao Assistida da Beta
 
 Status:
 
-Em planejamento
+Encaminhada para a release Beta
 
 Objetivos:
 
@@ -96,13 +111,23 @@ Objetivos:
 
 Status:
 
-Em planejamento
+Implementados parcialmente para validacao assistida
 
 Objetivos:
 
 - Enderecar ajustes de usabilidade identificados pela equipe.
 - Priorizar correcoes que reduzam retrabalho operacional.
 - Preservar estabilidade das rotas e fluxos ja validados.
+
+Entregas registradas:
+
+- Comentarios internos em propostas.
+- Regras de campanhas e comissao.
+- Compartilhamento temporario do cofre de senhas.
+- Vinculos do cofre com inventarios Proxmox, PBS e Zabbix.
+- Disparos de e-mail para participantes de eventos CRM.
+- Servicos de e-mail com provedor Brevo.
+- Categoria de parceiros e dimensionamento de hardware por parceiro.
 
 ---
 
@@ -138,7 +163,7 @@ Sprint Atual:
 
 Situacao:
 
-Aberta em 03/08/2026
+Concluida tecnicamente em 06/08/2026
 
 Sprint anterior:
 
@@ -152,7 +177,14 @@ Documento de abertura:
 
 - `docs/27-ABERTURA-SPRINT-16.md`
 - `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
+- `docs/29-BOOTSTRAP-ADMIN-SPRINT-16.md`
+- `docs/30-ENTREGAS-OPERACIONAIS-SPRINT-16.md`
+- `docs/31-ENTREGAS-GOVERNANCA-INTEGRACOES-SPRINT-16.md`
 
-Proxima definicao:
+Documento de fechamento:
 
-Confirmar prioridade inicial entre controle de acesso/perfis, auditoria operacional, roteiro de validacao Beta ou novos refinamentos assistidos.
+- `docs/33-FECHAMENTO-SPRINT-16.md`
+
+Pendencias para a release Beta:
+
+- `docs/32-PENDENCIAS-TESTES-BETA-SPRINT-16.md`

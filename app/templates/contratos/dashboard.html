@@ -18,6 +18,16 @@
         <a class="btn btn-sm btn-outline-info" href="{{ url_for('contratos.sincronizar_omie') }}" onclick="return confirm('Sincronizar contratos com o Omie agora?')"><i class="bi bi-arrow-repeat"></i> Sincronizar Omie</a>
     </div>
 
+    {% if pendencias_upload %}
+        <div class="alert alert-warning border-warning d-flex align-items-start gap-2 mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+            <div>
+                <strong>Upload de contratos pendente.</strong>
+                Existem {{ pendencias_upload }} contrato(s) com a badge "Encaminhado para Projeto" sem arquivo assinado. Faça o upload dos PDFs para remover esta tarja.
+            </div>
+        </div>
+    {% endif %}
+
     <form method="GET" class="card border-0 shadow-sm mb-3">
         <div class="card-body">
             <div class="row g-2 align-items-end">

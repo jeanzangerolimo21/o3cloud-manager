@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from app.contatos.service import ContatoService
+from app.core.pdf_assinatura import extrair_data_assinatura_pdf
 from app.core.storage import StorageService
 from app.integracoes.omie.client import OmieClient
 from app.integracoes.omie.contrato_mapper import ContratoMapper
@@ -79,6 +80,10 @@ class ContratoService:
     @classmethod
     def dashboard(cls, filtros):
         return ContratoRepository.dashboard(**filtros)
+
+    @classmethod
+    def contar_encaminhados_sem_arquivo(cls):
+        return ContratoRepository.contar_encaminhados_sem_arquivo()
 
     @classmethod
     def diagnostico_pre_beta(cls, contrato, implantacao=None):
@@ -230,10 +235,12 @@ class ContratoService:
             raise ValueError("Envie um arquivo PDF assinado.")
 
         salvo = StorageService.salvar(arquivo, StorageService.CONTRATOS)
+        data_assinatura = extrair_data_assinatura_pdf(StorageService.caminho(StorageService.CONTRATOS, salvo["nome"]))
         ContratoRepository.atualizar_arquivo_assinado(
             contrato_id,
             salvo["nome"],
             salvo["arquivo_original"],
+            data_assinatura,
         )
 
     @classmethod

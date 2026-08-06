@@ -1,0 +1,36 @@
+{% extends "layout/base.html" %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div><h1>{{ evento.nome_evento }}</h1><p class="text-muted mb-0">Data: {{ evento.data_evento|date_br }} · {{ total_participantes }} participante(s)</p></div>
+    <div>
+      <a class="btn btn-outline-secondary" href="{{ url_for('eventos.editar',evento_id=evento.id) }}"><i class="bi bi-pencil"></i> Editar evento</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('eventos.preparar_disparo_email',evento_id=evento.id) }}"><i class="bi bi-send"></i> Disparo de e-mails em massa</a>
+      <a class="btn btn-primary" href="{{ url_for('eventos.importar',evento_id=evento.id) }}"><i class="bi bi-upload"></i> Importar planilha</a>
+      <a class="btn btn-outline-secondary" href="{{ url_for('eventos.index') }}">Eventos</a>
+    </div>
+  </div>
+  <form class="mb-3"><div class="input-group"><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Buscar participante, empresa ou e-mail"><button class="btn btn-outline-primary"><i class="bi bi-search"></i></button></div></form>
+  <form method="post" action="{{ url_for('eventos.excluir_participantes',evento_id=evento.id) }}" id="bulkForm">
+    <input type="hidden" name="page" value="{{ pagina }}"><input type="hidden" name="q" value="{{ pesquisa or '' }}">
+    <div class="card shadow-sm border-0"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+      <thead><tr><th style="width:40px"><input type="checkbox" class="form-check-input" id="selectAll" title="Selecionar todos desta página"></th><th>Participante</th><th>Empresa</th><th>E-mail</th><th>Telefone</th><th>CNPJ</th><th class="text-end">Ações</th></tr></thead>
+      <tbody>
+      {% for p in participantes %}
+      <tr><td><input type="checkbox" class="form-check-input participant-check" name="participante_ids" value="{{ p.id }}"></td><td>{{ p.nome }}</td><td>{{ p.empresa or '-' }}</td><td>{{ p.email or '-' }}</td><td>{{ p.telefone|telefone_br or '-' }}</td><td>{{ p.cnpj or '-' }}</td><td class="text-end"><div class="btn-group btn-group-sm"><a class="btn btn-outline-secondary" href="{{ url_for('eventos.editar_participante',evento_id=evento.id,participante_id=p.id) }}" title="Editar participante"><i class="bi bi-pencil"></i></a><button class="btn btn-outline-danger" type="submit" formaction="{{ url_for('eventos.excluir_participante',evento_id=evento.id,participante_id=p.id) }}" name="single_id" value="{{ p.id }}" formmethod="post" onclick="return confirm('Remover este participante do evento?')" title="Excluir participante"><i class="bi bi-trash"></i></button><a class="btn btn-outline-primary" href="{{ url_for('oportunidades.novo', titulo='Oportunidade - ' ~ p.nome, empresa=p.empresa or '', observacoes='Evento: ' ~ evento.nome_evento ~ '\nParticipante: ' ~ p.nome ~ '\nE-mail: ' ~ (p.email or '-') ~ '\nTelefone: ' ~ (p.telefone|telefone_br or '-') ~ '\nCNPJ: ' ~ (p.cnpj or '-')) }}" title="Nova oportunidade"><i class="bi bi-briefcase"></i></a></div></td></tr>
+      {% else %}<tr><td colspan="7" class="text-center text-muted py-4">Nenhum participante importado neste evento.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+    <div class="d-flex justify-content-between align-items-center p-3 border-top">
+      <button class="btn btn-outline-danger" id="bulkDelete" type="submit" disabled onclick="return confirm('Remover os participantes selecionados deste evento?')"><i class="bi bi-trash"></i> Excluir selecionados</button>
+      <small class="text-muted">Exibindo até 100 participantes por página.</small>
+    </div></div>
+  </form>
+  {% if total_paginas > 1 %}<nav class="mt-4"><ul class="pagination justify-content-center"><li class="page-item {% if pagina <= 1 %}disabled{% endif %}"><a class="page-link" href="{{ url_for('eventos.visualizar',evento_id=evento.id,page=pagina-1,q=pesquisa) }}">Anterior</a></li>{% for p in range(1,total_paginas+1) %}<li class="page-item {% if p == pagina %}active{% endif %}"><a class="page-link" href="{{ url_for('eventos.visualizar',evento_id=evento.id,page=p,q=pesquisa) }}">{{ p }}</a></li>{% endfor %}<li class="page-item {% if pagina >= total_paginas %}disabled{% endif %}"><a class="page-link" href="{{ url_for('eventos.visualizar',evento_id=evento.id,page=pagina+1,q=pesquisa) }}">Próxima</a></li></ul></nav>{% endif %}
+</div>
+<script>
+const selectAll=document.getElementById('selectAll'), checks=Array.from(document.querySelectorAll('.participant-check')), bulkDelete=document.getElementById('bulkDelete');
+function updateBulk(){bulkDelete.disabled=!checks.some(c=>c.checked);selectAll.checked=checks.length>0&&checks.every(c=>c.checked)}
+selectAll.addEventListener('change',()=>{checks.forEach(c=>c.checked=selectAll.checked);updateBulk()});checks.forEach(c=>c.addEventListener('change',updateBulk));
+</script>
+{% endblock %}

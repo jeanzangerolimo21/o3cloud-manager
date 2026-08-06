@@ -26,6 +26,7 @@
     <div class="proposal-view-shell {% if print_mode %}print-ready{% endif %}">
         {% if not print_mode %}
         <div class="d-flex justify-content-end gap-2 flex-wrap mb-4 no-print">
+            <a href="{{ url_for('propostas.comentarios_internos', proposta_id=proposta.id) }}" class="btn btn-outline-info"><i class="bi bi-chat-left-text"></i> Comentário Interno</a>
             <a href="{{ url_for('propostas.imprimir', proposta_id=proposta.id) }}" target="_blank" class="btn btn-outline-dark"><i class="bi bi-printer"></i> Imprimir em PDF</a>
             <a href="{{ url_for('propostas.exportar_docx', proposta_id=proposta.id) }}" class="btn btn-outline-success"><i class="bi bi-file-earmark-word"></i> Exportar DOCX</a>
             {% if proposta.status == 'APROVADA' %}<a href="{{ url_for('contratos.novo', proposta_id=proposta.id) }}" class="btn btn-success"><i class="bi bi-file-earmark-check"></i> Gerar Contrato</a>{% endif %}

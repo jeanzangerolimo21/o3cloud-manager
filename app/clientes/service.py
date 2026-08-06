@@ -51,6 +51,10 @@ class ClienteService:
 
         ClienteRepository.excluir(cliente_id)
 
+    @staticmethod
+    def excluir_manuais(cliente_ids):
+        return ClienteRepository.excluir_manuais(cliente_ids)
+
 
     @staticmethod
     def buscar_por_id(cliente_id):

@@ -2,9 +2,11 @@ import base64
 import hashlib
 import hmac
 import os
+import secrets
 
 from flask import current_app
 
+from app.core.auditoria import registrar_evento
 from app.clientes.service import ClienteService
 from app.implantacao.cofre_pastas_service import TIPOS_COFRE_PASTA
 from app.repositories.cofre_pasta_repository import CofrePastaRepository
@@ -67,6 +69,7 @@ class CofreSenhaService:
             "pasta_tipo_options": TIPOS_COFRE_PASTA,
             "categoria_options": CATEGORIAS_COFRE_SENHAS,
             "senha_policy": cls.politica_gerador_senha(),
+            **cls.repository.listar_vinculos_infraestrutura(),
         }
 
     @classmethod
@@ -86,7 +89,7 @@ class CofreSenhaService:
         payload["created_by"] = usuario_email or "sistema"
         payload["updated_by"] = usuario_email or "sistema"
         senha_id = cls.repository.inserir(payload)
-        cls.repository.registrar_auditoria(senha_id, "CRIAR", usuario_email, "Credencial criada", ip_origem)
+        registrar_evento("COFRE_CREDENCIAL_CRIADA", "cofre_senhas", senha_id, {"cliente_id": payload.get("cliente_id"), "categoria": payload.get("categoria"), "titulo": payload.get("titulo")}, usuario_email)
         return senha_id
 
     @classmethod
@@ -99,14 +102,14 @@ class CofreSenhaService:
             payload["senha_encrypted"] = cls._encrypt(dados.get("senha"))
         payload["updated_by"] = usuario_email or "sistema"
         cls.repository.atualizar(senha_id, payload)
-        cls.repository.registrar_auditoria(senha_id, "ATUALIZAR", usuario_email, "Credencial atualizada", ip_origem)
+        registrar_evento("COFRE_CREDENCIAL_ATUALIZADA", "cofre_senhas", senha_id, {"cliente_id": payload.get("cliente_id"), "categoria": payload.get("categoria"), "titulo": payload.get("titulo"), "senha_alterada": bool(dados.get("senha"))}, usuario_email)
 
     @classmethod
     def excluir(cls, senha_id, usuario_email="sistema", ip_origem=None):
         if not cls.buscar_por_id(senha_id, usuario_email):
             raise ValueError("Credencial não encontrada.")
         cls.repository.excluir(senha_id, usuario_email)
-        cls.repository.registrar_auditoria(senha_id, "INATIVAR", usuario_email, "Credencial inativada", ip_origem)
+        registrar_evento("COFRE_CREDENCIAL_INATIVADA", "cofre_senhas", senha_id, None, usuario_email)
 
     @classmethod
     def revelar_senha(cls, senha_id, usuario_email="sistema", ip_origem=None):
@@ -117,8 +120,49 @@ class CofreSenhaService:
             valor = cls._decrypt(senha.get("senha_encrypted"))
         except ValueError as erro:
             raise ValueError("Não foi possível descriptografar a senha. Verifique a chave do cofre.") from erro
-        cls.repository.registrar_auditoria(senha_id, "REVELAR", usuario_email, "Senha revelada na interface", ip_origem)
+        registrar_evento("COFRE_CREDENCIAL_REVELADA", "cofre_senhas", senha_id, {"titulo": senha.get("titulo"), "cliente_id": senha.get("cliente_id")}, usuario_email)
         return valor
+
+    @classmethod
+    def criar_compartilhamento(cls, senha_id, usuario_email="sistema", ip_origem=None):
+        senha = cls.buscar_por_id(senha_id, usuario_email)
+        if not senha or not senha.get("ativo"):
+            raise ValueError("Credencial nao encontrada ou sem acesso.")
+        token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        ttl = current_app.config.get("COFRE_COMPARTILHAMENTO_TTL_MINUTOS", 5)
+        cls.repository.criar_compartilhamento({
+            "cofre_senha_id": senha_id, "token_hash": token_hash,
+            "ttl_minutos": ttl, "created_by": usuario_email, "created_ip": ip_origem,
+        })
+        registrar_evento(
+            "COFRE_COMPARTILHAMENTO_GERADO", "cofre_senhas", senha_id,
+            {"titulo": senha.get("titulo"), "expira_em_minutos": ttl}, usuario_email,
+        )
+        return token
+
+    @classmethod
+    def consumir_compartilhamento(cls, token, ip_origem=None):
+        if not token or len(token) > 128:
+            return None
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        compartilhamento = cls.repository.consumir_compartilhamento(token_hash, ip_origem)
+        if not compartilhamento:
+            return None
+        try:
+            valor = cls._decrypt(compartilhamento.get("senha_encrypted"))
+        except ValueError:
+            return None
+        registrar_evento(
+            "COFRE_COMPARTILHAMENTO_ACESSADO", "cofre_senhas",
+            compartilhamento.get("cofre_senha_id"),
+            {"titulo": compartilhamento.get("titulo")}, "link-publico",
+        )
+        return {
+            "titulo": compartilhamento.get("titulo"),
+            "senha": valor,
+            "expires_at": compartilhamento.get("expires_at"),
+        }
 
     @staticmethod
     def _usuario_tem_acesso(senha, usuario_email):
@@ -214,6 +258,10 @@ class CofreSenhaService:
             "proxmox_vm_id": cls._texto(dados.get("proxmox_vm_id")),
             "pbs_server_id": cls._texto(dados.get("pbs_server_id")),
             "zabbix_host_id": cls._texto(dados.get("zabbix_host_id")),
+            "proxmox_node_inventory_id": cls._inteiro(dados.get("proxmox_node_inventory_id")) or None,
+            "proxmox_inventory_id": cls._inteiro(dados.get("proxmox_inventory_id")) or None,
+            "pbs_backup_snapshot_id": cls._inteiro(dados.get("pbs_backup_snapshot_id")) or None,
+            "zabbix_host_inventory_id": cls._inteiro(dados.get("zabbix_host_inventory_id")) or None,
             "ativo": 1 if str(dados.get("ativo", "1")) != "0" else 0,
         }
 

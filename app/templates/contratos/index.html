@@ -26,6 +26,16 @@
         </a>
     </div>
 
+    {% if pendencias_upload %}
+        <div class="alert alert-warning border-warning d-flex align-items-start gap-2 mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+            <div>
+                <strong>Upload de contratos pendente.</strong>
+                Existem {{ pendencias_upload }} contrato(s) com a badge "Encaminhado para Projeto" sem arquivo assinado. Faça o upload dos PDFs para remover esta tarja.
+            </div>
+        </div>
+    {% endif %}
+
     <form method="GET" class="card border-0 shadow-sm mb-3">
         <div class="card-body">
             <div class="row g-2 align-items-end">
@@ -102,6 +112,7 @@
                                 </div>
                                 <div class="mt-2 small">
                                     <span class="me-3">Fechamento: {{ contrato.data_fechamento|date_br if contrato.data_fechamento else '-' }}</span>
+                                    {% if contrato.arquivo_assinado %}<span class="me-3">Assinado em: {{ contrato.clicksign_assinado_em|datetime_br if contrato.clicksign_assinado_em else '-' }}</span>{% endif %}
                                     <span class="me-3">{{ (contrato.valor_promocional or contrato.valor_mensal)|moeda }}/mes</span>
                                     <span>Usuarios: {{ contrato.quantidade_usuarios or '-' }}</span>
                                 </div>

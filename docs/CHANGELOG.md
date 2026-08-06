@@ -40,6 +40,63 @@ Junho/2026
 
 # CHANGELOG
 
+## 2026-08-06 - Fechamento Tecnico Sprint 16
+
+### Documentacao
+
+- Sprint 16 concluida tecnicamente, com entregas de governanca, acessos, auditoria e operacao assistida consolidadas.
+- Pendencias de testes assistidos das etapas 1 a 7 encaminhadas para a release Beta em `docs/32-PENDENCIAS-TESTES-BETA-SPRINT-16.md`.
+- Criado `docs/33-FECHAMENTO-SPRINT-16.md` com entregas, validacoes e decisao de fechamento.
+
+## 2026-08-05 - Governanca, Integracoes e Refinamentos Sprint 16
+
+### Governanca
+
+- Implementado login global com sessao e protecao gradual de rotas por permissao.
+- Criada matriz de permissoes por menu com nivel de acesso de visualizacao ou edicao.
+- Adicionado controle de exibicao de valores por perfil e foto de usuario.
+- Auditoria operacional expandida com IP, user agent e sanitizacao de dados sensiveis.
+
+### CRM e Comercial
+
+- Propostas receberam comentarios internos com compartilhamento por e-mail.
+- Criado modulo de regras de campanhas e comissao com vigencia e validacao de sobreposicao.
+- Eventos CRM passaram a registrar disparos de e-mail para participantes.
+
+### Operacoes e Integracoes
+
+- Cofre de Senhas recebeu compartilhamento temporario por token e vinculos com inventarios Proxmox, PBS e Zabbix.
+- Servicos de e-mail passaram a suportar provedor Brevo alem de SMTP.
+- Parceiros receberam categoria comercial e catalogo tecnico recebeu dimensionamento de hardware por parceiro.
+
+Registro detalhado: docs/31-ENTREGAS-GOVERNANCA-INTEGRACOES-SPRINT-16.md
+
+## 2026-08-05 - Eventos CRM e Base de Conhecimento Sprint 16
+
+### CRM
+
+- Criado o fluxo de eventos com criação, edição e importação de participantes por evento.
+- Adicionado importador CSV, XLS e XLSX com mapeamento automático/manual, validação e deduplicação.
+- Adicionado atalho para criar nova oportunidade a partir de participante importado.
+- Criadas as tabelas da migration 063.
+
+### Base de Conhecimento
+
+- Criadas bases independentes, pastas, subpastas, conhecimentos e anexos.
+- Adicionado editor de texto livre, tags, catálogo, compartilhamento e imagens em conhecimentos salvos.
+- Arquivos armazenados em /opt/o3cloud-manager/storage/conhecimentos.
+- Criadas as tabelas da migration 064.
+- Módulo incluído em Operações com permissão base_conhecimento.
+
+Registro detalhado: docs/30-ENTREGAS-OPERACIONAIS-SPRINT-16.md
+
+## 2026-08-04 - Mapeamento de Grupos Externos Sprint 16
+
+### Adicionado
+- Criada migration `060_create_auth_grupo_perfil_mapas.sql` para mapear grupos FreeIPA/LDAP/AD para perfis internos.
+- Adicionadas rotas e tela em Configuracoes > Usuarios e Acessos para cadastrar, editar e inativar mapeamentos de grupos externos.
+- Mapeamentos passam a gerar auditoria administrativa basica.
+
 Todas as mudanças importantes deste projeto serão registradas neste documento.
 
 O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud Manager.

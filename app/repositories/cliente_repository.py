@@ -291,7 +291,18 @@ class ClienteRepository(BaseRepository):
 
         conn.commit()
 
-        cls.close(conn, cursor)    
+        cls.close(conn, cursor)
+
+    @classmethod
+    def excluir_manuais(cls, cliente_ids):
+        ids = [int(item) for item in cliente_ids if str(item).isdigit()]
+        if not ids:
+            return 0
+        marks = ",".join(["%s"] * len(ids))
+        return cls.execute(
+            f"DELETE FROM clientes WHERE origem = %s AND id IN ({marks})",
+            tuple([ORIGEM_MANUAL] + ids),
+        )
 
     
     @classmethod

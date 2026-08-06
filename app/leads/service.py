@@ -87,6 +87,10 @@ class LeadService:
         return cls.repository.excluir(lead_id)
 
     @classmethod
+    def excluir_em_massa(cls, lead_ids):
+        return cls.repository.excluir_em_massa(lead_ids)
+
+    @classmethod
     def normalizar(cls, dados):
         dados = dict(dados)
         dados["empresa"] = (dados.get("empresa") or "").strip()

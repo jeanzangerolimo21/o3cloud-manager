@@ -1,0 +1,2 @@
+ALTER TABLE auth_usuarios
+    ADD COLUMN IF NOT EXISTS foto VARCHAR(255) NULL AFTER senha_hash;

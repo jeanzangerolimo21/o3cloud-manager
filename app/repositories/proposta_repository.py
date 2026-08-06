@@ -342,6 +342,102 @@ class PropostaRepository(BaseRepository):
         return cls.execute(f"DELETE FROM {cls.TABLE} WHERE id = %s", (proposta_id,))
 
     @classmethod
+    def excluir_em_massa(cls, proposta_ids):
+        ids = [int(item) for item in proposta_ids if str(item).isdigit()]
+        if not ids:
+            return 0
+        marks = ",".join(["%s"] * len(ids))
+        return cls.execute(f"DELETE FROM {cls.TABLE} WHERE id IN ({marks})", tuple(ids))
+
+    @classmethod
+    def inserir_comentario_interno(cls, proposta_id, comentario, autor_email=None):
+        return cls.execute_insert(
+            """
+            INSERT INTO crm_proposta_comentarios_internos (uuid, proposta_id, comentario, autor_email)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (cls.generate_uuid(), proposta_id, comentario, autor_email),
+        )
+
+    @classmethod
+    def substituir_compartilhamentos_comentario(cls, comentario_id, emails):
+        conn = cls.connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM crm_proposta_comentario_compartilhamentos WHERE comentario_id = %s", (comentario_id,))
+            valores = [(comentario_id, email) for email in emails]
+            if valores:
+                cursor.executemany(
+                    """
+                    INSERT IGNORE INTO crm_proposta_comentario_compartilhamentos (comentario_id, email)
+                    VALUES (%s, %s)
+                    """,
+                    valores,
+                )
+            conn.commit()
+            return True
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cls.close(conn, cursor)
+
+    @classmethod
+    def listar_comentarios_internos(cls, proposta_id, autor_email=None, mostrar_todos=False):
+        params = [proposta_id]
+        filtro_visibilidade = ""
+        if not mostrar_todos:
+            filtro_visibilidade = """
+              AND (ci.autor_email = %s
+                   OR EXISTS (
+                        SELECT 1
+                        FROM crm_proposta_comentario_compartilhamentos cv
+                        WHERE cv.comentario_id = ci.id AND cv.email = %s
+                   ))
+            """
+            params.extend([autor_email or "", autor_email or ""])
+        comentarios = cls.fetch_all(
+            f"""
+            SELECT ci.id, ci.uuid, ci.proposta_id, ci.comentario, ci.autor_email, ci.created_at, ci.updated_at
+            FROM crm_proposta_comentarios_internos ci
+            WHERE ci.proposta_id = %s AND ci.ativo = 1
+            {filtro_visibilidade}
+            ORDER BY ci.created_at DESC, ci.id DESC
+            """,
+            tuple(params),
+        )
+        if not comentarios:
+            return []
+        ids = [item["id"] for item in comentarios]
+        placeholders = ",".join(["%s"] * len(ids))
+        compartilhamentos = cls.fetch_all(
+            f"""
+            SELECT comentario_id, email
+            FROM crm_proposta_comentario_compartilhamentos
+            WHERE comentario_id IN ({placeholders})
+            ORDER BY email ASC
+            """,
+            tuple(ids),
+        )
+        por_comentario = {}
+        for item in compartilhamentos:
+            por_comentario.setdefault(item["comentario_id"], []).append(item)
+        for comentario in comentarios:
+            comentario["compartilhados"] = por_comentario.get(comentario["id"], [])
+        return comentarios
+
+    @classmethod
+    def total_comentarios_internos(cls, proposta_id):
+        return cls.scalar(
+            """
+            SELECT COUNT(*)
+            FROM crm_proposta_comentarios_internos
+            WHERE proposta_id = %s AND ativo = 1
+            """,
+            (proposta_id,),
+        ) or 0
+
+    @classmethod
     def listar_clicksign_pendentes(cls):
         conn = cls.connection()
         cursor = conn.cursor(dictionary=True)

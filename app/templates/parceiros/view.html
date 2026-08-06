@@ -51,6 +51,10 @@
                     {{ parceiro.segmento or '-' }}
                 </div>
                 <div class="col-md-4">
+                    <strong>Categoria do Parceiro</strong><br>
+                    {% set categoria_parceiro = parceiro.categoria_parceiro %}{% include "parceiros/_categoria_badge.html" %}
+                </div>
+                <div class="col-md-4">
                     <strong>Status da Negociação</strong><br>
                     {{ status_negociacao_options.get(parceiro.status_negociacao, 'Primeiro Contato') }}
                 </div>

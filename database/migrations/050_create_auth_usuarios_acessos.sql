@@ -88,8 +88,12 @@ CREATE TABLE IF NOT EXISTS auth_auditoria (
     entidade VARCHAR(80) NOT NULL,
     entidade_id BIGINT NULL,
     detalhes TEXT NULL,
+    ip_origem VARCHAR(80) NULL,
+    user_agent VARCHAR(255) NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     KEY idx_auth_auditoria_entidade (entidade, entidade_id),
+    KEY idx_auth_auditoria_usuario (usuario_email),
+    KEY idx_auth_auditoria_entidade_created (entidade, created_at),
     KEY idx_auth_auditoria_acao (acao),
     KEY idx_auth_auditoria_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

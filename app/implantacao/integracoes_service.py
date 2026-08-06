@@ -14,6 +14,8 @@ TIPOS_INTEGRACAO = {
     "pbs": "Proxmox Backup Server",
     "zabbix": "Zabbix",
     "freeipa": "FreeIPA",
+    "ldap": "LDAP",
+    "ad": "Active Directory",
     "truenas": "TrueNAS",
 }
 
@@ -26,8 +28,8 @@ GRUPOS_INTEGRACAO = {
     },
     "tecnicas": {
         "titulo": "Integrações Técnicas",
-        "descricao": "Configuração base para Proxmox, PBS, Zabbix, FreeIPA e TrueNAS.",
-        "tipos": ("proxmox", "pbs", "zabbix", "freeipa", "truenas"),
+        "descricao": "Configuração base para Proxmox, PBS, Zabbix, FreeIPA, LDAP, Active Directory e TrueNAS.",
+        "tipos": ("proxmox", "pbs", "zabbix", "freeipa", "ldap", "ad", "truenas"),
     },
 }
 
@@ -87,41 +89,6 @@ class IntegracaoConfigService:
             "titulo": contexto["titulo"],
             "descricao": contexto["descricao"],
             "tipos": contexto["tipos"],
-        }
-
-    @classmethod
-    def plano_sincronismo_proxmox(cls, grupo=None):
-        if grupo != "tecnicas":
-            return None
-        return {
-            "titulo": "Plano de sincronismo Proxmox VE",
-            "status": "Sprint 15 em andamento",
-            "descricao": "Nesta sprint o Proxmox opera em modo somente leitura, com sincronismo manual e auditavel antes de qualquer agendamento.",
-            "campos": [
-                "vmid",
-                "nome",
-                "node",
-                "tipo qemu/lxc",
-                "status",
-                "CPU",
-                "memoria",
-                "disco",
-                "IPs",
-                "tags",
-                "template",
-                "uptime",
-            ],
-            "regras": [
-                "Usar token de API com permissao minima de leitura.",
-                "Nao executar start, stop, reboot, migrate, delete ou alteracoes de configuracao.",
-                "Sincronismo inicial sera manual e auditavel antes de qualquer agendamento.",
-                "Vinculo com cliente, contrato e implantacao sera conferido pela equipe antes de automacao.",
-            ],
-            "fases": [
-                {"nome": "Sprint 14", "descricao": "Cadastro seguro, validacao estrutural e desenho de inventario."},
-                {"nome": "Sprint 15", "descricao": "Cliente Proxmox em modo leitura, sync manual e gravacao de snapshot."},
-                {"nome": "Pos-validacao", "descricao": "Rotina agendada, reconciliacao e alertas de divergencia."},
-            ],
         }
 
     @classmethod
@@ -301,6 +268,8 @@ class IntegracaoConfigService:
     @classmethod
     def _validar_conexao_real(cls, integracao):
         tipo = integracao.get("tipo")
+        if tipo in ("freeipa", "ldap", "ad"):
+            return "OK", "Configuração estrutural de autenticação válida. Sincronismo e autenticação externa serão tratados pela etapa de Usuários e Acessos."
         if tipo not in ("proxmox", "pbs", "zabbix", "truenas"):
             return "OK", "Configuração estrutural válida. Validação real ainda não implementada para este tipo."
         try:
@@ -479,11 +448,12 @@ class IntegracaoConfigService:
         if integracao.get("tipo") not in TIPOS_INTEGRACAO:
             return "ERRO", "Tipo de integração inválido."
         parsed = urlparse(integracao.get("base_url") or "")
-        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        esquemas_validos = ("http", "https", "ldap", "ldaps") if integracao.get("tipo") == "freeipa" else (("ldap", "ldaps") if integracao.get("tipo") in ("ldap", "ad") else ("http", "https"))
+        if parsed.scheme not in esquemas_validos or not parsed.netloc:
             return "ERRO", "URL base inválida."
         if not integracao.get("segredo_encrypted") and not integracao.get("possui_segredo"):
             return "ERRO", "Token ou senha não cadastrado."
-        if integracao.get("tipo") in ("proxmox", "pbs", "freeipa", "truenas") and not integracao.get("usuario") and not integracao.get("token_nome"):
+        if integracao.get("tipo") in ("proxmox", "pbs", "freeipa", "ldap", "ad", "truenas") and not integracao.get("usuario") and not integracao.get("token_nome"):
             return "ERRO", "Informe usuário ou nome do token."
         if integracao.get("tipo") in ("zabbix", "omie", "clicksign") and not integracao.get("token_nome"):
             return "AVISO", "Configuração estrutural válida. Recomenda-se informar nome do token para auditoria."
@@ -495,8 +465,8 @@ class IntegracaoConfigService:
         if not texto:
             return None
         parsed = urlparse(texto)
-        if parsed.scheme not in ("http", "https") or not parsed.netloc:
-            raise ValueError("Informe uma URL base válida com http:// ou https://.")
+        if parsed.scheme not in ("http", "https", "ldap", "ldaps") or not parsed.netloc:
+            raise ValueError("Informe uma URL base válida com http://, https://, ldap:// ou ldaps://.")
         return texto
 
     @staticmethod

@@ -76,7 +76,7 @@ def novo():
     return render_template(
         "oportunidades/form.html",
         modo="novo",
-        oportunidade=None,
+        oportunidade=_oportunidade_query_payload(),
         status_options=STATUS_OPORTUNIDADE,
         **contexto,
     )
@@ -134,6 +134,14 @@ def editar(oportunidade_id):
     )
 
 
+@oportunidades_bp.route("/excluir-em-massa", methods=["POST"])
+def excluir_em_massa():
+    ids = request.form.getlist("oportunidade_ids")
+    if ids:
+        OportunidadeService.excluir_em_massa(ids)
+        flash(f"{len(ids)} oportunidade(s) removida(s) com sucesso.", "success")
+    return redirect(url_for("oportunidades.index"))
+
 @oportunidades_bp.route("/<int:oportunidade_id>/excluir")
 def excluir(oportunidade_id):
     oportunidade = OportunidadeService.buscar_por_id(oportunidade_id)
@@ -173,6 +181,18 @@ def _coletar_dados_form():
         "status": request.form.get("status"),
         "observacoes": request.form.get("observacoes"),
         "ativo": request.form.get("ativo", "0"),
+    }
+
+
+def _oportunidade_query_payload():
+    if not any(request.args.get(campo) for campo in ("titulo", "empresa", "observacoes")):
+        return None
+    return {
+        "titulo": request.args.get("titulo", "")[:180],
+        "empresa": request.args.get("empresa", "")[:150],
+        "observacoes": request.args.get("observacoes", "")[:4000],
+        "status": "NOVA",
+        "ativo": True,
     }
 
 

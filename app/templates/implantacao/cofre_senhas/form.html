@@ -11,7 +11,7 @@
     {% include "components/page_header.html" %}
 
     <div class="row g-4">
-        <div class="col-lg-8">
+        <div class="col-12">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <form method="POST">
@@ -90,33 +90,44 @@
                                 <small class="text-muted">{% if modo == 'editar' %}Preencha apenas se quiser trocar a senha. {% endif %}Padrão atual: {{ senha_policy.tamanho }} caracteres.</small>
                             </div>
                             <div class="col-md-6"><label class="form-label">Observações</label><textarea class="form-control" rows="3" name="observacoes">{{ senha.observacoes or '' }}</textarea></div>
-                            <div class="col-md-3"><label class="form-label">Proxmox Node</label><input class="form-control" name="proxmox_node_id" value="{{ senha.proxmox_node_id or '' }}"></div>
-                            <div class="col-md-3"><label class="form-label">Proxmox VM</label><input class="form-control" name="proxmox_vm_id" value="{{ senha.proxmox_vm_id or '' }}"></div>
-                            <div class="col-md-3"><label class="form-label">PBS Server</label><input class="form-control" name="pbs_server_id" value="{{ senha.pbs_server_id or '' }}"></div>
-                            <div class="col-md-3"><label class="form-label">Zabbix Host</label><input class="form-control" name="zabbix_host_id" value="{{ senha.zabbix_host_id or '' }}"></div>
+                            <div class="col-md-6">
+                                <label class="form-label">Proxmox Node</label>
+                                <select class="form-select" name="proxmox_node_inventory_id" id="proxmox_node_inventory_id">
+                                    <option value="">Sem vinculo de Node</option>
+                                    {% for node in proxmox_nodes %}
+                                        <option value="{{ node.id }}" {% if senha.proxmox_node_inventory_id|string == node.id|string %}selected{% endif %}>{{ node.integracao_nome }} - {{ node.node }}{% if node.status %} ({{ node.status }}){% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                                {% if senha.proxmox_node_id and not senha.proxmox_node_inventory_id %}<small class="text-muted">Vinculo legado: {{ senha.proxmox_node_id }}</small>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Proxmox VM / Container</label>
+                                <select class="form-select" name="proxmox_inventory_id" id="proxmox_inventory_id">
+                                    <option value="">Sem vinculo de VM</option>
+                                    {% for vm in proxmox_vms %}
+                                        <option value="{{ vm.id }}" data-node-id="{{ vm.node_inventory_id or '' }}" {% if senha.proxmox_inventory_id|string == vm.id|string %}selected{% endif %}>{{ vm.integracao_nome }} - {{ vm.node }} / {{ vm.tipo|upper }} {{ vm.vmid }}{% if vm.nome %} - {{ vm.nome }}{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                                {% if senha.proxmox_vm_id and not senha.proxmox_inventory_id %}<small class="text-muted">Vinculo legado: {{ senha.proxmox_vm_id }}</small>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Snapshot PBS</label>
+                                <select class="form-select" name="pbs_backup_snapshot_id" id="pbs_backup_snapshot_id">
+                                    <option value="">Sem vinculo de snapshot</option>
+                                    {% for snapshot in pbs_snapshots %}
+                                        <option value="{{ snapshot.id }}" data-vm-id="{{ snapshot.proxmox_inventory_id or '' }}" {% if senha.pbs_backup_snapshot_id|string == snapshot.id|string %}selected{% endif %}>{{ snapshot.integracao_nome }} - {{ snapshot.snapshot_name }} ({{ snapshot.datastore }}{% if snapshot.namespace %} / {{ snapshot.namespace }}{% endif %})</option>
+                                    {% endfor %}
+                                </select>
+                                {% if senha.pbs_server_id and not senha.pbs_backup_snapshot_id %}<small class="text-muted">Servidor PBS legado: {{ senha.pbs_server_id }}</small>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Host Zabbix</label>
+                                <input class="form-control" name="zabbix_host_id" value="{{ senha.zabbix_host_id or '' }}" placeholder="Nome ou ID do host no Zabbix">
+                                <small class="text-muted">Referencia livre para evitar dependencia do inventario durante a reformulacao do Zabbix.</small>
+                            </div>
                         </div>
                         <div class="text-end mt-4"><button class="btn btn-primary"><i class="bi bi-floppy"></i> Salvar</button></div>
                     </form>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <h6 class="mb-3">Auditoria</h6>
-                    {% if auditoria %}
-                        <div class="list-group list-group-flush">
-                            {% for item in auditoria %}
-                                <div class="list-group-item px-0">
-                                    <strong>{{ item.acao }}</strong><br>
-                                    <small class="text-muted">{{ item.usuario_email }} - {{ item.created_at|date_br if item.created_at else '' }}</small><br>
-                                    <small>{{ item.detalhe or '-' }}</small>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <small class="text-muted">Nenhum evento registrado ainda.</small>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -222,6 +233,40 @@
         licencaSelect.addEventListener('change', atualizarUrlLicenca);
         atualizarUrlLicenca();
     }
+
+    const nodeSelect = document.getElementById('proxmox_node_inventory_id');
+    const vmSelect = document.getElementById('proxmox_inventory_id');
+    const snapshotSelect = document.getElementById('pbs_backup_snapshot_id');
+
+    function filtrarOpcoes(select, atributo, valor) {
+        if (!select) {
+            return;
+        }
+        Array.from(select.options).forEach(function (option) {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+            option.hidden = Boolean(valor) && option.dataset[atributo] !== valor;
+        });
+        const atual = select.options[select.selectedIndex];
+        if (atual && atual.hidden) {
+            select.value = '';
+        }
+    }
+
+    function atualizarVinculosInfraestrutura() {
+        filtrarOpcoes(vmSelect, 'nodeId', nodeSelect ? nodeSelect.value : '');
+        filtrarOpcoes(snapshotSelect, 'vmId', vmSelect ? vmSelect.value : '');
+    }
+
+    if (nodeSelect) {
+        nodeSelect.addEventListener('change', atualizarVinculosInfraestrutura);
+    }
+    if (vmSelect) {
+        vmSelect.addEventListener('change', atualizarVinculosInfraestrutura);
+    }
+    atualizarVinculosInfraestrutura();
 
     if (toggleButton && senhaInput) {
         toggleButton.addEventListener('click', function () {

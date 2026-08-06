@@ -131,6 +131,14 @@ def novo():
 
     )
 
+@clientes_bp.route("/excluir-em-massa", methods=["POST"])
+def excluir_em_massa():
+    ids = request.form.getlist("cliente_ids")
+    if ids:
+        ClienteService.excluir_manuais(ids)
+        flash(f"{len(ids)} cliente(s) manual(is) removido(s) com sucesso.", "success")
+    return redirect(url_for("clientes.index"))
+
 @clientes_bp.route("/<int:id>/excluir")
 def excluir(id):
 

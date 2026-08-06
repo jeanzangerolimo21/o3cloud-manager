@@ -1,0 +1,89 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Minha Conta" %}
+    {% set page_description = "Dados pessoais, foto e senha de acesso" %}
+    {% set page_icon = "bi-person-circle" %}
+    {% set page_button_url = request.referrer or url_for("financeiro.dashboard") %}
+    {% set page_button_icon = "bi-arrow-left" %}
+    {% set page_button_text = "Voltar" %}
+    {% include "components/page_header.html" %}
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Dados do usuário</strong></div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="acao" value="dados">
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            {% if usuario.foto %}
+                            <img class="user-profile-photo" src="{{ url_for('storage', filename='usuarios/' ~ usuario.foto) }}" alt="Foto do usuário">
+                            {% else %}
+                            <div class="user-profile-photo user-profile-photo-empty"><i class="bi bi-person"></i></div>
+                            {% endif %}
+                            <div>
+                                <strong>{{ usuario.nome }}</strong><br>
+                                <small class="text-muted">{{ usuario.email or usuario.login }} • {{ usuario.origem }}</small>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nome</label>
+                                <input class="form-control" name="nome" value="{{ usuario.nome or '' }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">E-mail</label>
+                                <input class="form-control" type="email" name="email" value="{{ usuario.email or '' }}" {% if usuario.origem == 'LOCAL' %}required{% endif %}>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Foto</label>
+                                <input class="form-control" type="file" name="foto" accept="image/png,image/jpeg,image/svg+xml">
+                                <div class="form-text">PNG, JPG, JPEG ou SVG até 2 MB.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Origem</label>
+                                <input class="form-control" value="{{ usuario.origem }}" disabled>
+                            </div>
+                            <div class="col-12 text-end">
+                                <button class="btn btn-primary"><i class="bi bi-check-circle"></i> Salvar dados</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5" id="alterar-senha">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Alterar senha</strong></div>
+                <div class="card-body">
+                    {% if usuario.origem == 'LOCAL' %}
+                    <form method="POST">
+                        <input type="hidden" name="acao" value="senha">
+                        <div class="mb-3">
+                            <label class="form-label">Senha atual</label>
+                            <input class="form-control" type="password" name="senha_atual" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nova senha</label>
+                            <input class="form-control" type="password" name="nova_senha" minlength="8" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Confirmar nova senha</label>
+                            <input class="form-control" type="password" name="confirmacao_senha" minlength="8" required>
+                        </div>
+                        <div class="text-end">
+                            <button class="btn btn-outline-primary"><i class="bi bi-key"></i> Alterar senha</button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="text-muted">Senha de usuário externo deve ser alterada no provedor de autenticação.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

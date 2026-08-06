@@ -26,6 +26,8 @@ from app.integracoes.clicksign.client import ClicksignError
 from app.parceiros.executivo_service import ParceiroExecutivoService
 from app.repositories.contrato_repository import ContratoRepository
 from app.repositories.oportunidade_repository import OportunidadeRepository
+from app.core.email import EmailService
+from app.core.pdf_assinatura import extrair_data_assinatura_pdf
 from app.repositories.proposta_repository import PropostaRepository
 
 STATUS_PROPOSTA = {
@@ -71,6 +73,8 @@ class PropostaService:
         offset = (pagina - 1) * limit
         ativo_normalizado = cls._normalizar_status_ativo(ativo)
         propostas = cls.repository.listar(pesquisa=pesquisa, status=status, ativo=ativo_normalizado, clicksign_status=clicksign_status, limit=limit, offset=offset)
+        for proposta in propostas:
+            proposta["total_comentarios_internos"] = cls.repository.total_comentarios_internos(proposta.get("id"))
         total = cls.repository.total(pesquisa=pesquisa, status=status, ativo=ativo_normalizado, clicksign_status=clicksign_status)
         return propostas, total
 
@@ -156,6 +160,85 @@ class PropostaService:
         if proposta and proposta.get("arquivo"):
             StorageService.excluir(StorageService.PROPOSTAS, proposta.get("arquivo"))
         return cls.repository.excluir(proposta_id)
+
+    @classmethod
+    def excluir_em_massa(cls, proposta_ids):
+        for proposta_id in proposta_ids:
+            cls.excluir(proposta_id)
+
+    @classmethod
+    def contexto_comentarios_internos(cls, proposta_id, usuario_id=None, usuario_email=None, perfil_codigo=None):
+        proposta = cls.buscar_por_id(proposta_id)
+        if not proposta:
+            return None
+        mostrar_todos = (perfil_codigo or "").upper() == "ADMIN"
+        return {
+            "proposta": proposta,
+            "comentarios": cls.repository.listar_comentarios_internos(
+                proposta_id,
+                autor_email=usuario_email,
+                mostrar_todos=mostrar_todos,
+            ),
+        }
+
+    @classmethod
+    def criar_comentario_interno(cls, proposta_id, dados, autor_email=None):
+        proposta = cls.buscar_por_id(proposta_id)
+        if not proposta:
+            raise ValueError("Proposta não encontrada.")
+        comentario = cls._texto(dados.get("comentario"))
+        if not comentario:
+            raise ValueError("Comentário interno é obrigatório.")
+        emails = cls._emails_form(dados, "emails_compartilhamento")
+        comentario_id = cls.repository.inserir_comentario_interno(proposta_id, comentario, autor_email or "sistema")
+        cls.repository.substituir_compartilhamentos_comentario(comentario_id, emails)
+        resultado_email = cls._enviar_comentario_interno(proposta, comentario, autor_email, emails) if emails else {"enviado": False, "motivo": "sem_destinatarios"}
+        return {"comentario_id": comentario_id, "emails": emails, "email": resultado_email}
+
+    @classmethod
+    def _enviar_comentario_interno(cls, proposta, comentario, autor_email, emails):
+        assunto = f"Comentário interno da proposta - {proposta.get('codigo_proposta') or proposta.get('titulo') or proposta.get('id')}"
+        corpo = "\n".join([
+            f"Proposta: {proposta.get('codigo_proposta') or proposta.get('id')} - {proposta.get('titulo') or '-'}",
+            f"Cliente: {proposta.get('cliente_nome') or '-'}",
+            f"Status: {proposta.get('status_label') or proposta.get('status') or '-'}",
+            f"Autor: {autor_email or 'sistema'}",
+            "",
+            comentario,
+        ])
+        try:
+            return EmailService.enviar(assunto, corpo, emails)
+        except Exception as erro:
+            return {"enviado": False, "motivo": str(erro), "destinatarios": emails}
+
+    @classmethod
+    def _emails_form(cls, dados, chave):
+        if hasattr(dados, "getlist"):
+            valores = dados.getlist(chave)
+        else:
+            valor = dados.get(chave) or []
+            valores = valor if isinstance(valor, (list, tuple, set)) else [valor]
+        emails = []
+        for valor in valores:
+            partes = re.split(r"[,;\s]+", str(valor or ""))
+            emails.extend(cls._normalizar_email(email) for email in partes)
+        emails = [email for email in emails if email]
+        invalidos = [email for email in emails if not cls._email_valido(email)]
+        if invalidos:
+            raise ValueError("E-mail(s) inválido(s): " + ", ".join(invalidos))
+        return sorted(set(emails))
+
+    @staticmethod
+    def _email_valido(email):
+        return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email or ""))
+
+    @staticmethod
+    def _normalizar_email(valor):
+        return (valor or "").strip().lower()
+
+    @staticmethod
+    def _texto(valor):
+        return (valor or "").strip()
 
     @classmethod
     def atualizar_status_clicksign(cls, proposta_id, acao, usuario_email=None):
@@ -245,9 +328,11 @@ class PropostaService:
         novo_status = cls._status_clicksign_por_envelope(status_api)
         eventos = list(proposta.get("clicksign_eventos") or [])
         arquivo_assinado = None
+        data_assinatura_pdf = None
         descricao_evento = f"Status sincronizado com a ClickSign: {status_api or 'nao informado'}."
         if novo_status == "ASSINADO":
             arquivo_assinado = cls._baixar_contrato_assinado_clicksign(proposta, client, envelope_id)
+            data_assinatura_pdf = extrair_data_assinatura_pdf(StorageService.BASE_STORAGE / StorageService.CONTRATOS / arquivo_assinado)
             descricao_evento += f" PDF assinado salvo em storage/contratos/{arquivo_assinado}."
         eventos.append({
             "status": novo_status,
@@ -267,7 +352,7 @@ class PropostaService:
             "clicksign_document_url": f"/propostas/{proposta.get('id')}/contrato" if arquivo_assinado else None,
             "clicksign_envelope_id": envelope_id,
             "clicksign_sent_at": None,
-            "clicksign_signed_at": agora if novo_status == "ASSINADO" else None,
+            "clicksign_signed_at": (data_assinatura_pdf or agora) if novo_status == "ASSINADO" else None,
             "clicksign_completed_at": None,
             "clicksign_last_sync_at": agora,
             "clicksign_eventos": json.dumps(eventos, ensure_ascii=False),
@@ -502,13 +587,14 @@ class PropostaService:
         if not proposta:
             raise ValueError("Proposta não encontrada.")
         documento = proposta.get("clicksign_document_key") or cls.gerar_contrato_clicksign(proposta)["nome"]
+        data_assinatura = extrair_data_assinatura_pdf(StorageService.BASE_STORAGE / StorageService.CONTRATOS / documento)
         contrato = ContratoRepository.buscar_por_proposta_id(proposta.get("id"))
         if contrato:
-            ContratoRepository.atualizar_arquivo_assinado(contrato["id"], documento, documento)
+            ContratoRepository.atualizar_arquivo_assinado(contrato["id"], documento, documento, data_assinatura)
             return contrato["id"]
         dados = cls._dados_contrato_da_proposta(proposta, documento)
         contrato_id = ContratoRepository.inserir_manual(dados)
-        ContratoRepository.atualizar_arquivo_assinado(contrato_id, documento, documento)
+        ContratoRepository.atualizar_arquivo_assinado(contrato_id, documento, documento, data_assinatura)
         return contrato_id
 
     @classmethod

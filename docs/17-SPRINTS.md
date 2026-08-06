@@ -4,7 +4,7 @@
 
 Versão: 3.0 Alpha
 
-Última atualização: 03/08/2026
+Última atualização: 06/08/2026
 
 Status: Oficial
 
@@ -408,7 +408,7 @@ Status:
 ---
 
 
-# Sprint Atual
+# Sprints Concluídas
 
 ## Sprint 16
 
@@ -420,6 +420,9 @@ Documento de abertura:
 
 - `docs/27-ABERTURA-SPRINT-16.md`
 - `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
+- `docs/29-BOOTSTRAP-ADMIN-SPRINT-16.md`
+- `docs/30-ENTREGAS-OPERACIONAIS-SPRINT-16.md`
+- `docs/31-ENTREGAS-GOVERNANCA-INTEGRACOES-SPRINT-16.md`
 
 Objetivos iniciais:
 
@@ -431,10 +434,24 @@ Objetivos iniciais:
 - Priorizar auditoria operacional para acoes sensiveis.
 - Criar roteiro de validacao assistida da Beta por area.
 - Enderecar refinamentos operacionais priorizados pela equipe.
+- Eventos CRM e importação de participantes implementados.
+- Base de Conhecimento com pastas, artigos e arquivos implementada.
+- Login global, sessao e matriz de permissoes por menu implementados para validacao assistida.
+- Auditoria operacional centralizada implementada com sanitizacao de campos sensiveis.
+- Comentarios internos em propostas, regras de campanhas/comissao e compartilhamento temporario do cofre implementados.
+- Brevo, disparos de e-mail de eventos CRM e dimensionamento de hardware por parceiro implementados.
+
+Documento de fechamento:
+
+- `docs/33-FECHAMENTO-SPRINT-16.md`
+
+Pendencias de validacao Beta:
+
+- `docs/32-PENDENCIAS-TESTES-BETA-SPRINT-16.md`
 
 Status:
 
-Aberta em 03/08/2026
+✅ Concluida tecnicamente em 06/08/2026
 
 ---
 

@@ -1,4 +1,4 @@
-{% extends "layout/base.html" %}
+{% exte</form>nds "layout/base.html" %}
 
 {% block content %}
 
@@ -46,10 +46,10 @@
             </div>
 
             <div class="table-responsive">
-                <table class="table table-hover align-middle">
+                <form method="post" action="{{ url_for('contatos.excluir_em_massa') }}" id="bulkForm" onsubmit="return confirm('Excluir selecionados?')"><div class="d-flex justify-content-between align-items-center mb-2"><span class="small text-muted">Selecione os registros desta pagina.</span><button class="btn btn-outline-danger btn-sm" type="submit" id="bulkDelete" disabled><i class="bi bi-trash"></i> Excluir selecionados</button></div><table class="table table-hover align-middle">
                     <thead>
                         <tr>
-                            <th>Contato</th>
+                            <th><input type="checkbox" class="form-check-input" id="bulkAll"></th><th>Contato</th>
                             <th>Empresa</th>
                             <th>Tipo</th>
                             <th>Vínculo</th>
@@ -61,6 +61,7 @@
                     <tbody>
                         {% for contato in contatos %}
                         <tr>
+                            <td><input type="checkbox" class="form-check-input bulk-check" name="contato_ids" value="{{ contato.id }}"></td>
                             <td>
                                 <strong>{{ contato.nome }}</strong><br>
                                 <small class="text-muted">{{ contato.email or contato.telefone or contato.whatsapp or '-' }}</small>
@@ -102,7 +103,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
-            </div>
+            </div></form>
 
             {% if total_paginas > 1 %}
             <nav class="mt-4">
@@ -122,3 +123,7 @@
 </div>
 
 {% endblock %}
+
+<script>
+document.addEventListener("DOMContentLoaded",function(){const a=document.getElementById("bulkAll"),c=[...document.querySelectorAll(".bulk-check")],b=document.getElementById("bulkDelete"),u=()=>b.disabled=!c.some(x=>x.checked);if(a)a.onchange=()=>{c.forEach(x=>x.checked=a.checked);u()};c.forEach(x=>x.onchange=u)});
+</script>

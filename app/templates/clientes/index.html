@@ -34,13 +34,13 @@
 
 	<div class="table-responsive">
 
-            <table class="table table-hover align-middle">
+            <form method="post" action="{{ url_for('clientes.excluir_em_massa') }}" id="bulkForm" onsubmit="return confirm('Excluir selecionados?')"><div class="d-flex justify-content-between align-items-center mb-2"><span class="small text-muted">Selecione os registros desta pagina.</span><button class="btn btn-outline-danger btn-sm" type="submit" id="bulkDelete" disabled><i class="bi bi-trash"></i> Excluir selecionados</button></div><table class="table table-hover align-middle">
 
                 <thead class="table-light">
 
                     <tr>
 
-                        <th width="60">ID</th>
+                        <th><input type="checkbox" class="form-check-input" id="bulkAll"></th><th width="60">ID</th>
 
                         <th>Cliente</th>
 
@@ -63,7 +63,7 @@
                     {% for cliente in clientes %}
 
                     <tr>
-
+                        <td><input type="checkbox" class="form-check-input bulk-check" name="cliente_ids" value="{{ cliente.id }}"></td>
                         <td>
 
                             {{ cliente.id }}
@@ -180,9 +180,8 @@
 
                 </tbody>
 
-            </table>
-
-        </div>
+            </table></form>
+            </div>
 
         {% else %}
 
@@ -275,3 +274,5 @@
 </div>
 
 {% endblock %}
+
+<script>document.addEventListener("DOMContentLoaded",function(){const a=document.getElementById("bulkAll"),c=[...document.querySelectorAll(".bulk-check")],b=document.getElementById("bulkDelete"),u=()=>b.disabled=!c.some(x=>x.checked);if(a)a.onchange=()=>{c.forEach(x=>x.checked=a.checked);u()};c.forEach(x=>x.onchange=u)});</script>

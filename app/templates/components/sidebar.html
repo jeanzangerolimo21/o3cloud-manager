@@ -1,250 +1,106 @@
+{% set sidebar_grupos = [
+    {"titulo": None, "itens": [
+        {"key": "visao_geral", "url": "/", "icone": "bi-speedometer2", "label": "Visao Geral", "classe": "menu-item"},
+    ]},
+    {"titulo": "Financeiro", "itens": [
+        {"key": "dashboard_executivo", "endpoint": "financeiro.dashboard_executivo", "icone": "bi-graph-up-arrow", "label": "Dashboard Executivo"},
+        {"key": "produtos_clientes", "endpoint": "financeiro.produtos_clientes", "icone": "bi-boxes", "label": "Produtos por Cliente"},
+        {"key": "faturamento", "endpoint": "financeiro.faturamentos", "icone": "bi-receipt", "label": "Faturamento"},
+        {"key": "contratos", "endpoint": "contratos.index", "icone": "bi-file-earmark-text", "label": "Contratos"},
+    ]},
+    {"titulo": "Cadastros", "itens": [
+        {"key": "ambientes", "endpoint": "ambientes.index", "icone": "bi-hdd-network", "label": "Ambientes"},
+        {"key": "implantadores", "endpoint": "ambientes.implantadores", "icone": "bi-person-badge", "label": "Implantadores"},
+        {"key": "clientes", "endpoint": "clientes.index", "icone": "bi-people", "label": "Clientes"},
+        {"key": "catalogo_comercial", "endpoint": "catalogo.index", "icone": "bi-box-seam", "label": "Catálogo Comercial"},
+        {"key": "tabela_precos", "endpoint": "catalogo.listar_tabela_precos", "icone": "bi-cash-stack", "label": "Tabela de Preços"},
+        {"key": "recursos_servidor", "endpoint": "catalogo.listar_recursos_servidor", "icone": "bi-hdd-rack", "label": "Recursos de Servidor"},
+        {"key": "produtos_fechados", "endpoint": "catalogo.listar_produtos", "icone": "bi-box", "label": "Produtos Fechados"},
+        {"key": "dimensionamento_tecnico", "endpoint": "catalogo.listar_servidores", "icone": "bi-tools", "label": "Dimensionamento Técnico"},
+        {"key": "regras_campanhas", "endpoint": "regras_campanhas.index", "icone": "bi-percent", "label": "Regras Campanhas"},
+    ]},
+    {"titulo": "CRM Comercial", "itens": [
+        {"key": "leads", "endpoint": "leads.index", "icone": "bi-bullseye", "label": "Leads"},
+        {"key": "contatos", "endpoint": "contatos.index", "icone": "bi-person-lines-fill", "label": "Contatos"},
+        {"key": "oportunidades", "endpoint": "oportunidades.index", "icone": "bi-briefcase-fill", "label": "Oportunidades"},
+        {"key": "pipeline_comercial", "endpoint": "pipeline.index", "icone": "bi-kanban-fill", "label": "Pipeline Comercial"},
+        {"key": "propostas", "endpoint": "propostas.index", "icone": "bi-file-earmark-richtext-fill", "label": "Propostas"},
+        {"key": "dashboard_comercial", "endpoint": "propostas.dashboard", "icone": "bi-bar-chart-line", "label": "Dashboard Comercial"},
+        {"key": "parceiros", "endpoint": "parceiros.index", "icone": "bi-building", "label": "Parceiros"},
+    ]},
+    {"titulo": "Operações", "itens": [
+        {"key": "implantacao", "endpoint": "implantacao.index", "icone": "bi-hdd-network", "label": "Implantação"},
+        {"key": "kanban_implantacao", "endpoint": "implantacao.kanban", "icone": "bi-kanban", "label": "Kanban Implantação"},
+        {"key": "licencas_o3web", "endpoint": "implantacao.licencas_o3web", "icone": "bi-key-fill", "label": "Licenças O3Web"},
+        {"key": "faixas_rede", "endpoint": "implantacao.faixas_rede", "icone": "bi-diagram-3-fill", "label": "Faixas de Rede"},
+        {"key": "cofre_senhas", "endpoint": "implantacao.cofre_senhas", "icone": "bi-shield-lock-fill", "label": "Cofre de Senhas"},
+        {"key": "base_conhecimento", "endpoint": "conhecimentos.index", "icone": "bi-book", "label": "Base de Conhecimento"},
+    ]},
+    {"titulo": "Infraestrutura", "itens": [
+        {"key": "clusters", "endpoint": "infraestrutura.clusters", "icone": "bi-diagram-3", "label": "Clusters"},
+        {"key": "nodes", "endpoint": "infraestrutura.nodes", "icone": "bi-hdd-network", "label": "Nodes"},
+        {"key": "maquinas_virtuais", "endpoint": "infraestrutura.maquinas_virtuais", "icone": "bi-pc-display", "label": "Máquinas Virtuais"},
+        {"key": "containers", "endpoint": "infraestrutura.containers", "icone": "bi-boxes", "label": "Containers"},
+        {"key": "backups_pbs", "endpoint": "infraestrutura.backups_pbs", "icone": "bi-server", "label": "Backups PBS"},
+        {"key": "monitoramento_zabbix", "endpoint": "infraestrutura.monitoramento_zabbix", "icone": "bi-activity", "label": "Monitoramento Zabbix"},
+        {"key": "backup_nas", "endpoint": "infraestrutura.backup_nas", "icone": "bi-device-hdd", "label": "Backup NAS"},
+    ]},
+    {"titulo": "Configurações", "itens": [
+        {"key": "usuarios_acessos", "endpoint": "configuracoes.usuarios_index", "icone": "bi-person-gear", "label": "Usuários e Acessos"},
+        {"key": "servicos_email", "endpoint": "configuracoes.email_index", "icone": "bi-envelope-fill", "label": "Serviços de Email"},
+        {"key": "integracoes_negocio", "endpoint": "implantacao.integracoes_negocio", "icone": "bi-briefcase-fill", "label": "Integrações de Negócio"},
+        {"key": "integracoes_tecnicas", "endpoint": "implantacao.integracoes_tecnicas", "icone": "bi-plug-fill", "label": "Integrações Técnicas"},
+        {"key": "auditoria", "endpoint": "configuracoes.auditoria", "icone": "bi-clipboard-data", "label": "Auditoria"},
+    ]},
+] %}
+
 <div class="sidebar">
-
     <div>
-
         <div class="sidebar-header">
-
-            <img src="{{ url_for('static', filename='img/logo-white.png') }}"
-                 class="logo">
-
+            <img src="{{ url_for('static', filename='img/logo-white.png') }}" class="logo">
             <h3>O3Cloud<br>Manager</h3>
-
             <p>
                 Gestão unificada da<br>
                 infraestrutura e do negócio
             </p>
-
         </div>
 
         <div class="sidebar-divider"></div>
 
         <nav class="sidebar-menu">
+            {% for grupo in sidebar_grupos %}
+                {% set itens_visiveis = namespace(total=0) %}
+                {% for item in grupo.itens %}
+                    {% if pode_acessar(item.key) %}
+                        {% set itens_visiveis.total = itens_visiveis.total + 1 %}
+                    {% endif %}
+                {% endfor %}
 
-            <a href="/" class="menu-item">
-                <i class="bi bi-speedometer2"></i>
-                Visao Geral
-            </a>
+                {% if itens_visiveis.total > 0 %}
+                    {% if grupo.titulo %}
+                    <div class="menu-section">{{ grupo.titulo }}</div>
+                    {% endif %}
 
-            <div class="menu-section">
-                Financeiro
-            </div>
-
-            <a href="{{ url_for('financeiro.dashboard_executivo') }}" class="submenu-item">
-                <i class="bi bi-graph-up-arrow"></i>
-                Dashboard Executivo
-            </a>
-
-            <a href="{{ url_for('financeiro.produtos_clientes') }}" class="submenu-item">
-                <i class="bi bi-boxes"></i>
-                Produtos por Cliente
-            </a>
-
-            <a href="{{ url_for('financeiro.faturamentos') }}" class="submenu-item">
-                <i class="bi bi-receipt"></i>
-                Faturamento
-            </a>
-
-            <a href="{{ url_for('contratos.index') }}" class="submenu-item">
-                <i class="bi bi-file-earmark-text"></i>
-                Contratos
-            </a>
-
-            <div class="menu-section">
-                Cadastros
-            </div>
-
-            <a href="{{ url_for('ambientes.index') }}" class="submenu-item">
-                <i class="bi bi-hdd-network"></i>
-                Ambientes
-            </a>
-
-            <a href="{{ url_for('ambientes.implantadores') }}" class="submenu-item">
-                <i class="bi bi-person-badge"></i>
-                Implantadores
-            </a>
-
-            <a href="/clientes" class="submenu-item">
-                <i class="bi bi-people"></i>
-                Clientes
-            </a>
-
-            <a href="{{ url_for('catalogo.index') }}" class="submenu-item">
-                <i class="bi bi-box-seam"></i>
-                Catálogo Comercial
-            </a>
-
-            <a href="{{ url_for('catalogo.listar_tabela_precos') }}" class="submenu-item">
-                <i class="bi bi-cash-stack"></i>
-                Tabela de Preços
-            </a>
-
-            <a href="{{ url_for('catalogo.listar_recursos_servidor') }}" class="submenu-item">
-                <i class="bi bi-hdd-rack"></i>
-                Recursos de Servidor
-            </a>
-
-            <a href="{{ url_for('catalogo.listar_produtos') }}" class="submenu-item">
-                <i class="bi bi-box"></i>
-                Produtos Fechados
-            </a>
-
-            <a href="{{ url_for('catalogo.listar_servidores') }}" class="submenu-item">
-                <i class="bi bi-tools"></i>
-                Dimensionamento Técnico
-            </a>
-
-            <div class="menu-section">
-                CRM Comercial
-            </div>
-
-            <a href="{{ url_for('leads.index') }}" class="submenu-item">
-                <i class="bi bi-bullseye"></i>
-                Leads
-            </a>
-
-            <a href="{{ url_for('contatos.index') }}" class="submenu-item">
-                <i class="bi bi-person-lines-fill"></i>
-                Contatos
-            </a>
-
-            <a href="{{ url_for('oportunidades.index') }}" class="submenu-item">
-                <i class="bi bi-briefcase-fill"></i>
-                Oportunidades
-            </a>
-
-            <a href="{{ url_for('pipeline.index') }}" class="submenu-item">
-                <i class="bi bi-kanban-fill"></i>
-                Pipeline Comercial
-            </a>
-
-            <a href="{{ url_for('propostas.index') }}" class="submenu-item">
-                <i class="bi bi-file-earmark-richtext-fill"></i>
-                Propostas
-            </a>
-
-            <a href="{{ url_for('propostas.dashboard') }}" class="submenu-item">
-                <i class="bi bi-bar-chart-line"></i>
-                Dashboard Comercial
-            </a>
-
-            <a class="submenu-item"
-               href="{{ url_for('parceiros.index') }}">
-                <i class="bi bi-building"></i>
-                Parceiros
-            </a>
-
-            <div class="menu-section">
-                Operações
-            </div>
-
-            <a href="{{ url_for('implantacao.index') }}" class="submenu-item">
-                <i class="bi bi-hdd-network"></i>
-                Implantação
-            </a>
-
-            <a href="{{ url_for('implantacao.kanban') }}" class="submenu-item">
-                <i class="bi bi-kanban"></i>
-                Kanban Implantação
-            </a>
-
-            <a href="{{ url_for('implantacao.licencas_o3web') }}" class="submenu-item">
-                <i class="bi bi-key-fill"></i>
-                Licenças O3Web
-            </a>
-
-            <a href="{{ url_for('implantacao.faixas_rede') }}" class="submenu-item">
-                <i class="bi bi-diagram-3-fill"></i>
-                Faixas de Rede
-            </a>
-
-            <a href="{{ url_for('implantacao.cofre_senhas') }}" class="submenu-item">
-                <i class="bi bi-shield-lock-fill"></i>
-                Cofre de Senhas
-            </a>
-
-            <div class="menu-section">
-                Infraestrutura
-            </div>
-
-            <a href="{{ url_for('infraestrutura.clusters') }}" class="submenu-item">
-                <i class="bi bi-diagram-3"></i>
-                Clusters
-            </a>
-
-            <a href="{{ url_for('infraestrutura.nodes') }}" class="submenu-item">
-                <i class="bi bi-hdd-network"></i>
-                Nodes
-            </a>
-
-            <a href="{{ url_for('infraestrutura.maquinas_virtuais') }}" class="submenu-item">
-                <i class="bi bi-pc-display"></i>
-                Máquinas Virtuais
-            </a>
-
-            <a href="{{ url_for('infraestrutura.containers') }}" class="submenu-item">
-                <i class="bi bi-boxes"></i>
-                Containers
-            </a>
-
-            <a href="{{ url_for('infraestrutura.backups_pbs') }}" class="submenu-item">
-                <i class="bi bi-server"></i>
-                Backups PBS
-            </a>
-
-            <a href="{{ url_for('infraestrutura.monitoramento_zabbix') }}" class="submenu-item">
-                <i class="bi bi-activity"></i>
-                Monitoramento Zabbix
-            </a>
-
-            <a href="{{ url_for('infraestrutura.backup_nas') }}" class="submenu-item">
-                <i class="bi bi-device-hdd"></i>
-                Backup NAS
-            </a>
-
-            <div class="menu-section">
-                Configurações
-            </div>
-
-            <a href="{{ url_for('configuracoes.usuarios_index') }}" class="submenu-item">
-                <i class="bi bi-person-gear"></i>
-                Usuários e Acessos
-            </a>
-
-            <a href="{{ url_for('configuracoes.email_index') }}" class="submenu-item">
-                <i class="bi bi-envelope-fill"></i>
-                Serviços de Email
-            </a>
-
-            <a href="{{ url_for('implantacao.integracoes_negocio') }}" class="submenu-item">
-                <i class="bi bi-briefcase-fill"></i>
-                Integrações de Negócio
-            </a>
-
-            <a href="{{ url_for('implantacao.integracoes_tecnicas') }}" class="submenu-item">
-                <i class="bi bi-plug-fill"></i>
-                Integrações Técnicas
-            </a>
-
+                    {% for item in grupo.itens %}
+                        {% if pode_acessar(item.key) %}
+                        <a href="{{ item.url if item.url is defined else url_for(item.endpoint) }}" class="{{ item.classe if item.classe is defined else 'submenu-item' }}">
+                            <i class="bi {{ item.icone }}"></i>
+                            {{ item.label }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
         </nav>
-
     </div>
 
     <div class="sidebar-footer">
-
         <span class="status-dot"></span>
-
         Plataforma Online
-
         <small>
-
             Enterprise Edition
-
             <br>
-
             v2.0 Alpha
-
         </small>
-
     </div>
-
 </div>

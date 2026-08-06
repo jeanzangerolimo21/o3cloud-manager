@@ -1,0 +1,1 @@
+ALTER TABLE auth_usuarios\n    MODIFY COLUMN email VARCHAR(180) NULL;\n

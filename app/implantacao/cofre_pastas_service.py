@@ -1,3 +1,4 @@
+from app.core.auditoria import registrar_evento
 from app.clientes.service import ClienteService
 from app.parceiros.service import ParceiroService
 from app.repositories.cofre_pasta_repository import CofrePastaRepository
@@ -66,7 +67,9 @@ class CofrePastaService:
     @classmethod
     def criar(cls, dados, usuario_email="sistema"):
         payload = cls._normalizar(dados, usuario_email)
-        return cls.repository.inserir(payload)
+        pasta_id = cls.repository.inserir(payload)
+        registrar_evento("COFRE_PASTA_CRIADA", "cofre_pastas", pasta_id, {"nome": payload.get("nome"), "tipo": payload.get("tipo"), "cliente_id": payload.get("cliente_id"), "parceiro_id": payload.get("parceiro_id")}, usuario_email)
+        return pasta_id
 
     @classmethod
     def atualizar(cls, pasta_id, dados, usuario_email="sistema"):
@@ -74,12 +77,15 @@ class CofrePastaService:
             raise ValueError("Pasta não encontrada.")
         payload = cls._normalizar(dados, usuario_email)
         cls.repository.atualizar(pasta_id, payload)
+        registrar_evento("COFRE_PASTA_ATUALIZADA", "cofre_pastas", pasta_id, {"nome": payload.get("nome"), "tipo": payload.get("tipo"), "cliente_id": payload.get("cliente_id"), "parceiro_id": payload.get("parceiro_id")}, usuario_email)
 
     @classmethod
     def excluir(cls, pasta_id):
-        if not cls.repository.buscar_por_id(pasta_id):
+        pasta = cls.repository.buscar_por_id(pasta_id)
+        if not pasta:
             raise ValueError("Pasta não encontrada.")
         cls.repository.excluir(pasta_id)
+        registrar_evento("COFRE_PASTA_INATIVADA", "cofre_pastas", pasta_id, {"nome": pasta.get("nome"), "tipo": pasta.get("tipo")})
 
     @classmethod
     def _normalizar(cls, dados, usuario_email="sistema"):

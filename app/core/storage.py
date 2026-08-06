@@ -22,6 +22,7 @@ class StorageService:
     IMPLANTACOES = "implantacoes"
     TEMPORARIOS = "temporarios"
     LOGS = "logs"
+    USUARIOS = "usuarios"
 
     IMAGE_EXTENSIONS = {
         ".png",

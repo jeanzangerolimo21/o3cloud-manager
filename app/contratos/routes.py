@@ -2,6 +2,7 @@ from datetime import date
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 
+from app.core.auditoria import registrar_evento
 from app.contratos.service import ContratoService
 from app.propostas.service import PropostaService
 from app.implantacao.service import ImplantacaoService
@@ -62,6 +63,7 @@ def _form_data():
 def sincronizar_omie():
     try:
         resultado = OmieSync().sincronizar_contratos()
+        registrar_evento("CONTRATOS_OMIE_SINCRONIZADOS", "contratos", None, resultado)
     except Exception as erro:
         flash(f"Erro ao sincronizar contratos Omie: {erro}", "danger")
     else:
@@ -83,6 +85,7 @@ def index():
     contratos, total, total_paginas = ContratoService.listar(filtros, pagina=pagina)
     _anexar_implantacoes(contratos)
     dashboard = ContratoService.dashboard(filtros)
+    pendencias_upload = ContratoService.contar_encaminhados_sem_arquivo()
 
     return render_template(
         "contratos/index.html",
@@ -92,6 +95,7 @@ def index():
         total_paginas=total_paginas,
         filtros=filtros,
         dashboard=dashboard,
+        pendencias_upload=pendencias_upload,
         status_options=ContratoService.STATUS_OPTIONS,
         view_mode="lista",
     )
@@ -104,6 +108,7 @@ def dashboard():
     contratos, total, total_paginas = ContratoService.listar(filtros, pagina=pagina)
     _anexar_implantacoes(contratos)
     dashboard_dados = ContratoService.dashboard(filtros)
+    pendencias_upload = ContratoService.contar_encaminhados_sem_arquivo()
 
     return render_template(
         "contratos/dashboard.html",
@@ -113,6 +118,7 @@ def dashboard():
         total_paginas=total_paginas,
         filtros=filtros,
         dashboard=dashboard_dados,
+        pendencias_upload=pendencias_upload,
         status_options=ContratoService.STATUS_OPTIONS,
         view_mode="dashboard",
     )
@@ -140,6 +146,7 @@ def novo():
         dados = _form_data()
         try:
             contrato_id = ContratoService.criar(dados, request.files.get("arquivo_preparado"))
+            registrar_evento("CONTRATO_CRIADO", "contratos", contrato_id, {"numero": dados.get("numero"), "status": dados.get("status")})
             flash("Contrato criado como rascunho para assinatura.", "success")
             return redirect(url_for("contratos.view", contrato_id=contrato_id))
         except ValueError as exc:
@@ -161,9 +168,11 @@ def editar(contrato_id):
         try:
             if contrato["origem"] == "OMIE":
                 ContratoService.atualizar_vinculos_comerciais(contrato_id, dados)
+                registrar_evento("CONTRATO_VINCULOS_COMERCIAIS_ATUALIZADOS", "contratos", contrato_id, {"origem": contrato.get("origem")})
                 flash("Vinculos comerciais do contrato Omie atualizados.", "success")
             else:
                 ContratoService.atualizar(contrato_id, dados, request.files.get("arquivo_preparado"))
+                registrar_evento("CONTRATO_ATUALIZADO", "contratos", contrato_id, {"numero": contrato.get("numero"), "status": dados.get("status")})
                 flash("Contrato atualizado.", "success")
             return redirect(url_for("contratos.view", contrato_id=contrato_id))
         except ValueError as exc:
@@ -181,6 +190,7 @@ def iniciar_implantacao(contrato_id):
     except ValueError as erro:
         flash(str(erro), "danger")
         return redirect(request.referrer or url_for("contratos.view", contrato_id=contrato_id))
+    registrar_evento("CONTRATO_IMPLANTACAO_INICIADA", "implantacoes", implantacao_id, {"contrato_id": contrato_id, "criada": criada})
     flash("Implantação criada." if criada else "Este contrato já possui implantação ativa.", "success" if criada else "info")
     return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
 
@@ -189,6 +199,7 @@ def iniciar_implantacao(contrato_id):
 def upload_assinado(contrato_id):
     try:
         ContratoService.salvar_assinado(contrato_id, request.files.get("arquivo_assinado"))
+        registrar_evento("CONTRATO_ASSINADO_VINCULADO", "contratos", contrato_id)
         flash("Contrato assinado vinculado ao cliente.", "success")
     except ValueError as exc:
         flash(str(exc), "danger")
@@ -213,6 +224,7 @@ def excluir(contrato_id):
         return redirect(url_for("contratos.view", contrato_id=contrato_id))
 
     ContratoRepository.excluir(contrato_id)
+    registrar_evento("CONTRATO_EXCLUIDO", "contratos", contrato_id, {"numero": contrato.get("numero")})
     flash("Contrato removido.", "success")
     return redirect(url_for("contratos.index"))
 

@@ -51,6 +51,7 @@
                         <th>Parceiro</th>
                         <th>Contato Principal</th>
                         <th>Telefone</th>
+                        <th>Categoria</th>
                         <th>Negociação</th>
                         <th>Situação</th>
                         <th width="220">Ações</th>
@@ -65,6 +66,7 @@
                         </td>
                         <td>{{ parceiro.contato_exibicao or '-' }}</td>
                         <td>{{ parceiro.telefone_exibicao or '-' }}</td>
+                        <td>{% set categoria_parceiro = parceiro.categoria_parceiro %}{% include "parceiros/_categoria_badge.html" %}</td>
                         <td>
                             {% if parceiro.status_negociacao == 'HOMOLOGADO' %}
                                 <span class="badge bg-success-subtle text-success">Homologado</span>
@@ -100,7 +102,7 @@
                         </td>
                     </tr>
                     {% else %}
-                        {% set colspan = 6 %}
+                        {% set colspan = 7 %}
                         {% set empty_message = "Nenhum parceiro encontrado." %}
                         {% include "components/empty_state.html" %}
                     {% endfor %}

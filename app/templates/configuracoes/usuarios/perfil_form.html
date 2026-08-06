@@ -1,0 +1,90 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = 'Novo Perfil' if modo == 'novo' else 'Editar Perfil' %}
+    {% set page_description = 'Permissões de menu e visualização de valores por perfil de acesso' %}
+    {% set page_icon = 'bi-ui-checks-grid' %}
+    {% set page_button_url = url_for('configuracoes.usuarios_index') %}
+    {% set page_button_icon = 'bi-arrow-left' %}
+    {% set page_button_text = 'Voltar' %}
+    {% include "components/page_header.html" %}
+
+    {% if admin_bloqueado %}
+    <div class="alert alert-info">
+        <i class="bi bi-shield-lock-fill"></i>
+        O perfil Administrador tem acesso completo ao sistema e não pode ser editado.
+    </div>
+    {% endif %}
+
+    <form method="POST">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Nome</label>
+                        <input class="form-control" name="nome" value="{{ perfil.nome or '' }}" required {% if admin_bloqueado %}readonly{% endif %}>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Código</label>
+                        <input class="form-control" name="codigo" value="{{ perfil.codigo or '' }}" required {% if admin_bloqueado %}readonly{% endif %}>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Descrição</label>
+                        <input class="form-control" name="descricao" value="{{ perfil.descricao or '' }}" {% if admin_bloqueado %}readonly{% endif %}>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check form-switch mt-2">
+                            <input type="hidden" name="ativo" value="0">
+                            <input class="form-check-input" type="checkbox" name="ativo" value="1" id="ativo" {% if perfil.ativo is not defined or perfil.ativo %}checked{% endif %} {% if admin_bloqueado %}disabled{% endif %}>
+                            <label class="form-check-label" for="ativo">Ativo</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check form-switch mt-2">
+                            <input type="hidden" name="mostrar_valores" value="0">
+                            <input class="form-check-input" type="checkbox" name="mostrar_valores" value="1" id="mostrar_valores" {% if admin_bloqueado or perfil.mostrar_valores %}checked{% endif %} {% if admin_bloqueado %}disabled{% endif %}>
+                            <label class="form-check-label" for="mostrar_valores">Permitir visualização de valores</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><strong>Menus Permitidos</strong></div>
+            <div class="card-body">
+                {% for grupo in grupos_menus %}
+                <div class="mb-4">
+                    <h6 class="text-muted text-uppercase">{{ grupo.nome }}</h6>
+                    <div class="row g-2">
+                        {% for menu in grupo.menus %}
+                        <div class="col-md-4 col-xl-3">
+                            <div class="border rounded p-2 h-100">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="menu_keys" value="{{ menu.key }}" id="menu_{{ menu.key }}" {% if admin_bloqueado or menu.key in (perfil.permissoes or []) %}checked{% endif %} {% if admin_bloqueado %}disabled{% endif %}>
+                                    <label class="form-check-label" for="menu_{{ menu.key }}">{{ menu.label }}</label>
+                                </div>
+                                <select class="form-select form-select-sm mt-2" name="nivel_{{ menu.key }}" {% if admin_bloqueado %}disabled{% endif %}>
+                                    {% set nivel_atual = (perfil.permissoes_niveis or {}).get(menu.key, "EDICAO") %}
+                                    <option value="LEITURA" {% if nivel_atual == "LEITURA" %}selected{% endif %}>Somente leitura</option>
+                                    <option value="EDICAO" {% if admin_bloqueado or nivel_atual == "EDICAO" %}selected{% endif %}>Leitura e edição</option>
+                                </select>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+
+                <div class="text-end">
+                    <a class="btn btn-secondary" href="{{ url_for('configuracoes.usuarios_index') }}">Cancelar</a>
+                    {% if not admin_bloqueado %}
+                    <button class="btn btn-primary"><i class="bi bi-check-circle"></i> Salvar Perfil</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

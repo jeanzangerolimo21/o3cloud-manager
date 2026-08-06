@@ -20,15 +20,17 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">E-mail</label>
-                        <input class="form-control" type="email" name="email" value="{{ usuario.email or '' }}" required>
+                        <input class="form-control" type="email" name="email" id="email" value="{{ usuario.email or '' }}">
+                        <div class="form-text" id="email_help">Obrigatório para usuários locais. Opcional para FreeIPA, LDAP e AD.</div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Login</label>
-                        <input class="form-control" name="login" value="{{ usuario.login or usuario.email or '' }}" placeholder="usa o e-mail se vazio">
+                        <input class="form-control" name="login" id="login" value="{{ usuario.login or usuario.email or '' }}" placeholder="usa o e-mail se vazio">
+                        <div class="form-text">Obrigatório para usuários externos sem e-mail.</div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Origem</label>
-                        <select class="form-select" name="origem">
+                        <select class="form-select" name="origem" id="origem">
                             {% for origem in ['LOCAL', 'FREEIPA', 'LDAP', 'AD'] %}
                             <option value="{{ origem }}" {% if (usuario.origem or 'LOCAL') == origem %}selected{% endif %}>{{ origem }}</option>
                             {% endfor %}
@@ -45,11 +47,12 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Status</label>
-                        <select class="form-select" name="status">
+                        <select class="form-select" name="status" id="status">
                             {% for status in ['CONVIDADO', 'ATIVO', 'BLOQUEADO', 'INATIVO'] %}
                             <option value="{{ status }}" {% if (usuario.status or 'CONVIDADO') == status %}selected{% endif %}>{{ status }}</option>
                             {% endfor %}
                         </select>
+                        <div class="form-text" id="convite_help">Convite por e-mail será enviado somente se Origem for Local e Status for Convidado.</div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">ID Externo</label>
@@ -64,4 +67,28 @@
         </div>
     </div>
 </div>
+<script>
+(function(){
+    const origem = document.getElementById("origem");
+    const status = document.getElementById("status");
+    const email = document.getElementById("email");
+    const emailHelp = document.getElementById("email_help");
+    const conviteHelp = document.getElementById("convite_help");
+
+    function atualizarRegrasUsuario(){
+        const local = origem.value === "LOCAL";
+        email.required = local;
+        emailHelp.textContent = local
+            ? "Obrigatório para usuário Local. O convite será enviado para este endereço apenas se o status for Convidado."
+            : "Opcional para FreeIPA, LDAP e AD. Preencha Login quando não houver e-mail.";
+        conviteHelp.textContent = local && status.value === "CONVIDADO"
+            ? "Ao salvar, o sistema tentará enviar o convite para o e-mail cadastrado."
+            : "Nenhum convite automático será enviado com esta combinação de origem e status.";
+    }
+
+    origem.addEventListener("change", atualizarRegrasUsuario);
+    status.addEventListener("change", atualizarRegrasUsuario);
+    atualizarRegrasUsuario();
+})();
+</script>
 {% endblock %}

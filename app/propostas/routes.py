@@ -10,6 +10,7 @@ from flask import send_file
 from flask import session
 from flask import url_for
 
+from app.core.auditoria import registrar_evento
 from app.core.storage import StorageService
 from app.implantacao.service import ImplantacaoService
 from app.propostas.service import PropostaService
@@ -81,6 +82,7 @@ def novo():
                 StorageService.excluir(StorageService.PROPOSTAS, arquivo_nome)
             flash(str(erro), "danger")
             return render_template("propostas/form.html", modo="novo", proposta=PropostaService.preparar_form_payload(dados, contexto["codigo_sugerido"]), status_options=STATUS_PROPOSTA, **contexto)
+        registrar_evento("PROPOSTA_CRIADA", "crm_propostas", proposta_id, {"codigo": dados.get("codigo_proposta"), "status": dados.get("status")})
         flash("Proposta cadastrada com sucesso.", "success")
         return redirect(url_for("propostas.visualizar", proposta_id=proposta_id))
     return render_template("propostas/form.html", modo="novo", proposta=PropostaService.preparar_form_payload(codigo_sugerido=contexto["codigo_sugerido"]), status_options=STATUS_PROPOSTA, **contexto)
@@ -129,6 +131,7 @@ def atualizar_status(proposta_id):
     except ValueError as erro:
         flash(str(erro), "danger")
     else:
+        registrar_evento("PROPOSTA_STATUS_ATUALIZADO", "crm_propostas", proposta_id, {"status": request.form.get("status")})
         flash("Status da proposta atualizado.", "success")
     return redirect(request.referrer or url_for("propostas.index"))
 
@@ -170,9 +173,38 @@ def editar(proposta_id):
             dados["codigo_proposta"] = proposta.get("codigo_proposta")
             dados["arquivo"] = arquivo_nome
             return render_template("propostas/form.html", modo="editar", proposta=PropostaService.preparar_form_payload(dados, proposta.get("codigo_proposta")), status_options=STATUS_PROPOSTA, **contexto)
+        registrar_evento("PROPOSTA_ATUALIZADA", "crm_propostas", proposta_id, {"codigo": proposta.get("codigo_proposta"), "status": dados.get("status")})
         flash("Proposta atualizada com sucesso.", "success")
         return redirect(url_for("propostas.visualizar", proposta_id=proposta_id))
     return render_template("propostas/form.html", modo="editar", proposta=PropostaService.preparar_form_payload(proposta, proposta.get("codigo_proposta")), status_options=STATUS_PROPOSTA, **contexto)
+
+
+@propostas_bp.route("/<int:proposta_id>/comentarios-internos", methods=["GET", "POST"])
+def comentarios_internos(proposta_id):
+    contexto = PropostaService.contexto_comentarios_internos(
+        proposta_id,
+        usuario_id=session.get("usuario_id"),
+        usuario_email=_email_usuario_logado(),
+        perfil_codigo=session.get("usuario_perfil"),
+    )
+    if not contexto:
+        flash("Proposta não encontrada.", "danger")
+        return redirect(url_for("propostas.index"))
+    if request.method == "POST":
+        try:
+            resultado = PropostaService.criar_comentario_interno(proposta_id, request.form, _email_usuario_logado())
+        except ValueError as erro:
+            flash(str(erro), "danger")
+        else:
+            registrar_evento("PROPOSTA_COMENTARIO_INTERNO", "crm_proposta_comentarios_internos", resultado.get("comentario_id"), {"proposta_id": proposta_id, "emails": resultado.get("emails")})
+            if resultado.get("emails") and resultado.get("email", {}).get("enviado"):
+                flash("Comentário interno registrado e enviado por e-mail.", "success")
+            elif resultado.get("emails"):
+                flash("Comentário interno registrado. O e-mail não foi enviado; verifique a configuração SMTP.", "warning")
+            else:
+                flash("Comentário interno registrado.", "success")
+            return redirect(url_for("propostas.comentarios_internos", proposta_id=proposta_id))
+    return render_template("propostas/comentarios_internos.html", **contexto)
 
 
 @propostas_bp.route("/<int:proposta_id>/contrato")
@@ -189,6 +221,7 @@ def visualizar_contrato(proposta_id):
 def sincronizar_clicksign_todas():
     resultados = PropostaService.sincronizar_clicksign_pendentes(_email_usuario_logado())
     total = len(resultados)
+    registrar_evento("PROPOSTAS_CLICKSIGN_SINCRONIZADAS", "crm_propostas", None, {"total": total, "erros": len([item for item in resultados if item.get("status") == "ERRO"])})
     erros = [item for item in resultados if item.get("status") == "ERRO"]
     if not total:
         flash("Nenhuma proposta pendente para sincronizar com a ClickSign.", "info")
@@ -203,12 +236,21 @@ def sincronizar_clicksign_todas():
 def atualizar_clicksign(proposta_id, acao):
     try:
         PropostaService.atualizar_status_clicksign(proposta_id, acao, _email_usuario_logado())
+        registrar_evento("PROPOSTA_CLICKSIGN_ATUALIZADO", "crm_propostas", proposta_id, {"acao": acao})
     except ValueError as erro:
         flash(str(erro), "danger")
     else:
         flash("Fluxo de ClickSign atualizado com sucesso.", "success")
     return redirect(url_for("propostas.visualizar", proposta_id=proposta_id))
 
+
+@propostas_bp.route("/excluir-em-massa", methods=["POST"])
+def excluir_em_massa():
+    ids = request.form.getlist("proposta_ids")
+    if ids:
+        PropostaService.excluir_em_massa(ids)
+        flash(f"{len(ids)} proposta(s) removida(s) com sucesso.", "success")
+    return redirect(url_for("propostas.index"))
 
 @propostas_bp.route("/<int:proposta_id>/excluir")
 def excluir(proposta_id):
@@ -217,6 +259,7 @@ def excluir(proposta_id):
         flash("Proposta não encontrada.", "danger")
     else:
         PropostaService.excluir(proposta_id)
+        registrar_evento("PROPOSTA_EXCLUIDA", "crm_propostas", proposta_id, {"codigo": proposta.get("codigo_proposta")})
         flash("Proposta removida com sucesso.", "success")
     return redirect(url_for("propostas.index"))
 

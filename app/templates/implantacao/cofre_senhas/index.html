@@ -15,7 +15,7 @@
 
     <div class="alert alert-secondary d-flex align-items-center gap-2" role="alert">
         <i class="bi bi-shield-lock-fill"></i>
-        <span>As senhas ficam criptografadas no banco e toda revelação é registrada na auditoria.</span>
+        <span>As senhas ficam criptografadas no banco e protegidas conforme a política do cofre.</span>
     </div>
 
 
@@ -24,7 +24,7 @@
             <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
                 <div>
                     <h6 class="mb-1">Meu Cofre</h6>
-                    <small class="text-muted">Pastas particulares de {{ usuario_logado }} e pastas compartilhadas com você.</small>
+                    <small class="text-muted">Pastas particulares de {{ usuario_email_logado }} e pastas compartilhadas com você.</small>
                 </div>
                 <a class="btn btn-outline-primary" href="{{ url_for('implantacao.nova_pasta_cofre') }}?tipo=usuario"><i class="bi bi-folder-plus"></i> Nova Pasta Particular</a>
             </div>
@@ -214,6 +214,7 @@
                                         <input class="form-control" type="password" value="********" readonly>
                                         <button class="btn btn-outline-secondary cofre-reveal-button" type="button" title="Revelar senha"><i class="bi bi-eye"></i></button>
                                         <button class="btn btn-outline-secondary cofre-copy-password" type="button" title="Copiar senha"><i class="bi bi-clipboard"></i></button>
+                                        <button class="btn btn-outline-warning cofre-share-password" type="button" data-share-url="{{ url_for('implantacao.compartilhar_senha_cofre', senha_id=item.id) }}" title="Gerar link de uso unico"><i class="bi bi-link-45deg"></i></button>
                                     </div>
                                 </td>
                                 <td><small class="text-muted">Rede</small><br>{{ item.faixa_rede or 'Sem faixa vinculada' }}{% if item.licenca_o3web_id %}<br><small class="text-muted">O3Web {{ item.licenca_o3web_codigo or item.licenca_o3web_id }}</small>{% endif %}</td>
@@ -306,6 +307,26 @@
                     marcarCopiado(button);
                 }
             });
+        });
+    });
+
+    document.querySelectorAll('.cofre-share-password').forEach(function (button) {
+        button.addEventListener('click', function () {
+            fetch(button.dataset.shareUrl, {method: 'POST'})
+                .then(function (response) { return response.json(); })
+                .then(function (payload) {
+                    if (!payload.ok) {
+                        throw new Error(payload.erro || 'Nao foi possivel gerar o link.');
+                    }
+                    window.prompt('Link de uso unico gerado. Compartilhe-o por outro canal:', payload.link);
+                    return copiarTexto(payload.link);
+                })
+                .then(function (ok) {
+                    if (ok) {
+                        marcarCopiado(button);
+                    }
+                })
+                .catch(function (erro) { alert(erro.message); });
         });
     });
 

@@ -1,41 +1,41 @@
 <nav class="navbar navbar-expand-lg bg-white shadow-sm">
-
     <div class="container-fluid">
-
         <div>
-
-            <h3 class="page-title">
-
-                Dashboard Executivo
-
-            </h3>
-
-            <small class="text-muted">
-
-                Visão Geral da Plataforma
-
-            </small>
-
+            <h3 class="page-title">O3Cloud Manager</h3>
+            <small class="text-muted">Gestão unificada da infraestrutura e do negócio</small>
         </div>
-
         <div class="user-area">
-
-            <span class="edition">
-
-                Enterprise Edition
-
-            </span>
-
-            <span class="user">
-
-                <i class="bi bi-person-circle"></i>
-
-                Usuário
-
-            </span>
-
+            <span class="edition">Enterprise Edition</span>
+            {% set usuario = usuario_logado() if usuario_logado is defined else None %}
+            <div class="dropdown">
+                <button class="btn user-menu-toggle dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    {% if usuario and usuario.foto %}
+                    <img class="user-avatar" src="{{ url_for('storage', filename='usuarios/' ~ usuario.foto) }}" alt="Foto do usuário">
+                    {% else %}
+                    <span class="user-avatar user-avatar-empty"><i class="bi bi-person"></i></span>
+                    {% endif %}
+                    <span class="user-name">{{ (usuario.nome if usuario else session.get("usuario_nome")) or "Usuário" }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end user-dropdown">
+                    <li class="dropdown-header">
+                        <strong>{{ (usuario.nome if usuario else session.get("usuario_nome")) or "Usuário" }}</strong><br>
+                        <small>{{ (usuario.email if usuario else session.get("usuario_email")) or "" }}</small>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('autenticacao.minha_conta') }}"><i class="bi bi-person-gear"></i> Editar dados e foto</a></li>
+                    {% if usuario and usuario.origem == 'LOCAL' %}
+                    <li><a class="dropdown-item" href="{{ url_for('autenticacao.minha_conta') }}#alterar-senha"><i class="bi bi-key"></i> Alterar senha</a></li>
+                    {% endif %}
+                    <li>
+                        <button class="dropdown-item d-flex align-items-center justify-content-between gap-3" type="button" id="darkModeToggle">
+                            <span><i class="bi bi-moon-stars"></i> Modo Noturno</span>
+                            <span class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" id="darkModeSwitch" tabindex="-1"></span>
+                        </button>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="{{ url_for('autenticacao.logout') }}"><i class="bi bi-box-arrow-right"></i> Sair</a></li>
+                </ul>
+            </div>
         </div>
-
     </div>
-
 </nav>

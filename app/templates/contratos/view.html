@@ -56,7 +56,8 @@
                 <div class="col-md-6">
                     <h5>Contrato assinado</h5>
                     {% if contrato.arquivo_assinado %}
-                        <p class="mb-2">{{ contrato.arquivo_assinado_original or contrato.arquivo_assinado }}</p>
+                        <p class="mb-1">{{ contrato.arquivo_assinado_original or contrato.arquivo_assinado }}</p>
+                        <p class="text-muted mb-2">Assinado em: {{ contrato.clicksign_assinado_em|datetime_br if contrato.clicksign_assinado_em else '-' }}</p>
                         <a class="btn btn-success" href="{{ url_for('contratos.download', contrato_id=contrato.id) }}"><i class="bi bi-download"></i> Download</a>
                     {% else %}
                         <form method="POST" enctype="multipart/form-data" action="{{ url_for('contratos.upload_assinado', contrato_id=contrato.id) }}" class="d-flex gap-2">

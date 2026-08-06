@@ -331,3 +331,11 @@ class OportunidadeRepository(BaseRepository):
     def excluir(cls, oportunidade_id):
         sql = f"DELETE FROM {cls.TABLE} WHERE id = %s"
         return cls.execute(sql, (oportunidade_id,))
+
+    @classmethod
+    def excluir_em_massa(cls, oportunidade_ids):
+        ids = [int(item) for item in oportunidade_ids if str(item).isdigit()]
+        if not ids:
+            return 0
+        marks = ",".join(["%s"] * len(ids))
+        return cls.execute(f"DELETE FROM {cls.TABLE} WHERE id IN ({marks})", tuple(ids))

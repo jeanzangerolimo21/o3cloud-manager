@@ -6,6 +6,7 @@ import requests
 from app.implantacao.integracoes_service import IntegracaoConfigService
 from app.integracoes.zabbix.client import ZabbixClient
 from app.repositories.zabbix_alarm_repository import ZabbixAlarmRepository
+from app.repositories.zabbix_host_repository import ZabbixHostRepository
 
 
 SEVERIDADES = {
@@ -20,6 +21,7 @@ SEVERIDADES = {
 
 class ZabbixMonitoramentoService:
     repository = ZabbixAlarmRepository
+    host_repository = ZabbixHostRepository
 
     @classmethod
     def dashboard(cls, alarmes):
@@ -81,6 +83,8 @@ class ZabbixMonitoramentoService:
                 timeout=integracao.get("timeout_seconds"),
                 verify_ssl=integracao.get("verify_ssl"),
             )
+            hosts = [cls._normalizar_host(item) for item in cliente.listar_hosts()]
+            hosts_atualizados = cls.host_repository.salvar(integracao.get("id"), hosts)
             eventos = cliente.eventos_recentes(limite=limite)
             alarmes = sorted(
                 [cls._normalizar_evento(evento, integracao) for evento in eventos],
@@ -89,7 +93,7 @@ class ZabbixMonitoramentoService:
             atualizados = cls.repository.salvar(integracao.get("id"), alarmes)
             return {
                 "status": "OK",
-                "mensagem": f"Sincronismo Zabbix concluído. {atualizados} alarme(s) recente(s) atualizados no cache.",
+                "mensagem": f"Sincronismo Zabbix concluido. {hosts_atualizados} host(s) e {atualizados} alarme(s) atualizados.",
                 "integracao": integracao,
                 "alarmes": alarmes,
             }
@@ -120,6 +124,17 @@ class ZabbixMonitoramentoService:
             return None
         integracoes = cls.integracoes_zabbix()
         return integracoes[0] if integracoes else None
+
+    @staticmethod
+    def _normalizar_host(item):
+        return {
+            "hostid": item.get("hostid"),
+            "host": item.get("host"),
+            "nome": item.get("name") or item.get("host"),
+            "status": item.get("status"),
+            "interfaces": item.get("interfaces") or [],
+            "raw_payload": item,
+        }
 
     @classmethod
     def _normalizar_cache(cls, item):

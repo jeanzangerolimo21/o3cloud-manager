@@ -19,6 +19,13 @@ STATUS_NEGOCIACAO = {
     "PERDIDO": "Perdido",
 }
 
+CATEGORIAS_PARCEIRO = {
+    "PLATINIUM": "Platinium",
+    "OURO": "Ouro",
+    "PRATA": "Prata",
+    "BRONZE": "Bronze",
+}
+
 
 parceiros_bp = Blueprint(
     "parceiros",
@@ -60,6 +67,7 @@ def index():
         page_button_icon="bi-plus-circle",
         page_button_url=url_for("parceiros.novo"),
         negociacao_options=STATUS_NEGOCIACAO,
+        categoria_options=CATEGORIAS_PARCEIRO,
     )
 
 
@@ -84,6 +92,7 @@ def novo():
                     executivos=executivos,
                     clientes_importacao=clientes_importacao,
                     status_negociacao_options=STATUS_NEGOCIACAO,
+                    categoria_options=CATEGORIAS_PARCEIRO,
                 )
 
         dados = _coletar_dados_parceiro_form(logo=logo)
@@ -98,6 +107,7 @@ def novo():
                 executivos=executivos,
                 clientes_importacao=clientes_importacao,
                 status_negociacao_options=STATUS_NEGOCIACAO,
+                categoria_options=CATEGORIAS_PARCEIRO,
             )
 
         flash("Parceiro cadastrado com sucesso.", "success")
@@ -110,6 +120,7 @@ def novo():
         executivos=executivos,
         clientes_importacao=clientes_importacao,
         status_negociacao_options=STATUS_NEGOCIACAO,
+        categoria_options=CATEGORIAS_PARCEIRO,
     )
 
 
@@ -128,6 +139,7 @@ def visualizar(parceiro_id):
         parceiro=parceiro,
         total_executivos=total_executivos,
         status_negociacao_options=STATUS_NEGOCIACAO,
+        categoria_options=CATEGORIAS_PARCEIRO,
     )
 
 
@@ -162,6 +174,7 @@ def editar(parceiro_id):
                     executivos=executivos,
                     clientes_importacao=clientes_importacao,
                     status_negociacao_options=STATUS_NEGOCIACAO,
+                    categoria_options=CATEGORIAS_PARCEIRO,
                 )
 
         dados = _coletar_dados_parceiro_form(logo=logo)
@@ -179,6 +192,7 @@ def editar(parceiro_id):
                 executivos=executivos,
                 clientes_importacao=clientes_importacao,
                 status_negociacao_options=STATUS_NEGOCIACAO,
+                categoria_options=CATEGORIAS_PARCEIRO,
             )
 
         flash("Parceiro atualizado com sucesso.", "success")
@@ -191,6 +205,7 @@ def editar(parceiro_id):
         executivos=executivos,
         clientes_importacao=clientes_importacao,
         status_negociacao_options=STATUS_NEGOCIACAO,
+        categoria_options=CATEGORIAS_PARCEIRO,
     )
 
 
@@ -379,6 +394,7 @@ def _coletar_dados_parceiro_form(logo=None, parceiro_atual=None):
         "ativo": 1 if request.form.get("ativo") else 0,
         "cnpj": (request.form.get("cnpj") or "").strip(),
         "segmento": (request.form.get("segmento") or "").strip(),
+        "categoria_parceiro": _normalizar_categoria_parceiro(request.form.get("categoria_parceiro")),
         "razao_social": razao_social,
         "nome_fantasia": nome_fantasia,
         "endereco": (request.form.get("endereco") or "").strip(),
@@ -403,6 +419,7 @@ def _parceiro_form_payload():
     return {
         "cnpj": request.form.get("cnpj"),
         "segmento": request.form.get("segmento"),
+        "categoria_parceiro": request.form.get("categoria_parceiro"),
         "razao_social": request.form.get("razao_social"),
         "nome_fantasia": request.form.get("nome_fantasia"),
         "endereco": request.form.get("endereco"),
@@ -426,6 +443,11 @@ def _parceiro_form_payload():
         "informacoes_gerais": request.form.get("informacoes_gerais"),
         "ativo": 1 if request.form.get("ativo") else 0,
     }
+
+
+def _normalizar_categoria_parceiro(valor):
+    categoria = (valor or "").strip().upper()
+    return categoria if categoria in CATEGORIAS_PARCEIRO else None
 
 
 def _normalizar_uf(valor):
