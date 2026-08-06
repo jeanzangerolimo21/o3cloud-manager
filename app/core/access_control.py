@@ -207,6 +207,7 @@ WRITE_ENDPOINT_MARKERS = (
     "excluir",
     "importar",
     "iniciar",
+    "ler",
     "mover",
     "nova",
     "novo",

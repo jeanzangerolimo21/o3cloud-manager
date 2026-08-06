@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-06 - Sprint 18 Etapa 4
+
+### Notificacoes
+
+- Central de notificacoes recebeu marcacao individual e em lote como lida, contador visual e acesso direto a demanda.
+- Alteracoes de prazo e novos comentarios notificam o responsavel na tela e por e-mail quando o SMTP esta configurado.
+- Operacoes de leitura de notificacoes passaram a respeitar a permissao de edicao do grupo Administrativo.
+
+
 ## 2026-08-06 - Sprint 18 Etapa 3
 
 ### Comentarios, Historico e Anexos

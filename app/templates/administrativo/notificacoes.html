@@ -1,2 +1,14 @@
 {% extends "layout/base.html" %}
-{% block content %}<div class="container-fluid"><h2 class="mb-1">Notificações</h2><p class="text-muted mb-4">Acompanhe as demandas atribuídas a você.</p><div class="card border-0 shadow-sm"><div class="list-group list-group-flush">{% for item in notificacoes %}<div class="list-group-item d-flex justify-content-between align-items-start {% if not item.lida_em %}bg-light{% endif %}"><div><strong>{{ item.titulo }}</strong><p class="mb-1">{{ item.mensagem }}</p><small class="text-muted">{{ item.created_at|datetime_br }}</small></div>{% if not item.lida_em %}<form method="post" action="{{ url_for('administrativo.ler_notificacao', notificacao_id=item.id) }}"><button class="btn btn-sm btn-outline-primary" title="Marcar como lida"><i class="bi bi-check2"></i></button></form>{% endif %}</div>{% else %}<div class="list-group-item text-muted">Nenhuma notificação.</div>{% endfor %}</div></div></div>{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div><h2 class="mb-1">Notificações</h2><p class="text-muted mb-0">Acompanhe as demandas atribuídas a você.</p></div>
+    <form method="post" action="{{ url_for('administrativo.ler_todas_notificacoes') }}"><button class="btn btn-outline-primary" {% if not notificacoes or not notificacoes|selectattr('lida_em', 'equalto', none)|list %}disabled{% endif %}><i class="bi bi-check2-all"></i> Marcar todas como lidas</button></form>
+  </div>
+  <div class="card border-0 shadow-sm"><div class="list-group list-group-flush">
+    {% for item in notificacoes %}
+    <div class="list-group-item {% if not item.lida_em %}bg-light{% endif %}"><div class="d-flex justify-content-between align-items-start gap-3"><div><strong>{{ item.titulo }}</strong><p class="mb-1">{{ item.mensagem }}</p><small class="text-muted">{{ item.created_at|datetime_br }} · E-mail: {{ 'enviado' if item.email_enviado else 'pendente ou não configurado' }}</small></div><div class="d-flex gap-2">{% if item.demanda_id %}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('administrativo.detalhe', demanda_id=item.demanda_id) }}" title="Abrir demanda"><i class="bi bi-box-arrow-up-right"></i></a>{% endif %}{% if not item.lida_em %}<form method="post" action="{{ url_for('administrativo.ler_notificacao', notificacao_id=item.id) }}"><button class="btn btn-sm btn-outline-primary" title="Marcar como lida"><i class="bi bi-check2"></i></button></form>{% endif %}</div></div></div>
+    {% else %}<div class="list-group-item text-muted">Nenhuma notificação.</div>{% endfor %}
+  </div></div>
+</div>
+{% endblock %}

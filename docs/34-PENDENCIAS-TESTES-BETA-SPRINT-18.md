@@ -49,7 +49,10 @@ O Sprint 17 permanece fora do corte atual e sera retomado apos o alinhamento dos
 - Confirmar notificacao visual no menu e na tela de notificacoes.
 - Confirmar envio de e-mail para o endereco do responsavel.
 - Validar notificacoes de nova demanda e reatribuicao.
-- Marcar notificacao como lida e conferir atualizacao do contador.
+- Marcar uma notificacao como lida e conferir atualizacao do contador.
+- Marcar todas as notificacoes como lidas e confirmar que o contador do menu zera.
+- Abrir a demanda a partir da notificacao e conferir o status do envio de e-mail.
+- Alterar prazo ou registrar comentario e confirmar nova notificacao visual e por e-mail para o responsavel.
 
 ## 5. Dashboards e Relatorios
 

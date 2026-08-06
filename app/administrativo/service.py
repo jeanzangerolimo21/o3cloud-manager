@@ -39,9 +39,9 @@ class AdministrativoService:
             cls.repository.inserir_historico(demanda_id, {"tipo": "ALTERACAO", "comentario": "Demanda atualizada.", "status_anterior": anterior.get("status"), "status_novo": payload.get("status"), "responsavel_anterior_id": anterior.get("responsavel_id"), "responsavel_novo_id": payload.get("responsavel_id"), "autor_email": usuario_email})
         if anterior.get("responsavel_id") != payload.get("responsavel_id"):
             cls._notificar_responsavel(demanda_id, payload.get("responsavel_id"), "DEMANDA_REATRIBUIDA", "Demanda atribuída a você", payload["titulo"])
-        elif anterior.get("status") != payload.get("status") and payload.get("responsavel_id"):
+        elif (anterior.get("status") != payload.get("status") or anterior.get("data_limite") != payload.get("data_limite")) and payload.get("responsavel_id"):
             labels = {"CONCLUIDA": "Demanda concluída", "CANCELADA": "Demanda cancelada", "EM_ANDAMENTO": "Demanda em andamento", "PENDENTE": "Demanda pendente"}
-            titulo = labels.get(payload.get("status"), "Demanda atualizada")
+            titulo = labels.get(payload.get("status"), "Prazo da demanda atualizado")
             cls._notificar_responsavel(demanda_id, payload.get("responsavel_id"), "DEMANDA_ATUALIZADA", titulo, payload["titulo"])
         cls._salvar_anexos(demanda_id, arquivos)
 
@@ -55,6 +55,7 @@ class AdministrativoService:
         comentario_id = cls.repository.inserir_comentario(demanda_id, texto, usuario_email)
         cls.repository.inserir_historico(demanda_id, {"tipo": "COMENTARIO", "comentario": texto, "autor_email": usuario_email})
         cls._salvar_anexos(demanda_id, arquivos, comentario_id)
+        cls._notificar_responsavel(demanda_id, demanda.get("responsavel_id"), "NOVO_COMENTARIO", "Novo comentário na sua demanda", demanda["titulo"], usuario_email)
 
     @classmethod
     def editar_comentario(cls, demanda_id, comentario_id, texto, usuario_email, moderador=False):
@@ -104,10 +105,16 @@ class AdministrativoService:
         cls.repository.marcar_notificacao_lida(notificacao_id, usuario_id)
 
     @classmethod
-    def _notificar_responsavel(cls, demanda_id, usuario_id, tipo, titulo, demanda_titulo):
+    def marcar_notificacoes(cls, usuario_id):
+        if usuario_id:
+            cls.repository.marcar_notificacoes_lidas(usuario_id)
+
+    @classmethod
+    def _notificar_responsavel(cls, demanda_id, usuario_id, tipo, titulo, demanda_titulo, ignorar_email=None):
         if not usuario_id: return
         usuario = next((item for item in cls.repository.listar_usuarios_ativos() if int(item["id"]) == int(usuario_id)), None)
         if not usuario: return
+        if ignorar_email and (usuario.get("email") or "").lower() == ignorar_email.lower(): return
         mensagem = f"{titulo}: {demanda_titulo}. Acesse o módulo Administrativo para acompanhar a atividade."
         notificacao_id = cls.repository.criar_notificacao(usuario_id, demanda_id, tipo, titulo, mensagem)
         enviado = False

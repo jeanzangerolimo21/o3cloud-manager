@@ -146,6 +146,10 @@ class AdministrativoRepository(BaseRepository):
         return cls.execute("UPDATE administrativo_notificacoes SET lida_em=NOW() WHERE id=%s AND usuario_id=%s", (notificacao_id, usuario_id))
 
     @classmethod
+    def marcar_notificacoes_lidas(cls, usuario_id):
+        return cls.execute("UPDATE administrativo_notificacoes SET lida_em=NOW() WHERE usuario_id=%s AND lida_em IS NULL", (usuario_id,))
+
+    @classmethod
     def dashboard(cls, usuario_id=None):
         filtro = "WHERE responsavel_id=%s" if usuario_id else ""
         params = (usuario_id,) if usuario_id else ()
