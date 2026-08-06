@@ -66,7 +66,11 @@ O Sprint 17 permanece fora do corte atual e sera retomado apos o alinhamento dos
 
 ## 6. Auditoria
 
+
 - Confirmar registros no menu Configuracoes > Auditoria.
+- Validar eventos de criacao, alteracao, cancelamento, reagendamento, comentarios e leitura de notificacoes com usuario, IP e user agent.
+- Confirmar que detalhes de auditoria nao exibem senhas, tokens ou dados sensiveis.
+
 - Validar usuario, acao, entidade, identificador, IP e user agent.
 - Confirmar que detalhes nao registram senhas, tokens ou outros segredos.
 

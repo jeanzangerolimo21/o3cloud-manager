@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-06 - Sprint 18 Etapa 6
+
+### Alertas e Auditoria
+
+- Alerta amarelo global informa demandas vencidas do colaborador e direciona para a lista administrativa.
+- Leituras individuais e em lote de notificacoes passam a ser registradas na auditoria centralizada.
+- Eventos administrativos continuam sujeitos a sanitizacao de dados sensiveis e ao registro de IP e user agent.
+
+
 ## 2026-08-06 - Sprint 18 Etapa 5
 
 ### Dashboard e Relatorios

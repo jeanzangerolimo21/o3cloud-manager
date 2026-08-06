@@ -141,12 +141,13 @@ def notificacoes():
 
 @administrativo_bp.route("/notificacoes/<int:notificacao_id>/ler", methods=["POST"])
 def ler_notificacao(notificacao_id):
-    AdministrativoService.marcar_notificacao(notificacao_id, _usuario_id()); return redirect(request.referrer or url_for("administrativo.notificacoes"))
+    AdministrativoService.marcar_notificacao(notificacao_id, _usuario_id()); registrar_evento("ADMIN_NOTIFICACAO_LIDA", "administrativo_notificacoes", notificacao_id); return redirect(request.referrer or url_for("administrativo.notificacoes"))
 
 
 @administrativo_bp.route("/notificacoes/ler-todas", methods=["POST"])
 def ler_todas_notificacoes():
     AdministrativoService.marcar_notificacoes(_usuario_id())
+    registrar_evento("ADMIN_NOTIFICACOES_LIDAS", "administrativo_notificacoes", None, {"usuario_id": _usuario_id()})
     flash("Notificações marcadas como lidas.", "success")
     return redirect(request.referrer or url_for("administrativo.notificacoes"))
 

@@ -142,6 +142,12 @@ class AdministrativoRepository(BaseRepository):
         return cls.scalar("SELECT COUNT(*) FROM administrativo_notificacoes WHERE usuario_id=%s AND lida_em IS NULL", (usuario_id,)) or 0
 
     @classmethod
+    def contar_demandas_atrasadas(cls, usuario_id=None):
+        filtro = " AND responsavel_id=%s" if usuario_id else ""
+        params = (usuario_id,) if usuario_id else ()
+        return cls.scalar("SELECT COUNT(*) FROM administrativo_demandas WHERE status NOT IN ('CONCLUIDA','CANCELADA') AND data_limite < CURRENT_DATE" + filtro, params) or 0
+
+    @classmethod
     def marcar_notificacao_lida(cls, notificacao_id, usuario_id):
         return cls.execute("UPDATE administrativo_notificacoes SET lida_em=NOW() WHERE id=%s AND usuario_id=%s", (notificacao_id, usuario_id))
 

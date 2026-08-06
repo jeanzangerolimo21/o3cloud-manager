@@ -1,4 +1,4 @@
-from flask import abort, flash, redirect, request, session, url_for
+from flask import abort, flash, has_request_context, redirect, request, session, url_for
 
 from app.repositories.auth_repository import AuthRepository
 
@@ -245,6 +245,7 @@ def init_access_control(app):
             "usuario_pode_ver_valores": usuario_pode_ver_valores,
             "usuario_logado": usuario_logado,
             "notificacoes_pendentes": notificacoes_pendentes(),
+            "demandas_administrativas_atrasadas": demandas_administrativas_atrasadas(),
         }
 
 
@@ -323,6 +324,19 @@ def notificacoes_pendentes():
     try:
         from app.repositories.administrativo_repository import AdministrativoRepository
         return AdministrativoRepository.contar_notificacoes(usuario_id)
+    except Exception:
+        return 0
+
+
+def demandas_administrativas_atrasadas():
+    if not has_request_context():
+        return 0
+    usuario_id = session.get("usuario_id")
+    if not usuario_id:
+        return 0
+    try:
+        from app.repositories.administrativo_repository import AdministrativoRepository
+        return AdministrativoRepository.contar_demandas_atrasadas(usuario_id)
     except Exception:
         return 0
 

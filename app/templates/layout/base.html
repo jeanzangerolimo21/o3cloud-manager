@@ -55,6 +55,7 @@
                 </a>
             </div>
             {% endif %}
+            {% if demandas_administrativas_atrasadas and pode_acessar('administrativo') %}<div class="alert alert-warning d-flex justify-content-between align-items-center gap-2" role="alert"><span><i class="bi bi-exclamation-triangle"></i> Existem tarefas pendentes de dias anteriores.</span><a class="btn btn-sm btn-outline-warning" href="{{ url_for('administrativo.index') }}">Ver demandas</a></div>{% endif %}
 
 	    {% include "components/alert.html" %}
 
