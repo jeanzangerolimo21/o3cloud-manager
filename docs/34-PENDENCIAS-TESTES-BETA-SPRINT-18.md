@@ -32,6 +32,8 @@ O Sprint 17 permanece fora do corte atual e sera retomado apos o alinhamento dos
 - Consultar agenda geral e agenda individual.
 - Validar visoes Hoje, Semana, Mes e Lista.
 - Reagendar uma demanda diretamente pela agenda e conferir o historico da alteracao.
+- Validar o botao Voltar e as visoes Lista e Calendario na Agenda.
+- Na visao Calendario, confirmar os dias uteis de segunda a sexta e a abertura da demanda pelo item do dia.
 - Validar filtro por responsável e prazo.
 - Confirmar que colaborador nao visualiza agendas de terceiros.
 - Validar demanda sem prazo e demanda atrasada calculada pela data limite.
@@ -44,6 +46,13 @@ O Sprint 17 permanece fora do corte atual e sera retomado apos o alinhamento dos
 - Confirmar historico de criacao, alteracao, reatribuicao, comentario e cancelamento.
 - Anexar arquivos permitidos e confirmar acesso ao arquivo salvo.
 - Validar limites de extensao e tamanho conforme o storage existente.
+
+## 3.1 Recorrencia
+
+- Criar demanda recorrente diaria com data final e conferir as ocorrencias na Agenda.
+- Criar demanda semanal para segunda-feira ou quarta-feira e conferir somente o dia selecionado.
+- Criar demanda mensal para o dia 10 e demanda anual para 10 de julho.
+- Confirmar que cada ocorrencia aparece como demanda independente e pode ser acompanhada pelo gestor.
 
 ## 4. Notificacoes
 

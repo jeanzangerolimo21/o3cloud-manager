@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-06 - Agenda e Recorrencia
+
+- Agenda recebeu botao Voltar, visualizacao em lista e calendario semanal de segunda a sexta.
+- Demandas podem gerar ocorrencias recorrentes diarias, semanais, mensais ou anuais com data final configurada pelo gestor.
+
+
 ## 2026-08-06 - Perfis Administrativos
 
 - Criados os perfis `Administrativo Gestor` e `Administrativo Colaborador` na migration `069_create_perfis_administrativo.sql`.

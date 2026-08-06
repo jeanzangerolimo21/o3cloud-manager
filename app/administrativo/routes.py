@@ -97,9 +97,15 @@ def agenda():
     visao = request.args.get("visao", "hoje")
     if visao not in ("hoje", "semana", "mes", "lista"):
         visao = "hoje"
+    formato = request.args.get("formato", "lista")
+    if formato not in ("lista", "calendario"):
+        formato = "lista"
     referencia = _data_query(request.args.get("data")) or date.today()
     inicio, fim = _intervalo_agenda(visao, referencia)
-    return render_template("administrativo/agenda.html", demandas=AdministrativoService.repository.listar_agenda(usuario_id, inicio, fim), usuarios=AdministrativoService.repository.listar_usuarios_ativos(), usuario_id=usuario_id, gestor=gestor, visao=visao, referencia=referencia, data_inicio=inicio, data_fim=fim)
+    dias_semana = [inicio + timedelta(days=indice) for indice in range(5)] if visao == "semana" and inicio else []
+    demandas = AdministrativoService.repository.listar_agenda(usuario_id, inicio, fim)
+    demandas_por_dia = {dia.isoformat(): [item for item in demandas if item.get("data_limite") == dia] for dia in dias_semana}
+    return render_template("administrativo/agenda.html", demandas=demandas, usuarios=AdministrativoService.repository.listar_usuarios_ativos(), usuario_id=usuario_id, gestor=gestor, visao=visao, formato=formato, referencia=referencia, data_inicio=inicio, data_fim=fim, dias_semana=dias_semana, demandas_por_dia=demandas_por_dia)
 
 @administrativo_bp.route("/demandas/<int:demanda_id>/reagendar", methods=["POST"])
 def reagendar(demanda_id):
@@ -107,7 +113,7 @@ def reagendar(demanda_id):
     if not demanda:
         flash("Demanda não encontrada.", "danger")
         return redirect(url_for("administrativo.agenda"))
-    dados = {"titulo": demanda.get("titulo"), "descricao": demanda.get("descricao"), "categoria": demanda.get("categoria"), "prioridade": demanda.get("prioridade"), "responsavel_id": demanda.get("responsavel_id"), "departamento_id": demanda.get("departamento_id"), "data_inicial": demanda.get("data_inicial"), "data_limite": request.form.get("data_limite"), "hora": demanda.get("hora"), "status": demanda.get("status"), "observacoes": demanda.get("observacoes"), "permitir_comentarios": demanda.get("permitir_comentarios")}
+    dados = {"titulo": demanda.get("titulo"), "descricao": demanda.get("descricao"), "categoria": demanda.get("categoria"), "prioridade": demanda.get("prioridade"), "responsavel_id": demanda.get("responsavel_id"), "departamento_id": demanda.get("departamento_id"), "data_inicial": demanda.get("data_inicial"), "data_limite": request.form.get("data_limite"), "hora": demanda.get("hora"), "status": demanda.get("status"), "observacoes": demanda.get("observacoes"), "permitir_comentarios": demanda.get("permitir_comentarios"), "recorrente": demanda.get("recorrente"), "recorrencia_tipo": demanda.get("recorrencia_tipo"), "recorrencia_dia_semana": demanda.get("recorrencia_dia_semana"), "recorrencia_dia_mes": demanda.get("recorrencia_dia_mes"), "recorrencia_mes": demanda.get("recorrencia_mes"), "recorrencia_data_fim": demanda.get("recorrencia_data_fim")}
     try:
         AdministrativoService.atualizar(demanda_id, dados, [], _usuario_email())
     except ValueError as erro:
@@ -132,7 +138,7 @@ def _intervalo_agenda(visao, referencia):
         return referencia, referencia
     if visao == "semana":
         inicio = referencia - timedelta(days=referencia.weekday())
-        return inicio, inicio + timedelta(days=6)
+        return inicio, inicio + timedelta(days=4)
     if visao == "mes":
         inicio = referencia.replace(day=1)
         proximo = inicio.replace(year=inicio.year + 1, month=1) if inicio.month == 12 else inicio.replace(month=inicio.month + 1)

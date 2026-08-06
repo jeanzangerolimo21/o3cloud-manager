@@ -42,22 +42,22 @@ class AdministrativoRepository(BaseRepository):
     @classmethod
     def inserir_demanda(cls, dados):
         return cls.execute_insert("""INSERT INTO administrativo_demandas
-            (uuid,titulo,descricao,categoria,prioridade,responsavel_id,departamento_id,data_inicial,data_limite,hora,status,observacoes,permitir_comentarios,possui_anexos,criado_por,updated_by)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (
+            (uuid,titulo,descricao,categoria,prioridade,responsavel_id,departamento_id,data_inicial,data_limite,hora,status,observacoes,permitir_comentarios,possui_anexos,recorrente,recorrencia_tipo,recorrencia_dia_semana,recorrencia_dia_mes,recorrencia_mes,recorrencia_data_fim,recorrencia_id,criado_por,updated_by)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (
             cls.generate_uuid(), dados.get('titulo'), dados.get('descricao'), dados.get('categoria'), dados.get('prioridade'),
             dados.get('responsavel_id'), dados.get('departamento_id'), dados.get('data_inicial'), dados.get('data_limite'),
             dados.get('hora'), dados.get('status'), dados.get('observacoes'), cls.bool_to_int(dados.get('permitir_comentarios', True)),
-            cls.bool_to_int(dados.get('possui_anexos', False)), dados.get('criado_por'), dados.get('updated_by')))
+            cls.bool_to_int(dados.get('possui_anexos', False)), cls.bool_to_int(dados.get('recorrente', False)), dados.get('recorrencia_tipo'), dados.get('recorrencia_dia_semana'), dados.get('recorrencia_dia_mes'), dados.get('recorrencia_mes'), dados.get('recorrencia_data_fim'), dados.get('recorrencia_id'), dados.get('criado_por'), dados.get('updated_by')))
 
     @classmethod
     def atualizar_demanda(cls, demanda_id, dados):
         return cls.execute("""UPDATE administrativo_demandas SET titulo=%s,descricao=%s,categoria=%s,prioridade=%s,
             responsavel_id=%s,departamento_id=%s,data_inicial=%s,data_limite=%s,hora=%s,status=%s,observacoes=%s,
-            permitir_comentarios=%s,possui_anexos=%s,updated_by=%s,concluida_em=CASE WHEN %s='CONCLUIDA' THEN COALESCE(concluida_em,NOW()) ELSE NULL END WHERE id=%s""", (
+            permitir_comentarios=%s,possui_anexos=%s,recorrente=%s,recorrencia_tipo=%s,recorrencia_dia_semana=%s,recorrencia_dia_mes=%s,recorrencia_mes=%s,recorrencia_data_fim=%s,updated_by=%s,concluida_em=CASE WHEN %s='CONCLUIDA' THEN COALESCE(concluida_em,NOW()) ELSE NULL END WHERE id=%s""", (
             dados.get('titulo'), dados.get('descricao'), dados.get('categoria'), dados.get('prioridade'), dados.get('responsavel_id'),
             dados.get('departamento_id'), dados.get('data_inicial'), dados.get('data_limite'), dados.get('hora'), dados.get('status'),
             dados.get('observacoes'), cls.bool_to_int(dados.get('permitir_comentarios', True)), cls.bool_to_int(dados.get('possui_anexos', False)),
-            dados.get('updated_by'), dados.get('status'), demanda_id))
+            cls.bool_to_int(dados.get('recorrente', False)), dados.get('recorrencia_tipo'), dados.get('recorrencia_dia_semana'), dados.get('recorrencia_dia_mes'), dados.get('recorrencia_mes'), dados.get('recorrencia_data_fim'), dados.get('updated_by'), dados.get('status'), demanda_id))
 
     @classmethod
     def excluir_demanda(cls, demanda_id, usuario_email):
