@@ -17,6 +17,8 @@ def _moderador(): return session.get("usuario_perfil") in ("ADMIN", "DIRETORIA",
 
 @administrativo_bp.route("/")
 def index():
+    if _colaborador():
+        return redirect(url_for("administrativo.agenda"))
     filtros = {"q": request.args.get("q"), "status": request.args.get("status"), "responsavel_id": request.args.get("responsavel_id"), "departamento_id": request.args.get("departamento_id")}
     if _colaborador():
         filtros["responsavel_id"] = _usuario_id()
@@ -92,7 +94,7 @@ def excluir_comentario(demanda_id, comentario_id):
 
 @administrativo_bp.route("/agenda")
 def agenda():
-    gestor = session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR", "ADMINISTRATIVO_GESTOR")
+    gestor = session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "ADMINISTRATIVO_GESTOR")
     usuario_id = request.args.get("usuario_id", type=int) if gestor else _usuario_id()
     visao = request.args.get("visao", "hoje")
     if visao not in ("hoje", "semana", "mes", "lista"):
@@ -165,7 +167,7 @@ def ler_todas_notificacoes():
 
 @administrativo_bp.route("/relatorios")
 def relatorios():
-    usuario_id = None if session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR", "ADMINISTRATIVO_GESTOR") else _usuario_id()
+    usuario_id = None if session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "ADMINISTRATIVO_GESTOR") else _usuario_id()
     inicio = request.args.get("data_inicio") or None
     fim = request.args.get("data_fim") or None
     return render_template("administrativo/relatorios.html", dashboard=AdministrativoService.repository.dashboard_completo(usuario_id), linhas=AdministrativoService.repository.relatorio_periodo(usuario_id, inicio, fim), data_inicio=inicio, data_fim=fim)

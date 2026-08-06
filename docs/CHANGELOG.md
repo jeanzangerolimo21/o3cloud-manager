@@ -2,6 +2,8 @@
 
 ## 2026-08-06 - Agenda e Recorrencia
 
+- Colaboradores passam a entrar diretamente em Minha Agenda; a Agenda Corporativa fica restrita a gestores administrativos, Diretoria e Administradores.
+
 - Agenda recebeu botao Voltar, visualizacao em lista e calendario semanal de segunda a sexta.
 - Demandas podem gerar ocorrencias recorrentes diarias, semanais, mensais ou anuais com data final configurada pelo gestor.
 
