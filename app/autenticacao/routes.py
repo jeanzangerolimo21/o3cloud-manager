@@ -7,10 +7,12 @@ from flask import session
 from flask import url_for
 
 from app.configuracoes.auth_service import AuthConfigService
+from app.core.logging_config import get_logger
 from app.repositories.auth_repository import AuthRepository
 
 
 autenticacao_bp = Blueprint("autenticacao", __name__)
+security_logger = get_logger("security")
 
 
 _DASHBOARD_MENU_KEYS = {item["valor"]: item["menu_key"] for item in AuthConfigService.DASHBOARDS_PRINCIPAIS}
@@ -54,8 +56,10 @@ def login():
                 _user_agent(),
             )
         except ValueError as erro:
+            security_logger.warning("Login failed", extra={"operation": "LOGIN_FALHA"})
             flash(str(erro), "danger")
         else:
+            security_logger.info("Login succeeded", extra={"operation": "LOGIN_SUCESSO"})
             session.clear()
             session["usuario_id"] = usuario.get("id")
             session["usuario_nome"] = usuario.get("nome")

@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 from uuid import uuid4
 from werkzeug.utils import secure_filename
+from app.repositories.ambiente_repository import AmbienteRepository
 from app.repositories.conhecimento_repository import ConhecimentoRepository
 
 ROOT=Path("/opt/o3cloud-manager/storage/conhecimentos")
@@ -11,17 +12,37 @@ ALLOWED={".pdf",".doc",".docx",".xls",".xlsx",".csv",".txt",".md",".zip",".png",
 
 class ConhecimentoService:
  @staticmethod
+ def contexto_base_form():
+  return {"ambientes": AmbienteRepository.listar_ativos_para_select()}
+ @classmethod
+ def _normalizar_ambiente(cls, ambiente_id):
+  try: ambiente_id=int(ambiente_id or 0)
+  except (TypeError, ValueError): ambiente_id=0
+  if not ambiente_id: return None
+  ambiente=AmbienteRepository.buscar_por_id(ambiente_id)
+  if not ambiente or not ambiente.get("ativo"):
+   raise ValueError("Ambiente selecionado não encontrado ou inativo.")
+  return ambiente_id
+ @staticmethod
  def _segmento(value,label):
   value=secure_filename(value or "").strip("._-")
   if not value: raise ValueError(label+" inválido.")
   return value[:160]
  @classmethod
- def criar_base(cls,nome,descricao=""):
+ def criar_base(cls,nome,descricao="",ambiente_id=None):
   nome=(nome or "").strip()
   if not nome: raise ValueError("Nome da base é obrigatório.")
   if len(nome)>160: raise ValueError("Nome da base deve possuir no máximo 160 caracteres.")
+  ambiente_id=cls._normalizar_ambiente(ambiente_id)
   uid=str(uuid4()); ROOT.joinpath(uid).mkdir(parents=True,exist_ok=True)
-  return ConhecimentoRepository.inserir_base(nome,descricao.strip()[:500],uid)
+  return ConhecimentoRepository.inserir_base(nome,descricao.strip()[:500],uid,ambiente_id)
+ @classmethod
+ def atualizar_base(cls,base_id,nome,descricao="",ambiente_id=None):
+  nome=(nome or "").strip()
+  if not nome: raise ValueError("Nome da base é obrigatório.")
+  if len(nome)>160: raise ValueError("Nome da base deve possuir no máximo 160 caracteres.")
+  ambiente_id=cls._normalizar_ambiente(ambiente_id)
+  return ConhecimentoRepository.atualizar_base(base_id,nome,descricao.strip()[:500],ambiente_id)
  @classmethod
  def pasta(cls,base,parent,nome):
   base_row=ConhecimentoRepository.base(base)

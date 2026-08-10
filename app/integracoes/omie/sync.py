@@ -1,6 +1,5 @@
-import logging
-
 from app.integracoes.omie.client import OmieClient
+from app.core.logging_config import get_logger
 from app.integracoes.omie.cliente_mapper import ClienteMapper
 from app.contratos.service import ContratoService
 from app.clientes.service import ClienteService
@@ -8,7 +7,7 @@ from app.repositories.sync_repository import SyncRepository
 from app.contratos.item_service import ContratoItemService
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger("integrations")
 
 
 def _log(mensagem=""):

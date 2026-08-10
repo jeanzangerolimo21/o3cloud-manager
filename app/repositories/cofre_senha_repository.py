@@ -3,10 +3,11 @@ from app.repositories.base_repository import BaseRepository
 
 class CofreSenhaRepository(BaseRepository):
     @classmethod
-    def listar(cls, pesquisa=None, categoria=None, ativo=1, pasta_id=None, limit=50, offset=0):
+    def listar(cls, pesquisa=None, categoria=None, ativo=1, pasta_id=None, apenas_clientes=False, limit=50, offset=0):
         sql = """
             SELECT cs.id, cs.uuid, cs.pasta_id, cp.nome AS pasta_nome, cp.tipo AS pasta_tipo,
                    cs.cliente_id, cs.cliente_nome, cs.cliente_cnpj,
+                   cs.ambiente_id, amb.nome AS ambiente_nome, amb.ambiente_tipo, amb.prefixo_proxmox,
                    cs.faixa_rede_id, fr.rede AS faixa_rede,
                    cp.owner_email AS pasta_owner_email, cp.compartilhada AS pasta_compartilhada, cp.compartilhada_com AS pasta_compartilhada_com,
                    cs.licenca_o3web_id, o3.id_licenca AS licenca_o3web_codigo,
@@ -15,12 +16,13 @@ class CofreSenhaRepository(BaseRepository):
                    cs.pbs_server_id, cs.zabbix_host_id, cs.ativo,
                    cs.created_by, cs.updated_by, cs.created_at, cs.updated_at
             FROM implantacao_cofre_senhas cs
+            LEFT JOIN ambientes amb ON amb.id = cs.ambiente_id
             LEFT JOIN implantacao_faixas_rede fr ON fr.id = cs.faixa_rede_id
             LEFT JOIN o3web_licencas o3 ON o3.id = cs.licenca_o3web_id
             LEFT JOIN implantacao_cofre_pastas cp ON cp.id = cs.pasta_id
             WHERE 1 = 1
         """
-        where, params = cls._filtros(pesquisa, categoria, ativo, pasta_id)
+        where, params = cls._filtros(pesquisa, categoria, ativo, pasta_id, apenas_clientes)
         sql += where
         sql += """
             ORDER BY cs.cliente_nome ASC, cs.categoria ASC, cs.titulo ASC, cs.id DESC
@@ -30,16 +32,17 @@ class CofreSenhaRepository(BaseRepository):
         return cls.fetch_all(sql, tuple(params))
 
     @classmethod
-    def total(cls, pesquisa=None, categoria=None, ativo=1, pasta_id=None):
+    def total(cls, pesquisa=None, categoria=None, ativo=1, pasta_id=None, apenas_clientes=False):
         sql = """
             SELECT COUNT(*)
             FROM implantacao_cofre_senhas cs
+            LEFT JOIN ambientes amb ON amb.id = cs.ambiente_id
             LEFT JOIN implantacao_faixas_rede fr ON fr.id = cs.faixa_rede_id
             LEFT JOIN o3web_licencas o3 ON o3.id = cs.licenca_o3web_id
             LEFT JOIN implantacao_cofre_pastas cp ON cp.id = cs.pasta_id
             WHERE 1 = 1
         """
-        where, params = cls._filtros(pesquisa, categoria, ativo, pasta_id)
+        where, params = cls._filtros(pesquisa, categoria, ativo, pasta_id, apenas_clientes)
         return cls.scalar(sql + where, tuple(params)) or 0
 
     @classmethod
@@ -61,8 +64,9 @@ class CofreSenhaRepository(BaseRepository):
     def buscar_por_id(cls, senha_id):
         return cls.fetch_one(
             """
-            SELECT cs.*, fr.rede AS faixa_rede, o3.id_licenca AS licenca_o3web_codigo, cp.nome AS pasta_nome, cp.tipo AS pasta_tipo, cp.owner_email AS pasta_owner_email, cp.compartilhada AS pasta_compartilhada, cp.compartilhada_com AS pasta_compartilhada_com
+            SELECT cs.*, amb.nome AS ambiente_nome, amb.ambiente_tipo, amb.prefixo_proxmox, fr.rede AS faixa_rede, o3.id_licenca AS licenca_o3web_codigo, cp.nome AS pasta_nome, cp.tipo AS pasta_tipo, cp.owner_email AS pasta_owner_email, cp.compartilhada AS pasta_compartilhada, cp.compartilhada_com AS pasta_compartilhada_com
             FROM implantacao_cofre_senhas cs
+            LEFT JOIN ambientes amb ON amb.id = cs.ambiente_id
             LEFT JOIN implantacao_faixas_rede fr ON fr.id = cs.faixa_rede_id
             LEFT JOIN o3web_licencas o3 ON o3.id = cs.licenca_o3web_id
             LEFT JOIN implantacao_cofre_pastas cp ON cp.id = cs.pasta_id
@@ -76,12 +80,12 @@ class CofreSenhaRepository(BaseRepository):
         return cls.execute_insert(
             """
             INSERT INTO implantacao_cofre_senhas (
-                uuid, pasta_id, cliente_id, cliente_nome, cliente_cnpj, faixa_rede_id, licenca_o3web_id,
+                uuid, pasta_id, cliente_id, cliente_nome, cliente_cnpj, ambiente_id, faixa_rede_id, licenca_o3web_id,
                 categoria, titulo, host, porta, url, usuario, senha_encrypted, observacoes,
                 proxmox_node_id, proxmox_vm_id, pbs_server_id, zabbix_host_id,
                 proxmox_node_inventory_id, proxmox_inventory_id, pbs_backup_snapshot_id,
                 zabbix_host_inventory_id, ativo, created_by, updated_by
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (cls.generate_uuid(),) + cls._params(dados, incluir_senha=True),
         )
@@ -100,6 +104,7 @@ class CofreSenhaRepository(BaseRepository):
                 cliente_id=%s,
                 cliente_nome=%s,
                 cliente_cnpj=%s,
+                ambiente_id=%s,
                 faixa_rede_id=%s,
                 licenca_o3web_id=%s,
                 categoria=%s,
@@ -278,6 +283,7 @@ class CofreSenhaRepository(BaseRepository):
             dados.get("cliente_id"),
             dados.get("cliente_nome"),
             dados.get("cliente_cnpj"),
+            dados.get("ambiente_id"),
             dados.get("faixa_rede_id"),
             dados.get("licenca_o3web_id"),
             dados.get("categoria"),
@@ -308,7 +314,7 @@ class CofreSenhaRepository(BaseRepository):
         return params
 
     @classmethod
-    def _filtros(cls, pesquisa=None, categoria=None, ativo=1, pasta_id=None):
+    def _filtros(cls, pesquisa=None, categoria=None, ativo=1, pasta_id=None, apenas_clientes=False):
         where = []
         params = []
         if pesquisa:
@@ -322,6 +328,8 @@ class CofreSenhaRepository(BaseRepository):
                     OR cs.usuario LIKE %s
                     OR COALESCE(cs.host, '') LIKE %s
                     OR COALESCE(cs.url, '') LIKE %s
+                    OR COALESCE(amb.nome, '') LIKE %s
+                    OR COALESCE(amb.prefixo_proxmox, '') LIKE %s
                     OR COALESCE(fr.rede, '') LIKE %s
                     OR COALESCE(o3.id_licenca, '') LIKE %s
                     OR COALESCE(cs.observacoes, '') LIKE %s
@@ -329,7 +337,10 @@ class CofreSenhaRepository(BaseRepository):
                 )
                 """
             )
-            params.extend([termo] * 10)
+            params.extend([termo] * 12)
+        if apenas_clientes:
+            where.append("cp.tipo = %s")
+            params.append("cliente")
         if categoria:
             where.append("cs.categoria = %s")
             params.append(categoria)

@@ -12,7 +12,7 @@ venv/
 .idea/
 
 # Logs
-logs/
+logs/*.log*
 *.log
 
 # Flask

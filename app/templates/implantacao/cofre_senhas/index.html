@@ -18,6 +18,16 @@
         <span>As senhas ficam criptografadas no banco e protegidas conforme a política do cofre.</span>
     </div>
 
+    {% if not selected_pasta %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-2 align-items-end">
+                <div class="col-md-10"><label class="form-label">Pesquisar credencial de cliente</label><input class="form-control" name="q" value="{{ pesquisa or "" }}" placeholder="Cliente, CNPJ, título, usuário, host ou URL..."></div>
+                <div class="col-md-2"><button class="btn btn-primary w-100"><i class="bi bi-search"></i> Pesquisar</button></div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
@@ -149,17 +159,15 @@
         </div>
     {% endif %}
 
-    {% if selected_pasta %}
+    {% if selected_pasta or pesquisa %}
         <div class="card border-0 shadow-sm">
             <div class="card-body">
                 <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
                     <div>
-                        <h6 class="mb-1"><i class="bi bi-folder2-open text-primary"></i> {{ selected_pasta.cliente_nome or selected_pasta.nome }}</h6>
-                        <small class="text-muted">Itens da pasta {{ selected_pasta.nome }}</small>
+                        {% if selected_pasta %}<h6 class="mb-1"><i class="bi bi-folder2-open text-primary"></i> {{ selected_pasta.cliente_nome or selected_pasta.nome }}</h6><small class="text-muted">Itens da pasta {{ selected_pasta.nome }}</small>{% else %}<h6 class="mb-1"><i class="bi bi-search text-primary"></i> Resultado da pesquisa</h6><small class="text-muted">Credenciais localizadas nas pastas de clientes</small>{% endif %}
                     </div>
                     <div class="d-flex gap-2 flex-wrap">
-                        <a class="btn btn-outline-primary" href="{{ url_for('implantacao.nova_senha_cofre', pasta_id=selected_pasta.id) }}"><i class="bi bi-plus-circle"></i> Nova Credencial</a>
-                        <a class="btn btn-outline-secondary" href="{{ url_for('implantacao.editar_pasta_cofre', pasta_id=selected_pasta.id) }}"><i class="bi bi-pencil"></i> Editar Pasta</a>
+                        {% if selected_pasta %}<a class="btn btn-outline-primary" href="{{ url_for('implantacao.nova_senha_cofre', pasta_id=selected_pasta.id) }}"><i class="bi bi-plus-circle"></i> Nova Credencial</a><a class="btn btn-outline-secondary" href="{{ url_for('implantacao.editar_pasta_cofre', pasta_id=selected_pasta.id) }}"><i class="bi bi-pencil"></i> Editar Pasta</a>{% endif %}
                     </div>
                 </div>
 
@@ -217,7 +225,7 @@
                                         <button class="btn btn-outline-warning cofre-share-password" type="button" data-share-url="{{ url_for('implantacao.compartilhar_senha_cofre', senha_id=item.id) }}" title="Gerar link de uso unico"><i class="bi bi-link-45deg"></i></button>
                                     </div>
                                 </td>
-                                <td><small class="text-muted">Rede</small><br>{{ item.faixa_rede or 'Sem faixa vinculada' }}{% if item.licenca_o3web_id %}<br><small class="text-muted">O3Web {{ item.licenca_o3web_codigo or item.licenca_o3web_id }}</small>{% endif %}</td>
+                                <td>{% if item.ambiente_nome %}<small class="text-muted">Ambiente</small><br>{{ item.ambiente_nome }}{% if item.prefixo_proxmox %}<br><small class="text-muted">{{ item.prefixo_proxmox }}</small>{% endif %}<br>{% endif %}<small class="text-muted">Rede</small><br>{{ item.faixa_rede or 'Sem faixa vinculada' }}{% if item.licenca_o3web_id %}<br><small class="text-muted">O3Web {{ item.licenca_o3web_codigo or item.licenca_o3web_id }}</small>{% endif %}</td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         <a class="btn btn-outline-primary" href="{{ url_for('implantacao.editar_senha_cofre', senha_id=item.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>

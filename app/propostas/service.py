@@ -1009,12 +1009,9 @@ class PropostaService:
         cls._herdar_relacionamentos(dados)
         resumo = cls._calcular_totais(dados["licencas_items"], dados["servidores_items"])
         dados["total_mensal"] = resumo["total_mensal"]
-        dados["parametrizacao_sistema"] = cls._decimal(dados.get("parametrizacao_sistema"))
-        if dados["parametrizacao_sistema"] is None:
-            dados["parametrizacao_sistema"] = resumo["parametrizacao_padrao"]
-        dados["setup_ambiente_cloud"] = cls._decimal(dados.get("setup_ambiente_cloud"))
-        if dados["setup_ambiente_cloud"] is None:
-            dados["setup_ambiente_cloud"] = resumo["setup_cloud_padrao"]
+        dados["parametrizacao_sistema"] = resumo["total_mensal"]
+        dados["setup_ambiente_cloud"] = resumo["total_mensal"]
+        dados["total_setup"] = dados["parametrizacao_sistema"] + dados["setup_ambiente_cloud"]
         dados["total_instalacao"] = resumo["instalacao_servidores"] + dados["parametrizacao_sistema"] + dados["setup_ambiente_cloud"]
         dados["valor_total"] = dados["total_mensal"] + dados["total_instalacao"]
         dados["itens_snapshot"] = cls._montar_itens_snapshot(dados["licencas_items"], dados["servidores_items"])
@@ -1095,7 +1092,9 @@ class PropostaService:
         resumo = cls._calcular_totais(proposta["licencas_items"], proposta["servidores_items"])
         proposta["total_mensal"] = cls._decimal(proposta.get("total_mensal")) or resumo["total_mensal"]
         proposta["parametrizacao_sistema"] = cls._decimal(proposta.get("parametrizacao_sistema")) or resumo["parametrizacao_padrao"]
-        proposta["setup_ambiente_cloud"] = cls._decimal(proposta.get("setup_ambiente_cloud")) or resumo["setup_cloud_padrao"]
+        proposta["setup_ambiente_cloud"] = proposta["total_mensal"]
+        proposta["parametrizacao_sistema"] = proposta["total_mensal"]
+        proposta["total_setup"] = proposta["parametrizacao_sistema"] + proposta["setup_ambiente_cloud"]
         proposta["total_instalacao"] = cls._decimal(proposta.get("total_instalacao")) or (resumo["instalacao_servidores"] + proposta["parametrizacao_sistema"] + proposta["setup_ambiente_cloud"])
         proposta["valor_total"] = cls._decimal(proposta.get("valor_total")) or (proposta["total_mensal"] + proposta["total_instalacao"])
         proposta["instalacao_servidores"] = resumo["instalacao_servidores"]
@@ -1231,8 +1230,15 @@ class PropostaService:
                     raise ValueError(f"{nome}: quantidade de usuários deve ser no mínimo {minimo}.")
                 if maximo and quantidade > maximo:
                     raise ValueError(f"{nome}: quantidade de usuários deve ser no máximo {maximo}.")
-                valor = cls._decimal(preco.get("valor_mensal")) or Decimal("0.00")
+                valor_tabela = cls._decimal(preco.get("valor_mensal")) or Decimal("0.00")
+                valor_minimo = cls._decimal(preco.get("valor_minimo") or preco.get("valor_setup")) or Decimal("0.00")
+                valor_informado = cls._decimal(item.get("valor_unitario"))
+                if valor_informado is None:
+                    valor_informado = valor_tabela
+                if valor_informado < valor_minimo or valor_informado > valor_tabela:
+                    raise ValueError(f"{nome}: valor unitario deve ficar entre R$ {valor_minimo} e R$ {valor_tabela}.")
                 valor_setup = cls._decimal(preco.get("valor_setup")) or Decimal("0.00")
+                valor = valor_informado
                 resposta.append({
                     "preco_id": preco_id,
                     "faixa_id": cls._normalizar_inteiro(preco.get("faixa_id")),
@@ -1241,6 +1247,8 @@ class PropostaService:
                     "descricao": (preco.get("descricao") or "").strip(),
                     "quantidade": quantidade,
                     "valor_unitario": cls._string_decimal(valor),
+                    "valor_tabela": cls._string_decimal(valor_tabela),
+                    "valor_minimo": cls._string_decimal(valor_minimo),
                     "valor_setup": cls._string_decimal(valor_setup),
                     "tem_projeto": str(preco.get("tem_projeto", "0")).lower() in ("1", "true", "sim"),
                     "usuarios_inicio": minimo,

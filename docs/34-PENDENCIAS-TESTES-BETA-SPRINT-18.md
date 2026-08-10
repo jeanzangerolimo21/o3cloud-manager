@@ -95,3 +95,17 @@ Falhas encontradas devem ser encaminhadas para correcao ou nova sprint, sem cons
 
 - [ ] Validar cadastro de Dashboard principal por perfil e redirecionamento no login para a tela configurada.
 - [ ] Validar fallback para o primeiro menu permitido quando o dashboard selecionado não estiver autorizado ao perfil.
+
+## 7. Atualizacoes finais de 07/08/2026
+
+- Validar que somente Administrador visualiza e executa a remocao de usuarios em Configuracoes > Usuarios e Acessos.
+- Confirmar bloqueio de autoexclusao e bloqueio de remocao do ultimo Administrador ativo.
+- Confirmar auditoria `USUARIO_REMOVIDO` com usuario executor e dados basicos do usuario removido.
+- Validar que perfis sem permissao global de exclusao nao visualizam comandos destrutivos e recebem bloqueio no backend quando acessam rota diretamente.
+- Confirmar criacao dos arquivos de log backend em JSON no diretorio operacional configurado, sem exposicao via interface web.
+- Validar criacao/edicao de cliente com CNPJ alfanumerico normalizado e bloqueio de duplicidade manual ou OMIE.
+- Validar busca de cliente na proposta, ajuste de valor unitario de licencas dentro da faixa minimo/tabela e calculo de setup/parametrizacao pela primeira mensalidade.
+- Validar layout de impressao da proposta e exibicao de condicoes comerciais no modo de impressao.
+- Validar pesquisa no Cofre de Senhas por cliente, CNPJ, titulo, usuario, host ou URL.
+- Validar vinculo opcional de ambiente no Cofre de Senhas e na Base de Conhecimento, garantindo que o ambiente pertence ao cliente selecionado.
+- Confirmar preservacao da rolagem da sidebar entre navegacoes e abertura correta das telas Contatos, Leads e Oportunidades.

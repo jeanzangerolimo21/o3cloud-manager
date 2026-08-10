@@ -13,12 +13,27 @@ class ContratoRepository(BaseRepository):
             SELECT *
             FROM contratos
             WHERE codigo_externo=%s
+            ORDER BY origem = 'OMIE' DESC, id DESC
             """,
             (codigo_externo,),
         )
         contrato = cursor.fetchone()
         cls.close(conn, cursor)
         return contrato
+
+    @classmethod
+    def buscar_manual_por_numero(cls, cliente_id, numero):
+        if not numero:
+            return None
+        return cls.fetch_one(
+            """
+            SELECT * FROM contratos
+            WHERE cliente_id=%s AND numero=%s AND origem=%s AND ativo=1
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (cliente_id, numero, ORIGEM_MANUAL),
+        )
 
     @classmethod
     def buscar_por_id(cls, contrato_id):
@@ -200,6 +215,7 @@ class ContratoRepository(BaseRepository):
             SELECT *
             FROM contratos
             WHERE cliente_id=%s
+              AND origem=%s
               AND codigo_externo IS NULL
               AND arquivo_assinado IS NOT NULL
               AND ativo=1
@@ -207,7 +223,7 @@ class ContratoRepository(BaseRepository):
             ORDER BY data_fechamento DESC, id DESC
             LIMIT 1
             """,
-            (cliente_id, valor_mensal),
+            (cliente_id, ORIGEM_MANUAL, valor_mensal),
         )
         contrato = cursor.fetchone()
         cls.close(conn, cursor)

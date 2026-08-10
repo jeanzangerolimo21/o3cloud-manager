@@ -15,6 +15,7 @@ def _colaborador(): return session.get("usuario_perfil") == "ADMINISTRATIVO_COLA
 def _agenda_corporativa(): return session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "ADMINISTRATIVO_GESTOR")
 def _possui_agenda(): return bool(session.get("usuario_possui_agenda"))
 def _moderador(): return session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR", "ADMINISTRATIVO_GESTOR")
+def _pode_excluir_demanda(): return session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "ADMINISTRATIVO_GESTOR")
 
 
 @administrativo_bp.route("/")
@@ -66,10 +67,13 @@ def editar(demanda_id):
 
 @administrativo_bp.route("/demandas/<int:demanda_id>/cancelar", methods=["POST"])
 def cancelar(demanda_id):
+    if not _pode_excluir_demanda():
+        flash("Apenas Administrador, Diretoria ou Gestor Administrativo podem excluir demandas.", "danger")
+        return redirect(request.referrer or url_for("administrativo.index"))
     try: AdministrativoService.cancelar(demanda_id, _usuario_email())
     except ValueError as erro: flash(str(erro), "danger")
-    else: registrar_evento("ADMIN_DEMANDA_CANCELADA", "administrativo_demandas", demanda_id); flash("Demanda cancelada.", "success")
-    return redirect(url_for("administrativo.detalhe", demanda_id=demanda_id))
+    else: registrar_evento("ADMIN_DEMANDA_CANCELADA", "administrativo_demandas", demanda_id); flash("Demanda excluída.", "success")
+    return redirect(request.referrer or url_for("administrativo.index"))
 
 
 @administrativo_bp.route("/demandas/<int:demanda_id>/comentarios", methods=["POST"])
@@ -106,9 +110,23 @@ def agenda():
         formato = "lista"
     referencia = _data_query(request.args.get("data")) or date.today()
     inicio, fim = _intervalo_agenda(visao, referencia)
-    dias_semana = [inicio + timedelta(days=indice) for indice in range(5)] if visao == "semana" and inicio else []
+    if visao == "semana" and inicio:
+        dias_semana = [inicio + timedelta(days=indice) for indice in range(5)]
+    elif visao == "mes" and inicio and fim:
+        primeiro = inicio - timedelta(days=inicio.weekday())
+        ultimo = fim + timedelta(days=6 - fim.weekday())
+        dias_semana = [primeiro + timedelta(days=indice) for indice in range((ultimo - primeiro).days + 1)]
+    elif visao == "hoje" and inicio:
+        dias_semana = [inicio]
+    else:
+        dias_semana = []
     demandas = AdministrativoService.repository.listar_agenda(usuario_id, inicio, fim)
-    demandas_por_dia = {dia.isoformat(): [item for item in demandas if item.get("data_limite") == dia] for dia in dias_semana}
+    demandas_por_dia = {}
+    for item in demandas:
+        data_agenda = item.get("data_inicial") or item.get("data_limite")
+        chave = data_agenda.isoformat()[:10] if hasattr(data_agenda, "isoformat") else str(data_agenda or "")[:10]
+        if chave:
+            demandas_por_dia.setdefault(chave, []).append(item)
     return render_template("administrativo/agenda.html", demandas=demandas, usuarios=AdministrativoService.repository.listar_usuarios_ativos(), usuario_id=usuario_id, gestor=gestor, visao=visao, formato=formato, referencia=referencia, data_inicio=inicio, data_fim=fim, dias_semana=dias_semana, demandas_por_dia=demandas_por_dia)
 
 @administrativo_bp.route("/demandas/<int:demanda_id>/reagendar", methods=["POST"])

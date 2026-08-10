@@ -49,9 +49,12 @@ class ContratoService:
         contrato = ContratoRepository.buscar_por_codigo_externo(dados["codigo_externo"])
 
         if not contrato:
+            contrato = ContratoRepository.buscar_manual_por_numero(
+                cliente["id"], dados.get("numero")
+            )
+        if not contrato:
             contrato = ContratoRepository.buscar_assinado_sem_codigo_por_cliente_valor(
-                cliente["id"],
-                dados.get("valor_mensal"),
+                cliente["id"], dados.get("valor_mensal")
             )
 
         if contrato:

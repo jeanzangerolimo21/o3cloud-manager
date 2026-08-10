@@ -118,6 +118,21 @@ def usuarios_editar(usuario_id):
     return render_template("configuracoes/usuarios/form.html", usuario=usuario, perfis=perfis, modo="editar")
 
 
+@configuracoes_bp.route("/usuarios/<int:usuario_id>/remover", methods=["POST"])
+def usuarios_remover(usuario_id):
+    try:
+        AuthConfigService.remover_usuario(
+            usuario_id,
+            usuario_logado_id=session.get("usuario_id"),
+            perfil_logado=session.get("usuario_perfil"),
+            usuario_email=_email_usuario_logado(),
+        )
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Usuário removido.", "success")
+    return redirect(url_for("configuracoes.usuarios_index"))
+
 @configuracoes_bp.route("/usuarios/<int:usuario_id>/convidar", methods=["POST"])
 def usuarios_convidar(usuario_id):
     try:

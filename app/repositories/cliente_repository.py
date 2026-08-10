@@ -136,8 +136,8 @@ class ClienteRepository(BaseRepository):
 
             FROM clientes
 
-            WHERE cnpj = %s
-
+            WHERE UPPER(REGEXP_REPLACE(cnpj, '[^0-9A-Za-z]', '')) = %s
+            ORDER BY origem = 'OMIE' DESC, id DESC
             LIMIT 1
 
         """, (cnpj,))

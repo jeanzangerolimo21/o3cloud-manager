@@ -30,7 +30,7 @@ Status: Concluida tecnicamente
 - Templates administrativos e layout global carregados com sucesso.
 - Consultas reais de dashboard, relatorios e demandas atrasadas executadas no banco local.
 - `git diff --check` executado sem erros.
-- Testes automatizados permanecem limitados pelo ambiente atual, que nao possui `pytest` instalado.
+- `pytest` instalado e fixado em `requirements.txt`; execucao automatizada validada em 10/08/2026, com coleta atual de 0 testes no repositorio.
 
 ---
 
@@ -59,3 +59,20 @@ O Sprint 18 esta concluido tecnicamente em 06/08/2026. As entregas ficam encamin
 - Perfil SUPORTE configurado para iniciar no Monitoramento Zabbix.
 - Migrations `071_dashboard_principal_perfis.sql` e `072_dashboard_suporte_zabbix.sql` aplicadas e registradas no ambiente local.
 - Validacoes assistidas dessas configuracoes permanecem no roteiro da release Beta.
+
+# Atualizacao Final - 07/08/2026
+
+## Ajustes Pos-Fechamento Incorporados
+
+- Remocao de usuarios de acesso liberada somente para Administradores, com bloqueio de autoexclusao, protecao contra remocao do ultimo Administrador ativo e auditoria `USUARIO_REMOVIDO`.
+- Controle global de acoes destrutivas reforcado para perfis sem permissao de exclusao.
+- Logs backend estruturados em JSON configurados para acesso operacional via SSH, documentados em `docs/36-LOGS-BACKEND.md`.
+- Clientes receberam normalizacao de CNPJ alfanumerico e validacao de duplicidade, incluindo migrations `073` e `074`.
+- A migration `075_vincular_ambiente_cofre_conhecimento.sql` foi incorporada ao fechamento para vincular ambientes ao Cofre de Senhas e a Base de Conhecimento; schema local confirmado e registro adicionado em `schema_migrations` em 10/08/2026.
+- Propostas receberam busca de cliente, ajuste controlado de valor unitario de licencas, setup/parametrizacao vinculados a primeira mensalidade e refinamentos na impressao.
+- Cofre de Senhas recebeu pesquisa de credenciais por cliente, CNPJ, titulo, usuario, host ou URL.
+- Ajustes de usabilidade: preservacao da rolagem da sidebar e correcao dos templates de Contatos, Leads e Oportunidades.
+
+## Decisao Complementar
+
+Os ajustes de 07/08/2026 complementam o fechamento tecnico do Sprint 18 sem reabrir a sprint. O status permanece concluido tecnicamente, com validacao assistida e homologacao operacional encaminhadas para a release Beta.

@@ -2,13 +2,13 @@ from app.repositories.base_repository import BaseRepository
 
 class ConhecimentoRepository(BaseRepository):
  @classmethod
- def bases(cls): return cls.fetch_all("SELECT b.*,(SELECT COUNT(*) FROM kb_pastas p WHERE p.base_id=b.id) total_pastas,(SELECT COUNT(*) FROM kb_conhecimentos k WHERE k.base_id=b.id) total_conhecimentos,(SELECT COUNT(*) FROM kb_arquivos a WHERE a.base_id=b.id) total_arquivos FROM kb_bases b WHERE b.ativo=1 ORDER BY b.nome")
+ def bases(cls): return cls.fetch_all("SELECT b.*,a.nome ambiente_nome,a.prefixo_proxmox,(SELECT COUNT(*) FROM kb_pastas p WHERE p.base_id=b.id) total_pastas,(SELECT COUNT(*) FROM kb_conhecimentos k WHERE k.base_id=b.id) total_conhecimentos,(SELECT COUNT(*) FROM kb_arquivos arq WHERE arq.base_id=b.id) total_arquivos FROM kb_bases b LEFT JOIN ambientes a ON a.id=b.ambiente_id WHERE b.ativo=1 ORDER BY b.nome")
  @classmethod
- def base(cls,id): return cls.fetch_one("SELECT * FROM kb_bases WHERE id=%s AND ativo=1",(id,))
+ def base(cls,id): return cls.fetch_one("SELECT b.*,a.nome ambiente_nome,a.prefixo_proxmox FROM kb_bases b LEFT JOIN ambientes a ON a.id=b.ambiente_id WHERE b.id=%s AND b.ativo=1",(id,))
  @classmethod
- def inserir_base(cls,nome,descricao,caminho): return cls.execute_insert("INSERT INTO kb_bases(uuid,nome,descricao,caminho_relativo) VALUES(%s,%s,%s,%s)",(cls.generate_uuid(),nome,descricao,caminho))
+ def inserir_base(cls,nome,descricao,caminho,ambiente_id=None): return cls.execute_insert("INSERT INTO kb_bases(uuid,nome,descricao,caminho_relativo,ambiente_id) VALUES(%s,%s,%s,%s,%s)",(cls.generate_uuid(),nome,descricao,caminho,ambiente_id))
  @classmethod
- def atualizar_base(cls,id,nome,descricao): return cls.execute("UPDATE kb_bases SET nome=%s,descricao=%s WHERE id=%s AND ativo=1",(nome,descricao,id))
+ def atualizar_base(cls,id,nome,descricao,ambiente_id=None): return cls.execute("UPDATE kb_bases SET nome=%s,descricao=%s,ambiente_id=%s WHERE id=%s AND ativo=1",(nome,descricao,ambiente_id,id))
  @classmethod
  def todas_pastas(cls,base_id): return cls.fetch_all("SELECT * FROM kb_pastas WHERE base_id=%s ORDER BY caminho_relativo",(base_id,))
  @classmethod

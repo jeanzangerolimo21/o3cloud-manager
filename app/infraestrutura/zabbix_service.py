@@ -4,9 +4,13 @@ from datetime import datetime
 import requests
 
 from app.implantacao.integracoes_service import IntegracaoConfigService
+from app.core.logging_config import get_logger
 from app.integracoes.zabbix.client import ZabbixClient
 from app.repositories.zabbix_alarm_repository import ZabbixAlarmRepository
 from app.repositories.zabbix_host_repository import ZabbixHostRepository
+
+
+integration_logger = get_logger("integrations")
 
 
 SEVERIDADES = {
@@ -107,6 +111,7 @@ class ZabbixMonitoramentoService:
             mensagem = f"Falha HTTP ao consultar Zabbix: {str(erro)[:180]}"
         except ValueError:
             mensagem = "Resposta inválida do Zabbix. Endpoint respondeu, mas não retornou JSON esperado."
+        integration_logger.error("Zabbix synchronization failed", extra={"service": "ZABBIX", "operation": "SYNC"})
         return {
             "status": "ERRO",
             "mensagem": mensagem,

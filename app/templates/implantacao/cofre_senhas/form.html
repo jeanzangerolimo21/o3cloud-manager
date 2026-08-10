@@ -27,6 +27,16 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
+                                <label class="form-label">Ambiente do cliente</label>
+                                <select class="form-select" name="ambiente_id" id="ambiente_id">
+                                    <option value="">Sem ambiente vinculado</option>
+                                    {% for ambiente in ambientes %}
+                                        <option value="{{ ambiente.id }}" data-cliente-id="{{ ambiente.cliente_id }}" {% if senha.ambiente_id|string == ambiente.id|string %}selected{% endif %}>{{ ambiente.cliente_nome }} - {{ ambiente.nome }}{% if ambiente.prefixo_proxmox %} ({{ ambiente.prefixo_proxmox }}){% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Opcional. Use quando a credencial pertencer a um ambiente específico.</small>
+                            </div>
+                            <div class="col-md-6">
                                 <label class="form-label">Faixa de rede</label>
                                 <select class="form-select" name="faixa_rede_id">
                                     <option value="">Sem vínculo de rede</option>

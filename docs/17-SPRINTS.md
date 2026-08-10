@@ -942,7 +942,16 @@ A arquitetura deverá permitir futuras integrações com:
 
 ## Status
 
-Concluida tecnicamente em 06/08/2026
+Concluida tecnicamente em 06/08/2026. Atualizacao final registrada em 07/08/2026.
+
+---
+
+## Atualizacao Final - 07/08/2026
+
+- Remocao de usuarios de acesso restrita a Administradores, com auditoria e protecoes operacionais.
+- Logs backend estruturados e documentados para operacao por SSH.
+- Validacao de CNPJ unico em Clientes, melhorias de Propostas, pesquisa no Cofre de Senhas, vinculo de ambientes no Cofre/Base de Conhecimento e ajustes de navegacao/template incorporados ao pacote final.
+- Validacoes dessas entregas foram adicionadas a `docs/34-PENDENCIAS-TESTES-BETA-SPRINT-18.md`.
 
 ---
 

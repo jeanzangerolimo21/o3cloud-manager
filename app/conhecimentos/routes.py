@@ -25,20 +25,20 @@ def index(): return render_template("conhecimentos/index.html",bases=Conheciment
 @conhecimentos_bp.route("/nova",methods=["GET","POST"])
 def nova_base():
  if request.method=="POST":
-  try: ConhecimentoService.criar_base(request.form.get("nome"),request.form.get("descricao",""))
+  try: ConhecimentoService.criar_base(request.form.get("nome"),request.form.get("descricao",""),request.form.get("ambiente_id"))
   except ValueError as e: flash(str(e),"danger")
   else: flash("Base de conhecimento criada.","success");return redirect(url_for("conhecimentos.index"))
- return render_template("conhecimentos/base_form.html",base=None)
+ return render_template("conhecimentos/base_form.html",base=request.form if request.method=="POST" else None,**ConhecimentoService.contexto_base_form())
 
 @conhecimentos_bp.route("/<int:base_id>/editar",methods=["GET","POST"])
 def editar_base(base_id):
  base=_base_or_redirect(base_id)
  if not base: flash("Base não encontrada.","danger");return redirect(url_for("conhecimentos.index"))
  if request.method=="POST":
-  nome=(request.form.get("nome") or "").strip()
-  if not nome: flash("Nome da base é obrigatório.","danger")
-  else: ConhecimentoRepository.atualizar_base(base_id,nome,request.form.get("descricao",""));flash("Base atualizada.","success");return redirect(url_for("conhecimentos.base",base_id=base_id))
- return render_template("conhecimentos/base_form.html",base=base)
+  try: ConhecimentoService.atualizar_base(base_id,request.form.get("nome"),request.form.get("descricao",""),request.form.get("ambiente_id"))
+  except ValueError as e: flash(str(e),"danger");base={**base,**request.form}
+  else: flash("Base atualizada.","success");return redirect(url_for("conhecimentos.base",base_id=base_id))
+ return render_template("conhecimentos/base_form.html",base=base,**ConhecimentoService.contexto_base_form())
 
 @conhecimentos_bp.route("/<int:base_id>")
 def base(base_id):

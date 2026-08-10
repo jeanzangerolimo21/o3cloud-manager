@@ -3,6 +3,7 @@ from app.core.filters import date_br, datetime_br, moeda
 from app.core.config import Config
 from app.core.access_control import init_access_control
 from app.core.database import init_db
+from app.core.logging_config import init_request_logging
 from flask import send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -11,6 +12,7 @@ def create_app():
     app = Flask(__name__)
 
     app.config.from_object(Config)
+    init_request_logging(app)
 
     if app.config.get("TRUST_PROXY"):
         hops = max(1, int(app.config.get("PROXY_FIX_HOPS", 1)))

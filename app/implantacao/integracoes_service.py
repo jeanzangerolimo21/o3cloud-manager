@@ -3,8 +3,13 @@ from urllib.parse import urlparse
 
 import requests
 
+from app.core.logging_config import get_logger
+
 from app.implantacao.cofre_senhas_service import CofreSenhaService
 from app.repositories.integracao_config_repository import IntegracaoConfigRepository
+
+
+integration_logger = get_logger("integrations")
 
 
 TIPOS_INTEGRACAO = {
@@ -286,14 +291,19 @@ class IntegracaoConfigService:
             if tipo == "truenas":
                 return cls._testar_truenas(integracao, segredo)
         except requests.exceptions.SSLError:
+            integration_logger.exception("Integration SSL validation failed", extra={"service": tipo, "operation": "VALIDATE"})
             return "ERRO", "Falha na validação SSL do certificado. Ajuste a CA confiável ou desative Verificar SSL para este endpoint interno."
         except requests.exceptions.Timeout:
+            integration_logger.exception("Integration request timed out", extra={"service": tipo, "operation": "VALIDATE"})
             return "ERRO", "Timeout ao conectar na API. Verifique host, porta, firewall e timeout configurado."
         except requests.exceptions.ConnectionError:
+            integration_logger.exception("Integration connection failed", extra={"service": tipo, "operation": "VALIDATE"})
             return "ERRO", "Falha de conexão com a API. Verifique host, porta, rota de rede e firewall."
         except requests.exceptions.RequestException as erro:
+            integration_logger.error("Integration HTTP validation failed: %s", cls._mensagem_segura(erro), extra={"service": tipo, "operation": "VALIDATE"})
             return "ERRO", f"Falha HTTP ao validar API: {cls._mensagem_segura(erro)}"
         except ValueError:
+            integration_logger.error("Integration returned invalid response", extra={"service": tipo, "operation": "VALIDATE"})
             return "ERRO", "Resposta inválida da API. Endpoint respondeu, mas não retornou JSON esperado."
         return "ERRO", "Tipo de integração sem validador real."
 

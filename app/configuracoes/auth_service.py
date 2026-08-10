@@ -276,6 +276,30 @@ class AuthConfigService:
         cls._auditar(usuario_email, "USUARIO_ATUALIZADO", "auth_usuarios", usuario_id, payload["email"])
 
     @classmethod
+    def remover_usuario(cls, usuario_id, usuario_logado_id=None, perfil_logado=None, usuario_email="sistema"):
+        if (perfil_logado or "").upper() != "ADMIN":
+            raise ValueError("Apenas Administradores podem remover usuários de acesso.")
+        existente = cls.repository.buscar_usuario(usuario_id)
+        if not existente:
+            raise ValueError("Usuário não encontrado.")
+        if usuario_logado_id and int(usuario_id) == int(usuario_logado_id):
+            raise ValueError("Você não pode remover o próprio usuário logado.")
+        if existente.get("perfil_codigo") == "ADMIN" and existente.get("status") == "ATIVO" and cls.repository.contar_admins_ativos() <= 1:
+            raise ValueError("Não é possível remover o último Administrador ativo do sistema.")
+
+        detalhes = {
+            "nome": existente.get("nome"),
+            "email": existente.get("email"),
+            "login": existente.get("login"),
+            "perfil": existente.get("perfil_codigo"),
+            "status": existente.get("status"),
+        }
+        cls.repository.excluir_usuario(usuario_id)
+        if existente.get("foto"):
+            StorageService.excluir(StorageService.USUARIOS, existente.get("foto"))
+        cls._auditar(usuario_email, "USUARIO_REMOVIDO", "auth_usuarios", usuario_id, detalhes)
+
+    @classmethod
     def enviar_convite(cls, usuario_id, usuario_email="sistema"):
         usuario = cls.repository.buscar_usuario(usuario_id)
         if not usuario:

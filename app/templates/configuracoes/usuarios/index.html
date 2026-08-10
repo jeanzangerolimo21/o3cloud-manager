@@ -94,6 +94,11 @@
                             </form>
                             {% endif %}
                             <a class="btn btn-sm btn-outline-secondary" href="{{ url_for("configuracoes.usuarios_editar", usuario_id=usuario.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
+                            {% if session.get("usuario_perfil") == "ADMIN" and usuario.id|string != session.get("usuario_id")|string %}
+                            <form method="POST" action="{{ url_for("configuracoes.usuarios_remover", usuario_id=usuario.id) }}" class="d-inline" onsubmit="return confirm({{ ('Remover o usuário ' ~ usuario.nome ~ '? Esta ação não pode ser desfeita.')|tojson }});">
+                                <button class="btn btn-sm btn-outline-danger" title="Remover"><i class="bi bi-trash"></i></button>
+                            </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}

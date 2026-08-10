@@ -1,9 +1,16 @@
 from flask import abort, flash, has_request_context, redirect, request, session, url_for
 
+from app.core.logging_config import get_logger
+
 ADMINISTRATIVO_GESTOR = "ADMINISTRATIVO_GESTOR"
 ADMINISTRATIVO_COLABORADOR = "ADMINISTRATIVO_COLABORADOR"
+PERFIS_COM_EXCLUSAO = frozenset(("ADMIN", "DIRETORIA", "ADMINISTRATIVO_GESTOR"))
+MARCADORES_ENDPOINT_EXCLUSAO = ("excluir", "desativar", "inativar", "remover")
 
 from app.repositories.auth_repository import AuthRepository
+
+
+security_logger = get_logger("security")
 
 
 MENU_PERMISSOES = (
@@ -181,6 +188,7 @@ ENDPOINT_PERMISSOES = {
     "configuracoes.usuarios_novo": "usuarios_acessos",
     "configuracoes.usuarios_editar": "usuarios_acessos",
     "configuracoes.usuarios_convidar": "usuarios_acessos",
+    "configuracoes.usuarios_remover": "usuarios_acessos",
     "configuracoes.usuarios_grupo_mapa_novo": "usuarios_acessos",
     "configuracoes.usuarios_grupo_mapa_editar": "usuarios_acessos",
     "configuracoes.usuarios_grupo_mapa_excluir": "usuarios_acessos",
@@ -234,6 +242,7 @@ def init_access_control(app):
         if pode_acessar_endpoint(permissao, request.endpoint, request.method):
             return None
 
+        security_logger.warning("Access denied", extra={"operation": "ACESSO_NEGADO"})
         if request.method == "GET":
             flash("Acesso não autorizado para este perfil.", "warning")
             return redirect(url_for("financeiro.dashboard"))
@@ -244,6 +253,7 @@ def init_access_control(app):
         return {
             "pode_acessar": pode_acessar,
             "pode_editar": pode_editar,
+            "pode_excluir": pode_excluir,
             "permissao_endpoint": permissao_endpoint,
             "usuario_pode_ver_valores": usuario_pode_ver_valores,
             "usuario_logado": usuario_logado,
@@ -277,12 +287,23 @@ def pode_acessar_endpoint(menu_key, endpoint, method):
             return False
         if endpoint in permitidos_especiais:
             return True
+    if endpoint_requer_exclusao(endpoint) and not pode_excluir():
+        return False
     nivel = permissoes_niveis_usuario_atual().get(menu_key)
     if not nivel:
         return False
     if nivel == "EDICAO":
         return True
     return not endpoint_requer_edicao(endpoint, method)
+
+
+def endpoint_requer_exclusao(endpoint):
+    nome = (endpoint or "").split(".")[-1].lower()
+    return any(marcador in nome for marcador in MARCADORES_ENDPOINT_EXCLUSAO)
+
+
+def pode_excluir():
+    return session.get("usuario_perfil") in PERFIS_COM_EXCLUSAO
 
 
 def endpoint_requer_edicao(endpoint, method):

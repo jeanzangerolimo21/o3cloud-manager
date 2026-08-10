@@ -1,5 +1,38 @@
 # Changelog
 
+## 2026-08-07 - Atualizacao Final Sprint 18
+
+### Governanca de Acesso
+
+- Administradores passam a remover usuarios de acesso ao sistema pela tela `Configuracoes > Usuarios e Acessos`.
+- A remocao possui bloqueio no backend para perfis nao ADMIN, impede autoexclusao e impede remover o ultimo Administrador ativo.
+- A acao registra auditoria `USUARIO_REMOVIDO` e remove foto de usuario armazenada quando aplicavel.
+- Controle global de acoes destrutivas foi reforcado para ocultar/bloquear exclusoes, desativacoes, inativacoes e remocoes para perfis sem permissao global.
+
+### Operacao e Observabilidade
+
+- Criada configuracao de logs backend em JSON, com logs de acesso, aplicacao, erros, banco, integracoes, seguranca e jobs em `/opt/o3cloud-manager/logs`.
+- Adicionado `docs/36-LOGS-BACKEND.md` com localizacao, seguranca, rotacao e eventos cobertos.
+- Ajustado `.gitignore` para manter arquivos `.log` fora do Git e preservar a estrutura operacional da pasta de logs.
+
+### Cadastros, Propostas e Usabilidade
+
+- Clientes passaram a normalizar CNPJ alfanumerico e validar duplicidade antes de criacao ou edicao, com migrations `073_normalizar_cnpj_clientes.sql` e `074_unique_cnpj_clientes.sql`.
+- Propostas receberam busca rapida de cliente, valor unitario ajustavel por licenca dentro da faixa minimo/tabela, e setup/parametrizacao calculados a partir da primeira mensalidade.
+- Impressao/visualizacao de proposta foi refinada para separar condicoes comerciais, totalizacao de setup e layout de impressao.
+- Cofre de Senhas recebeu pesquisa de credenciais por cliente, CNPJ, titulo, usuario, host ou URL.
+- Cofre de Senhas e Base de Conhecimento receberam vinculo opcional com ambientes via migration `075_vincular_ambiente_cofre_conhecimento.sql`, registrada no banco local em 10/08/2026.
+- Sidebar passou a preservar posicao de rolagem entre navegacoes e templates de Contatos, Leads e Oportunidades tiveram correcao de extensao Jinja.
+
+## 2026-08-06 - Consolidacao Sprint 18
+
+- Modulo Administrativo concluido tecnicamente com demandas, agenda corporativa e individual, comentarios, historico, anexos, notificacoes, alertas, dashboard, relatorios e auditoria.
+- Perfis `Administrativo Gestor` e `Administrativo Colaborador` adicionados para separar gestao de demandas e execucao operacional.
+- Agenda administrativa evoluida com visualizacoes Hoje, Semana, Mes, Lista, formato calendario e recorrencias diaria, semanal, mensal e anual.
+- Dashboard principal por perfil foi adicionado em Usuarios e Acessos; login passou a direcionar o usuario para o dashboard permitido pelo perfil, com suporte ao perfil SUPORTE iniciar no Monitoramento Zabbix.
+- Fechamento tecnico registrado em `docs/35-FECHAMENTO-SPRINT-18.md`, mantendo validacoes assistidas e homologacao Beta como pendencias controladas.
+
+
 ## 2026-08-06 - Agenda e Recorrencia
 
 - Usuários de outros perfis com `Possui Agenda = SIM` passam a entrar em Minha Agenda quando recebem acesso ao módulo Administrativo.
@@ -1146,3 +1179,6 @@ Homologação de Servidores e consolidação da base de Dimensionamento.
 - Adicionado Dashboard principal configurável por perfil de acesso, com redirecionamento seguro no login e fallback conforme permissões.
 
 - Perfil SUPORTE configurado para iniciar no Monitoramento Zabbix.
+
+- Cadastro manual de clientes bloqueia CNPJ duplicado, com normalizacao de pontuacao.
+- Sincronizacao OMIE prioriza registros OMIE por CNPJ, codigo externo e contratos manuais correspondentes.

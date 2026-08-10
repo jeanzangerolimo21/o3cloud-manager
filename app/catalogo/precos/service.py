@@ -49,4 +49,7 @@ class PrecoCatalogoService:
         if dados['valor_setup'] < 0:
             raise ValueError('Valor setup/minimo nao pode ser negativo.')
 
+        if dados['valor_setup'] > dados['valor_mensal']:
+            raise ValueError('O valor minimo nao pode ser maior que o valor de tabela.')
+
         return True

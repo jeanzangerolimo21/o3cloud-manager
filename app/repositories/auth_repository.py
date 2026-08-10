@@ -235,6 +235,10 @@ class AuthRepository(BaseRepository):
         )
 
     @classmethod
+    def excluir_usuario(cls, usuario_id):
+        return cls.execute("DELETE FROM auth_usuarios WHERE id = %s", (usuario_id,))
+
+    @classmethod
     def atualizar_minha_conta(cls, usuario_id, dados):
         return cls.execute(
             """

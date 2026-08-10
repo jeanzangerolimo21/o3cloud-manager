@@ -203,6 +203,38 @@ class AmbienteRepository(BaseRepository):
         return ambiente
 
     @classmethod
+    def listar_ativos_para_select(cls):
+        return cls.fetch_all("""
+            SELECT
+                a.id,
+                a.nome,
+                a.cliente_id,
+                a.ambiente_tipo,
+                a.situacao,
+                a.prefixo_proxmox,
+                COALESCE(GROUP_CONCAT(DISTINCT cv.nome_fantasia ORDER BY cv.nome_fantasia SEPARATOR ', '), c.nome_fantasia) AS cliente_nome
+            FROM ambientes a
+            INNER JOIN clientes c ON c.id = a.cliente_id
+            LEFT JOIN ambiente_clientes ac ON ac.ambiente_id = a.id
+            LEFT JOIN clientes cv ON cv.id = ac.cliente_id
+            WHERE a.ativo = 1
+            GROUP BY a.id, a.nome, a.cliente_id, a.ambiente_tipo, a.situacao, a.prefixo_proxmox, c.nome_fantasia
+            ORDER BY cliente_nome ASC, a.nome ASC
+        """)
+
+    @classmethod
+    def pertence_ao_cliente(cls, ambiente_id, cliente_id):
+        return bool(cls.fetch_one("""
+            SELECT a.id
+            FROM ambientes a
+            LEFT JOIN ambiente_clientes ac ON ac.ambiente_id = a.id AND ac.cliente_id = %s
+            WHERE a.id = %s
+              AND a.ativo = 1
+              AND (a.cliente_id = %s OR ac.cliente_id IS NOT NULL)
+            LIMIT 1
+        """, (cliente_id, ambiente_id, cliente_id)))
+
+    @classmethod
     def buscar_por_cliente(cls, cliente_id):
 
         conn = cls.connection()

@@ -4,7 +4,7 @@
 
 Versao: 3.0 Alpha
 
-Ultima atualizacao: 06/08/2026
+Ultima atualizacao: 07/08/2026
 
 Status: Oficial
 
@@ -18,7 +18,7 @@ Modulo Administrativo
 
 Status:
 
-Concluida tecnicamente em 06/08/2026
+Concluida tecnicamente em 06/08/2026, com atualizacao final registrada em 07/08/2026
 
 ---
 
@@ -40,6 +40,8 @@ Documentos de referencia:
 - `docs/32-PENDENCIAS-TESTES-BETA-SPRINT-16.md`
 - `docs/33-FECHAMENTO-SPRINT-16.md`
 - `docs/34-PENDENCIAS-TESTES-BETA-SPRINT-18.md`
+- `docs/35-FECHAMENTO-SPRINT-18.md`
+- `docs/36-LOGS-BACKEND.md`
 
 ---
 
@@ -132,6 +134,12 @@ Entregas registradas:
 
 ---
 
+# Atualizacoes finais em 07/08/2026
+
+- Remocao de usuarios de acesso restrita a Administradores, com auditoria e protecoes contra autoexclusao e remocao do ultimo Administrador ativo.
+- Logs backend estruturados e documentados para acesso operacional por SSH.
+- Validacao de CNPJ unico em Clientes, melhorias em Propostas, pesquisa no Cofre de Senhas, vinculo de ambientes no Cofre/Base de Conhecimento e ajustes de usabilidade da navegacao.
+
 # Fora do Escopo Inicial
 
 - Automacoes destrutivas em infraestrutura.
@@ -164,7 +172,7 @@ Sprint Atual:
 
 Situacao:
 
-Em implementacao desde 06/08/2026
+Concluida tecnicamente em 06/08/2026, com ajustes finais documentados em 07/08/2026
 
 Sprint anterior:
 
@@ -186,6 +194,7 @@ Documento de fechamento:
 
 - `docs/33-FECHAMENTO-SPRINT-16.md`
 - `docs/35-FECHAMENTO-SPRINT-18.md`
+- `docs/36-LOGS-BACKEND.md`
 
 Pendencias para a release Beta:
 

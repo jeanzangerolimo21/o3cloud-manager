@@ -210,8 +210,7 @@ class AdministrativoService:
         if payload.get("recorrente"):
             if not (payload.get("data_limite") or payload.get("data_inicial")): raise ValueError("Informe uma data para a primeira ocorrência.")
             if payload.get("recorrencia_tipo") not in cls.RECORRENCIA_TIPOS: raise ValueError("Selecione o tipo de recorrência.")
-            if not payload.get("recorrencia_data_fim"): raise ValueError("Informe até quando a recorrência deve ser criada.")
-            if payload.get("recorrencia_data_fim") < (payload.get("data_limite") or payload.get("data_inicial")): raise ValueError("O fim da recorrência deve ser posterior à primeira ocorrência.")
+            if payload.get("recorrencia_data_fim") and payload.get("recorrencia_data_fim") < (payload.get("data_limite") or payload.get("data_inicial")): raise ValueError("O fim da recorrência deve ser posterior à primeira ocorrência.")
             if payload.get("recorrencia_tipo") == "SEMANAL" and payload.get("recorrencia_dia_semana") is None: raise ValueError("Selecione o dia da semana.")
             if payload.get("recorrencia_tipo") == "MENSAL" and not 1 <= int(payload.get("recorrencia_dia_mes") or 0) <= 31: raise ValueError("Informe o dia do mês.")
             if payload.get("recorrencia_tipo") == "ANUAL" and not (1 <= int(payload.get("recorrencia_mes") or 0) <= 12 and 1 <= int(payload.get("recorrencia_dia_mes") or 0) <= 31): raise ValueError("Informe mês e dia da recorrência anual.")

@@ -9,6 +9,7 @@ from flask import current_app
 from app.core.auditoria import registrar_evento
 from app.clientes.service import ClienteService
 from app.implantacao.cofre_pastas_service import TIPOS_COFRE_PASTA
+from app.repositories.ambiente_repository import AmbienteRepository
 from app.repositories.cofre_pasta_repository import CofrePastaRepository
 from app.repositories.cofre_senha_repository import CofreSenhaRepository
 from app.repositories.faixa_rede_repository import FaixaRedeRepository
@@ -33,7 +34,7 @@ class CofreSenhaService:
     repository = CofreSenhaRepository
 
     @classmethod
-    def listar(cls, pesquisa=None, categoria=None, ativo="1", pasta_id=None, pagina=1):
+    def listar(cls, pesquisa=None, categoria=None, ativo="1", pasta_id=None, apenas_clientes=False, pagina=1):
         limit = 50
         offset = (pagina - 1) * limit
         ativo_normalizado = cls._normalizar_ativo(ativo)
@@ -42,10 +43,11 @@ class CofreSenhaService:
             categoria=categoria,
             ativo=ativo_normalizado,
             pasta_id=pasta_id,
+            apenas_clientes=apenas_clientes,
             limit=limit,
             offset=offset,
         )
-        total = cls.repository.total(pesquisa=pesquisa, categoria=categoria, ativo=ativo_normalizado, pasta_id=pasta_id)
+        total = cls.repository.total(pesquisa=pesquisa, categoria=categoria, ativo=ativo_normalizado, pasta_id=pasta_id, apenas_clientes=apenas_clientes)
         return senhas, total
 
     @classmethod
@@ -63,6 +65,7 @@ class CofreSenhaService:
     def contexto_form(cls, usuario_email=None):
         return {
             "clientes": ClienteService.listar_para_importacao(),
+            "ambientes": AmbienteRepository.listar_ativos_para_select(),
             "faixas_rede": cls.repository.listar_faixas_ativas(),
             "licencas_o3web": cls.repository.listar_licencas_ativas(),
             "pastas": CofrePastaRepository.listar_ativas_para_usuario(usuario_email),
@@ -197,6 +200,10 @@ class CofreSenhaService:
             raise ValueError("Cliente selecionado não encontrado.")
         cliente_nome = (cliente.get("nome_fantasia") or cliente.get("razao_social") or "").strip()
 
+        ambiente_id = cls._inteiro(dados.get("ambiente_id")) or None
+        if ambiente_id and not AmbienteRepository.pertence_ao_cliente(ambiente_id, cliente_id):
+            raise ValueError("O ambiente selecionado não pertence ao cliente informado ou está inativo.")
+
         faixa_rede_id = cls._inteiro(dados.get("faixa_rede_id")) or None
         if faixa_rede_id:
             faixa = FaixaRedeRepository.buscar_por_id(faixa_rede_id)
@@ -244,6 +251,7 @@ class CofreSenhaService:
             "cliente_id": cliente_id,
             "cliente_nome": cliente_nome,
             "cliente_cnpj": cliente.get("cnpj"),
+            "ambiente_id": ambiente_id,
             "faixa_rede_id": faixa_rede_id,
             "licenca_o3web_id": licenca_o3web_id,
             "categoria": categoria,

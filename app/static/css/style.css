@@ -1413,3 +1413,16 @@ body.dark-mode .badge.bg-light{
     border-color: #8f481b;
     color: #fff7ed;
 }
+
+/* Oculta controles de exclusao para perfis sem a permissao global. */
+body.sem-exclusao a[href*="/excluir"],
+body.sem-exclusao a[href*="/desativar"],
+body.sem-exclusao a[href*="/inativar"],
+body.sem-exclusao form[action*="/excluir"],
+body.sem-exclusao form[action*="/desativar"],
+body.sem-exclusao form[action*="/inativar"],
+body.sem-exclusao button[formaction*="/excluir"],
+body.sem-exclusao button[formaction*="/desativar"],
+body.sem-exclusao button[formaction*="/inativar"] {
+    display: none !important;
+}

@@ -1,6 +1,10 @@
 from uuid import uuid4
 
 from app.core.database import get_connection
+from app.core.logging_config import get_logger
+
+
+database_logger = get_logger("database")
 
 
 class BaseRepository:
@@ -18,7 +22,11 @@ class BaseRepository:
 
     @classmethod
     def connection(cls):
-        return get_connection()
+        try:
+            return get_connection()
+        except Exception:
+            database_logger.exception("Database connection failed", extra={"repository": cls.__name__})
+            raise
 
     @staticmethod
     def close(conn=None, cursor=None):
@@ -85,6 +93,7 @@ class BaseRepository:
             return True
 
         except Exception:
+            database_logger.exception("Database operation failed", extra={"repository": cls.__name__})
             conn.rollback()
             raise
 
@@ -106,6 +115,7 @@ class BaseRepository:
             return cursor.lastrowid
 
         except Exception:
+            database_logger.exception("Database operation failed", extra={"repository": cls.__name__})
             conn.rollback()
             raise
 
@@ -127,6 +137,7 @@ class BaseRepository:
             return cursor.rowcount
 
         except Exception:
+            database_logger.exception("Database operation failed", extra={"repository": cls.__name__})
             conn.rollback()
             raise
 

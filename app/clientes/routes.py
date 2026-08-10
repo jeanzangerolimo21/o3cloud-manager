@@ -121,7 +121,11 @@ def novo():
 
         }
 
-        ClienteService.criar(dados)
+        try:
+            ClienteService.criar(dados)
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            return render_template("clientes/form.html", cliente=dados, modo="novo")
 
         return redirect(url_for("clientes.index"))
 
@@ -185,7 +189,11 @@ def editar(id):
             "estado": request.form.get("estado"),
         }
 
-        ClienteService.atualizar(id, dados)
+        try:
+            ClienteService.atualizar(id, dados)
+        except ValueError as erro:
+            flash(str(erro), "danger")
+            return render_template("clientes/form.html", cliente={**cliente, **dados}, modo="editar")
 
         return redirect(url_for("clientes.visualizar", id=id))
 

@@ -206,12 +206,13 @@ def cofre_senhas():
 
     senhas = []
     total = 0
-    if selected_pasta:
+    if selected_pasta or pesquisa:
         senhas, total = CofreSenhaService.listar(
             pesquisa=pesquisa,
             categoria=categoria,
             ativo=ativo,
             pasta_id=pasta_id,
+            apenas_clientes=bool(pesquisa and not selected_pasta),
             pagina=pagina,
         )
     total_paginas = (total + 49) // 50

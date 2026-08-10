@@ -209,6 +209,8 @@ class AdministrativoRepository(BaseRepository):
             termo = f"%{filtros['q']}%"; params.extend([termo, termo, termo])
         if filtros.get('status'):
             where.append("d.status=%s"); params.append(filtros['status'])
+        else:
+            where.append("d.status <> 'CANCELADA'")
         if filtros.get('responsavel_id'):
             where.append("d.responsavel_id=%s"); params.append(filtros['responsavel_id'])
         if filtros.get('departamento_id'):

@@ -1,6 +1,7 @@
+import re
+
 from app.repositories.cliente_repository import ClienteRepository
 from app.utils.telefone import formatar_telefone
-
 
 class ClienteService:
 
@@ -40,11 +41,9 @@ class ClienteService:
 
     @staticmethod
     def criar(dados):
-
-        return ClienteRepository.inserir(
-            ClienteService._normalizar_dados(dados)
-        )
-
+        payload = ClienteService._normalizar_dados(dados)
+        ClienteService._validar_cnpj_unico(payload.get("cnpj"))
+        return ClienteRepository.inserir(payload)
 
     @staticmethod
     def excluir(cliente_id):
@@ -55,21 +54,17 @@ class ClienteService:
     def excluir_manuais(cliente_ids):
         return ClienteRepository.excluir_manuais(cliente_ids)
 
-
     @staticmethod
     def buscar_por_id(cliente_id):
 
         cliente = ClienteRepository.buscar_por_id(cliente_id)
         return ClienteService._formatar_telefone(cliente)
 
-
     @staticmethod
     def atualizar(cliente_id, dados):
-
-        ClienteRepository.atualizar(
-            cliente_id,
-            ClienteService._normalizar_dados(dados)
-        )
+        payload = ClienteService._normalizar_dados(dados)
+        ClienteService._validar_cnpj_unico(payload.get("cnpj"), ignorar_id=cliente_id)
+        ClienteRepository.atualizar(cliente_id, payload)
 
         cliente = ClienteRepository.buscar_por_id(
             cliente_id
@@ -132,10 +127,7 @@ class ClienteService:
 
     @staticmethod
     def sincronizar_omie(dados):
-
-        return ClienteRepository.upsert_omie(
-            ClienteService._normalizar_dados(dados)
-        )
+        return ClienteRepository.upsert_omie(ClienteService._normalizar_dados(dados))
 
     @classmethod
     def listar_todos(cls):
@@ -152,7 +144,18 @@ class ClienteService:
     def _normalizar_dados(dados):
         dados = dict(dados)
         dados["telefone"] = formatar_telefone(dados.get("telefone"))
+        cnpj = re.sub(r"[^0-9A-Za-z]", "", str(dados.get("cnpj") or "")).upper()
+        dados["cnpj"] = cnpj or None
         return dados
+
+    @staticmethod
+    def _validar_cnpj_unico(cnpj, ignorar_id=None):
+        if not cnpj:
+            return
+        existente = ClienteRepository.buscar_por_cnpj(cnpj)
+        if existente and (ignorar_id is None or int(existente.get("id")) != int(ignorar_id)):
+            origem = "OMIE" if existente.get("origem") == "OMIE" else "manual"
+            raise ValueError(f"Já existe cliente cadastrado com este CNPJ ({origem}).")
 
     @staticmethod
     def _formatar_telefone(cliente):

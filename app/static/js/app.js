@@ -51,3 +51,55 @@
         }
     });
 })();
+
+(function () {
+    const storageKey = "o3cloud.sidebarScrollTop";
+
+    function getSidebarMenu() {
+        return document.querySelector(".sidebar-menu");
+    }
+
+    function saveScrollPosition() {
+        const menu = getSidebarMenu();
+        if (!menu) {
+            return;
+        }
+
+        try {
+            sessionStorage.setItem(storageKey, String(menu.scrollTop));
+        } catch (error) {
+            // A navegacao continua funcionando mesmo se o armazenamento estiver indisponivel.
+        }
+    }
+
+    function restoreScrollPosition() {
+        const menu = getSidebarMenu();
+        if (!menu) {
+            return;
+        }
+
+        try {
+            const savedPosition = sessionStorage.getItem(storageKey);
+            if (savedPosition !== null) {
+                menu.scrollTop = Number(savedPosition) || 0;
+            }
+        } catch (error) {
+            // A posicao inicial permanece como fallback.
+        }
+    }
+
+    restoreScrollPosition();
+
+    const menu = getSidebarMenu();
+    if (menu) {
+        menu.addEventListener("scroll", saveScrollPosition, { passive: true });
+    }
+
+    document.addEventListener("click", function (event) {
+        if (event.target.closest(".sidebar-menu a, .global-back-button, a[onclick*=\"history.back\"]")) {
+            saveScrollPosition();
+        }
+    }, true);
+
+    window.addEventListener("pagehide", saveScrollPosition);
+})();
