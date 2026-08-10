@@ -31,10 +31,19 @@
                                 <select class="form-select" name="ambiente_id" id="ambiente_id">
                                     <option value="">Sem ambiente vinculado</option>
                                     {% for ambiente in ambientes %}
-                                        <option value="{{ ambiente.id }}" data-cliente-id="{{ ambiente.cliente_id }}" {% if senha.ambiente_id|string == ambiente.id|string %}selected{% endif %}>{{ ambiente.cliente_nome }} - {{ ambiente.nome }}{% if ambiente.prefixo_proxmox %} ({{ ambiente.prefixo_proxmox }}){% endif %}</option>
+                                        <option value="{{ ambiente.id }}" data-cliente-id="{{ ambiente.cliente_id }}" data-implantador-id="{{ ambiente.implantador_id or '' }}" {% if senha.ambiente_id|string == ambiente.id|string %}selected{% endif %}>{{ ambiente.cliente_nome }} - {{ ambiente.nome }}{% if ambiente.prefixo_proxmox %} ({{ ambiente.prefixo_proxmox }}){% endif %}</option>
                                     {% endfor %}
                                 </select>
                                 <small class="text-muted">Opcional. Use quando a credencial pertencer a um ambiente específico.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Implantador</label>
+                                <select class="form-select" name="implantador_id" id="implantador_id">
+                                    <option value="">Sem implantador vinculado</option>
+                                    {% for implantador in implantadores %}
+                                        <option value="{{ implantador.id }}" {% if senha.implantador_id|string == implantador.id|string %}selected{% endif %}>{{ implantador.nome }}{% if implantador.email %} - {{ implantador.email }}{% endif %}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Faixa de rede</label>
@@ -149,6 +158,8 @@
     const licencaSelect = document.getElementById('licenca_o3web_id');
     const urlInput = document.getElementById('url');
     const senhaInput = document.getElementById('senha');
+    const ambienteSelect = document.getElementById('ambiente_id');
+    const implantadorSelect = document.getElementById('implantador_id');
     const toggleButton = document.getElementById('toggle_senha');
     const gerarButton = document.getElementById('gerar_senha');
     const copiarButton = document.getElementById('copiar_senha_form');
@@ -166,6 +177,20 @@
         numeros: '23456789',
         simbolos: '!@#$%&*()-_=+[]{}?'
     };
+
+    function preencherImplantadorPorAmbiente() {
+        if (!ambienteSelect || !implantadorSelect) return;
+        const selected = ambienteSelect.options[ambienteSelect.selectedIndex];
+        const implantadorId = selected ? selected.getAttribute('data-implantador-id') : '';
+        if (implantadorId) {
+            implantadorSelect.value = implantadorId;
+        }
+    }
+
+    if (ambienteSelect) {
+        ambienteSelect.addEventListener('change', preencherImplantadorPorAmbiente);
+        if (implantadorSelect && !implantadorSelect.value) preencherImplantadorPorAmbiente();
+    }
 
     function bytesAleatorios(total) {
         const bytes = new Uint32Array(total);

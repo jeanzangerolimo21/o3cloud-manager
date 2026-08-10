@@ -2,6 +2,7 @@
 
 ## 2026-08-10 - Fechamento Tecnico Sprint 20
 
+- Cofre de Senhas passou a vincular credenciais a implantadores cadastrados, e Implantacao passou a selecionar Responsavel/Implantador pelo cadastro oficial de implantadores.
 - Sprint 20 registrada como concluida tecnicamente em `docs/37-FECHAMENTO-SPRINT-20.md`.
 - Atualizados `docs/00-VISAO-GERAL.md` e `docs/05-SPRINT_ATUAL` para refletir Relatorios Customizaveis como ultima sprint encerrada.
 - Tela `Visao Geral` atualizada para exibir fechamento do Sprint 20 e pendencias do Sprint Final.

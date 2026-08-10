@@ -931,6 +931,8 @@ def _cofre_senha_form_data():
     return {
         "pasta_id": request.form.get("pasta_id"),
         "cliente_id": request.form.get("cliente_id"),
+        "ambiente_id": request.form.get("ambiente_id"),
+        "implantador_id": request.form.get("implantador_id"),
         "faixa_rede_id": request.form.get("faixa_rede_id"),
         "licenca_o3web_id": request.form.get("licenca_o3web_id"),
         "categoria": request.form.get("categoria"),
@@ -1009,6 +1011,8 @@ def _form_data():
         "titulo": request.form.get("titulo"),
         "status": request.form.get("status"),
         "prioridade": request.form.get("prioridade"),
+        "responsavel_implantador_id": request.form.get("responsavel_implantador_id"),
+        "implantador_id": request.form.get("implantador_id"),
         "responsavel": request.form.get("responsavel"),
         "implantador_nome": request.form.get("implantador_nome"),
         "implantador_email": request.form.get("implantador_email"),

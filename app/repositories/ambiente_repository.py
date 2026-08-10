@@ -212,13 +212,17 @@ class AmbienteRepository(BaseRepository):
                 a.ambiente_tipo,
                 a.situacao,
                 a.prefixo_proxmox,
+                a.implantador_id,
+                i.nome AS implantador_nome,
+                i.email AS implantador_email,
                 COALESCE(GROUP_CONCAT(DISTINCT cv.nome_fantasia ORDER BY cv.nome_fantasia SEPARATOR ', '), c.nome_fantasia) AS cliente_nome
             FROM ambientes a
             INNER JOIN clientes c ON c.id = a.cliente_id
             LEFT JOIN ambiente_clientes ac ON ac.ambiente_id = a.id
             LEFT JOIN clientes cv ON cv.id = ac.cliente_id
+            LEFT JOIN implantadores i ON i.id = a.implantador_id
             WHERE a.ativo = 1
-            GROUP BY a.id, a.nome, a.cliente_id, a.ambiente_tipo, a.situacao, a.prefixo_proxmox, c.nome_fantasia
+            GROUP BY a.id, a.nome, a.cliente_id, a.ambiente_tipo, a.situacao, a.prefixo_proxmox, a.implantador_id, i.nome, i.email, c.nome_fantasia
             ORDER BY cliente_nome ASC, a.nome ASC
         """)
 

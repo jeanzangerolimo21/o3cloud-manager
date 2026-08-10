@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from app.core.email import EmailService
 from app.core.storage import StorageService
+from app.ambientes.implantador_service import ImplantadorService
 from app.parceiros.executivo_service import ParceiroExecutivoService
 from app.parceiros.service import ParceiroService
 from app.repositories.contrato_repository import ContratoRepository
@@ -109,6 +110,7 @@ class ImplantacaoService:
         return {
             "executivos": ParceiroExecutivoService.listar_todos_ativos(),
             "parceiros": ParceiroService.listar_todos_ativos(),
+            "implantadores": ImplantadorService.listar_para_select(),
         }
 
     @classmethod
@@ -547,6 +549,12 @@ class ImplantacaoService:
         if contrato and not data_prevista_entrega:
             data_prevista_entrega = cls._data_entrega_padrao(data_prevista_inicio)
 
+        responsavel_implantador = cls._implantador_por_id(dados.get("responsavel_implantador_id"))
+        implantador = cls._implantador_por_id(dados.get("implantador_id"))
+        responsavel_nome = (responsavel_implantador or {}).get("nome") or (dados.get("responsavel") or base.get("responsavel") or "").strip() or None
+        implantador_nome = (implantador or {}).get("nome") or (dados.get("implantador_nome") or base.get("implantador_nome") or "").strip() or None
+        implantador_email = (implantador or {}).get("email") or (dados.get("implantador_email") or base.get("implantador_email") or "").strip().lower() or None
+
         return {
             "contrato_id": base.get("id") if contrato else base.get("contrato_id"),
             "cliente_id": base.get("cliente_id"),
@@ -557,9 +565,9 @@ class ImplantacaoService:
             "status": status,
             "etapa_kanban": etapa_kanban,
             "prioridade": prioridade,
-            "responsavel": (dados.get("responsavel") or base.get("responsavel") or "").strip() or None,
-            "implantador_nome": (dados.get("implantador_nome") or base.get("implantador_nome") or "").strip() or None,
-            "implantador_email": (dados.get("implantador_email") or base.get("implantador_email") or "").strip().lower() or None,
+            "responsavel": responsavel_nome,
+            "implantador_nome": implantador_nome,
+            "implantador_email": implantador_email,
             "emails_adicionais": cls._normalizar_emails_texto(dados.get("emails_adicionais") if "emails_adicionais" in dados else base.get("emails_adicionais")),
             "data_prevista_inicio": data_prevista_inicio,
             "data_prevista_entrega": data_prevista_entrega,
@@ -573,6 +581,17 @@ class ImplantacaoService:
 
 
     @staticmethod
+    def _implantador_por_id(implantador_id):
+        implantador_id = ImplantacaoService._inteiro(implantador_id)
+        if not implantador_id:
+            return None
+        implantador = ImplantadorService.buscar_por_id(implantador_id)
+        if not implantador or not implantador.get("ativo"):
+            raise ValueError("Implantador selecionado não encontrado ou inativo.")
+        return implantador
+
+
+
     def _normalizar_rastreabilidade(row):
         if not row:
             return None

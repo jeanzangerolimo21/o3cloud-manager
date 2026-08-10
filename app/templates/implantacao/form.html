@@ -46,9 +46,26 @@
                     <div class="col-md-2"><label class="form-label">Etapa</label><select class="form-select" name="etapa_kanban">{% set etapa_atual = implantacao.etapa_kanban or 'FILA' %}{% for valor, descricao in kanban_options %}<option value="{{ valor }}" {% if etapa_atual == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}</select></div>
                     <div class="col-md-2"><label class="form-label">Status</label><select class="form-select" name="status">{% set selecionado = implantacao.status or 'AGUARDANDO_INICIO' %}{% for valor, descricao in status_options.items() %}<option value="{{ valor }}" {% if selecionado == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}</select></div>
                     <div class="col-md-2"><label class="form-label">Prioridade</label><select class="form-select" name="prioridade">{% set prioridade = implantacao.prioridade or 'NORMAL' %}{% for valor, descricao in prioridade_options.items() %}<option value="{{ valor }}" {% if prioridade == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}</select></div>
-                    <div class="col-md-4"><label class="form-label">Responsável</label><input class="form-control" name="responsavel" value="{{ implantacao.responsavel or '' }}" placeholder="Responsável técnico"></div>
-                    <div class="col-md-4"><label class="form-label">Implantador</label><input class="form-control" name="implantador_nome" value="{{ implantacao.implantador_nome or '' }}" placeholder="Nome do implantador"></div>
-                    <div class="col-md-4"><label class="form-label">E-mail do Implantador</label><input class="form-control" type="email" name="implantador_email" value="{{ implantacao.implantador_email or '' }}" placeholder="implantador@empresa.com"></div>
+                    <div class="col-md-6">
+                        <label class="form-label">Responsável</label>
+                        <select class="form-select" name="responsavel_implantador_id">
+                            <option value="">Selecionar responsável...</option>
+                            {% for implantador in implantadores %}
+                                {% set responsavel_selecionado = implantacao.responsavel_implantador_id|string == implantador.id|string or (not implantacao.responsavel_implantador_id and implantacao.responsavel == implantador.nome) %}
+                                <option value="{{ implantador.id }}" {% if responsavel_selecionado %}selected{% endif %}>{{ implantador.nome }}{% if implantador.email %} - {{ implantador.email }}{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Implantador</label>
+                        <select class="form-select" name="implantador_id">
+                            <option value="">Selecionar implantador...</option>
+                            {% for implantador in implantadores %}
+                                {% set implantador_selecionado = implantacao.implantador_id|string == implantador.id|string or (not implantacao.implantador_id and implantacao.implantador_nome == implantador.nome) %}
+                                <option value="{{ implantador.id }}" {% if implantador_selecionado %}selected{% endif %}>{{ implantador.nome }}{% if implantador.email %} - {{ implantador.email }}{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <div class="col-md-6"><label class="form-label">Executivo</label><select class="form-select" name="executivo_id" id="executivo_id"><option value="">Selecionar executivo...</option>{% for executivo in executivos %}<option value="{{ executivo.id }}" {% if implantacao.executivo_id|string == executivo.id|string %}selected{% endif %}>{{ executivo.nome }}{% if executivo.email %} - {{ executivo.email }}{% endif %}</option>{% endfor %}</select></div>
                     <div class="col-md-6"><label class="form-label">Parceiro</label><select class="form-select" name="parceiro_id" id="parceiro_id"><option value="">Selecionar parceiro...</option>{% for parceiro in parceiros %}<option value="{{ parceiro.id }}" {% if implantacao.parceiro_id|string == parceiro.id|string %}selected{% endif %}>{{ parceiro.nome_exibicao or parceiro.nome }}</option>{% endfor %}</select></div>
                     <div class="col-12"><label class="form-label">E-mails adicionais do projeto</label><textarea class="form-control" rows="3" name="emails_adicionais" placeholder="um email por linha, ou separados por vírgula">{{ implantacao.emails_adicionais or '' }}</textarea></div>

@@ -8,6 +8,7 @@ class CofreSenhaRepository(BaseRepository):
             SELECT cs.id, cs.uuid, cs.pasta_id, cp.nome AS pasta_nome, cp.tipo AS pasta_tipo,
                    cs.cliente_id, cs.cliente_nome, cs.cliente_cnpj,
                    cs.ambiente_id, amb.nome AS ambiente_nome, amb.ambiente_tipo, amb.prefixo_proxmox,
+                   cs.implantador_id, imp.nome AS implantador_nome, imp.email AS implantador_email,
                    cs.faixa_rede_id, fr.rede AS faixa_rede,
                    cp.owner_email AS pasta_owner_email, cp.compartilhada AS pasta_compartilhada, cp.compartilhada_com AS pasta_compartilhada_com,
                    cs.licenca_o3web_id, o3.id_licenca AS licenca_o3web_codigo,
@@ -17,6 +18,7 @@ class CofreSenhaRepository(BaseRepository):
                    cs.created_by, cs.updated_by, cs.created_at, cs.updated_at
             FROM implantacao_cofre_senhas cs
             LEFT JOIN ambientes amb ON amb.id = cs.ambiente_id
+            LEFT JOIN implantadores imp ON imp.id = cs.implantador_id
             LEFT JOIN implantacao_faixas_rede fr ON fr.id = cs.faixa_rede_id
             LEFT JOIN o3web_licencas o3 ON o3.id = cs.licenca_o3web_id
             LEFT JOIN implantacao_cofre_pastas cp ON cp.id = cs.pasta_id
@@ -37,6 +39,7 @@ class CofreSenhaRepository(BaseRepository):
             SELECT COUNT(*)
             FROM implantacao_cofre_senhas cs
             LEFT JOIN ambientes amb ON amb.id = cs.ambiente_id
+            LEFT JOIN implantadores imp ON imp.id = cs.implantador_id
             LEFT JOIN implantacao_faixas_rede fr ON fr.id = cs.faixa_rede_id
             LEFT JOIN o3web_licencas o3 ON o3.id = cs.licenca_o3web_id
             LEFT JOIN implantacao_cofre_pastas cp ON cp.id = cs.pasta_id
@@ -64,9 +67,10 @@ class CofreSenhaRepository(BaseRepository):
     def buscar_por_id(cls, senha_id):
         return cls.fetch_one(
             """
-            SELECT cs.*, amb.nome AS ambiente_nome, amb.ambiente_tipo, amb.prefixo_proxmox, fr.rede AS faixa_rede, o3.id_licenca AS licenca_o3web_codigo, cp.nome AS pasta_nome, cp.tipo AS pasta_tipo, cp.owner_email AS pasta_owner_email, cp.compartilhada AS pasta_compartilhada, cp.compartilhada_com AS pasta_compartilhada_com
+            SELECT cs.*, amb.nome AS ambiente_nome, amb.ambiente_tipo, amb.prefixo_proxmox, imp.nome AS implantador_nome, imp.email AS implantador_email, fr.rede AS faixa_rede, o3.id_licenca AS licenca_o3web_codigo, cp.nome AS pasta_nome, cp.tipo AS pasta_tipo, cp.owner_email AS pasta_owner_email, cp.compartilhada AS pasta_compartilhada, cp.compartilhada_com AS pasta_compartilhada_com
             FROM implantacao_cofre_senhas cs
             LEFT JOIN ambientes amb ON amb.id = cs.ambiente_id
+            LEFT JOIN implantadores imp ON imp.id = cs.implantador_id
             LEFT JOIN implantacao_faixas_rede fr ON fr.id = cs.faixa_rede_id
             LEFT JOIN o3web_licencas o3 ON o3.id = cs.licenca_o3web_id
             LEFT JOIN implantacao_cofre_pastas cp ON cp.id = cs.pasta_id
@@ -80,12 +84,12 @@ class CofreSenhaRepository(BaseRepository):
         return cls.execute_insert(
             """
             INSERT INTO implantacao_cofre_senhas (
-                uuid, pasta_id, cliente_id, cliente_nome, cliente_cnpj, ambiente_id, faixa_rede_id, licenca_o3web_id,
+                uuid, pasta_id, cliente_id, cliente_nome, cliente_cnpj, ambiente_id, implantador_id, faixa_rede_id, licenca_o3web_id,
                 categoria, titulo, host, porta, url, usuario, senha_encrypted, observacoes,
                 proxmox_node_id, proxmox_vm_id, pbs_server_id, zabbix_host_id,
                 proxmox_node_inventory_id, proxmox_inventory_id, pbs_backup_snapshot_id,
                 zabbix_host_inventory_id, ativo, created_by, updated_by
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (cls.generate_uuid(),) + cls._params(dados, incluir_senha=True),
         )
@@ -105,6 +109,7 @@ class CofreSenhaRepository(BaseRepository):
                 cliente_nome=%s,
                 cliente_cnpj=%s,
                 ambiente_id=%s,
+                implantador_id=%s,
                 faixa_rede_id=%s,
                 licenca_o3web_id=%s,
                 categoria=%s,
@@ -284,6 +289,7 @@ class CofreSenhaRepository(BaseRepository):
             dados.get("cliente_nome"),
             dados.get("cliente_cnpj"),
             dados.get("ambiente_id"),
+            dados.get("implantador_id"),
             dados.get("faixa_rede_id"),
             dados.get("licenca_o3web_id"),
             dados.get("categoria"),
