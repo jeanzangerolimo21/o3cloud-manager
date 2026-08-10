@@ -1487,6 +1487,904 @@ Documento de fechamento:
 
 ---
 
+# Sprint 19 – Gestão de Clientes Inadimplentes
+
+## 1. Objetivo
+
+Criar dentro do módulo **Financeiro** do O3Cloud Manager uma funcionalidade para controle de inadimplência por contrato.
+
+A funcionalidade deve permitir que a equipe Financeira:
+
+* selecione um contrato;
+* registre que o contrato possui pendência financeira;
+* bloqueie operacionalmente o cliente no O3Cloud Manager;
+* notifique a equipe de Suporte;
+* notifique o cliente;
+* destaque visualmente o cliente em todo o sistema;
+* impeça novas propostas e novas implantações enquanto houver pendência ativa;
+* posteriormente libere o cliente após:
+
+  * quitação da pendência; ou
+  * realização de acordo.
+
+A funcionalidade não deve apagar histórico. Toda inclusão e liberação de inadimplência deve permanecer registrada para auditoria.
+
+---
+
+# 2. Localização no Sistema
+
+Adicionar ao módulo:
+
+Financeiro
+
+novo item de menu:
+
+Financeiro
+├── Dashboard
+├── Contratos
+├── Faturamento
+└── Inadimplentes
+
+Nome da tela:
+
+**Inadimplentes**
+
+---
+
+# 3. Regra Principal
+
+A inadimplência será registrada por **Contrato**.
+
+Entretanto:
+
+> Se um cliente possuir pelo menos um contrato com inadimplência ATIVA, o Cliente deve ser considerado com pendência financeira em todo o O3Cloud Manager.
+
+Portanto:
+
+Contrato com pendência
+↓
+Cliente com restrição financeira
+↓
+Bloqueios operacionais
+
+Quando não existir mais nenhuma inadimplência ativa vinculada aos contratos daquele cliente:
+
+Cliente
+↓
+Restrição removida
+↓
+Operações liberadas
+
+---
+
+# 4. Nova Tela – Inadimplentes
+
+URL sugerida:
+
+`/financeiro/inadimplentes`
+
+A tela deverá possuir:
+
+* contratos atualmente inadimplentes;
+* cliente;
+* número do contrato;
+* valor mensal;
+* data do bloqueio;
+* responsável pelo bloqueio;
+* status;
+* observação;
+* ações.
+
+Filtros:
+
+* cliente;
+* número do contrato;
+* status;
+* período;
+* responsável.
+
+Status principais:
+
+* PENDENTE
+* LIBERADO
+
+Na interface:
+
+PENDENTE → vermelho
+
+LIBERADO → verde ou cinza
+
+---
+
+# 5. Nova Inadimplência
+
+Adicionar botão:
+
+`+ Nova Inadimplência`
+
+A experiência deve seguir o padrão existente de:
+
+Ambientes → Novo Ambiente
+
+Fluxo:
+
+1. Usuário acessa Financeiro → Inadimplentes.
+2. Seleciona Nova Inadimplência.
+3. Pesquisa e seleciona um contrato.
+4. O sistema carrega automaticamente:
+
+   * cliente;
+   * número do contrato;
+   * status;
+   * valor mensal;
+   * e-mail do cliente.
+5. Financeiro informa:
+
+   * motivo;
+   * observações;
+   * data da ocorrência, se necessário.
+6. Confirma a inclusão.
+7. Sistema registra a inadimplência.
+8. Sistema coloca o cliente em restrição financeira.
+9. Sistema envia as notificações.
+10. Sistema passa a destacar esse cliente nas demais telas.
+
+Não permitir registrar uma segunda inadimplência ATIVA para o mesmo contrato.
+
+---
+
+# 6. Notificação ao Suporte
+
+Após a confirmação da inadimplência, enviar automaticamente e-mail para:
+
+`sac@o3cloud.com.br` e `palntao@o3ti.com.br`
+
+
+Assunto sugerido:
+
+`[O3Cloud Manager] Bloqueio por pendência financeira – {cliente}`
+
+Conteúdo mínimo:
+
+Cliente:
+{cliente}
+
+Contrato:
+{numero_contrato}
+
+Status:
+Pendência financeira registrada
+
+Solicitação:
+Realizar o bloqueio do ambiente do cliente devido a pendência financeira.
+
+Registrado por:
+{usuario}
+
+Data:
+{data_hora}
+
+Observações:
+{observacao}
+
+IMPORTANTE:
+
+O O3Cloud Manager não deve bloquear diretamente VM ou ambiente nesta primeira implementação.
+
+O sistema apenas:
+
+* registra a restrição;
+* sinaliza o cliente;
+* notifica o Suporte para executar o procedimento operacional.
+
+A automação direta de bloqueio de ambiente poderá ser avaliada em sprint futuro.
+
+---
+
+# 7. Notificação ao Cliente
+
+Após a inclusão da inadimplência, enviar também um e-mail para o endereço cadastrado na tela de Clientes.
+
+Utilizar:
+
+`clientes.email`
+
+Se não existir e-mail:
+
+* não impedir o cadastro da inadimplência;
+* registrar que a notificação ao cliente não pôde ser enviada;
+* exibir aviso para o Financeiro.
+
+O conteúdo deve ser profissional e neutro.
+
+Não expor informações técnicas internas.
+
+Exemplo conceitual:
+
+Assunto:
+
+`Pendência financeira – O3Cloud`
+
+Mensagem:
+
+Informar que foi identificada uma pendência financeira relacionada ao contrato e solicitar contato com o setor Financeiro para regularização.
+
+Os textos finais devem ficar configuráveis, evitando conteúdo fixo dentro da Route.
+
+---
+
+# 8. Destaque Visual do Cliente
+
+Enquanto existir inadimplência ativa:
+
+Todas as telas relevantes que apresentem referência ao cliente deverão deixar clara a restrição.
+
+Adicionar destaque visual vermelho.
+
+Exemplos:
+
+## Tela Cliente
+
+Exibir no topo:
+
+`PENDÊNCIA FINANCEIRA`
+
+com:
+
+* fundo vermelho;
+* ícone de alerta;
+* data da restrição;
+* contrato relacionado.
+
+## Listagens
+
+Onde o cliente aparecer, utilizar:
+
+* badge vermelho;
+* ícone de alerta; ou
+* linha com indicação visual.
+
+Texto sugerido:
+
+`Pendência Financeira`
+
+Evitar pintar telas inteiras de vermelho.
+
+Utilizar destaque consistente e visível sem prejudicar a leitura.
+
+---
+
+# 9. Regra Transversal de Bloqueio
+
+Enquanto o cliente possuir pendência financeira ativa:
+
+## PROIBIR
+
+* criação de novas propostas;
+* criação de novas implantações.
+
+A proteção deve existir na camada de **Service**, e não somente na interface.
+
+Isso é obrigatório.
+
+Mesmo que alguém tente chamar diretamente uma rota POST, a operação deve ser recusada.
+
+Retorno funcional sugerido:
+
+`Não é possível realizar esta operação. O cliente possui pendências financeiras ativas.`
+
+---
+
+# 10. Propostas
+
+Ao tentar criar uma proposta para cliente inadimplente:
+
+Bloquear a ação.
+
+Exibir:
+
+`Cliente com pendência financeira. Regularize a situação financeira antes de criar uma nova proposta.`
+
+Se existir tela de seleção de cliente:
+
+O cliente pode continuar aparecendo na pesquisa, porém deve estar identificado:
+
+`⚠ PENDÊNCIA FINANCEIRA`
+
+Não permitir concluir o cadastro.
+
+---
+
+# 11. Implantações
+
+Aplicar exatamente a mesma regra.
+
+Ao tentar criar nova implantação:
+
+Verificar se o cliente possui inadimplência ativa.
+
+Se possuir:
+
+* impedir criação;
+* mostrar mensagem;
+* não gravar registro parcial.
+
+Clientes já em implantação não devem ser apagados ou alterados automaticamente.
+
+O bloqueio é para **novas implantações**.
+
+---
+
+# 12. Liberação Financeira
+
+Na própria tela Financeiro → Inadimplentes, uma pendência PENDENTE deve possuir ação:
+
+`Liberar`
+
+Ao clicar:
+
+Abrir modal ou formulário de liberação.
+
+O Financeiro deverá obrigatoriamente selecionar uma das opções:
+
+### QUITOU PENDÊNCIA
+
+Cliente efetuou o pagamento integral da pendência.
+
+Código sugerido:
+
+`QUITACAO`
+
+### REALIZOU ACORDO
+
+Foi firmado acordo financeiro e o cliente está autorizado a continuar utilizando/contratando os serviços.
+
+Código sugerido:
+
+`ACORDO`
+
+Também permitir:
+
+* observação da liberação;
+* data;
+* responsável.
+
+---
+
+# 13. Regra de Liberação do Cliente
+
+Após liberar uma inadimplência:
+
+Verificar:
+
+`Existe outra inadimplência ATIVA em outro contrato deste cliente?`
+
+### Se SIM
+
+Manter cliente:
+
+`COM PENDÊNCIA FINANCEIRA`
+
+Não liberar:
+
+* propostas;
+* implantações.
+
+### Se NÃO
+
+Remover restrição financeira do cliente.
+
+Liberar novamente:
+
+* novas propostas;
+* novas implantações.
+
+Remover os avisos vermelhos.
+
+Isso é extremamente importante para clientes que possuem vários contratos.
+
+Enviar email para o contato de email do cadastro do cliente, e tambem para sac@o3cloud.com.br e plantao@o3ti.com.br;
+Informando da liberação do sistema;
+
+---
+
+# 14. Histórico
+
+Nunca excluir registros de inadimplência.
+
+O sistema deve preservar:
+
+* contrato;
+* cliente;
+* data da inclusão;
+* usuário que incluiu;
+* motivo;
+* observação;
+* data da liberação;
+* usuário que liberou;
+* tipo de liberação;
+* observação da liberação.
+
+Exemplo:
+
+Cliente ABC
+
+Contrato 2026/00125
+
+Bloqueado:
+01/08/2026
+
+Liberado:
+07/08/2026
+
+Motivo da liberação:
+ACORDO
+
+---
+
+# 15. Modelagem Sugerida
+
+Criar tabela:
+
+`financeiro_inadimplencias`
+
+Campos sugeridos:
+
+```sql
+id BIGINT AUTO_INCREMENT PRIMARY KEY,
+uuid CHAR(36) NOT NULL,
+
+contrato_id BIGINT NOT NULL,
+
+status ENUM(
+    'PENDENTE',
+    'LIBERADO'
+) NOT NULL DEFAULT 'PENDENTE',
+
+motivo VARCHAR(255) NULL,
+
+observacoes TEXT NULL,
+
+bloqueado_em DATETIME NOT NULL,
+
+bloqueado_por BIGINT NULL,
+
+tipo_liberacao ENUM(
+    'QUITACAO',
+    'ACORDO'
+) NULL,
+
+observacao_liberacao TEXT NULL,
+
+liberado_em DATETIME NULL,
+
+liberado_por BIGINT NULL,
+
+email_suporte_enviado TINYINT(1) DEFAULT 0,
+
+email_cliente_enviado TINYINT(1) DEFAULT 0,
+
+erro_email_suporte TEXT NULL,
+
+erro_email_cliente TEXT NULL,
+
+ativo TINYINT(1) NOT NULL DEFAULT 1,
+
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP
+```
+
+FK:
+
+`contrato_id → contratos.id`
+
+Não é obrigatório armazenar `cliente_id`.
+
+O cliente deve ser obtido através:
+
+inadimplência
+→ contrato
+→ cliente
+
+Isso evita duplicidade desnecessária de relacionamento.
+
+---
+
+# 16. Índices
+
+Criar:
+
+```sql
+INDEX idx_inadimplencia_contrato (contrato_id)
+
+INDEX idx_inadimplencia_status (status)
+
+INDEX idx_inadimplencia_bloqueado_em (bloqueado_em)
+```
+
+Também criar mecanismo para impedir duas inadimplências simultaneamente ativas para o mesmo contrato.
+
+A implementação pode ser feita por regra no Service e validação transacional.
+
+---
+
+# 17. Arquitetura Python
+
+Seguir obrigatoriamente o padrão atual do O3Cloud Manager:
+
+Repository
+↓
+Service
+↓
+Routes
+↓
+Templates
+↓
+Testes
+
+Criar:
+
+```text
+app/financeiro/inadimplencias/
+├── __init__.py
+├── repository.py
+├── service.py
+└── routes.py
+```
+
+ou adaptar à organização atual do módulo Financeiro sem quebrar a arquitetura existente.
+
+Templates:
+
+```text
+app/templates/financeiro/inadimplencias/
+├── index.html
+├── form.html
+└── view.html
+```
+
+---
+
+# 18. Repository
+
+Métodos mínimos:
+
+```python
+listar()
+total()
+buscar_por_id()
+buscar_ativa_por_contrato()
+listar_ativas_por_cliente()
+cliente_possui_pendencia()
+criar()
+liberar()
+```
+
+Repository não deve:
+
+* enviar e-mail;
+* bloquear proposta;
+* bloquear implantação;
+* decidir regra de liberação.
+
+Repository apenas persiste dados.
+
+---
+
+# 19. Service
+
+Criar:
+
+`InadimplenciaService`
+
+Responsável por:
+
+```python
+registrar()
+liberar()
+cliente_possui_pendencia()
+validar_operacao_cliente()
+```
+
+Fluxo de `registrar()`:
+
+1. validar contrato;
+2. validar se não existe pendência ativa;
+3. criar registro;
+4. confirmar transação;
+5. disparar notificações;
+6. retornar resultado.
+
+Fluxo de `liberar()`:
+
+1. localizar inadimplência;
+2. validar status;
+3. exigir QUITACAO ou ACORDO;
+4. registrar liberação;
+5. verificar outras pendências do cliente;
+6. recalcular situação financeira;
+7. liberar operações apenas se nenhuma outra pendência permanecer ativa.
+
+---
+
+# 20. Serviço Central de Validação Financeira
+
+Não duplicar a regra em Propostas e Implantação.
+
+Criar uma função reutilizável:
+
+```python
+InadimplenciaService.validar_operacao_cliente(cliente_id)
+```
+
+Exemplo:
+
+```python
+if InadimplenciaService.cliente_possui_pendencia(cliente_id):
+    raise RegraNegocioError(
+        "Cliente possui pendências financeiras ativas."
+    )
+```
+
+Utilizar essa validação no:
+
+* Service de Propostas;
+* Service de Implantação.
+
+No futuro poderá ser reutilizada em outros módulos.
+
+---
+
+# 21. E-mails
+
+Utilizar o serviço de e-mail existente no O3Cloud Manager.
+
+Não colocar SMTP diretamente no módulo de inadimplência.
+
+Criar métodos de alto nível, por exemplo:
+
+```python
+notificar_bloqueio_suporte()
+notificar_pendencia_cliente()
+```
+
+Se já existir provider de comunicação, reutilizá-lo.
+
+Configurar o destinatário do suporte no `.env` ou tabela de configurações:
+
+```env
+FINANCEIRO_EMAIL_SUPORTE=sac@o3cloud.com.br
+```
+
+Evitar endereço fixo espalhado pelo código.
+
+---
+
+# 22. Falha de E-mail
+
+A falha no envio de um e-mail NÃO deve desfazer o registro da inadimplência.
+
+Exemplo:
+
+Pendência registrada com sucesso
++
+Falha ao enviar e-mail
+
+Resultado:
+
+* inadimplência continua ativa;
+* cliente continua bloqueado;
+* sistema registra erro;
+* interface avisa Financeiro.
+
+Nunca executar rollback da inadimplência porque SMTP/API ficou indisponível.
+
+---
+
+# 23. Notificação na Liberação
+
+Recomendação:
+
+Quando a pendência for liberada, enviar também e-mail para:
+
+`sac@o3cloud.com.br`
+
+informando:
+
+`Cliente liberado financeiramente`
+
+para que o Suporte possa retirar eventual bloqueio aplicado ao ambiente.
+
+Dados:
+
+* cliente;
+* contrato;
+* tipo da liberação;
+* responsável;
+* data;
+* observação.
+
+Essa notificação é altamente recomendada porque o bloqueio operacional do ambiente foi solicitado anteriormente ao Suporte.
+
+O envio para o cliente na liberação pode ser parametrizável.
+
+---
+
+# 24. Segurança
+
+Apenas usuários autorizados do Financeiro devem poder:
+
+* registrar inadimplência;
+* liberar inadimplência.
+
+Outros usuários poderão visualizar o aviso financeiro conforme permissão, mas não alterar o status.
+
+Registrar obrigatoriamente:
+
+* usuário;
+* data;
+* ação.
+
+---
+
+# 25. Interface – Listagem
+
+Exemplo:
+
+```text
+INADIMPLENTES
+
+[ + Nova Inadimplência ]
+
+Cliente          Contrato       Desde       Status       Ações
+----------------------------------------------------------------
+Cliente ABC      2026/00125     05/08       PENDENTE     Ver | Liberar
+Cliente XYZ      2026/00190     07/08       PENDENTE     Ver | Liberar
+```
+
+Usar badge vermelho:
+
+`PENDENTE`
+
+Para histórico:
+
+`LIBERADO`
+
+---
+
+# 26. Interface – Cliente
+
+Adicionar alerta no topo das telas relacionadas ao cliente:
+
+```text
+⚠ PENDÊNCIA FINANCEIRA
+
+Este cliente possui pendências financeiras ativas.
+
+Contrato: 2026/00125
+Desde: 05/08/2026
+```
+
+Não exibir detalhes financeiros sensíveis desnecessariamente para perfis sem autorização.
+
+---
+
+# 27. Critérios de Aceite
+
+A Sprint estará concluída quando:
+
+1. Financeiro conseguir abrir tela Inadimplentes.
+2. Conseguir selecionar contrato.
+3. Sistema identificar automaticamente o cliente.
+4. Não permitir pendência ativa duplicada para o mesmo contrato.
+5. Registrar inadimplência.
+6. Enviar notificação para `sac@o3cloud.com.br`.
+7. Enviar notificação para `clientes.email`.
+8. Falha de e-mail não cancelar o bloqueio.
+9. Cliente aparecer com destaque vermelho.
+10. Nova proposta para cliente inadimplente ser bloqueada.
+11. Nova implantação para cliente inadimplente ser bloqueada.
+12. Bloqueio existir também no Service e não apenas na interface.
+13. Financeiro conseguir liberar pendência.
+14. Liberação exigir:
+
+    * QUITACAO; ou
+    * ACORDO.
+15. Histórico permanecer salvo.
+16. Cliente continuar bloqueado caso outro contrato ainda possua pendência ativa.
+17. Cliente ser liberado quando não houver mais pendências ativas.
+18. Alertas visuais desaparecerem após liberação.
+19. Novas propostas voltarem a ser permitidas.
+20. Novas implantações voltarem a ser permitidas.
+21. Testes existentes continuarem passando.
+22. Documentação, DER, modelo físico e CHANGELOG serem atualizados.
+
+---
+
+# 28. Testes Obrigatórios
+
+Testar:
+
+* cliente com 1 contrato;
+* cliente com vários contratos;
+* inadimplência em apenas um dos contratos;
+* inadimplência em dois contratos simultaneamente;
+* liberação de apenas um contrato;
+* liberação do último contrato pendente;
+* quitação;
+* acordo;
+* cliente sem e-mail;
+* erro no envio para suporte;
+* tentativa de criar proposta;
+* tentativa de criar implantação;
+* tentativa direta por POST;
+* duplicidade de inadimplência;
+* usuário sem permissão;
+* histórico após liberação.
+
+---
+
+# 29. Fora do Escopo
+
+Não implementar nesta Sprint:
+
+* bloqueio automático no Proxmox;
+* shutdown de VM;
+* bloqueio de rede;
+* suspensão automática de VPS;
+* integração automática com cobrança do OMIE;
+* baixa automática por boleto;
+* liberação automática por API bancária.
+
+Esses itens poderão ser evoluções futuras.
+
+Nesta Sprint, o Financeiro controla a restrição no O3Cloud Manager e o Suporte recebe a solicitação operacional por e-mail.
+
+---
+
+# 30. Resultado Esperado
+
+O fluxo final deverá ser:
+
+```text
+Financeiro
+    ↓
+Seleciona Contrato
+    ↓
+Registra Pendência
+    ↓
+O3Cloud Manager
+    ├── registra histórico
+    ├── marca cliente com restrição
+    ├── bloqueia novas propostas
+    ├── bloqueia novas implantações
+    ├── envia e-mail ao Suporte
+    └── envia e-mail ao Cliente
+
+Após regularização:
+
+Financeiro
+    ↓
+Liberar
+    ↓
+[Quitação] ou [Acordo]
+    ↓
+Verificar outras pendências
+    ↓
+Se nenhuma:
+    ├── retirar restrição
+    ├── liberar propostas
+    ├── liberar implantações
+    ├── remover alertas vermelhos
+    └── notificar liberação
+```
+
+A arquitetura deve preservar histórico completo e permitir futuras automações sem necessidade de remodelar o módulo.
+ _____
+
+
 # Sprint Final Planejada
 
 ## Integracao Receita Federal para Cadastro de Clientes
