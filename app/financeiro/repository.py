@@ -254,6 +254,7 @@ class FinanceiroRepository(BaseRepository):
             "carga_implantadores": cls._carga_implantadores(filtros),
             "rastreabilidade_executiva": cls._rastreabilidade_executiva(filtros),
             "fluxos_rastreabilidade": cls._fluxos_rastreabilidade(filtros),
+            "visao_geral": cls._visao_geral_operacional(),
         }
 
     @classmethod
@@ -311,6 +312,172 @@ class FinanceiroRepository(BaseRepository):
             "operacional": operacional,
             "financeiro": financeiro,
         }
+
+    @classmethod
+    def _visao_geral_operacional(cls):
+        return {
+            "top_contratos": cls._visao_top_contratos(),
+            "inadimplentes": cls._visao_clientes_inadimplentes(),
+            "demandas": cls._visao_demandas_administrativo(),
+            "propostas": cls._visao_propostas_recentes(),
+            "clicksign_pendentes": cls._visao_clicksign_pendentes(),
+            "zabbix_alertas": cls._visao_zabbix_alertas(),
+            "proxmox_vms": cls._visao_proxmox_vms_maior_alocacao(),
+            "proxmox_nodes": cls._visao_proxmox_nodes_consumo(),
+            "pbs_pendentes": cls._visao_pbs_backups_pendentes(),
+            "truenas_alertas": cls._visao_truenas_alertas(),
+            "kanban_atualizacoes": cls._visao_kanban_atualizacoes(),
+            "kanban_fila": cls._visao_kanban_fila(),
+        }
+
+    @classmethod
+    def _visao_top_contratos(cls):
+        return cls.fetch_all("""
+            SELECT c.id, c.numero, c.status, COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
+                   COALESCE(NULLIF(c.valor_promocional, 0), c.valor_mensal, 0) AS valor_mensal
+            FROM contratos c
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            WHERE c.ativo = 1 AND c.status = 'ATIVO'
+            ORDER BY valor_mensal DESC, c.id DESC
+            LIMIT 5
+        """)
+
+    @classmethod
+    def _visao_clientes_inadimplentes(cls):
+        return cls.fetch_all("""
+            SELECT fi.id, fi.contrato_id, fi.motivo, fi.bloqueado_em, c.numero AS contrato_numero,
+                   COALESCE(NULLIF(c.valor_promocional, 0), c.valor_mensal, 0) AS valor_mensal,
+                   cli.id AS cliente_id, COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome, cli.cnpj AS cliente_cnpj
+            FROM financeiro_inadimplencias fi
+            INNER JOIN contratos c ON c.id = fi.contrato_id
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            WHERE fi.ativo = 1 AND fi.status = 'PENDENTE'
+            ORDER BY fi.bloqueado_em DESC, fi.id DESC
+            LIMIT 5
+        """)
+
+    @classmethod
+    def _visao_demandas_administrativo(cls):
+        return cls.fetch_all("""
+            SELECT d.id, d.titulo, d.prioridade, d.status, d.data_limite, d.created_at,
+                   u.nome AS responsavel_nome, dep.nome AS departamento_nome,
+                   CASE WHEN d.status NOT IN ('CONCLUIDA', 'CANCELADA') AND d.data_limite < CURRENT_DATE THEN 'ATRASADA' ELSE d.status END AS status_calculado
+            FROM administrativo_demandas d
+            LEFT JOIN auth_usuarios u ON u.id = d.responsavel_id
+            LEFT JOIN administrativo_departamentos dep ON dep.id = d.departamento_id
+            WHERE d.status <> 'CANCELADA'
+            ORDER BY d.created_at DESC, d.id DESC
+            LIMIT 5
+        """)
+
+    @classmethod
+    def _visao_propostas_recentes(cls):
+        return cls.fetch_all("""
+            SELECT p.id, p.codigo_proposta, p.titulo, p.cliente_nome, p.executivo_nome, p.status,
+                   p.clicksign_status, p.total_mensal, p.valor_total, p.updated_at
+            FROM crm_propostas p
+            WHERE p.ativo = 1
+            ORDER BY p.updated_at DESC, p.id DESC
+            LIMIT 5
+        """)
+
+    @classmethod
+    def _visao_clicksign_pendentes(cls):
+        return cls.fetch_all("""
+            SELECT p.id, p.codigo_proposta, p.titulo, p.cliente_nome, p.clicksign_status, p.clicksign_sent_at, p.updated_at
+            FROM crm_propostas p
+            WHERE p.ativo = 1 AND COALESCE(p.clicksign_status, 'NAO_ENVIADO') IN ('ENVIADO', 'AGUARDANDO_ASSINATURAS')
+            ORDER BY COALESCE(p.clicksign_sent_at, p.updated_at) ASC, p.id ASC
+            LIMIT 5
+        """)
+
+    @classmethod
+    def _visao_zabbix_alertas(cls):
+        return cls.fetch_all("""
+            SELECT id, host, nome, severidade, severidade_label, status_label, data_evento, acknowledged
+            FROM zabbix_alarm_cache
+            WHERE aberto = 1
+            ORDER BY severidade DESC, COALESCE(data_evento, created_at) DESC, id DESC
+            LIMIT 5
+        """)
+
+    @classmethod
+    def _visao_proxmox_vms_maior_alocacao(cls):
+        return cls.fetch_all("""
+            SELECT p.id, p.node, p.vmid, p.tipo, p.nome, p.status, p.cpu_cores, p.memoria_mb, p.disco_gb,
+                   COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome
+            FROM proxmox_vm_inventory p
+            LEFT JOIN clientes cli ON cli.id = p.cliente_id
+            WHERE p.ativo = 1 AND p.template = 0
+            ORDER BY COALESCE(p.memoria_mb, 0) DESC, COALESCE(p.disco_gb, 0) DESC, COALESCE(p.cpu_cores, 0) DESC
+            LIMIT 5
+        """)
+
+    @classmethod
+    def _visao_proxmox_nodes_consumo(cls):
+        return cls.fetch_all("""
+            SELECT id, node, status, cpu_usado_percent, memoria_total_mb, memoria_usada_mb, disco_total_gb, disco_usado_gb,
+                   ROUND((COALESCE(memoria_usada_mb, 0) / NULLIF(memoria_total_mb, 0)) * 100, 1) AS memoria_usada_percent,
+                   ROUND((COALESCE(disco_usado_gb, 0) / NULLIF(disco_total_gb, 0)) * 100, 1) AS disco_usado_percent
+            FROM proxmox_node_inventory
+            WHERE ativo = 1
+            ORDER BY GREATEST(COALESCE(cpu_usado_percent, 0), COALESCE((memoria_usada_mb / NULLIF(memoria_total_mb, 0)) * 100, 0), COALESCE((disco_usado_gb / NULLIF(disco_total_gb, 0)) * 100, 0)) DESC
+            LIMIT 5
+        """)
+
+    @classmethod
+    def _visao_pbs_backups_pendentes(cls):
+        return cls.fetch_all("""
+            SELECT base.*
+            FROM (
+                SELECT pol.id, pol.proxmox_inventory_id, pol.frequencia_horas, p.node, p.vmid, p.tipo, p.nome,
+                       MAX(s.backup_time) AS ultimo_backup, TIMESTAMPDIFF(HOUR, MAX(s.backup_time), NOW()) AS horas_sem_backup
+                FROM pbs_backup_politicas pol
+                INNER JOIN proxmox_vm_inventory p ON p.id = pol.proxmox_inventory_id
+                LEFT JOIN pbs_backup_snapshots s ON s.proxmox_inventory_id = pol.proxmox_inventory_id
+                WHERE p.ativo = 1
+                GROUP BY pol.id, pol.proxmox_inventory_id, pol.frequencia_horas, p.node, p.vmid, p.tipo, p.nome
+            ) base
+            WHERE base.ultimo_backup IS NULL OR base.horas_sem_backup > base.frequencia_horas
+            ORDER BY base.ultimo_backup IS NULL DESC, base.horas_sem_backup DESC, base.node ASC, base.vmid ASC
+            LIMIT 5
+        """)
+
+    @classmethod
+    def _visao_truenas_alertas(cls):
+        return cls.fetch_all("""
+            SELECT id, prefixo_proxmox, cliente_nome, mountpoint, pasta_path, status, arquivos_recentes, arquivos_total, ultimo_arquivo, ultimo_mtime, sincronizado_em
+            FROM truenas_backup_cache
+            WHERE status <> 'OK'
+            ORDER BY ultimo_mtime IS NULL DESC, ultimo_mtime ASC, updated_at DESC
+            LIMIT 5
+        """)
+
+    @classmethod
+    def _visao_kanban_atualizacoes(cls):
+        return cls.fetch_all("""
+            SELECT h.id, h.implantacao_id, h.tipo, h.etapa_anterior, h.etapa_nova, h.comentario, h.created_at,
+                   i.titulo, i.etapa_kanban, i.status, COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome
+            FROM implantacao_historico h
+            INNER JOIN implantacoes i ON i.id = h.implantacao_id
+            INNER JOIN clientes cli ON cli.id = i.cliente_id
+            WHERE i.ativo = 1 AND h.tipo = 'ETAPA'
+            ORDER BY h.created_at DESC, h.id DESC
+            LIMIT 5
+        """)
+
+    @classmethod
+    def _visao_kanban_fila(cls):
+        return cls.fetch_all("""
+            SELECT i.id, i.titulo, i.status, i.etapa_kanban, i.created_at, i.updated_at,
+                   COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
+                   COALESCE(NULLIF(i.implantador_nome, ''), NULLIF(i.responsavel, ''), 'Sem responsavel') AS responsavel_nome
+            FROM implantacoes i
+            INNER JOIN clientes cli ON cli.id = i.cliente_id
+            WHERE i.ativo = 1 AND COALESCE(i.etapa_kanban, 'FILA') = 'FILA'
+            ORDER BY i.created_at DESC, i.id DESC
+            LIMIT 5
+        """)
 
     @classmethod
     def listar_parceiros_dashboard(cls):

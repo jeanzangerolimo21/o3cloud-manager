@@ -3,16 +3,24 @@
 {% block content %}
 <div class="container-fluid">
     {% set resumo = dashboard.resumo or {} %}
+    {% set visao = dashboard.visao_geral or {} %}
 
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
+    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-start gap-3 mb-4">
         <div>
             <h2 class="mb-1">Visao Geral</h2>
-            <p class="text-muted mb-0">Resumo operacional do O3Cloud Manager e atalhos para acompanhamento executivo.</p>
+            <p class="text-muted mb-0">Painel operacional com os principais indices comerciais, financeiros, administrativos, implantacao e infraestrutura.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a class="btn btn-primary" href="{{ url_for('financeiro.produtos_clientes') }}"><i class="bi bi-boxes"></i> Produtos por Cliente</a>
-            <a class="btn btn-outline-primary" href="{{ url_for('financeiro.dashboard_executivo') }}"><i class="bi bi-speedometer2"></i> Dashboard Executivo</a>
-            <a class="btn btn-outline-primary" href="{{ url_for('implantacao.index') }}"><i class="bi bi-hdd-network"></i> Implantacao</a>
+            <a class="btn btn-primary" href="{{ url_for('financeiro.produtos_clientes') }}"><i class="bi bi-boxes"></i> Produtos</a>
+            <a class="btn btn-outline-primary" href="{{ url_for('financeiro.dashboard_executivo') }}"><i class="bi bi-speedometer2"></i> Executivo</a>
+            <a class="btn btn-outline-primary" href="{{ url_for('propostas.index') }}"><i class="bi bi-file-earmark-text"></i> Propostas</a>
+            <a class="btn btn-outline-primary" href="{{ url_for('contratos.index') }}"><i class="bi bi-file-check"></i> Contratos</a>
+            <a class="btn btn-outline-primary" href="{{ url_for('implantacao.kanban') }}"><i class="bi bi-kanban"></i> Kanban</a>
+            <a class="btn btn-outline-primary" href="{{ url_for('administrativo.index') }}"><i class="bi bi-calendar-check"></i> Administrativo</a>
+            <a class="btn btn-outline-primary" href="{{ url_for('infraestrutura.monitoramento_zabbix') }}"><i class="bi bi-activity"></i> Zabbix</a>
+            <a class="btn btn-outline-primary" href="{{ url_for('infraestrutura.maquinas_virtuais') }}"><i class="bi bi-hdd-rack"></i> VMs</a>
+            <a class="btn btn-outline-primary" href="{{ url_for('infraestrutura.backups_pbs') }}"><i class="bi bi-database-check"></i> PBS</a>
+            <a class="btn btn-outline-primary" href="{{ url_for('infraestrutura.backup_nas') }}"><i class="bi bi-device-hdd"></i> NAS</a>
         </div>
     </div>
 
@@ -20,94 +28,47 @@
         <i class="bi bi-check-circle-fill mt-1"></i>
         <div>
             <strong>Sprint 20 concluida tecnicamente em 10/08/2026.</strong>
-            Relatorios Customizaveis, exportacoes, jobs, retencao de cache e sincronismos agendados foram entregues. A homologacao operacional segue pendente para a release Beta, com usuarios, perfis, dados reais controlados, SMTP homologado e evidencias de aceite.
+            Relatorios Customizaveis, exportacoes, jobs, retencao de cache e sincronismos agendados foram entregues. O Sprint Final fica reservado para homologacao da Beta, evidencias de aceite, usuarios, perfis, SMTP e validacao com dados reais controlados.
         </div>
     </div>
 
     <div class="row g-3 mb-4">
-        <div class="col-md-6 col-xl-3">
-            <a class="text-decoration-none" href="{{ url_for('financeiro.dashboard_executivo') }}">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
-                        <small class="text-muted">Receita mensal ativa</small>
-                        <h3 class="mb-1 text-body">{{ resumo.receita_mensal_ativa|moeda }}</h3>
-                        <small class="text-muted">{{ resumo.contratos_ativos or 0 }} contrato(s) ativo(s)</small>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <a class="text-decoration-none" href="{{ url_for('propostas.dashboard') }}">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
-                        <small class="text-muted">Receita negociada</small>
-                        <h3 class="mb-1 text-body">{{ resumo.propostas_mensal|moeda }}</h3>
-                        <small class="text-muted">{{ resumo.total_propostas or 0 }} proposta(s) ativa(s)</small>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <a class="text-decoration-none" href="{{ url_for('implantacao.index') }}">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
-                        <small class="text-muted">Implantacoes</small>
-                        <h3 class="mb-1 text-body">{{ resumo.total_implantacoes or 0 }}</h3>
-                        <small class="text-muted">{{ resumo.implantacoes_em_andamento or 0 }} em andamento</small>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <a class="text-decoration-none" href="{{ url_for('implantacao.index', prazo='atrasadas') }}">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
-                        <small class="text-muted">Projetos atrasados</small>
-                        <h3 class="mb-1 text-danger">{{ resumo.implantacoes_atrasadas or 0 }}</h3>
-                        <small class="text-muted">{{ resumo.implantacoes_vence_7 or 0 }} vencem em 7 dias</small>
-                    </div>
-                </div>
-            </a>
-        </div>
+        <div class="col-md-6 col-xl-3"><a class="text-decoration-none" href="{{ url_for('financeiro.dashboard_executivo') }}"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Receita mensal ativa</small><h3 class="mb-1 text-body">{{ resumo.receita_mensal_ativa|moeda }}</h3><small class="text-muted">{{ resumo.contratos_ativos or 0 }} contrato(s) ativo(s)</small></div></div></a></div>
+        <div class="col-md-6 col-xl-3"><a class="text-decoration-none" href="{{ url_for('propostas.dashboard') }}"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Propostas ativas em valor</small><h3 class="mb-1 text-body">{{ resumo.propostas_mensal|moeda }}</h3><small class="text-muted">{{ resumo.total_propostas or 0 }} proposta(s) ativa(s)</small></div></div></a></div>
+        <div class="col-md-6 col-xl-3"><a class="text-decoration-none" href="{{ url_for('implantacao.index') }}"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Implantacoes</small><h3 class="mb-1 text-body">{{ resumo.total_implantacoes or 0 }}</h3><small class="text-muted">{{ resumo.implantacoes_em_andamento or 0 }} em andamento</small></div></div></a></div>
+        <div class="col-md-6 col-xl-3"><a class="text-decoration-none" href="{{ url_for('implantacao.index', prazo='atrasadas') }}"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Projetos atrasados</small><h3 class="mb-1 text-danger">{{ resumo.implantacoes_atrasadas or 0 }}</h3><small class="text-muted">{{ resumo.implantacoes_vence_7 or 0 }} vencem em 7 dias</small></div></div></a></div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-xl-7"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>5 maiores contratos ativos</strong><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('contratos.index') }}" title="Abrir contratos"><i class="bi bi-box-arrow-up-right"></i></a></div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Contrato</th><th>Cliente</th><th class="text-end">Mensal</th></tr></thead><tbody>{% for item in visao.top_contratos or [] %}<tr><td><a class="fw-semibold" href="{{ url_for('contratos.view', contrato_id=item.id) }}">{{ item.numero or ('#' ~ item.id) }}</a></td><td>{{ item.cliente_nome or '-' }}</td><td class="text-end">{{ item.valor_mensal|moeda }}</td></tr>{% else %}<tr><td colspan="3" class="text-center text-muted py-4">Nenhum contrato ativo encontrado.</td></tr>{% endfor %}</tbody></table></div></div></div>
+        <div class="col-xl-5"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>Clientes inadimplentes</strong><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('financeiro.inadimplentes') }}" title="Abrir inadimplentes"><i class="bi bi-box-arrow-up-right"></i></a></div><div class="list-group list-group-flush">{% for item in visao.inadimplentes or [] %}<a class="list-group-item list-group-item-action" href="{{ url_for('financeiro.visualizar_inadimplencia', inadimplencia_id=item.id) }}"><div class="d-flex justify-content-between gap-3"><div><strong>{{ item.cliente_nome or '-' }}</strong><br><small class="text-muted">Contrato {{ item.contrato_numero or item.contrato_id }} - {{ item.bloqueado_em|datetime_br if item.bloqueado_em else '-' }}</small></div><span class="fw-semibold text-danger">{{ item.valor_mensal|moeda }}</span></div></a>{% else %}<div class="list-group-item text-muted">Nenhuma inadimplencia pendente.</div>{% endfor %}</div></div></div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-xl-4"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>Ultimas demandas administrativas</strong><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('administrativo.index') }}" title="Abrir administrativo"><i class="bi bi-box-arrow-up-right"></i></a></div><div class="list-group list-group-flush">{% for item in visao.demandas or [] %}<a class="list-group-item list-group-item-action" href="{{ url_for('administrativo.detalhe', demanda_id=item.id) }}"><div class="d-flex justify-content-between gap-2"><strong>{{ item.titulo }}</strong><span class="badge text-bg-{% if item.status_calculado == 'ATRASADA' %}danger{% elif item.status_calculado == 'CONCLUIDA' %}success{% else %}warning{% endif %}">{{ item.status_calculado|replace('_', ' ')|title }}</span></div><small class="text-muted">{{ item.departamento_nome or 'Sem departamento' }} - {{ item.responsavel_nome or 'Sem responsavel' }}</small></a>{% else %}<div class="list-group-item text-muted">Nenhuma demanda encontrada.</div>{% endfor %}</div></div></div>
+        <div class="col-xl-4"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>Ultimas propostas enviadas</strong><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('propostas.index') }}" title="Abrir propostas"><i class="bi bi-box-arrow-up-right"></i></a></div><div class="list-group list-group-flush">{% for item in visao.propostas or [] %}<a class="list-group-item list-group-item-action" href="{{ url_for('propostas.visualizar', proposta_id=item.id) }}"><div class="d-flex justify-content-between gap-2"><strong>{{ item.codigo_proposta or ('#' ~ item.id) }}</strong><span class="badge text-bg-{% if item.status == 'FECHADA' %}success{% elif item.status in ('PERDIDA', 'CANCELADA') %}secondary{% else %}primary{% endif %}">{{ item.status|replace('_', ' ')|title }}</span></div><small class="text-muted d-block">{{ item.cliente_nome or item.titulo or '-' }}</small><small class="text-muted">{{ item.total_mensal|moeda }} mensal - {{ item.updated_at|datetime_br if item.updated_at else '-' }}</small></a>{% else %}<div class="list-group-item text-muted">Nenhuma proposta ativa encontrada.</div>{% endfor %}</div></div></div>
+        <div class="col-xl-4"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>ClickSign pendente</strong><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('propostas.index', clicksign_status='AGUARDANDO_ASSINATURAS') }}" title="Abrir propostas"><i class="bi bi-box-arrow-up-right"></i></a></div><div class="list-group list-group-flush">{% for item in visao.clicksign_pendentes or [] %}<a class="list-group-item list-group-item-action" href="{{ url_for('propostas.visualizar', proposta_id=item.id) }}"><strong>{{ item.codigo_proposta or ('#' ~ item.id) }}</strong><br><small class="text-muted">{{ item.cliente_nome or item.titulo or '-' }}</small><br><span class="badge text-bg-warning">{{ item.clicksign_status|replace('_', ' ')|title }}</span> <small class="text-muted">{{ item.clicksign_sent_at|datetime_br if item.clicksign_sent_at else (item.updated_at|datetime_br if item.updated_at else '-') }}</small></a>{% else %}<div class="list-group-item text-muted">Nenhuma assinatura ClickSign pendente.</div>{% endfor %}</div></div></div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-xl-4"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>Ultimos alertas Zabbix</strong><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('infraestrutura.monitoramento_zabbix') }}" title="Abrir Zabbix"><i class="bi bi-box-arrow-up-right"></i></a></div><div class="list-group list-group-flush">{% for item in visao.zabbix_alertas or [] %}<div class="list-group-item"><div class="d-flex justify-content-between gap-2"><strong>{{ item.host or '-' }}</strong><span class="badge text-bg-danger">{{ item.severidade_label or item.severidade }}</span></div><small class="text-muted d-block">{{ item.nome or '-' }}</small><small class="text-muted">{{ item.data_evento|datetime_br if item.data_evento else '-' }}</small></div>{% else %}<div class="list-group-item text-muted">Nenhum alerta aberto no cache.</div>{% endfor %}</div></div></div>
+        <div class="col-xl-4"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>VMs com maior alocacao</strong><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('infraestrutura.maquinas_virtuais') }}" title="Abrir VMs"><i class="bi bi-box-arrow-up-right"></i></a></div><div class="list-group list-group-flush">{% for item in visao.proxmox_vms or [] %}<div class="list-group-item"><div class="d-flex justify-content-between gap-2"><strong>{{ item.nome or item.vmid }}</strong><span class="badge text-bg-light border">{{ item.status or '-' }}</span></div><small class="text-muted d-block">{{ item.node }} / {{ item.tipo }} - {{ item.cliente_nome or 'Sem cliente' }}</small><small class="text-muted">{{ item.cpu_cores or 0 }} CPU - {{ item.memoria_mb or 0 }} MB - {{ item.disco_gb or 0 }} GB</small></div>{% else %}<div class="list-group-item text-muted">Nenhuma VM encontrada no inventario.</div>{% endfor %}</div></div></div>
+        <div class="col-xl-4"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>Nodes com alto consumo</strong><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('infraestrutura.nodes') }}" title="Abrir nodes"><i class="bi bi-box-arrow-up-right"></i></a></div><div class="list-group list-group-flush">{% for item in visao.proxmox_nodes or [] %}<div class="list-group-item"><div class="d-flex justify-content-between gap-2"><strong>{{ item.node }}</strong><span class="badge text-bg-light border">{{ item.status or '-' }}</span></div><small class="text-muted">CPU {{ item.cpu_usado_percent or 0 }}% - RAM {{ item.memoria_usada_percent or 0 }}% - Disco {{ item.disco_usado_percent or 0 }}%</small></div>{% else %}<div class="list-group-item text-muted">Nenhum node encontrado no inventario.</div>{% endfor %}</div></div></div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-xl-6"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>Backups PBS nao realizados</strong><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('infraestrutura.backups_pbs') }}" title="Abrir PBS"><i class="bi bi-box-arrow-up-right"></i></a></div><div class="list-group list-group-flush">{% for item in visao.pbs_pendentes or [] %}<div class="list-group-item"><div class="d-flex justify-content-between gap-2"><strong>{{ item.nome or item.vmid }}</strong><span class="badge text-bg-danger">{{ item.horas_sem_backup or 'Sem backup' }}</span></div><small class="text-muted d-block">{{ item.node }} / {{ item.tipo }} - frequencia {{ item.frequencia_horas }}h</small><small class="text-muted">Ultimo backup: {{ item.ultimo_backup|datetime_br if item.ultimo_backup else 'nunca' }}</small></div>{% else %}<div class="list-group-item text-muted">Nenhum backup PBS pendente.</div>{% endfor %}</div></div></div>
+        <div class="col-xl-6"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>Backups TrueNAS com alerta</strong><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('infraestrutura.backup_nas') }}" title="Abrir NAS"><i class="bi bi-box-arrow-up-right"></i></a></div><div class="list-group list-group-flush">{% for item in visao.truenas_alertas or [] %}<div class="list-group-item"><div class="d-flex justify-content-between gap-2"><strong>{{ item.cliente_nome or item.prefixo_proxmox or '-' }}</strong><span class="badge text-bg-danger">{{ item.status }}</span></div><small class="text-muted d-block">{{ item.mountpoint or '-' }}{{ item.pasta_path or '' }}</small><small class="text-muted">Ultimo arquivo: {{ item.ultimo_arquivo or '-' }} - {{ item.ultimo_mtime|datetime_br if item.ultimo_mtime else '-' }}</small></div>{% else %}<div class="list-group-item text-muted">Nenhum alerta TrueNAS pendente.</div>{% endfor %}</div></div></div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-xl-6"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>Ultimas atualizacoes do Kanban</strong><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('implantacao.kanban') }}" title="Abrir Kanban"><i class="bi bi-box-arrow-up-right"></i></a></div><div class="list-group list-group-flush">{% for item in visao.kanban_atualizacoes or [] %}<a class="list-group-item list-group-item-action" href="{{ url_for('implantacao.visualizar', implantacao_id=item.implantacao_id) }}"><div class="d-flex justify-content-between gap-2"><strong>{{ item.titulo or ('Implantacao #' ~ item.implantacao_id) }}</strong><small class="text-muted">{{ item.created_at|datetime_br if item.created_at else '-' }}</small></div><small class="text-muted d-block">{{ item.cliente_nome or '-' }}</small><span class="badge text-bg-light border">{{ item.etapa_anterior or '-' }}</span> <i class="bi bi-arrow-right-short text-muted"></i> <span class="badge text-bg-primary">{{ item.etapa_nova or item.etapa_kanban or '-' }}</span></a>{% else %}<div class="list-group-item text-muted">Nenhuma movimentacao recente no Kanban.</div>{% endfor %}</div></div></div>
+        <div class="col-xl-6"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>Ultimos projetos na fila</strong><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('implantacao.kanban') }}" title="Abrir Kanban"><i class="bi bi-box-arrow-up-right"></i></a></div><div class="list-group list-group-flush">{% for item in visao.kanban_fila or [] %}<a class="list-group-item list-group-item-action" href="{{ url_for('implantacao.visualizar', implantacao_id=item.id) }}"><div class="d-flex justify-content-between gap-2"><strong>{{ item.titulo or ('Implantacao #' ~ item.id) }}</strong><span class="badge text-bg-secondary">{{ item.etapa_kanban or 'FILA' }}</span></div><small class="text-muted d-block">{{ item.cliente_nome or '-' }} - {{ item.responsavel_nome or 'Sem responsavel' }}</small><small class="text-muted">Entrada: {{ item.created_at|datetime_br if item.created_at else '-' }}</small></a>{% else %}<div class="list-group-item text-muted">Nenhum projeto em fila.</div>{% endfor %}</div></div></div>
     </div>
 
     <div class="row g-4">
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
-                        <div>
-                            <h5 class="mb-1">Sprint Final - Pendencias de Homologacao</h5>
-                            <p class="text-muted mb-3">Fechar a validacao assistida da Beta e concluir a integracao Receita Federal para cadastro de clientes, mantendo revisao manual, fallback seguro e provedor homologado.</p>
-                            <div class="d-flex flex-wrap gap-2">
-                                <span class="badge text-bg-light border">Validacao assistida</span>
-                                <span class="badge text-bg-light border">Perfis e permissoes</span>
-                                <span class="badge text-bg-light border">Exportacoes e jobs</span>
-                                <span class="badge text-bg-light border">SMTP homologado</span>
-                                <span class="badge text-bg-light border">Consulta por CNPJ</span>
-                                <span class="badge text-bg-light border">Fallback sem bloqueio</span>
-                            </div>
-                        </div>
-                        <div class="align-self-md-center">
-                            <a class="btn btn-primary" href="{{ url_for('clientes.index') }}"><i class="bi bi-person-vcard"></i> Abrir Clientes</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white"><strong>Pendencias do Sprint Final</strong></div>
-                <div class="list-group list-group-flush">
-                    <div class="list-group-item">1. Validar Relatorios com usuarios, perfis e dados reais controlados</div>
-                    <div class="list-group-item">2. Homologar exportacoes, impressao, jobs e envio por SMTP</div>
-                    <div class="list-group-item">3. Validar retencao de cache e sincronismos em janela operacional aprovada</div>
-                    <div class="list-group-item">4. Definir provedor/API da Receita Federal, autenticacao, limites e cache</div>
-                    <div class="list-group-item">5. Preencher dados cadastrais por CNPJ com revisao manual antes de salvar</div>
-                    <div class="list-group-item">6. Registrar falhas sem bloquear o cadastro manual e documentar o aceite final</div>
-                </div>
-            </div>
-        </div>
+        <div class="col-lg-8"><div class="card border-0 shadow-sm h-100"><div class="card-body"><h5 class="mb-1">Sprint 17 - Estruturacao antes da Beta</h5><p class="text-muted mb-3">Antes de fechar o pacote final, o Sprint 17 permanece como frente de organizacao das regras comerciais, comissoes, evidencias e ajustes executivos da Visao Geral.</p><div class="d-flex flex-wrap gap-2"><span class="badge text-bg-light border">Regras de comissao</span><span class="badge text-bg-light border">Indicadores executivos</span><span class="badge text-bg-light border">Pendencias comerciais</span><span class="badge text-bg-light border">Evidencias operacionais</span></div></div></div></div>
+        <div class="col-lg-4"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white"><strong>Sprint Final - Homologacao Beta</strong></div><div class="list-group list-group-flush"><div class="list-group-item">Validar Beta com usuarios, perfis e dados reais controlados</div><div class="list-group-item">Homologar exportacoes, impressao, jobs e envio por SMTP</div><div class="list-group-item">Registrar aceite final e pendencias remanescentes</div><div class="list-group-item">Fechar pacote somente depois do Sprint 17 estruturado</div></div></div></div>
     </div>
 </div>
 {% endblock %}

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-10 - Visao Geral Operacional e Estrutura Sprint 17
+
+- Tela `Visao Geral` ampliada com blocos de maiores contratos, clientes inadimplentes, demandas administrativas, propostas recentes, ClickSign pendente, alertas Zabbix, consumo/alocacao Proxmox, backups PBS/TrueNAS e movimentacoes do Kanban de Implantacao.
+- Incluidas as ultimas 5 atualizacoes dos cards Kanban e os ultimos 5 projetos que entraram na fila.
+- `FinanceiroRepository.dashboard_executivo()` passou a entregar o agrupamento `visao_geral` para alimentar o painel principal com dados reais dos modulos.
+- Sprint 17 mantido como etapa pendente de estruturacao antes do Sprint Final de homologacao Beta.
+
 ## 2026-08-10 - Fechamento Tecnico Sprint 20
 
 - Cofre de Senhas passou a vincular credenciais a implantadores cadastrados, e Implantacao passou a selecionar Responsavel/Implantador pelo cadastro oficial de implantadores.

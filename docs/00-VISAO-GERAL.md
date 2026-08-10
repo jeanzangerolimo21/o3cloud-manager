@@ -35,6 +35,8 @@ Status atual:
 - Sprint 19 implementada em 10/08/2026 com controle de inadimplencia financeira e bloqueios operacionais.
 - Sprint 20 concluida tecnicamente em 10/08/2026 com Relatorios Customizaveis, exportacoes, jobs, retencao de cache e sincronismos agendados.
 - Homologacao operacional segue pendente de validacao assistida com usuarios, perfis e dados reais controlados.
+- Visao Geral operacional atualizada em 10/08/2026 com indices consolidados de contratos, propostas, inadimplencia, administrativo, ClickSign, Zabbix, Proxmox, PBS, TrueNAS e Kanban de Implantacao.
+- Sprint 17 permanece pendente de estruturacao antes do fechamento do Sprint Final/Beta.
 
 Documentos de referencia:
 
@@ -54,6 +56,7 @@ Entregas consolidadas recentes:
 - Catalogo de relatorios cobrindo clientes, contratos, financeiro, CRM, administrativo e caches de infraestrutura.
 - Configuracoes administrativas para Retencao de Cache e Automacoes de Sincronismo.
 - Controle de inadimplencias financeiras por contrato, com historico, bloqueio de novas propostas/implantacoes e notificacoes.
+- Painel principal com top 5 contratos, inadimplentes, demandas administrativas, propostas, assinaturas ClickSign, alertas de infraestrutura, backups pendentes e filas/movimentacoes do Kanban.
 
 ---
 

@@ -463,7 +463,21 @@ Status:
 
 ## Status
 
-Planejado
+Planejado - estrutura revisada em 10/08/2026 antes do fechamento do pacote Beta.
+
+---
+
+## Estrutura Atualizada em 10/08/2026
+
+Antes de iniciar o Sprint Final de homologacao da Beta, o Sprint 17 permanece como frente pendente para organizar o modulo Financeiro de Comissoes e fechar a nova Visao Geral operacional do sistema.
+
+Pendencias de estruturacao:
+
+- confirmar regras de comissionamento por executivo, produto, contrato e recorrencia;
+- definir criterios de aprovacao, fechamento mensal, pagamento e auditoria;
+- revisar indicadores executivos que devem alimentar a Visao Geral;
+- manter evidencias de calculo e rastreabilidade para homologacao posterior;
+- nao considerar o pacote Beta fechado antes desta estrutura estar alinhada.
 
 ---
 
