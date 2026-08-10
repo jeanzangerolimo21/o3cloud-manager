@@ -24,12 +24,12 @@
                             <option value="">Selecionar cliente</option>
                             {% for cliente in clientes %}
                                 {% set nome_cliente = cliente.nome_fantasia or cliente.razao_social %}
-                                <option value="{{ cliente.id }}" data-nome="{{ nome_cliente }}" data-cnpj="{{ cliente.cnpj or '' }}" {% if faixa.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj }}{% endif %}</option>
+                                <option value="{{ cliente.id }}" data-nome="{{ nome_cliente }}" data-cnpj="{{ cliente.cnpj|cnpj_br if cliente.cnpj else '' }}" {% if faixa.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj|cnpj_br }}{% endif %}</option>
                             {% endfor %}
                         </select>
                         <input type="hidden" name="cliente_nome" id="cliente_nome" value="{{ faixa.cliente_nome or '' }}">
                     </div>
-                    <div class="col-md-3"><label class="form-label">CNPJ</label><input class="form-control" name="cliente_cnpj" id="cliente_cnpj" value="{{ faixa.cliente_cnpj or '' }}" readonly></div>
+                    <div class="col-md-3"><label class="form-label">CNPJ</label><input class="form-control" name="cliente_cnpj" id="cliente_cnpj" value="{{ faixa.cliente_cnpj|cnpj_br if faixa.cliente_cnpj else '' }}" readonly></div>
                     <div class="col-md-2"><label class="form-label">VPN</label><input class="form-control" name="vpn" value="{{ faixa.vpn or '' }}"></div>
                     <div class="col-md-2"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if faixa.ativo is not defined or faixa.ativo %}selected{% endif %}>Ativa</option><option value="0" {% if faixa.ativo is defined and not faixa.ativo %}selected{% endif %}>Inativa</option></select></div>
                     <div class="col-md-3"><label class="form-label">Porta início</label><input class="form-control" type="number" min="1" max="65535" name="porta_inicio" value="{{ faixa.porta_inicio or '' }}"></div>

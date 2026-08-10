@@ -25,75 +25,35 @@ Transformar dados operacionais, financeiros e de infraestrutura em informações
 
 # Status Atual do Desenvolvimento
 
-Sprint 12 foi concluida em 29/07/2026.
+Ultima sprint encerrada: Sprint 20 - Modulo de Relatorios Customizaveis.
 
-Entregas principais:
-
-- Proposta opcional no fluxo operacional.
-- Contratos diretos/parceiros como origem valida para implantacao.
-- Separacao entre Integracoes de Negocio e Integracoes Tecnicas.
-- OMIE e ClickSign exibidos a partir do ambiente com segredos mascarados.
-- Anexos em comentarios de implantacao.
-
-Sprint 13 foi concluida em 29/07/2026.
-
-Decisao principal da Sprint 13:
-
-- Dados reais oficiais serao carregados apenas na fase Beta com a equipe.
-- Comercial e areas envolvidas deverao completar cadastros antes das validacoes oficiais.
-- Custos, faturamentos e parametros financeiros permanecem preparados, mas sem carga real prematura.
-
-Sprint 14 foi concluida em 30/07/2026.
-
-Entregas principais da Sprint 14:
-
-- Diagnosticos pre-Beta consolidados para clientes, contratos, implantacao, financeiro e integracoes.
-- Integracoes tecnicas preparadas para Proxmox, PBS, Zabbix, FreeIPA e TrueNAS em modo seguro.
-- Menu de Infraestrutura recebeu Backups PBS, Monitoramento Zabbix e Backup NAS.
-- Cadastros finais e revisao assistida foram encaminhados para a fase Beta com a equipe.
-
-Ultima sprint encerrada: Sprint 16 - Governanca, Acessos e Operacao Assistida.
-
-Proxima sprint planejada: Integracao Receita Federal para Cadastro de Clientes.
+Data de fechamento tecnico: 10/08/2026.
 
 Status atual:
 
-- Sprint 15 concluida em 03/08/2026.
-- Sprint 16 concluida tecnicamente em 06/08/2026.
-- Testes assistidos das etapas 1 a 7 encaminhados para a release Beta.
+- Sprint 18 concluida tecnicamente em 06/08/2026, com validacao assistida encaminhada para a release Beta.
+- Sprint 19 implementada em 10/08/2026 com controle de inadimplencia financeira e bloqueios operacionais.
+- Sprint 20 concluida tecnicamente em 10/08/2026 com Relatorios Customizaveis, exportacoes, jobs, retencao de cache e sincronismos agendados.
+- Homologacao operacional segue pendente de validacao assistida com usuarios, perfis e dados reais controlados.
 
 Documentos de referencia:
 
-- `docs/25-FECHAMENTO-SPRINT-15.md`
-- `docs/26-MELHORIAS-PRE-SPRINT-16.md`
-- `docs/27-ABERTURA-SPRINT-16.md`
-- `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
-- `docs/32-PENDENCIAS-TESTES-BETA-SPRINT-16.md`
-- `docs/33-FECHAMENTO-SPRINT-16.md`
+- `docs/35-FECHAMENTO-SPRINT-18.md`
+- `docs/36-LOGS-BACKEND.md`
+- `docs/37-FECHAMENTO-SPRINT-20.md`
+- `docs/17-SPRINTS.md`
+- `docs/12-DER.md`
+- `docs/13-MODELO-FISICO-DADOS.md`
+- `docs/CHANGELOG.md`
 
-Entregas consolidadas da Sprint 15:
+Entregas consolidadas recentes:
 
-- Sincronismo Proxmox VE em modo somente leitura.
-- Telas operacionais de Clusters, Nodes, Maquinas Virtuais e Containers.
-- Backups PBS com escopos, namespaces, snapshots e sincronismo manual.
-- Monitoramento Zabbix com cache, sincronismo manual, criticidade e filtros por status.
-- Backup NAS/TrueNAS com cache, alertas por pasta sem alteracao recente e aba de Backups OK.
-- Atalhos de Integracoes Tecnicas removidos da navegacao operacional.
-- Automacoes destrutivas permanecem fora do escopo ate aprovacao especifica.
-
-Resumo do pacote pre-Sprint 16:
-
-- Propostas/ClickSign: Representante Legal selecionavel, CPF obrigatorio, nome completo obrigatorio, bloqueio de reenvio duplicado e cancelamento de envelope pendente.
-- Comercial: status na listagem, semaforo, comentarios, pipeline com propostas sem oportunidade e acoes Gerar/Enviar para propostas aprovadas.
-- Operacional: cofre particular/compartilhado, faixa de rede opcional e rastreabilidade com cliente.
-
-Escopo inicial da Sprint 16:
-
-- Controle de acesso e perfis por area operacional.
-- Configuracoes > Usuarios e Acessos para usuarios locais, convites por e-mail, FreeIPA, LDAP e Active Directory.
-- Auditoria operacional de acoes sensiveis.
-- Roteiro de validacao assistida da Beta.
-- Refinamentos operacionais priorizados pela equipe.
+- Relatorios Customizaveis com fontes autorizadas, campos selecionaveis, filtros, periodo, ordenacao, agrupamentos, agregacoes e modelos salvos.
+- Exportacoes CSV, XLSX, DOCX, PDF e impressao HTML com identificacao O3Cloud.
+- Fila de relatorios em segundo plano com armazenamento em `storage/relatorios` e processamento via CLI.
+- Catalogo de relatorios cobrindo clientes, contratos, financeiro, CRM, administrativo e caches de infraestrutura.
+- Configuracoes administrativas para Retencao de Cache e Automacoes de Sincronismo.
+- Controle de inadimplencias financeiras por contrato, com historico, bloqueio de novas propostas/implantacoes e notificacoes.
 
 ---
 

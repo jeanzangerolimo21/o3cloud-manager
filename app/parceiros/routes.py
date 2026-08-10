@@ -1,3 +1,4 @@
+import re
 from flask import Blueprint
 from flask import flash
 from flask import redirect
@@ -392,7 +393,7 @@ def _coletar_dados_parceiro_form(logo=None, parceiro_atual=None):
         "descricao": informacoes_gerais,
         "logo": logo,
         "ativo": 1 if request.form.get("ativo") else 0,
-        "cnpj": (request.form.get("cnpj") or "").strip(),
+        "cnpj": _normalizar_cnpj(request.form.get("cnpj")),
         "segmento": (request.form.get("segmento") or "").strip(),
         "categoria_parceiro": _normalizar_categoria_parceiro(request.form.get("categoria_parceiro")),
         "razao_social": razao_social,
@@ -417,7 +418,7 @@ def _coletar_dados_parceiro_form(logo=None, parceiro_atual=None):
 
 def _parceiro_form_payload():
     return {
-        "cnpj": request.form.get("cnpj"),
+        "cnpj": _normalizar_cnpj(request.form.get("cnpj")),
         "segmento": request.form.get("segmento"),
         "categoria_parceiro": request.form.get("categoria_parceiro"),
         "razao_social": request.form.get("razao_social"),
@@ -487,3 +488,8 @@ def _executivo_redirect_url(parceiro_id, executivo_id):
     if parceiro_id:
         return url_for("parceiros.listar_executivos", parceiro_id=parceiro_id)
     return url_for("parceiros.visualizar_executivo", executivo_id=executivo_id)
+
+
+def _normalizar_cnpj(valor):
+    cnpj = re.sub(r"[^0-9A-Za-z]", "", str(valor or "")).upper()
+    return cnpj or None

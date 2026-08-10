@@ -319,11 +319,13 @@ class CofreSenhaRepository(BaseRepository):
         params = []
         if pesquisa:
             termo = f"%{pesquisa}%"
+            termo_cnpj = f"%{''.join(ch for ch in str(pesquisa) if ch.isalnum()).upper()}%"
             where.append(
                 """
                 (
                     cs.cliente_nome LIKE %s
                     OR COALESCE(cs.cliente_cnpj, '') LIKE %s
+                    OR REGEXP_REPLACE(COALESCE(cs.cliente_cnpj, ''), '[^0-9A-Za-z]', '') LIKE %s
                     OR cs.titulo LIKE %s
                     OR cs.usuario LIKE %s
                     OR COALESCE(cs.host, '') LIKE %s
@@ -337,7 +339,7 @@ class CofreSenhaRepository(BaseRepository):
                 )
                 """
             )
-            params.extend([termo] * 12)
+            params.extend([termo, termo, termo_cnpj, termo, termo, termo, termo, termo, termo, termo, termo, termo, termo])
         if apenas_clientes:
             where.append("cp.tipo = %s")
             params.append("cliente")

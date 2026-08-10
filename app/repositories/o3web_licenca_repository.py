@@ -146,18 +146,20 @@ class O3WebLicencaRepository(BaseRepository):
         params = []
         if pesquisa:
             termo = f"%{pesquisa}%"
+            termo_cnpj = f"%{''.join(ch for ch in str(pesquisa) if ch.isalnum()).upper()}%"
             where.append("""
                 (
                     cliente_nome LIKE %s
                     OR COALESCE(chave_ativacao, '') LIKE %s
                     OR COALESCE(id_licenca, '') LIKE %s
                     OR COALESCE(cliente_cnpj, '') LIKE %s
+                    OR REGEXP_REPLACE(COALESCE(cliente_cnpj, ''), '[^0-9A-Za-z]', '') LIKE %s
                     OR COALESCE(url_principal, '') LIKE %s
                     OR COALESCE(comments, '') LIKE %s
                     OR COALESCE(observacao, '') LIKE %s
                 )
             """)
-            params.extend([termo] * 7)
+            params.extend([termo, termo, termo, termo, termo_cnpj, termo, termo, termo])
         if tipo:
             where.append("tipo = %s")
             params.append(tipo)

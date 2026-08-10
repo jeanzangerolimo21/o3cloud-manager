@@ -85,12 +85,13 @@
                                 {{ cliente.razao_social }}
 
                             </small>
+                            {% if cliente.pendencia_financeira %}<br><span class="badge bg-danger mt-1"><i class="bi bi-exclamation-triangle"></i> Pendência Financeira</span>{% endif %}
 
                         </td>
 
                         <td class="text-center">
 
-                            {{ cliente.cnpj }}
+                            {{ cliente.cnpj|cnpj_br }}
 
                         </td>
                         <td>

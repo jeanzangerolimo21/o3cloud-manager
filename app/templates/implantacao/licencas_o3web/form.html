@@ -20,12 +20,12 @@
                             <option value="">Selecionar cliente</option>
                             {% for cliente in clientes %}
                                 {% set nome_cliente = cliente.nome_fantasia or cliente.razao_social %}
-                                <option value="{{ cliente.id }}" data-nome="{{ nome_cliente }}" data-cnpj="{{ cliente.cnpj or '' }}" {% if licenca.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj }}{% endif %}</option>
+                                <option value="{{ cliente.id }}" data-nome="{{ nome_cliente }}" data-cnpj="{{ cliente.cnpj|cnpj_br if cliente.cnpj else '' }}" {% if licenca.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj|cnpj_br }}{% endif %}</option>
                             {% endfor %}
                         </select>
                         <input type="hidden" name="cliente_nome" id="cliente_nome" value="{{ licenca.cliente_nome or '' }}">
                     </div>
-                    <div class="col-md-3"><label class="form-label">CNPJ</label><input class="form-control" name="cliente_cnpj" id="cliente_cnpj" value="{{ licenca.cliente_cnpj or '' }}" readonly></div>
+                    <div class="col-md-3"><label class="form-label">CNPJ</label><input class="form-control" name="cliente_cnpj" id="cliente_cnpj" value="{{ licenca.cliente_cnpj|cnpj_br if licenca.cliente_cnpj else '' }}" readonly></div>
                     <div class="col-md-3"><label class="form-label">Chave de Ativação</label><input class="form-control" name="chave_ativacao" value="{{ licenca.chave_ativacao or '' }}"></div>
                     <div class="col-md-2"><label class="form-label">ID Licença</label><input class="form-control" name="id_licenca" value="{{ licenca.id_licenca or '' }}"></div>
                     <div class="col-md-2"><label class="form-label">Tipo</label><select class="form-select" name="tipo"><option value="">Selecionar</option>{% for valor, label in tipo_options.items() %}<option value="{{ valor }}" {% if licenca.tipo == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>

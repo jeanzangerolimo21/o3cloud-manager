@@ -586,6 +586,7 @@ class ContratoRepository(BaseRepository):
 
         if pesquisa:
             termo = f"%{pesquisa}%"
+            termo_cnpj = f"%{''.join(ch for ch in str(pesquisa) if ch.isalnum()).upper()}%"
             condicoes.append(
                 """
                 (
@@ -594,12 +595,13 @@ class ContratoRepository(BaseRepository):
                     OR cli.nome_fantasia LIKE %s
                     OR cli.razao_social LIKE %s
                     OR cli.cnpj LIKE %s
+                    OR REGEXP_REPLACE(cli.cnpj, '[^0-9A-Za-z]', '') LIKE %s
                     OR exec.nome LIKE %s
                     OR p.nome LIKE %s
                 )
                 """
             )
-            parametros.extend([termo, termo, termo, termo, termo, termo, termo])
+            parametros.extend([termo, termo, termo, termo, termo, termo_cnpj, termo, termo])
 
         if status:
             condicoes.append("c.status = %s")

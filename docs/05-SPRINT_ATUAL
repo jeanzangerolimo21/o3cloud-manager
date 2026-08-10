@@ -4,7 +4,7 @@
 
 Versao: 3.0 Alpha
 
-Ultima atualizacao: 07/08/2026
+Ultima atualizacao: 10/08/2026
 
 Status: Oficial
 
@@ -12,151 +12,113 @@ Status: Oficial
 
 # Sprint Registrada
 
-## Sprint 18
+## Sprint 20
 
-Modulo Administrativo
+Modulo de Relatorios Customizaveis
 
 Status:
 
-Concluida tecnicamente em 06/08/2026, com atualizacao final registrada em 07/08/2026
+Concluida tecnicamente em 10/08/2026
 
 ---
 
 # Contexto
 
-A Sprint 15 foi concluida em 03/08/2026 com foco em infraestrutura operacional e sincronismo read-only.
+A Sprint 20 foi aberta para criar um modulo central de Relatorios Customizaveis sem SQL livre, preservando seguranca por catalogo de fontes e permissoes.
 
-Antes da abertura da Sprint 16, foi registrado o pacote de melhorias pre-Sprint 16 com refinamentos de propostas, ClickSign, cofre de senhas, pipeline, rastreabilidade, configuracoes, e-mail e sidebar.
+Ela foi concluida tecnicamente em 10/08/2026, incorporando tambem itens administrativos ligados ao uso operacional dos relatorios: jobs de exportacao, retencao de cache e sincronismos agendados.
 
 Documentos de referencia:
 
-- `docs/25-FECHAMENTO-SPRINT-15.md`
-- `docs/26-MELHORIAS-PRE-SPRINT-16.md`
-- `docs/27-ABERTURA-SPRINT-16.md`
-- `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
-- `docs/29-BOOTSTRAP-ADMIN-SPRINT-16.md`
-- `docs/30-ENTREGAS-OPERACIONAIS-SPRINT-16.md`
-- `docs/31-ENTREGAS-GOVERNANCA-INTEGRACOES-SPRINT-16.md`
-- `docs/32-PENDENCIAS-TESTES-BETA-SPRINT-16.md`
-- `docs/33-FECHAMENTO-SPRINT-16.md`
-- `docs/34-PENDENCIAS-TESTES-BETA-SPRINT-18.md`
 - `docs/35-FECHAMENTO-SPRINT-18.md`
 - `docs/36-LOGS-BACKEND.md`
+- `docs/37-FECHAMENTO-SPRINT-20.md`
+- `docs/17-SPRINTS.md`
+- `docs/12-DER.md`
+- `docs/13-MODELO-FISICO-DADOS.md`
+- `docs/CHANGELOG.md`
 
 ---
 
 # Objetivo da Sprint
 
-Preparar a plataforma para uso mais controlado na fase Beta assistida, evoluindo governanca, acesso, auditoria e validacoes operacionais sem comprometer a estabilidade das entregas ja homologadas.
+Entregar um modulo de Relatorios Customizaveis seguro, permitindo que usuarios autorizados criem, salvem, executem, exportem e imprimam relatorios por fonte de dados autorizada.
 
 ---
 
-# Escopo Inicial
+# Escopo Implementado
 
-## 1. Controle de Acesso e Perfis
-
-Status:
-
-Implementado para validacao assistida
-
-Entregas iniciais:
-
-- Base inicial de Usuarios e Acessos implementada em Configuracoes.
-- Migration 050 criada para usuarios, perfis, convites, provedores e auditoria.
-- Cadastro de usuarios locais/externos e provedores FreeIPA/LDAP/AD disponivel.
-- Login global, sessao e protecao gradual de rotas implementados.
-- Matriz de permissoes por menu, nivel de acesso e controle de visualizacao de valores implementados.
-- Bootstrap seguro do primeiro administrador implementado.
-
-Objetivos:
-
-- Definir perfis de usuario por area operacional.
-- Criar tela Configuracoes > Usuarios e Acessos para gestao administrativa.
-- Permitir usuario local com convite por e-mail e cadastro de senha propria.
-- Permitir sincronismo FreeIPA quando houver integracao configurada.
-- Permitir configuracao LDAP com teste de comunicacao.
-- Permitir configuracao Active Directory com validacao de autenticacao.
-- Restringir telas administrativas e integracoes tecnicas a usuarios autorizados.
-- Preparar base para auditoria de acoes sensiveis.
-
-## 2. Auditoria Operacional
+## 1. Relatorios Customizaveis
 
 Status:
 
-Implementada para validacao assistida
+Concluido tecnicamente
 
-Objetivos:
+Entregas:
 
-- Registrar acoes relevantes executadas no sistema.
-- Priorizar eventos de integracoes, configuracoes, cofre de senhas, contratos, propostas e implantacao.
-- Evitar exposicao de segredos, tokens ou senhas em logs e historicos.
+- Modulo `app/relatorios` criado com catalogo de fontes autorizadas.
+- Builder com selecao de campos, filtros, ordenacao, agrupamentos, agregacoes e previa.
+- Modelos salvos com visibilidade PRIVADO, PERFIL e GLOBAL.
+- Historico de execucoes em `relatorios_execucoes`.
+- Exportacoes CSV, XLSX, DOCX e PDF, alem de impressao HTML.
+- Protecao contra SQL livre por validacao de fonte, campo, operador e parametros.
 
-Entregas iniciais:
-
-- Registro centralizado em `auth_auditoria`.
-- Captura de usuario, acao, entidade, IP e user agent.
-- Sanitizacao de campos sensiveis em detalhes auditados.
-- Tela administrativa de auditoria em Configuracoes.
-
-## 3. Validacao Assistida da Beta
+## 2. Jobs e Operacao
 
 Status:
 
-Encaminhada para a release Beta
+Concluido tecnicamente
 
-Objetivos:
+Entregas:
 
-- Criar roteiro de validacao por area: Comercial, Operacoes, Financeiro e Engenharia.
-- Registrar pendencias encontradas durante uso assistido.
-- Separar ajustes rapidos de itens que exigem sprint propria.
+- Fila `relatorios_jobs` para geracao assincrona controlada.
+- Armazenamento de arquivos em `storage/relatorios`.
+- Comando CLI `flask relatorios-processar-jobs`.
+- Tentativa de envio de link por e-mail ao usuario solicitante quando SMTP estiver configurado.
 
-## 4. Refinamentos Operacionais Priorizados
+## 3. Retencao de Cache
 
 Status:
 
-Implementados parcialmente para validacao assistida
+Concluido tecnicamente
 
-Objetivos:
+Entregas:
 
-- Enderecar ajustes de usabilidade identificados pela equipe.
-- Priorizar correcoes que reduzam retrabalho operacional.
-- Preservar estabilidade das rotas e fluxos ja validados.
+- Tela Configuracoes > Retencao de Cache.
+- Politicas por cache de 30 a 365 dias.
+- Limpeza por retencao, limpeza total e historico de execucoes.
 
-Entregas registradas:
+## 4. Sincronismos Agendados
 
-- Comentarios internos em propostas.
-- Regras de campanhas e comissao.
-- Compartilhamento temporario do cofre de senhas.
-- Vinculos do cofre com inventarios Proxmox, PBS e Zabbix.
-- Disparos de e-mail para participantes de eventos CRM.
-- Servicos de e-mail com provedor Brevo.
-- Categoria de parceiros e dimensionamento de hardware por parceiro.
+Status:
+
+Concluido tecnicamente
+
+Entregas:
+
+- Tela Configuracoes > Automacoes de Sincronismo.
+- Agendamentos para Omie, Zabbix, Proxmox, ClickSign, PBS e TrueNAS.
+- Comando CLI `flask sincronismos-processar-agendados`.
 
 ---
 
-# Atualizacoes finais em 07/08/2026
+# Fora do Escopo
 
-- Remocao de usuarios de acesso restrita a Administradores, com auditoria e protecoes contra autoexclusao e remocao do ultimo Administrador ativo.
-- Logs backend estruturados e documentados para acesso operacional por SSH.
-- Validacao de CNPJ unico em Clientes, melhorias em Propostas, pesquisa no Cofre de Senhas, vinculo de ambientes no Cofre/Base de Conhecimento e ajustes de usabilidade da navegacao.
-
-# Fora do Escopo Inicial
-
+- SQL livre digitado pelo usuario.
+- BI visual completo, dashboards drag-and-drop e pivot table avancado.
 - Automacoes destrutivas em infraestrutura.
-- Alteracoes de producao em Proxmox, PBS, Zabbix ou TrueNAS sem aprovacao especifica.
-- Refatoracoes amplas sem relacao direta com a Beta assistida.
 - Carga financeira definitiva sem validacao oficial da equipe.
 
 ---
 
 # Criterios de Aceite
 
-- Escopo final da Sprint 16 validado pela equipe.
-- Telas administrativas sensiveis mapeadas para controle de acesso.
-- Eventos auditaveis priorizados e documentados.
-- Roteiro de validacao assistida definido.
-- Qualquer implementacao deve seguir Repository / Service / Routes / Templates quando houver codigo.
-- Validacoes tecnicas devem incluir AST OK, rotas principais via Flask test client e `git diff --check` quando houver alteracao de codigo.
+- Somente usuarios autorizados acessam Relatorios.
+- Fontes e campos sao disponibilizados por catalogo autorizado.
+- Usuario consegue selecionar campos, filtrar, ordenar, agrupar, calcular, salvar modelo, executar, exportar e imprimir.
+- Exportacoes CSV, XLSX, DOCX e PDF funcionam com identificacao O3Cloud.
+- Execucoes sao registradas e consultas nao aceitam SQL arbitrario.
+- Documentacao, DER, modelo fisico e CHANGELOG ficam atualizados.
 
 ---
 
@@ -168,34 +130,20 @@ Versao:
 
 Sprint Atual:
 
-18
+20
 
 Situacao:
 
-Concluida tecnicamente em 06/08/2026, com ajustes finais documentados em 07/08/2026
+Concluida tecnicamente em 10/08/2026
 
 Sprint anterior:
 
-- `docs/33-FECHAMENTO-SPRINT-16.md`
-
-Pacote pre-Sprint 16:
-
-- `docs/26-MELHORIAS-PRE-SPRINT-16.md`
-
-Documento de abertura:
-
-- `docs/27-ABERTURA-SPRINT-16.md`
-- `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
-- `docs/29-BOOTSTRAP-ADMIN-SPRINT-16.md`
-- `docs/30-ENTREGAS-OPERACIONAIS-SPRINT-16.md`
-- `docs/31-ENTREGAS-GOVERNANCA-INTEGRACOES-SPRINT-16.md`
+- `docs/35-FECHAMENTO-SPRINT-18.md`
 
 Documento de fechamento:
 
-- `docs/33-FECHAMENTO-SPRINT-16.md`
-- `docs/35-FECHAMENTO-SPRINT-18.md`
-- `docs/36-LOGS-BACKEND.md`
+- `docs/37-FECHAMENTO-SPRINT-20.md`
 
 Pendencias para a release Beta:
 
-- `docs/32-PENDENCIAS-TESTES-BETA-SPRINT-16.md`
+- Validacao assistida com usuarios, perfis, dados reais controlados, SMTP homologado e evidencias de aceite.

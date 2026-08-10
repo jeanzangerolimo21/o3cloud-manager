@@ -4,7 +4,7 @@
 
 Versão: 1.0
 
-Última atualização: Julho/2026
+Última atualização: Agosto/2026
 
 Status: Oficial
 

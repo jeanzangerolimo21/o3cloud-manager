@@ -1,0 +1,28 @@
+{% extends "layout/base.html" %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div><h2><i class="bi bi-exclamation-octagon text-danger"></i> Inadimplentes</h2><p class="text-muted mb-0">Controle financeiro por contrato, com bloqueio operacional de novas propostas e implantações.</p></div>
+        {% if pode_editar('inadimplentes') %}<a class="btn btn-primary" href="{{ url_for('financeiro.nova_inadimplencia') }}"><i class="bi bi-plus-circle"></i> Nova Inadimplência</a>{% endif %}
+    </div>
+    <form method="get" class="card border-0 shadow-sm mb-3"><div class="card-body"><div class="row g-2 align-items-end">
+        <div class="col-md-4"><label class="form-label">Buscar</label><input class="form-control" name="q" value="{{ filtros.q or '' }}" placeholder="Cliente, CNPJ ou contrato"></div>
+        <div class="col-md-2"><label class="form-label">Status</label><select class="form-select" name="status"><option value="">Todos</option>{% for valor,label in status_options.items() %}<option value="{{ valor }}" {% if filtros.status == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-2"><label class="form-label">De</label><input class="form-control" type="date" name="data_de" value="{{ filtros.data_de or '' }}"></div>
+        <div class="col-md-2"><label class="form-label">Até</label><input class="form-control" type="date" name="data_ate" value="{{ filtros.data_ate or '' }}"></div>
+        <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-search"></i> Filtrar</button></div>
+    </div></div></form>
+    <div class="mb-3 text-muted">{{ total }} registro(s) encontrado(s)</div>
+    <div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Cliente</th><th>Contrato</th><th>Desde</th><th>Status</th><th>Responsável</th><th>E-mails</th><th class="text-end">Ações</th></tr></thead><tbody>
+        {% for item in inadimplencias %}<tr>
+            <td><strong>{{ item.cliente_nome }}</strong><br><small class="text-muted">{{ item.cliente_cnpj|cnpj_br }}</small></td>
+            <td>{{ item.contrato_numero or item.contrato_id }}<br><small class="text-muted">{{ item.contrato_valor_mensal|moeda }}</small></td>
+            <td>{{ item.bloqueado_em|datetime_br }}</td>
+            <td><span class="badge bg-{{ 'danger' if item.status == 'PENDENTE' else 'success' }}">{{ status_options.get(item.status, item.status) }}</span></td>
+            <td>{{ item.bloqueado_por_nome or item.bloqueado_por_email or '-' }}</td>
+            <td><small>Suporte: {{ 'OK' if item.email_suporte_enviado else 'pendente/erro' }}<br>Cliente: {{ 'OK' if item.email_cliente_enviado else 'pendente/erro' }}</small></td>
+            <td class="text-end"><div class="btn-group btn-group-sm"><a class="btn btn-outline-secondary" href="{{ url_for('financeiro.visualizar_inadimplencia', inadimplencia_id=item.id) }}" title="Visualizar"><i class="bi bi-eye"></i></a>{% if session.get('usuario_perfil') == 'ADMIN' %}<form method="post" action="{{ url_for('financeiro.excluir_inadimplencia', inadimplencia_id=item.id) }}" onsubmit="return confirm('Remover este histórico de inadimplência da lista? Se estiver pendente, o cliente deixará de ficar bloqueado por este registro.');"><button class="btn btn-outline-danger" title="Excluir histórico"><i class="bi bi-trash"></i></button></form>{% endif %}</div></td>
+        </tr>{% else %}<tr><td colspan="7" class="text-center text-muted py-4">Nenhuma inadimplência encontrada.</td></tr>{% endfor %}
+    </tbody></table></div></div>
+</div>
+{% endblock %}

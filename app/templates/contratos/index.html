@@ -106,7 +106,7 @@
                                 </div>
                                 {% if contrato.cliente_nome %}<div class="text-muted">({{ contrato.cliente_nome }})</div>{% endif %}
                                 <div class="mt-2 text-muted small">
-                                    <span class="me-3">{{ contrato.cliente_cnpj or 'CNPJ nao informado' }}</span>
+                                    <span class="me-3">{{ contrato.cliente_cnpj|cnpj_br if contrato.cliente_cnpj else 'CNPJ nao informado' }}</span>
                                     <span class="me-3">Executivo: {{ contrato.executivo_nome or 'Nao informado' }}</span>
                                     <span>Parceiro: {{ contrato.parceiro_nome or 'Sem parceiro' }}</span>
                                 </div>

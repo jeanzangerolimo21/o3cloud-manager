@@ -112,9 +112,9 @@
                         type="text"
                         name="cnpj"
                         class="form-control text-uppercase"
-                        placeholder="CNPJ alfanumérico"
-                        maxlength="32"
-		        value="{{ cliente.cnpj if cliente else '' }}"
+                        placeholder="00.000.000/0000-00"
+                        maxlength="18"
+		        value="{{ cliente.cnpj|cnpj_br if cliente else '' }}"
                         {% if modo == "editar" and cliente.origem == "OMIE" %}readonly{% endif %}
                         required>
                     <div class="form-text" id="cnpj_lookup_status"></div>
@@ -279,6 +279,14 @@ const clienteFields = {
     estado: document.querySelector('[name="estado"]'),
 };
 function onlyDigits(value) { return String(value || '').replace(/\D/g, ''); }
+function formatCnpj(value) {
+    const digits = onlyDigits(value).slice(0, 14);
+    return digits
+        .replace(/^(\d{2})(\d)/, '$1.$2')
+        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/\.(\d{3})(\d)/, '.$1/$2')
+        .replace(/(\d{4})(\d)/, '$1-$2');
+}
 function fillIfEmpty(field, value) { if (field && !field.value && value) field.value = value; }
 async function buscarCnpjReceita() {
     if (!cnpjInput || cnpjInput.readOnly) return;
@@ -303,7 +311,11 @@ async function buscarCnpjReceita() {
         if (cnpjStatus) cnpjStatus.textContent = 'Não foi possível buscar este CNPJ. Preencha manualmente.';
     }
 }
-if (cnpjInput) cnpjInput.addEventListener('blur', buscarCnpjReceita);
+if (cnpjInput) {
+    cnpjInput.value = formatCnpj(cnpjInput.value);
+    cnpjInput.addEventListener('input', function () { cnpjInput.value = formatCnpj(cnpjInput.value); });
+    cnpjInput.addEventListener('blur', buscarCnpjReceita);
+}
 </script>
 
 {% endblock %}

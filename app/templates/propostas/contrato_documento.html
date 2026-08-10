@@ -17,7 +17,7 @@
     <div class="grid">
         <div class="item"><strong>Razao Social</strong><span>{{ proposta.cliente_razao_social or proposta.cliente_nome or '-' }}</span></div>
         <div class="item"><strong>Nome Fantasia</strong><span>{{ proposta.cliente_nome_fantasia or proposta.cliente_nome or '-' }}</span></div>
-        <div class="item"><strong>CNPJ</strong><span>{{ proposta.cliente_cnpj or '-' }}</span></div>
+        <div class="item"><strong>CNPJ</strong><span>{{ proposta.cliente_cnpj|cnpj_br }}</span></div>
         <div class="item"><strong>Contato</strong><span>{{ proposta.contato_nome or '-' }}</span></div>
         <div class="item"><strong>E-mail</strong><span>{{ proposta.contato_email or '-' }}</span></div>
         <div class="item"><strong>Telefone</strong><span>{{ proposta.contato_telefone or '-' }}</span></div>

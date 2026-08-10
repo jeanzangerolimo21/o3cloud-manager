@@ -146,12 +146,14 @@ class FaixaRedeRepository(BaseRepository):
         params = []
         if pesquisa:
             termo = f"%{pesquisa}%"
+            termo_cnpj = f"%{''.join(ch for ch in str(pesquisa) if ch.isalnum()).upper()}%"
             where.append(
                 """
                 (
                     rede LIKE %s
                     OR cliente_nome LIKE %s
                     OR COALESCE(cliente_cnpj, '') LIKE %s
+                    OR REGEXP_REPLACE(COALESCE(cliente_cnpj, ''), '[^0-9A-Za-z]', '') LIKE %s
                     OR COALESCE(fw_wan, '') LIKE %s
                     OR COALESCE(fw_lan, '') LIKE %s
                     OR COALESCE(vpn, '') LIKE %s
@@ -161,7 +163,7 @@ class FaixaRedeRepository(BaseRepository):
                 )
                 """
             )
-            params.extend([termo] * 9)
+            params.extend([termo, termo, termo, termo_cnpj, termo, termo, termo, termo, termo, termo])
         if ativo in (0, 1):
             where.append("ativo = %s")
             params.append(ativo)

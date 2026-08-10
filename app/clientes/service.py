@@ -1,5 +1,6 @@
 import re
 
+from app.financeiro.inadimplencias_service import InadimplenciaService
 from app.repositories.cliente_repository import ClienteRepository
 from app.utils.telefone import formatar_telefone
 
@@ -23,6 +24,11 @@ class ClienteService:
         )
 
         clientes = [ClienteService._formatar_telefone(cliente) for cliente in clientes]
+        pendencias = InadimplenciaService.clientes_com_pendencia([cliente.get("id") for cliente in clientes])
+        for cliente in clientes:
+            pendencia = pendencias.get(cliente.get("id"))
+            cliente["pendencia_financeira"] = bool(pendencia)
+            cliente["pendencia_financeira_total"] = pendencia.get("total") if pendencia else 0
 
         total = ClienteRepository.total(
             pesquisa=pesquisa,
@@ -58,7 +64,12 @@ class ClienteService:
     def buscar_por_id(cliente_id):
 
         cliente = ClienteRepository.buscar_por_id(cliente_id)
-        return ClienteService._formatar_telefone(cliente)
+        cliente = ClienteService._formatar_telefone(cliente)
+        if cliente:
+            pendencias = InadimplenciaService.pendencias_cliente(cliente_id)
+            cliente["pendencia_financeira"] = bool(pendencias)
+            cliente["pendencias_financeiras"] = pendencias
+        return cliente
 
     @staticmethod
     def atualizar(cliente_id, dados):

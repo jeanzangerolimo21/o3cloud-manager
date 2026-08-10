@@ -44,7 +44,7 @@
                     <tbody>
                     {% for licenca in licencas %}
                         <tr>
-                            <td><strong>{{ licenca.cliente_nome }}</strong><br><small class="text-muted">{{ licenca.cliente_cnpj or 'CNPJ não vinculado' }}</small><br><small class="text-muted">{{ licenca.edicao or '-' }}</small></td>
+                            <td><strong>{{ licenca.cliente_nome }}</strong><br><small class="text-muted">{{ licenca.cliente_cnpj|cnpj_br if licenca.cliente_cnpj else 'CNPJ não vinculado' }}</small><br><small class="text-muted">{{ licenca.edicao or '-' }}</small></td>
                             <td><code>{{ licenca.chave_ativacao or '-' }}</code><br><small class="text-muted">ID {{ licenca.id_licenca or '-' }}</small></td>
                             <td><span class="badge bg-{{ 'info' if licenca.tipo == 'trial' else 'success' }}">{{ tipo_options.get(licenca.tipo, licenca.tipo or '-') }}</span>{% if licenca.bkp %}<br><span class="badge bg-light text-dark border mt-1">Bkp</span>{% endif %}</td>
                             <td><strong>{{ licenca.usuarios or 0 }}</strong><br><small class="text-muted">{{ licenca.dias or 0 }} dia(s)</small></td>

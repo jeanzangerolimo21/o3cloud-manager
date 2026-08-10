@@ -32,7 +32,7 @@
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <div>
                 <h3 class="mb-0">{{ contrato.cliente_razao_social or contrato.cliente_nome }}</h3>
-                <small class="text-muted">{{ contrato.cliente_cnpj or 'CNPJ nao informado' }} · Contrato {{ contrato.numero }}</small>
+                <small class="text-muted">{{ contrato.cliente_cnpj|cnpj_br if contrato.cliente_cnpj else 'CNPJ nao informado' }} · Contrato {{ contrato.numero }}</small>
             </div>
             <div class="d-flex gap-2">
                 <span class="badge bg-{{ 'primary' if contrato.origem == 'OMIE' else 'secondary' }}">{{ contrato.origem }}</span>

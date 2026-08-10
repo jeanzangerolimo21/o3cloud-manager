@@ -1,5 +1,5 @@
 from flask import Flask
-from app.core.filters import date_br, datetime_br, moeda
+from app.core.filters import cnpj_br, date_br, datetime_br, moeda
 from app.core.config import Config
 from app.core.access_control import init_access_control
 from app.core.database import init_db
@@ -24,6 +24,7 @@ def create_app():
     app.jinja_env.filters["date_br"] = date_br
     app.jinja_env.filters["datetime_br"] = datetime_br
     app.jinja_env.filters["moeda"] = moeda
+    app.jinja_env.filters["cnpj_br"] = cnpj_br
     from app.core.filters import telefone_br
     app.jinja_env.filters["telefone_br"] = telefone_br
     init_access_control(app)
@@ -102,6 +103,9 @@ def create_app():
 
     from app.administrativo.routes import administrativo_bp
     app.register_blueprint(administrativo_bp)
+
+    from app.relatorios.routes import relatorios_bp
+    app.register_blueprint(relatorios_bp)
 
 
     @app.route("/storage/<path:filename>")

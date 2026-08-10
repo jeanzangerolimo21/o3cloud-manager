@@ -7,6 +7,7 @@ from app.core.storage import StorageService
 from app.parceiros.executivo_service import ParceiroExecutivoService
 from app.parceiros.service import ParceiroService
 from app.repositories.contrato_repository import ContratoRepository
+from app.financeiro.inadimplencias_service import InadimplenciaService
 from app.repositories.implantacao_workflow_repository import ImplantacaoWorkflowRepository
 
 
@@ -124,6 +125,10 @@ class ImplantacaoService:
             limit=limit,
             offset=offset,
         )
+        pendencias = InadimplenciaService.clientes_com_pendencia([item.get("cliente_id") for item in implantacoes])
+        for item in implantacoes:
+            item["pendencia_financeira"] = bool(pendencias.get(item.get("cliente_id")))
+
         total = cls.repository.total(
             pesquisa=pesquisa,
             status=status,
@@ -366,6 +371,7 @@ class ImplantacaoService:
             raise ValueError("A implantação só pode iniciar a partir de contrato com status Encaminhado para Projeto.")
         if cls.repository.buscar_por_contrato_id(contrato_id):
             raise ValueError("Este contrato já possui uma implantação ativa.")
+        InadimplenciaService.validar_operacao_cliente(contrato.get("cliente_id"))
 
         payload = cls._normalizar(dados, contrato=contrato)
         implantacao_id = cls.repository.inserir(payload)

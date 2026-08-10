@@ -1,5 +1,48 @@
 # Changelog
 
+## 2026-08-10 - Fechamento Tecnico Sprint 20
+
+- Sprint 20 registrada como concluida tecnicamente em `docs/37-FECHAMENTO-SPRINT-20.md`.
+- Atualizados `docs/00-VISAO-GERAL.md` e `docs/05-SPRINT_ATUAL` para refletir Relatorios Customizaveis como ultima sprint encerrada.
+- Tela `Visao Geral` atualizada para exibir fechamento do Sprint 20 e pendencias do Sprint Final.
+- Atualizados DER e modelo fisico com tabelas de relatorios, jobs, retencao de cache e sincronismos agendados.
+
+## 2026-08-10 - Implementacao inicial Sprint 20 Relatorios Customizaveis
+
+- Criado modulo `Relatorios` com fontes autorizadas, catalogo de campos, construtor sem SQL livre, filtros, ordenacao, agrupamentos e agregacoes seguras.
+- Migration `077_create_relatorios_customizaveis.sql` aplicada no banco local em 10/08/2026.
+- Adicionados modelos salvos com visibilidade PRIVADO, PERFIL e GLOBAL, auditoria de execucao e controle por permissao `relatorios`.
+- Incluidas exportacoes CSV, XLSX, DOCX, PDF e impressao HTML com identificacao O3Cloud.
+- Construtor passou a respeitar ordem explicita das colunas e formatar valores na visualizacao HTML.
+- Adicionadas protecoes de carga com previa limitada, exportacao direta controlada e exigencia de periodo para fontes grandes.
+- Criada fila de relatorios em segundo plano pela migration `078_create_relatorios_jobs.sql`, com arquivo em `storage/relatorios`, link de download e tentativa de envio por e-mail ao usuario logado.
+- Adicionado comando CLI `flask relatorios-processar-jobs` para processar jobs pendentes fora da request HTTP.
+- Incluidas fontes de infraestrutura no catalogo de relatorios usando cache local: Alarmes Zabbix, Backups PBS, Backups TrueNAS, VMs/Containers Proxmox e Nodes Proxmox.
+- Criada tela administrativa Configuracoes > Retencao de Cache com politicas de 30 a 365 dias, limpeza por retencao, limpeza total e historico de execucoes.
+- Migration `079_create_config_cache_retencao.sql` aplicada no banco local em 10/08/2026.
+- Criada tela administrativa Configuracoes > Automacoes de Sincronismo para agendar Omie, Zabbix, Proxmox, ClickSign, PBS e TrueNAS por periodicidade configuravel.
+- Adicionado comando CLI `flask sincronismos-processar-agendados` e migration `080_create_config_sincronismos_agendados.sql`, aplicada no banco local em 10/08/2026.
+- Eventos de Leads passam a permitir cadastro manual de participantes por permissao `eventos_participante_manual`, liberada por padrao ao perfil ADMIN pela migration `081_permissao_eventos_participante_manual.sql`.
+
+## 2026-08-10 - Planejamento Sprint 20 Relatórios Customizáveis
+
+- Documentado escopo do módulo de Relatórios Customizáveis com fontes autorizadas, catálogo de campos, filtros, agrupamentos, cálculos, exportações, auditoria e segurança sem SQL livre.
+- Definido cabeçalho padrão obrigatório com logo da O3Cloud nos relatórios HTML/impressão, PDF, DOCX e XLSX quando suportado; CSV deve usar identificação textual.
+- Confirmados `python-docx==1.2.0` para DOCX e `reportlab==5.0.0` para PDF nas exportações do Sprint 20.
+
+## 2026-08-10 - Sprint 19 Inadimplência Financeira
+
+- Adicionada migration `076_create_financeiro_inadimplencias.sql` para controle histórico de pendências financeiras por contrato.
+- Criadas telas Financeiro > Inadimplentes para registrar, consultar e liberar pendências financeiras, com busca de contrato por número, cliente, razão social ou CNPJ.
+- Criada regra central `InadimplenciaService.validar_operacao_cliente` para bloquear novas propostas e novas implantações de clientes inadimplentes.
+- Clientes, Propostas e Implantação passam a exibir destaque visual de pendência financeira ativa.
+- CNPJ passa a ser exibido no padrão `00.000.000/0000-00` nos cadastros e buscas de Clientes, Parceiros, Contratos, Propostas, Financeiro e Implantação aceitam CNPJ com ou sem máscara.
+- Notificações de bloqueio/liberação foram integradas ao serviço de e-mail existente, com falha de envio registrada sem rollback da pendência.
+- E-mail enviado ao cliente por bloqueio financeiro passou a incluir razão social, CNPJ do contrato bloqueado, telefone `19 3142-0232 opção 3`, WhatsApp `19 99912-4028` e e-mail `contas@o3cloud.com.br` para regularização.
+- E-mails internos enviados ao SAC e plantão técnico por bloqueio/liberação financeira passaram a incluir razão social e CNPJ para facilitar localização do cliente.
+- E-mail de liberação financeira enviado ao cliente também passou a incluir razão social e CNPJ do contrato liberado.
+- Login ADMIN passou a poder remover histórico de inadimplência da lista por inativação lógica, útil para ciclos de teste sem liberar essa ação a outros perfis.
+
 ## 2026-08-07 - Atualizacao Final Sprint 18
 
 ### Governanca de Acesso

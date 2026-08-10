@@ -27,6 +27,12 @@ class EventoRepository(BaseRepository):
   if not rows:return 0
   return cls.execute_many("INSERT INTO crm_evento_participantes(uuid,evento_id,importacao_id,nome,telefone,email,empresa,cnpj,chave_deduplicacao) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",[(cls.generate_uuid(),r["evento_id"],r["importacao_id"],r["nome"],r.get("telefone"),r.get("email"),r.get("empresa"),r.get("cnpj"),r["chave_deduplicacao"]) for r in rows])
  @classmethod
+ def inserir_participante_manual(cls,eid,d,usuario_email=None):
+  import_id=cls.inserir_importacao(eid,"Cadastro manual","manual",1,{"origem":"manual","created_by":usuario_email})
+  cls.atualizar_importacao(import_id,"CONFIRMADO",1,0,0,{"origem":"manual","created_by":usuario_email})
+  cls.inserir_participantes([{**d,"evento_id":eid,"importacao_id":import_id}])
+  return import_id
+ @classmethod
  def listar_participantes(cls,eid,q=None,limit=100,offset=0):
   p=[eid]; w=["evento_id=%s"]
   if q:w.append("(nome LIKE %s OR empresa LIKE %s OR email LIKE %s)");t="%"+q+"%";p += [t,t,t]

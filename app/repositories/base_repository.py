@@ -101,6 +101,22 @@ class BaseRepository:
             cls.close(conn, cursor)
 
     @classmethod
+    def execute_delete_count(cls, sql, params=None):
+        conn = cls.connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(sql, params or ())
+            afetadas = cursor.rowcount
+            conn.commit()
+            return afetadas
+        except Exception:
+            database_logger.exception("Database operation failed", extra={"repository": cls.__name__})
+            conn.rollback()
+            raise
+        finally:
+            cls.close(conn, cursor)
+
+    @classmethod
     def execute_insert(cls, sql, params=None):
         """
         Executa INSERT e retorna o ID gerado.

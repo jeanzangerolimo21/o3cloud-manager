@@ -1,6 +1,6 @@
 import json
 import re
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from app.leads.evento_importer import FIELD_LABELS, cnpj, digits, key, read_rows, suggest_mapping, validate_rows
 from app.repositories.evento_repository import EventoRepository
 
@@ -120,25 +120,49 @@ def preparar_disparo_email(evento_id):
  else: flash(f"Disparo enviado pela Brevo para {enviados} contato(s).","success")
  return redirect(url_for("eventos.visualizar",evento_id=evento_id))
 
+def _email_usuario_logado():
+ return session.get("usuario_email") or session.get("email") or "sistema"
+
+def _dados_participante_form():
+ return {"nome":(request.form.get("nome") or "").strip()[:150],"telefone":digits(request.form.get("telefone"))[:30],"email":(request.form.get("email") or "").strip().lower()[:150],"empresa":(request.form.get("empresa") or "").strip()[:150],"cnpj":cnpj(request.form.get("cnpj"))}
+
+def _validar_participante(d,cnpj_original=None):
+ erros=[]
+ if not d["nome"]: erros.append("Nome é obrigatório.")
+ if not d["email"] and not d["telefone"]: erros.append("Informe e-mail ou telefone.")
+ if d["email"] and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$",d["email"]): erros.append("E-mail inválido.")
+ if cnpj_original and d["cnpj"] is None:
+  erros.append("CNPJ inválido."); d["cnpj"]=""
+ d["chave_deduplicacao"]=key(d)
+ return erros
+
+@eventos_bp.route("/<int:evento_id>/participantes/novo",methods=["GET","POST"])
+def novo_participante(evento_id):
+ evento=EventoRepository.buscar_evento(evento_id)
+ if not evento: flash("Evento não encontrado.","danger"); return redirect(url_for("eventos.index"))
+ participante={}
+ if request.method=="POST":
+  d=_dados_participante_form(); erros=_validar_participante(d,request.form.get("cnpj"))
+  if EventoRepository.existe_chave_outro(evento_id,0,d["chave_deduplicacao"]): erros.append("Já existe outro participante com este e-mail/telefone neste evento.")
+  if erros:
+   flash(" ".join(erros),"danger"); participante=d
+  else:
+   EventoRepository.inserir_participante_manual(evento_id,d,_email_usuario_logado()); flash("Participante cadastrado manualmente.","success"); return redirect(url_for("eventos.visualizar",evento_id=evento_id))
+ return render_template("leads/eventos/participante_form.html",evento=evento,participante=participante,modo="novo")
+
 @eventos_bp.route("/<int:evento_id>/participantes/<int:participante_id>/editar",methods=["GET","POST"])
 def editar_participante(evento_id,participante_id):
  evento=EventoRepository.buscar_evento(evento_id); participante=EventoRepository.participante(evento_id,participante_id)
  if not evento or not participante:
   flash("Participante não encontrado neste evento.","danger"); return redirect(url_for("eventos.visualizar",evento_id=evento_id))
  if request.method=="POST":
-  d={"nome":(request.form.get("nome") or "").strip()[:150],"telefone":digits(request.form.get("telefone"))[:30],"email":(request.form.get("email") or "").strip().lower()[:150],"empresa":(request.form.get("empresa") or "").strip()[:150],"cnpj":cnpj(request.form.get("cnpj"))}
-  erros=[]
-  if not d["nome"]: erros.append("Nome é obrigatório.")
-  if not d["email"] and not d["telefone"]: erros.append("Informe e-mail ou telefone.")
-  if d["email"] and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$",d["email"]): erros.append("E-mail inválido.")
-  if request.form.get("cnpj") and d["cnpj"] is None: erros.append("CNPJ inválido."); d["cnpj"]=""
-  d["chave_deduplicacao"]=key(d)
+  d=_dados_participante_form(); erros=_validar_participante(d,request.form.get("cnpj"))
   if EventoRepository.existe_chave_outro(evento_id,participante_id,d["chave_deduplicacao"]): erros.append("Já existe outro participante com este e-mail/telefone neste evento.")
   if erros:
    flash(" ".join(erros),"danger"); participante={**participante,**d}
   else:
    EventoRepository.atualizar_participante(evento_id,participante_id,d); flash("Participante atualizado.","success"); return redirect(url_for("eventos.visualizar",evento_id=evento_id))
- return render_template("leads/eventos/participante_form.html",evento=evento,participante=participante)
+ return render_template("leads/eventos/participante_form.html",evento=evento,participante=participante,modo="editar")
 
 @eventos_bp.route("/<int:evento_id>/participantes/<int:participante_id>/excluir",methods=["POST"])
 def excluir_participante(evento_id,participante_id):

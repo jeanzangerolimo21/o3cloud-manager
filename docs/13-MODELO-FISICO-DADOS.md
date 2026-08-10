@@ -177,6 +177,34 @@ schema_migrations
 
 Controle de versões do banco.
 
+relatorios_modelos
+
+Modelos de relatórios customizáveis salvos por usuários autorizados.
+
+relatorios_execucoes
+
+Histórico de execução dos relatórios.
+
+relatorios_jobs
+
+Fila de geração assíncrona de relatórios exportados.
+
+config_cache_retencao
+
+Políticas administrativas de retenção dos caches locais.
+
+config_cache_limpezas
+
+Histórico de limpezas de cache executadas.
+
+config_sincronismos_agendados
+
+Configuração de automações de sincronismo.
+
+config_sincronismos_execucoes
+
+Histórico de execuções dos sincronismos agendados.
+
 
 Tipo
 
@@ -410,6 +438,44 @@ Registro de alterações do sistema.
 
 ---
 
+---
+
+## financeiro_inadimplencias
+
+Controle histórico de pendências financeiras por contrato.
+
+Campos principais:
+
+* id
+* uuid
+* contrato_id
+* status: PENDENTE ou LIBERADO
+* motivo
+* observacoes
+* bloqueado_em
+* bloqueado_por / bloqueado_por_email
+* tipo_liberacao: QUITACAO ou ACORDO
+* observacao_liberacao
+* liberado_em
+* liberado_por / liberado_por_email
+* indicadores e erros de envio de e-mail para suporte e cliente, incluindo bloqueio e liberação
+* ativo
+* created_at
+* updated_at
+
+Relacionamentos:
+
+* contrato_id -> contratos.id
+* cliente derivado por contratos.cliente_id
+
+Regras:
+
+* Um contrato não pode possuir duas inadimplências PENDENTE ativas.
+* Cliente é considerado inadimplente quando qualquer contrato ativo possui inadimplência PENDENTE e ativo=1.
+* Liberação preserva histórico e não remove registros.
+* Exclusão operacional permitida somente para perfil ADMIN deve ser lógica, usando ativo=0.
+* Registros inativos não devem bloquear propostas/implantações e não aparecem nas consultas operacionais padrão.
+
 # Integrações
 
 ## sync_execucoes
@@ -437,6 +503,9 @@ Logs detalhados.
 | Licenças          | O3Cloud         |
 | Grupos Econômicos | O3Cloud         |
 | Indicadores       | O3Cloud         |
+| Relatórios        | O3Cloud         |
+| Cache Local       | O3Cloud         |
+| Sincronismos      | O3Cloud         |
 
 ---
 
@@ -463,6 +532,49 @@ Infraestrutura
 ## 004
 
 Integrações
+
+---
+
+## 077
+
+Relatórios Customizáveis
+
+Tabelas:
+
+* relatorios_modelos
+* relatorios_execucoes
+
+---
+
+## 078
+
+Jobs de Relatórios
+
+Tabela:
+
+* relatorios_jobs
+
+---
+
+## 079
+
+Retenção de Cache
+
+Tabelas:
+
+* config_cache_retencao
+* config_cache_limpezas
+
+---
+
+## 080
+
+Sincronismos Agendados
+
+Tabelas:
+
+* config_sincronismos_agendados
+* config_sincronismos_execucoes
 
 ---
 

@@ -24,11 +24,14 @@ class ParceiroRepository(BaseRepository):
                     OR nome_fantasia LIKE %s
                     OR contato_1_nome LIKE %s
                     OR contato_1_telefone LIKE %s
+                    OR cnpj LIKE %s
+                    OR REGEXP_REPLACE(cnpj, '[^0-9A-Za-z]', '') LIKE %s
                     OR status_negociacao LIKE %s
             """
 
             termo = f"%{pesquisa}%"
-            parametros.extend([termo, termo, termo, termo, termo, termo, termo])
+            termo_cnpj = f"%{''.join(ch for ch in str(pesquisa) if ch.isalnum()).upper()}%"
+            parametros.extend([termo, termo, termo, termo, termo, termo, termo, termo_cnpj, termo])
 
         if status_negociacao:
             sql += " WHERE" if not pesquisa else " AND"
@@ -80,11 +83,14 @@ class ParceiroRepository(BaseRepository):
                     OR nome_fantasia LIKE %s
                     OR contato_1_nome LIKE %s
                     OR contato_1_telefone LIKE %s
+                    OR cnpj LIKE %s
+                    OR REGEXP_REPLACE(cnpj, '[^0-9A-Za-z]', '') LIKE %s
                     OR status_negociacao LIKE %s
                 )
             """)
             termo = f"%{pesquisa}%"
-            parametros.extend([termo, termo, termo, termo, termo, termo, termo])
+            termo_cnpj = f"%{''.join(ch for ch in str(pesquisa) if ch.isalnum()).upper()}%"
+            parametros.extend([termo, termo, termo, termo, termo, termo, termo, termo_cnpj, termo])
 
         if status_negociacao:
             condicoes.append("status_negociacao = %s")

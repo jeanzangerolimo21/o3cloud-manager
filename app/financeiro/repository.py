@@ -1328,10 +1328,12 @@ class FinanceiroRepository(BaseRepository):
         pesquisa = (filtros.get("q") or "").strip()
         if pesquisa:
             like = f"%{pesquisa}%"
+            cnpj_like = f"%{''.join(ch for ch in pesquisa if ch.isalnum()).upper()}%"
             where.append("""
                 (
                     COALESCE(cli.nome_fantasia, cli.razao_social) LIKE %s
                     OR cli.cnpj LIKE %s
+                    OR REGEXP_REPLACE(cli.cnpj, '[^0-9A-Za-z]', '') LIKE %s
                     OR a.nome LIKE %s
                     OR c.numero LIKE %s
                     OR p.nome LIKE %s
@@ -1339,7 +1341,7 @@ class FinanceiroRepository(BaseRepository):
                     OR CAST(p.vmid AS CHAR) LIKE %s
                 )
             """)
-            params.extend([like, like, like, like, like, like, like])
+            params.extend([like, like, cnpj_like, like, like, like, like, like])
         if filtros.get("status"):
             where.append("c.status = %s")
             params.append(filtros.get("status"))

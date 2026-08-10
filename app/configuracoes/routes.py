@@ -1,4 +1,5 @@
 from flask import Blueprint
+from flask import abort
 from flask import flash
 from flask import redirect
 from flask import render_template
@@ -7,7 +8,9 @@ from flask import session
 from flask import url_for
 
 from app.configuracoes.auth_service import AuthConfigService
+from app.configuracoes.cache_service import CacheRetencaoService
 from app.configuracoes.email_service import EmailConfigService
+from app.configuracoes.sincronismos_service import SincronismosAgendadosService
 
 
 configuracoes_bp = Blueprint("configuracoes", __name__, url_prefix="/configuracoes")
@@ -243,6 +246,85 @@ def usuarios_provedor_editar(provedor_id):
 def usuarios_provedor_testar(provedor_id):
     flash("Valide FreeIPA, LDAP e Active Directory em Integrações Técnicas.", "info")
     return redirect(url_for("implantacao.integracoes_tecnicas"))
+
+
+@configuracoes_bp.route("/cache")
+def cache_index():
+    _exigir_admin()
+    return render_template(
+        "configuracoes/cache/index.html",
+        **CacheRetencaoService.contexto(),
+        page_title="Retencao e Limpeza de Cache",
+        page_description="Politicas de retencao para caches de infraestrutura, relatorios e sincronismos.",
+        page_icon="bi-database-fill-gear",
+        page_button_text=None,
+    )
+
+
+@configuracoes_bp.route("/cache/<cache_key>/retencao", methods=["POST"])
+def cache_retencao(cache_key):
+    _exigir_admin()
+    try:
+        CacheRetencaoService.salvar_retencao(cache_key, request.form.get("retencao_dias"), _email_usuario_logado())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Retencao de cache atualizada.", "success")
+    return redirect(url_for("configuracoes.cache_index"))
+
+
+@configuracoes_bp.route("/cache/<cache_key>/limpar", methods=["POST"])
+def cache_limpar(cache_key):
+    _exigir_admin()
+    try:
+        removidos = CacheRetencaoService.limpar(cache_key, request.form.get("modo"), _email_usuario_logado())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash(f"Limpeza concluida. {removidos} registro(s) removido(s).", "success")
+    return redirect(url_for("configuracoes.cache_index"))
+
+
+@configuracoes_bp.route("/sincronismos")
+def sincronismos_index():
+    _exigir_admin()
+    return render_template(
+        "configuracoes/sincronismos/index.html",
+        **SincronismosAgendadosService.contexto(),
+        page_title="Automações de Sincronismo",
+        page_description="Agendador de sincronizações periodicas das integrações de negócio e infraestrutura.",
+        page_icon="bi-arrow-repeat",
+        page_button_text=None,
+    )
+
+
+@configuracoes_bp.route("/sincronismos/<tipo>/salvar", methods=["POST"])
+def sincronismos_salvar(tipo):
+    _exigir_admin()
+    try:
+        SincronismosAgendadosService.salvar(tipo, request.form, _email_usuario_logado())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Agendamento de sincronismo atualizado.", "success")
+    return redirect(url_for("configuracoes.sincronismos_index"))
+
+
+@configuracoes_bp.route("/sincronismos/<int:agendamento_id>/executar", methods=["POST"])
+def sincronismos_executar(agendamento_id):
+    _exigir_admin()
+    try:
+        resultado = SincronismosAgendadosService.executar_manual(agendamento_id, _email_usuario_logado())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash(resultado, "success" if ": OK" in resultado else "warning")
+    return redirect(url_for("configuracoes.sincronismos_index"))
+
+
+def _exigir_admin():
+    if session.get("usuario_perfil") != "ADMIN":
+        abort(403)
 
 
 @configuracoes_bp.route("/auditoria")

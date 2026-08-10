@@ -57,13 +57,16 @@ class ClienteRepository(BaseRepository):
 
                     OR cnpj LIKE %s
 
+                    OR REGEXP_REPLACE(cnpj, '[^0-9A-Za-z]', '') LIKE %s
+
                 )
 
             """)
 
             termo = f"%{pesquisa}%"
+            termo_cnpj = f"%{''.join(ch for ch in str(pesquisa) if ch.isalnum()).upper()}%"
 
-            parametros.extend([termo, termo, termo])
+            parametros.extend([termo, termo, termo, termo_cnpj])
 
 
         if ativo is not None and ativo != "":
@@ -329,13 +332,16 @@ class ClienteRepository(BaseRepository):
 
                     OR cnpj LIKE %s
 
+                    OR REGEXP_REPLACE(cnpj, '[^0-9A-Za-z]', '') LIKE %s
+
                 )
 
             """)
 
             termo = f"%{pesquisa}%"
+            termo_cnpj = f"%{''.join(ch for ch in str(pesquisa) if ch.isalnum()).upper()}%"
 
-            parametros.extend([termo, termo, termo])
+            parametros.extend([termo, termo, termo, termo_cnpj])
 
         if ativo is not None and ativo != "":
 

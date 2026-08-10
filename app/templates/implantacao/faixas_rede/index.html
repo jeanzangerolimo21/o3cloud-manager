@@ -62,7 +62,7 @@
                             <td><strong>{{ faixa.rede }}</strong><br><small class="text-muted">/{{ faixa.mascara }} - {{ faixa.quantidade_servidores or 0 }} servidor(es)</small></td>
                             <td>{{ faixa.fw_wan or '-' }}</td>
                             <td>{{ faixa.fw_lan or '-' }}</td>
-                            <td><strong>{{ faixa.cliente_nome }}</strong><br><small class="text-muted">{{ faixa.cliente_cnpj or 'CNPJ não vinculado' }}</small></td>
+                            <td><strong>{{ faixa.cliente_nome }}</strong><br><small class="text-muted">{{ faixa.cliente_cnpj|cnpj_br if faixa.cliente_cnpj else 'CNPJ não vinculado' }}</small></td>
                             <td>{{ faixa.vpn or '-' }}</td>
                             <td>{% if faixa.porta_inicio and faixa.porta_fim %}{{ faixa.porta_inicio }}-{{ faixa.porta_fim }}{% else %}{{ faixa.portas or '-' }}{% endif %}</td>
                             <td>{{ faixa.pve or '-' }}</td>

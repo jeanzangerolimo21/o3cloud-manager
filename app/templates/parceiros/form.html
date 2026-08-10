@@ -28,13 +28,13 @@
                             value="{{ cliente_item.id }}"
                             data-nome-fantasia="{{ cliente_item.nome_fantasia or '' }}"
                             data-razao-social="{{ cliente_item.razao_social or '' }}"
-                            data-cnpj="{{ cliente_item.cnpj or '' }}"
+                            data-cnpj="{{ cliente_item.cnpj|cnpj_br if cliente_item.cnpj else '' }}"
                             data-email="{{ cliente_item.email or '' }}"
                             data-telefone="{{ cliente_item.telefone or '' }}"
                             data-cidade="{{ cliente_item.cidade or '' }}"
                             data-uf="{{ cliente_item.estado or '' }}"
                             {% if parceiro and parceiro.cliente_importado_id and parceiro.cliente_importado_id|string == cliente_item.id|string %}selected{% endif %}>
-                            {{ cliente_item.nome_fantasia or cliente_item.razao_social or ('Cliente #' ~ cliente_item.id) }}{% if cliente_item.cnpj %} - {{ cliente_item.cnpj }}{% endif %}
+                            {{ cliente_item.nome_fantasia or cliente_item.razao_social or ('Cliente #' ~ cliente_item.id) }}{% if cliente_item.cnpj %} - {{ cliente_item.cnpj|cnpj_br }}{% endif %}
                         </option>
                         {% endfor %}
                     </select>
@@ -62,7 +62,7 @@
 
                     <div class="col-md-4">
                         <label class="form-label">CNPJ</label>
-                        <input class="form-control text-uppercase" name="cnpj" placeholder="CNPJ alfanumérico" maxlength="32" value="{{ parceiro.cnpj if parceiro else '' }}">
+                        <input class="form-control text-uppercase" name="cnpj" placeholder="00.000.000/0000-00" maxlength="18" value="{{ parceiro.cnpj|cnpj_br if parceiro else '' }}">
                     </div>
 
                     <div class="col-md-4">
@@ -318,6 +318,17 @@
     button.addEventListener("click", aplicarDadosClienteImportado);
     aplicarMascaraTelefones();
 })();
+
+function onlyDigits(value) { return String(value || '').replace(/\D/g, ''); }
+function formatCnpj(value) {
+    const digits = onlyDigits(value).slice(0, 14);
+    return digits.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d)/, '$1-$2');
+}
+const parceiroCnpjInput = document.querySelector('[name="cnpj"]');
+if (parceiroCnpjInput) {
+    parceiroCnpjInput.value = formatCnpj(parceiroCnpjInput.value);
+    parceiroCnpjInput.addEventListener('input', function () { parceiroCnpjInput.value = formatCnpj(parceiroCnpjInput.value); });
+}
 </script>
 
 {% endblock %}

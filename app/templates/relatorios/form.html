@@ -1,0 +1,218 @@
+{% extends "layout/base.html" %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+      <h2 class="mb-1">{{ modelo.nome if modelo else 'Novo Relatório' }}</h2>
+      <p class="text-muted mb-0">Construtor seguro com fontes e campos autorizados.</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('relatorios.index') }}"><i class="bi bi-arrow-left"></i> Modelos</a>
+  </div>
+
+  <form method="post" id="relatorioForm" action="{{ url_for('relatorios.visualizar_modelo', modelo_id=modelo.id) if modelo else url_for('relatorios.novo') }}">
+    <div class="row g-4">
+      <div class="col-xl-4">
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white"><strong>Definição</strong></div>
+          <div class="card-body">
+            <label class="form-label">Nome</label>
+            <input class="form-control mb-3" name="nome" value="{{ form.get('nome', modelo.nome if modelo else '') }}">
+            <label class="form-label">Descrição</label>
+            <textarea class="form-control mb-3" name="descricao" rows="2">{{ form.get('descricao', modelo.descricao if modelo else '') }}</textarea>
+            <label class="form-label">Fonte</label>
+            <select class="form-select mb-3" name="fonte" id="fonteSelect" required>
+              <option value="">Selecione</option>
+              {% for fonte in fontes %}
+              <option value="{{ fonte.codigo }}" {% if form.get('fonte') == fonte.codigo %}selected{% endif %}>{{ fonte.nome }}</option>
+              {% endfor %}
+            </select>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label">Visibilidade</label>
+                <select class="form-select" name="visibilidade">
+                  {% for valor in ['PRIVADO','PERFIL','GLOBAL'] %}
+                  <option value="{{ valor }}" {% if form.get('visibilidade', modelo.visibilidade if modelo else 'PRIVADO') == valor %}selected{% endif %}>{{ valor }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label">Perfis</label>
+                <input class="form-control" name="perfis" placeholder="DIRETORIA,FINANCEIRO" value="{{ form.get('perfis', '') }}">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white"><strong>Campos</strong></div>
+          <div class="card-body" id="camposBox"></div>
+        </div>
+      </div>
+
+      <div class="col-xl-8">
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white"><strong>Filtros, agrupamentos e cálculos</strong></div>
+          <div class="card-body">
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Ordenar por</label>
+                <select class="form-select" name="ordem_campo" id="ordemCampo"></select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Direção</label>
+                <select class="form-select" name="ordem_direcao">
+                  <option value="ASC" {% if form.get('ordem_direcao') != 'DESC' %}selected{% endif %}>Crescente</option>
+                  <option value="DESC" {% if form.get('ordem_direcao') == 'DESC' %}selected{% endif %}>Decrescente</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Agrupar por</label>
+              <div id="agrupamentosBox" class="row g-2"></div>
+            </div>
+
+            <label class="form-label">Filtros</label>
+            <div id="filtrosBox"></div>
+            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="addFiltro()"><i class="bi bi-plus"></i> Filtro</button>
+
+            <hr>
+            <label class="form-label">Cálculos</label>
+            <div id="agregacoesBox"></div>
+            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="addAgregacao()"><i class="bi bi-plus"></i> Cálculo</button>
+          </div>
+          <div class="card-footer bg-white d-flex flex-wrap gap-2">
+            <button class="btn btn-primary" name="acao" value="executar"><i class="bi bi-play-fill"></i> Executar prévia</button>
+            <button class="btn btn-outline-secondary" name="acao" value="segundo_plano"><i class="bi bi-clock-history"></i> Executar em segundo plano</button>
+            {% if pode_editar('relatorios') %}
+            <button class="btn btn-outline-primary" name="acao" value="salvar"><i class="bi bi-save"></i> Salvar modelo</button>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if resultado %}
+        {% if resultado.truncado %}
+        <div class="alert alert-warning d-flex justify-content-between align-items-center gap-3">
+          <span><i class="bi bi-exclamation-triangle"></i> Resultado limitado a {{ resultado.limite }} linhas. Para gerar o relatório completo, solicite execução em segundo plano.</span>
+          <button class="btn btn-sm btn-outline-warning" form="relatorioForm" name="acao" value="segundo_plano"><i class="bi bi-clock-history"></i> Executar em segundo plano</button>
+        </div>
+        {% endif %}
+        <div class="card border-0 shadow-sm" id="resultadoRelatorio">
+          <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex align-items-center gap-3">
+              <img src="{{ url_for('static', filename='img/logo.png') }}" style="height: 38px" alt="O3Cloud">
+              <div><strong>{{ resultado.fonte.nome }}</strong><br><small class="text-muted">{{ resultado.total }} linhas</small></div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              {% for formato, icone in [('csv','bi-filetype-csv'),('xlsx','bi-file-earmark-spreadsheet'),('docx','bi-file-earmark-word'),('pdf','bi-file-earmark-pdf')] %}
+              <button class="btn btn-sm btn-outline-secondary" form="export{{ formato }}" title="Exportar {{ formato|upper }}"><i class="bi {{ icone }}"></i></button>
+              <button class="btn btn-sm btn-outline-primary" form="background{{ formato }}" title="Gerar {{ formato|upper }} em segundo plano"><i class="bi bi-clock-history"></i></button>
+              {% endfor %}
+              <button class="btn btn-sm btn-outline-secondary" onclick="window.print()" type="button"><i class="bi bi-printer"></i></button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle mb-0">
+              <thead><tr>{% for col in resultado.colunas %}<th>{{ col.nome }}</th>{% endfor %}</tr></thead>
+              <tbody>
+                {% for linha in resultado.linhas_formatadas %}
+                <tr>{% for col in resultado.colunas %}<td>{{ linha[col.codigo] }}</td>{% endfor %}</tr>
+                {% else %}
+                <tr><td colspan="{{ resultado.colunas|length }}" class="text-center text-muted py-4">Sem dados para os filtros aplicados.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+
+  {% if resultado %}
+    {% for formato in ['csv','xlsx','docx','pdf'] %}
+    <form id="export{{ formato }}" method="post" action="{{ url_for('relatorios.exportar', formato=formato) }}" class="d-none">
+      <input type="hidden" name="fonte" value="{{ resultado.config.fonte }}">
+      <input type="hidden" name="ordem_campo" value="{{ resultado.config.ordenacao.campo }}">
+      <input type="hidden" name="ordem_direcao" value="{{ resultado.config.ordenacao.direcao }}">
+      {% for campo in resultado.config.campos %}<input type="hidden" name="campos" value="{{ campo }}">{% endfor %}
+      {% for campo in resultado.config.agrupamentos %}<input type="hidden" name="agrupamentos" value="{{ campo }}">{% endfor %}
+      {% for filtro in resultado.config.filtros %}
+      <input type="hidden" name="filtro_campo" value="{{ filtro.campo }}">
+      <input type="hidden" name="filtro_operador" value="{{ filtro.operador }}">
+      <input type="hidden" name="filtro_valor" value="{{ filtro.valor }}">
+      <input type="hidden" name="filtro_valor_final" value="{{ filtro.valor_final }}">
+      {% endfor %}
+      {% for agregacao in resultado.config.agregacoes %}
+      <input type="hidden" name="agregacao_campo" value="{{ agregacao.campo }}">
+      <input type="hidden" name="agregacao_funcao" value="{{ agregacao.funcao }}">
+      {% endfor %}
+    </form>
+    <form id="background{{ formato }}" method="post" action="{{ url_for('relatorios.solicitar_exportacao', formato=formato) }}" class="d-none">
+      <input type="hidden" name="fonte" value="{{ resultado.config.fonte }}">
+      <input type="hidden" name="ordem_campo" value="{{ resultado.config.ordenacao.campo }}">
+      <input type="hidden" name="ordem_direcao" value="{{ resultado.config.ordenacao.direcao }}">
+      {% for campo in resultado.config.campos %}<input type="hidden" name="campos" value="{{ campo }}">{% endfor %}
+      {% for campo in resultado.config.agrupamentos %}<input type="hidden" name="agrupamentos" value="{{ campo }}">{% endfor %}
+      {% for filtro in resultado.config.filtros %}
+      <input type="hidden" name="filtro_campo" value="{{ filtro.campo }}">
+      <input type="hidden" name="filtro_operador" value="{{ filtro.operador }}">
+      <input type="hidden" name="filtro_valor" value="{{ filtro.valor }}">
+      <input type="hidden" name="filtro_valor_final" value="{{ filtro.valor_final }}">
+      {% endfor %}
+      {% for agregacao in resultado.config.agregacoes %}
+      <input type="hidden" name="agregacao_campo" value="{{ agregacao.campo }}">
+      <input type="hidden" name="agregacao_funcao" value="{{ agregacao.funcao }}">
+      {% endfor %}
+    </form>
+    {% endfor %}
+  {% endif %}
+</div>
+
+<script>
+const fontes = {{ fontes|tojson }};
+const selecionados = {{ form.getlist('campos')|tojson if form.getlist is defined else [] }};
+const agrupados = {{ form.getlist('agrupamentos')|tojson if form.getlist is defined else [] }};
+const ordemCampo = "{{ form.get('ordem_campo', '') }}";
+const filtrosIniciais = {{ (form.getlist('filtro_campo') if form.getlist is defined else [])|tojson }};
+const agregacoesIniciais = {{ (form.getlist('agregacao_campo') if form.getlist is defined else [])|tojson }};
+const filtroOps = {{ (form.getlist('filtro_operador') if form.getlist is defined else [])|tojson }};
+const filtroValores = {{ (form.getlist('filtro_valor') if form.getlist is defined else [])|tojson }};
+const filtroFinais = {{ (form.getlist('filtro_valor_final') if form.getlist is defined else [])|tojson }};
+const agregacaoFuncoes = {{ (form.getlist('agregacao_funcao') if form.getlist is defined else [])|tojson }};
+
+function fonteAtual() { return fontes.find(f => f.codigo === document.getElementById('fonteSelect').value); }
+function renderCampos() {
+  const fonte = fonteAtual();
+  const box = document.getElementById('camposBox');
+  const ordem = document.getElementById('ordemCampo');
+  const grupos = document.getElementById('agrupamentosBox');
+  box.innerHTML = ''; ordem.innerHTML = '<option value="">Sem ordenação</option>'; grupos.innerHTML = '';
+  if (!fonte) return;
+  fonte.campos.forEach(c => {
+    const selecionado = selecionados.includes(c.codigo);
+    const posicao = selecionado ? selecionados.indexOf(c.codigo) + 1 : "";
+    box.insertAdjacentHTML('beforeend', `<div class="d-flex align-items-center gap-2 mb-2"><input class="form-check-input mt-0" type="checkbox" name="campos" value="${c.codigo}" id="campo_${c.codigo}" ${selecionado ? 'checked' : ''}><label class="form-check-label flex-grow-1" for="campo_${c.codigo}">${c.nome}</label><input class="form-control form-control-sm" style="width: 78px" type="number" min="1" name="campo_ordem_${c.codigo}" value="${posicao}" title="Ordem"></div>`);
+    if (c.ordenavel) ordem.insertAdjacentHTML('beforeend', `<option value="${c.codigo}" ${ordemCampo === c.codigo ? 'selected' : ''}>${c.nome}</option>`);
+    if (c.agrupavel) grupos.insertAdjacentHTML('beforeend', `<div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" name="agrupamentos" value="${c.codigo}" id="grupo_${c.codigo}" ${agrupados.includes(c.codigo) ? 'checked' : ''}><label class="form-check-label" for="grupo_${c.codigo}">${c.nome}</label></div></div>`);
+  });
+  if (!document.getElementById('filtrosBox').children.length) filtrosIniciais.forEach((_, i) => addFiltro(i));
+  if (!document.getElementById('agregacoesBox').children.length) agregacoesIniciais.forEach((_, i) => addAgregacao(i));
+}
+function campoOptions(selected, agregavel=false) {
+  const fonte = fonteAtual();
+  if (!fonte) return '';
+  return fonte.campos.filter(c => agregavel ? c.agregavel : c.filtravel).map(c => `<option value="${c.codigo}" ${selected === c.codigo ? 'selected' : ''}>${c.nome}</option>`).join('');
+}
+function addFiltro(i=null) {
+  const idx = i ?? filtrosIniciais.length;
+  document.getElementById('filtrosBox').insertAdjacentHTML('beforeend', `<div class="row g-2 mb-2"><div class="col-md-3"><select class="form-select" name="filtro_campo">${campoOptions(filtrosIniciais[idx] || '')}</select></div><div class="col-md-3"><select class="form-select" name="filtro_operador">${['igual','diferente','contem','comeca','maior','maior_igual','menor','menor_igual','entre'].map(op => `<option value="${op}" ${filtroOps[idx] === op ? 'selected' : ''}>${op}</option>`).join('')}</select></div><div class="col-md-3"><input class="form-control" name="filtro_valor" value="${filtroValores[idx] || ''}"></div><div class="col-md-3"><input class="form-control" name="filtro_valor_final" placeholder="até" value="${filtroFinais[idx] || ''}"></div></div>`);
+}
+function addAgregacao(i=null) {
+  const idx = i ?? agregacoesIniciais.length;
+  document.getElementById('agregacoesBox').insertAdjacentHTML('beforeend', `<div class="row g-2 mb-2"><div class="col-md-6"><select class="form-select" name="agregacao_campo">${campoOptions(agregacoesIniciais[idx] || '', true)}</select></div><div class="col-md-6"><select class="form-select" name="agregacao_funcao">${['COUNT','SUM','AVG','MIN','MAX','COUNT_DISTINCT'].map(fn => `<option value="${fn}" ${agregacaoFuncoes[idx] === fn ? 'selected' : ''}>${fn}</option>`).join('')}</select></div></div>`);
+}
+document.getElementById('fonteSelect').addEventListener('change', () => { document.getElementById('filtrosBox').innerHTML=''; document.getElementById('agregacoesBox').innerHTML=''; renderCampos(); });
+renderCampos();
+</script>
+{% endblock %}

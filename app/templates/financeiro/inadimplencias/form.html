@@ -1,0 +1,172 @@
+{% extends "layout/base.html" %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Nova Inadimplência</h2>
+            <p class="text-muted mb-0">Digite o contrato, cliente ou CNPJ para registrar a pendência financeira.</p>
+        </div>
+        <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.inadimplentes') }}"><i class="bi bi-arrow-left"></i> Voltar</a>
+    </div>
+
+    <form method="post" class="card border-0 shadow-sm" id="inadimplenciaForm">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label" for="contrato_busca">Contrato</label>
+                    <input type="hidden" name="contrato_id" id="contrato_id" value="{{ inadimplencia.contrato_id or '' }}">
+                    <div class="position-relative">
+                        <input class="form-control" id="contrato_busca" autocomplete="off" required
+                               placeholder="Digite número do contrato, cliente ou CNPJ">
+                        <div class="list-group position-absolute w-100 shadow-sm d-none" id="contrato_resultados" style="z-index: 1050; max-height: 280px; overflow-y: auto;"></div>
+                    </div>
+                    <div class="form-text">A busca considera número do contrato, nome do cliente, razão social e CNPJ.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Motivo</label>
+                    <input class="form-control" name="motivo" maxlength="255" required value="{{ inadimplencia.motivo or '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Data da ocorrência</label>
+                    <input class="form-control" type="datetime-local" name="bloqueado_em" value="{{ inadimplencia.bloqueado_em or '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Observações</label>
+                    <textarea class="form-control" name="observacoes" rows="4">{{ inadimplencia.observacoes or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer bg-white text-end">
+            <button class="btn btn-danger"><i class="bi bi-exclamation-octagon"></i> Registrar pendência</button>
+        </div>
+    </form>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const initialContracts = {{ contratos|tojson }};
+    const searchInput = document.getElementById('contrato_busca');
+    const selectedInput = document.getElementById('contrato_id');
+    const results = document.getElementById('contrato_resultados');
+    const form = document.getElementById('inadimplenciaForm');
+    let contracts = initialContracts || [];
+    let debounceId = null;
+
+    function onlyDigits(value) { return String(value || '').replace(/\D/g, ''); }
+
+    function formatCnpj(value) {
+        const digits = onlyDigits(value);
+        if (digits.length !== 14) return value || 'CNPJ não informado';
+        return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+    }
+
+    function contractLabel(contract) {
+        const number = contract.numero || contract.id;
+        const client = contract.cliente_nome || contract.cliente_razao_social || 'Cliente sem nome';
+        const cnpj = formatCnpj(contract.cliente_cnpj);
+        return `Contrato ${number} - ${client} - ${cnpj}`;
+    }
+
+    function matches(contract, term) {
+        const haystack = [contract.numero, contract.cliente_nome, contract.cliente_razao_social, contract.cliente_cnpj, formatCnpj(contract.cliente_cnpj), contract.status]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+        return haystack.includes(term.toLowerCase());
+    }
+
+    function render(list, term) {
+        results.innerHTML = '';
+        const filtered = term ? list.filter((contract) => matches(contract, term)).slice(0, 10) : list.slice(0, 10);
+        if (!filtered.length) {
+            results.innerHTML = '<div class="list-group-item text-muted">Nenhum contrato encontrado</div>';
+            results.classList.remove('d-none');
+            return;
+        }
+        filtered.forEach((contract) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'list-group-item list-group-item-action';
+            if (contract.inadimplencia_ativa) {
+                button.classList.add('disabled');
+                button.disabled = true;
+            }
+            const line = document.createElement('div');
+            line.className = 'd-flex justify-content-between gap-2';
+            const title = document.createElement('strong');
+            title.textContent = contractLabel(contract);
+            line.appendChild(title);
+            if (contract.inadimplencia_ativa) {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-danger';
+                badge.textContent = 'já pendente';
+                line.appendChild(badge);
+            }
+            const status = document.createElement('small');
+            status.className = 'text-muted';
+            status.textContent = `Status: ${contract.status || '-'}`;
+            button.appendChild(line);
+            button.appendChild(status);
+            button.addEventListener('click', function () {
+                selectedInput.value = contract.id;
+                searchInput.value = contractLabel(contract);
+                searchInput.setCustomValidity('');
+                results.classList.add('d-none');
+            });
+            results.appendChild(button);
+        });
+        results.classList.remove('d-none');
+    }
+
+    function fetchContracts(term) {
+        const url = new URL("{{ url_for('financeiro.pesquisar_contratos_inadimplencia') }}", window.location.origin);
+        if (term) {
+            url.searchParams.set('q', term);
+        }
+        fetch(url, {headers: {'Accept': 'application/json'}})
+            .then((response) => response.ok ? response.json() : Promise.reject())
+            .then((payload) => {
+                contracts = payload.contratos || [];
+                render(contracts, term);
+            })
+            .catch(() => render(contracts, term));
+    }
+
+    searchInput.addEventListener('input', function () {
+        selectedInput.value = '';
+        searchInput.setCustomValidity('');
+        const term = searchInput.value.trim();
+        window.clearTimeout(debounceId);
+        debounceId = window.setTimeout(function () {
+            if (term.length >= 2) {
+                fetchContracts(term);
+            } else {
+                render(contracts, term);
+            }
+        }, 250);
+    });
+
+    searchInput.addEventListener('focus', function () {
+        render(contracts, searchInput.value.trim());
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!results.contains(event.target) && event.target !== searchInput) {
+            results.classList.add('d-none');
+        }
+    });
+
+    form.addEventListener('submit', function (event) {
+        if (!selectedInput.value) {
+            event.preventDefault();
+            searchInput.setCustomValidity('Selecione um contrato da lista.');
+            searchInput.reportValidity();
+        }
+    });
+
+    const selected = contracts.find((contract) => String(contract.id) === String(selectedInput.value));
+    if (selected) {
+        searchInput.value = contractLabel(selected);
+    }
+});
+</script>
+{% endblock %}

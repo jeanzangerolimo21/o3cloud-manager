@@ -1,6 +1,7 @@
 import os
 
 import click
+from flask.cli import with_appcontext
 
 from app.configuracoes.auth_service import AuthConfigService
 
@@ -30,3 +31,34 @@ def bootstrap_admin_command(email, nome, login, senha, force):
 
 def init_cli(app):
     app.cli.add_command(bootstrap_admin_command)
+    app.cli.add_command(relatorios_processar_jobs_command)
+    app.cli.add_command(sincronismos_processar_agendados_command)
+
+
+@click.command("relatorios-processar-jobs")
+@with_appcontext
+@click.option("--limite", default=1, show_default=True, help="Quantidade maxima de jobs pendentes para processar.")
+def relatorios_processar_jobs_command(limite):
+    """Processa jobs pendentes de relatorios em segundo plano."""
+    from app.relatorios.service import RelatorioService
+
+    resultados = RelatorioService.processar_jobs(limite)
+    if not resultados:
+        click.echo("Nenhum job pendente.")
+        return
+    for resultado in resultados:
+        click.echo(resultado)
+
+@click.command("sincronismos-processar-agendados")
+@with_appcontext
+@click.option("--limite", default=5, show_default=True, help="Quantidade maxima de sincronismos pendentes para processar.")
+def sincronismos_processar_agendados_command(limite):
+    """Processa sincronismos agendados pendentes."""
+    from app.configuracoes.sincronismos_service import SincronismosAgendadosService
+
+    resultados = SincronismosAgendadosService.processar_pendentes(limite)
+    if not resultados:
+        click.echo("Nenhum sincronismo pendente.")
+        return
+    for resultado in resultados:
+        click.echo(resultado)

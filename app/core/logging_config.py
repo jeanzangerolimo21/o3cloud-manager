@@ -88,7 +88,10 @@ def configure_logging():
         handler.setLevel(level)
         handler.setFormatter(formatter)
         logger.addHandler(handler)
-        os.chmod(handler.baseFilename, 0o640)
+        try:
+            os.chmod(handler.baseFilename, 0o640)
+        except OSError:
+            pass
     get_logger("application").info("Backend logging initialized", extra={"operation": "STARTUP"})
     _configured = True
 
@@ -119,6 +122,6 @@ def init_request_logging(app):
     def log_request_exception(error):
         if error is not None:
             error_logger.error("Unhandled Flask request exception", exc_info=(type(error), error, error.__traceback__))
-        token = request.environ.get("o3_request_id_token")
+        token = request.environ.pop("o3_request_id_token", None)
         if token is not None:
             clear_request_id(token)

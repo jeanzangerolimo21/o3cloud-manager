@@ -19,6 +19,7 @@ from app.catalogo.precos.repository import PrecoCatalogoRepository
 from app.catalogo.recursos.repository import ProdutoRecursoRepository
 from app.catalogo.produtos.service import ProdutoService
 from app.clientes.service import ClienteService
+from app.financeiro.inadimplencias_service import InadimplenciaService
 from app.contatos.service import ContatoService
 from app.core.storage import StorageService
 from app.integracoes.clicksign.client import ClicksignClient
@@ -73,8 +74,10 @@ class PropostaService:
         offset = (pagina - 1) * limit
         ativo_normalizado = cls._normalizar_status_ativo(ativo)
         propostas = cls.repository.listar(pesquisa=pesquisa, status=status, ativo=ativo_normalizado, clicksign_status=clicksign_status, limit=limit, offset=offset)
+        pendencias = InadimplenciaService.clientes_com_pendencia([proposta.get("cliente_id") for proposta in propostas])
         for proposta in propostas:
             proposta["total_comentarios_internos"] = cls.repository.total_comentarios_internos(proposta.get("id"))
+            proposta["pendencia_financeira"] = bool(pendencias.get(proposta.get("cliente_id")))
         total = cls.repository.total(pesquisa=pesquisa, status=status, ativo=ativo_normalizado, clicksign_status=clicksign_status)
         return propostas, total
 
@@ -125,6 +128,7 @@ class PropostaService:
     def criar(cls, dados):
         dados = cls.normalizar(dados)
         cls.validar(dados)
+        InadimplenciaService.validar_operacao_cliente(dados.get("cliente_id"))
         dados["versao"] = cls.repository.proxima_versao(dados.get("oportunidade_id"))
         dados["codigo_proposta"] = dados.get("codigo_proposta") or cls.gerar_codigo_proposta()
         return cls.repository.inserir(dados)

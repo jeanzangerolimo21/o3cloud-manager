@@ -190,7 +190,7 @@
                         <tbody>
                         {% for item in senhas %}
                             <tr>
-                                <td><strong>{{ item.cliente_nome }}</strong><br><small class="text-muted">{{ item.cliente_cnpj or 'CNPJ não vinculado' }}</small></td>
+                                <td><strong>{{ item.cliente_nome }}</strong><br><small class="text-muted">{{ item.cliente_cnpj|cnpj_br if item.cliente_cnpj else 'CNPJ não vinculado' }}</small></td>
                                 <td><span class="badge bg-secondary">{{ categoria_options.get(item.categoria, item.categoria) }}</span></td>
                                 <td><strong>{{ item.titulo }}</strong>{% if item.pasta_nome %}<br><small class="text-muted"><i class="bi bi-folder"></i> {{ item.pasta_nome }}</small>{% endif %}<br><small class="text-muted">{{ item.observacoes or '-' }}</small></td>
                                 <td>

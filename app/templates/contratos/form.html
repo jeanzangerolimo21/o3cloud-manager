@@ -69,11 +69,11 @@
                     <select class="form-select" name="cliente_id" id="cliente_id" {% if not edicao_omie %}required{% else %}disabled{% endif %}>
                         <option value="">Buscar por nome fantasia, razao social ou CNPJ...</option>
                         {% for cliente in clientes %}
-                            <option value="{{ cliente.id }}" {% if (contrato.cliente_id|string) == (cliente.id|string) %}selected{% endif %}>{{ cliente.nome_fantasia }}{% if cliente.cnpj %} - {{ cliente.cnpj }}{% endif %}</option>
+                            <option value="{{ cliente.id }}" {% if (contrato.cliente_id|string) == (cliente.id|string) %}selected{% endif %}>{{ cliente.nome_fantasia }}{% if cliente.cnpj %} - {{ cliente.cnpj|cnpj_br }}{% endif %}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-lg-2"><label class="form-label">CNPJ</label><input class="form-control" id="cliente_cnpj" value="{{ contrato.cliente_cnpj or '' }}" readonly placeholder="CNPJ alfanumérico"></div>
+                <div class="col-lg-2"><label class="form-label">CNPJ</label><input class="form-control" id="cliente_cnpj" value="{{ contrato.cliente_cnpj|cnpj_br if contrato.cliente_cnpj else '' }}" readonly placeholder="00.000.000/0000-00"></div>
                 <div class="col-lg-4"><label class="form-label">Razao Social</label><input class="form-control" id="cliente_razao" value="{{ contrato.cliente_razao_social or '' }}" readonly placeholder="Razao social"></div>
                 <div class="col-lg-4"><label class="form-label">Nome Fantasia</label><input class="form-control" id="cliente_nome" value="{{ contrato.cliente_nome or '' }}" readonly placeholder="Nome fantasia"></div>
                 <div class="col-lg-4"><label class="form-label">Representante Legal *</label><input class="form-control" name="contato_nome" id="contato_nome" value="{{ contrato.contato_nome or '' }}" {% if not edicao_omie %}required{% endif %} placeholder="Nome do representante legal"></div>

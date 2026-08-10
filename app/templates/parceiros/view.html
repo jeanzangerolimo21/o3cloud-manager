@@ -44,7 +44,7 @@
             <div class="row g-4">
                 <div class="col-md-4">
                     <strong>CNPJ</strong><br>
-                    {{ parceiro.cnpj or '-' }}
+                    {{ parceiro.cnpj|cnpj_br }}
                 </div>
                 <div class="col-md-4">
                     <strong>Segmento</strong><br>

@@ -78,7 +78,7 @@
                         {% for implantacao in implantacoes %}
                         <tr>
                             <td><strong>{{ implantacao.titulo }}</strong><br><small class="text-muted">Contrato {{ implantacao.contrato_numero or implantacao.contrato_id }}</small></td>
-                            <td>{{ implantacao.cliente_nome or '-' }}<br><small class="text-muted">{{ implantacao.executivo_nome or implantacao.parceiro_nome or '-' }}</small></td>
+                            <td>{{ implantacao.cliente_nome or '-' }}{% if implantacao.pendencia_financeira %}<br><span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> Pendência Financeira</span>{% endif %}<br><small class="text-muted">{{ implantacao.executivo_nome or implantacao.parceiro_nome or '-' }}</small></td>
                             <td><span class="badge bg-secondary">{{ status_options.get(implantacao.status, implantacao.status) }}</span></td>
                             <td>{{ implantacao.responsavel or implantacao.implantador_nome or '-' }}</td>
                             <td>

@@ -49,6 +49,13 @@
 
     <div class="card-body">
 
+        {% if cliente.pendencia_financeira %}
+        <div class="alert alert-danger d-flex align-items-start gap-2" role="alert">
+            <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+            <div><strong>PENDÊNCIA FINANCEIRA</strong><br>Este cliente possui pendências financeiras ativas.{% for pendencia in cliente.pendencias_financeiras %}<br>Contrato {{ pendencia.contrato_numero or pendencia.contrato_id }} desde {{ pendencia.bloqueado_em|date_br }}{% endfor %}</div>
+        </div>
+        {% endif %}
+
         <!-- ===================================================== -->
         <!-- DADOS GERAIS -->
         <!-- ===================================================== -->
@@ -100,7 +107,7 @@
                 </label>
 
                 <input class="form-control"
-                       value="{{ cliente.cnpj }}"
+                       value="{{ cliente.cnpj|cnpj_br }}"
                        readonly>
 
             </div>
