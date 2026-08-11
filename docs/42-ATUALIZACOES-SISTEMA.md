@@ -35,6 +35,10 @@ Produção oficial -> main ou v1.x.x
 
 Usar tags e GitHub Releases para publicar versões instaláveis.
 
+Status inicial:
+
+- Tag `v0.9.0-beta.1` publicada no remoto e detectada pela verificação do painel.
+
 Exemplos:
 
 ```text

@@ -60,6 +60,11 @@ v1.0.0
 v1.0.1
 ```
 
+Status inicial de release:
+
+- Tag `v0.9.0-beta.1` criada e publicada no remoto em 11/08/2026 a partir do commit `6f78d62`.
+- Verificação pela tela encontrou 1 tag remota após publicação.
+
 Regras:
 
 - Ambiente Beta deve acompanhar branch `beta` ou tags `v0.9.x-beta.x`.
