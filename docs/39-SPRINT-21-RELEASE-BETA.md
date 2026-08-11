@@ -2,7 +2,7 @@
 
 # Sprint 21 - Release Beta, Backup e Atualizações
 
-Status: Planejada
+Status: Em desenvolvimento
 
 Data de abertura: 11/08/2026
 
@@ -86,6 +86,14 @@ Referência: `docs/41-BACKUP-RESTORE.md`
 
 ## 4. Tela Configurações > Backups
 
+Status da implementação inicial:
+
+- Criada migration 083_create_config_backups.sql para agendamento, histórico de execuções e permissão backups_sistema para ADMIN.
+- Criado serviço administrativo para backup do banco, storage ou completo.
+- Criada tela Configurações > Backups do Sistema para salvar periodicidade, retenção, destino local/MOUNT, executar backup manual e baixar artefato local permitido.
+- Criado comando CLI flask backups-processar-agendados --limite 1.
+- Adicionada rotina ao cron operacional para processar backups pendentes a cada 15 minutos.
+
 Funcionalidades planejadas:
 
 - Gerar backup agora.
@@ -100,6 +108,12 @@ Funcionalidades planejadas:
 Acesso:
 
 - Apenas Administrador.
+
+Pendências da próxima etapa:
+
+- Teste explícito de escrita do destino antes de salvar.
+- Destinos SFTP/SSH e S3 compatível com credenciais protegidas.
+- Script formal de restore e checklist assistido de validação.
 
 ## 5. Atualizações do Sistema
 

@@ -3,11 +3,13 @@ from flask import abort
 from flask import flash
 from flask import redirect
 from flask import render_template
+from flask import send_file
 from flask import request
 from flask import session
 from flask import url_for
 
 from app.configuracoes.auth_service import AuthConfigService
+from app.configuracoes.backup_service import BackupSistemaService
 from app.configuracoes.cache_service import CacheRetencaoService
 from app.configuracoes.email_service import EmailConfigService
 from app.configuracoes.sincronismos_service import SincronismosAgendadosService
@@ -246,6 +248,54 @@ def usuarios_provedor_editar(provedor_id):
 def usuarios_provedor_testar(provedor_id):
     flash("Valide FreeIPA, LDAP e Active Directory em Integrações Técnicas.", "info")
     return redirect(url_for("implantacao.integracoes_tecnicas"))
+
+
+@configuracoes_bp.route("/backups")
+def backups_index():
+    _exigir_admin()
+    return render_template(
+        "configuracoes/backups/index.html",
+        **BackupSistemaService.contexto(),
+        page_title="Backups do Sistema",
+        page_description="Backup do banco, storage, retenção e destino local ou caminho montado.",
+        page_icon="bi-database-down",
+        page_button_text=None,
+    )
+
+
+@configuracoes_bp.route("/backups/salvar", methods=["POST"])
+def backups_salvar():
+    _exigir_admin()
+    try:
+        BackupSistemaService.salvar_config(request.form, _email_usuario_logado())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Configuração de backup atualizada.", "success")
+    return redirect(url_for("configuracoes.backups_index"))
+
+
+@configuracoes_bp.route("/backups/executar", methods=["POST"])
+def backups_executar():
+    _exigir_admin()
+    try:
+        resultado = BackupSistemaService.executar_manual(_email_usuario_logado())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash(resultado, "success" if ": OK" in resultado else "warning")
+    return redirect(url_for("configuracoes.backups_index"))
+
+
+@configuracoes_bp.route("/backups/<int:execucao_id>/download")
+def backups_download(execucao_id):
+    _exigir_admin()
+    try:
+        item, caminho = BackupSistemaService.caminho_download(execucao_id)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+        return redirect(url_for("configuracoes.backups_index"))
+    return send_file(caminho, as_attachment=True, download_name=item.get("arquivo_nome") or caminho.name)
 
 
 @configuracoes_bp.route("/cache")

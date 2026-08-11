@@ -33,6 +33,7 @@ def init_cli(app):
     app.cli.add_command(bootstrap_admin_command)
     app.cli.add_command(relatorios_processar_jobs_command)
     app.cli.add_command(sincronismos_processar_agendados_command)
+    app.cli.add_command(backups_processar_agendados_command)
 
 
 @click.command("relatorios-processar-jobs")
@@ -59,6 +60,21 @@ def sincronismos_processar_agendados_command(limite):
     resultados = SincronismosAgendadosService.processar_pendentes(limite)
     if not resultados:
         click.echo("Nenhum sincronismo pendente.")
+        return
+    for resultado in resultados:
+        click.echo(resultado)
+
+
+@click.command("backups-processar-agendados")
+@with_appcontext
+@click.option("--limite", default=1, show_default=True, help="Quantidade maxima de backups pendentes para processar.")
+def backups_processar_agendados_command(limite):
+    """Processa backups agendados pendentes."""
+    from app.configuracoes.backup_service import BackupSistemaService
+
+    resultados = BackupSistemaService.processar_pendentes(limite)
+    if not resultados:
+        click.echo("Nenhum backup pendente.")
         return
     for resultado in resultados:
         click.echo(resultado)

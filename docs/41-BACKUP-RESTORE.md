@@ -2,7 +2,7 @@
 
 # Backup e Restore
 
-Status: Planejado
+Status: Implementação inicial em andamento
 
 ---
 
@@ -86,6 +86,16 @@ Observação: backup local não substitui destino externo.
 ---
 
 # Tela Configurações > Backups
+
+Implementação inicial:
+
+- Rota administrativa Configurações > Backups do Sistema.
+- Tipos disponíveis: banco de dados, storage ou completo.
+- Destinos disponíveis: local e caminho montado/NAS.
+- Periodicidade configurável: 6h, 12h, 24h, 48h ou 7 dias.
+- Retenção configurável: 3, 7, 15, 30, 60 ou 90 dias.
+- Histórico com status, arquivo, tamanho, checksum e usuário executor.
+- Download liberado apenas para backups OK e caminhos válidos.
 
 Funcionalidades planejadas:
 

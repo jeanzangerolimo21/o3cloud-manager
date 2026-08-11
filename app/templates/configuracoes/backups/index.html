@@ -1,0 +1,91 @@
+{% extends "layout/base.html" %}
+{% block content %}
+<div class="container-fluid">
+  {% include "components/page_header.html" %}
+
+  <div class="alert alert-warning d-flex gap-2 align-items-start">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div>Backups podem conter dados sensíveis. Mantenha destino externo protegido e valide restauração periodicamente. Destinos SFTP e S3 estão previstos para a próxima etapa; nesta versão use Local ou caminho montado/NAS.</div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white"><strong>Configuração de backup</strong></div>
+    <div class="card-body">
+      <form method="post" action="{{ url_for('configuracoes.backups_salvar') }}" class="row g-3">
+        <div class="col-md-2">
+          <label class="form-label">Ativo</label>
+          <div class="form-check form-switch mt-2"><input class="form-check-input" type="checkbox" name="ativo" value="1" {% if config.ativo %}checked{% endif %}></div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Tipo</label>
+          <select class="form-select" name="tipo_backup">
+            {% for key, label in tipos_backup.items() %}<option value="{{ key }}" {% if config.tipo_backup == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Frequência</label>
+          <select class="form-select" name="frequencia_horas">
+            {% for horas, label in frequencias %}<option value="{{ horas }}" {% if config.frequencia_horas == horas %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Retenção</label>
+          <select class="form-select" name="retencao_dias">
+            {% for dias in retencoes %}<option value="{{ dias }}" {% if config.retencao_dias == dias %}selected{% endif %}>{{ dias }} dias</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Destino</label>
+          <select class="form-select" name="destino_tipo" id="destinoTipo">
+            {% for key, label in destinos.items() %}<option value="{{ key }}" {% if config.destino_tipo == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-8">
+          <label class="form-label">Caminho montado/NAS</label>
+          <input class="form-control" name="destino_path" value="{{ config.destino_path or '' }}" placeholder="Obrigatório apenas para destino MOUNT. Ex: /mnt/backups/o3cloud-manager">
+        </div>
+        <div class="col-md-4 d-flex align-items-end justify-content-end gap-2">
+          <button class="btn btn-outline-primary"><i class="bi bi-check2"></i> Salvar configuração</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>Status</strong><form method="post" action="{{ url_for('configuracoes.backups_executar') }}" onsubmit="return confirm('Gerar backup agora?');"><button class="btn btn-sm btn-primary"><i class="bi bi-database-down"></i> Gerar backup agora</button></form></div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3"><small class="text-muted">Última execução</small><div>{{ config.ultima_execucao_em|datetime_br if config.ultima_execucao_em else '-' }}</div></div>
+        <div class="col-md-3"><small class="text-muted">Próxima execução</small><div>{{ config.proxima_execucao_em|datetime_br if config.proxima_execucao_em else '-' }}</div></div>
+        <div class="col-md-2"><small class="text-muted">Último status</small><div>{% if config.ultimo_status %}<span class="badge text-bg-{{ 'success' if config.ultimo_status == 'OK' else 'danger' }}">{{ config.ultimo_status }}</span>{% else %}-{% endif %}</div></div>
+        <div class="col-md-4"><small class="text-muted">Mensagem</small><div>{{ config.ultimo_mensagem or '-' }}</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white"><strong>Histórico de backups</strong></div>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light"><tr><th>Data</th><th>Tipo</th><th>Destino</th><th>Status</th><th>Arquivo</th><th>Tamanho</th><th>Usuário</th><th class="text-end">Ações</th></tr></thead>
+        <tbody>
+          {% for item in historico %}
+          <tr>
+            <td>{{ item.iniciado_em|datetime_br }}</td>
+            <td>{{ tipos_backup.get(item.tipo_backup, item.tipo_backup) }}</td>
+            <td>{{ destinos.get(item.destino_tipo, item.destino_tipo) }}{% if item.destino_path %}<br><small class="text-muted">{{ item.destino_path }}</small>{% endif %}</td>
+            <td><span class="badge text-bg-{{ 'success' if item.status == 'OK' else 'danger' if item.status == 'ERRO' else 'secondary' }}">{{ item.status }}</span>{% if item.mensagem %}<br><small class="text-muted">{{ item.mensagem }}</small>{% endif %}</td>
+            <td>{{ item.arquivo_nome or '-' }}{% if item.checksum_sha256 %}<br><small class="text-muted">sha256 {{ item.checksum_sha256[:12] }}...</small>{% endif %}</td>
+            <td>{% if item.tamanho_bytes %}{{ (item.tamanho_bytes / 1024 / 1024)|round(2) }} MB{% else %}-{% endif %}</td>
+            <td>{{ item.executado_por or '-' }}</td>
+            <td class="text-end">{% if item.status == 'OK' and item.arquivo_nome %}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('configuracoes.backups_download', execucao_id=item.id) }}"><i class="bi bi-download"></i> Baixar</a>{% else %}-{% endif %}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="text-center text-muted py-4">Nenhum backup registrado.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

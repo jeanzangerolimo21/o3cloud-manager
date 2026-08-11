@@ -32,6 +32,8 @@ Thumbs.db
 
 # Backup
 backups/
+!app/templates/configuracoes/backups/
+!app/templates/configuracoes/backups/**
 
 # Secrets
 .env
