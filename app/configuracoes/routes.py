@@ -386,6 +386,18 @@ def atualizacoes_index():
     )
 
 
+@configuracoes_bp.route("/atualizacoes/verificar", methods=["POST"])
+def atualizacoes_verificar():
+    _exigir_admin()
+    try:
+        resultado = AtualizacaoSistemaService.verificar_atualizacoes(_email_usuario_logado())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash(resultado, "success")
+    return redirect(url_for("configuracoes.atualizacoes_index"))
+
+
 def _exigir_admin():
     if session.get("usuario_perfil") != "ADMIN":
         abort(403)

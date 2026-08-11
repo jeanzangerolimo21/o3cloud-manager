@@ -228,6 +228,7 @@ ENDPOINT_PERMISSOES = {
     "configuracoes.backups_executar": "backups_sistema",
     "configuracoes.backups_download": "backups_sistema",
     "configuracoes.atualizacoes_index": "atualizacoes_sistema",
+    "configuracoes.atualizacoes_verificar": "atualizacoes_sistema",
 }
 
 PUBLIC_ENDPOINTS = {"static", "storage", "autenticacao.login", "autenticacao.logout", "configuracoes.usuarios_aceitar_convite", "implantacao.acessar_compartilhamento_senha"}

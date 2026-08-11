@@ -188,6 +188,7 @@ Junho/2026
 # O3Cloud Manager v3.0
 
 # CHANGELOG
+- Adicionado botão `Verificar atualizações` em modo somente leitura, com histórico em `config_atualizacoes_verificacoes`, parsing de tags remotas e release recomendada sem executar instalação.
 - Criada tela `Configurações > Atualizações do Sistema` para a Sprint 21 em modo somente leitura, exibindo branch, commit, tags, remoto, upstream, alterações locais e plano de atualização controlada; adicionada migration `084_permissao_atualizacoes_sistema.sql`.
 - Criados `deployment/restore-db.sh` e `deployment/healthcheck.sh` para a Sprint 21, com restore SQL operacional a partir do artefato de backup e validação de serviço, banco e HTTP. Teste de escrita em MOUNT/NAS ficou postergado para a Beta até criação do diretório no NAS.
 

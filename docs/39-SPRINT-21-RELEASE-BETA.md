@@ -122,7 +122,8 @@ Status da implementação inicial:
 - Criada tela `Configurações > Atualizações do Sistema` em modo somente leitura.
 - Exibidos branch, commit, tag atual, última tag local, remoto, upstream, divergência com upstream e alterações locais.
 - Criada permissão `atualizacoes_sistema` para ADMIN pela migration `084_permissao_atualizacoes_sistema.sql`.
-- Execução de atualização pela tela permanece bloqueada para fase posterior, dependente de backup obrigatório, consulta segura de releases e histórico de execução.
+- Criado botão `Verificar atualizações`, ainda sem instalação, consultando tags remotas e registrando histórico pela migration `085_create_config_atualizacoes_verificacoes.sql`.
+- Execução de atualização pela tela permanece bloqueada para fase posterior, dependente de backup obrigatório e rotina operacional assistida.
 
 Funcionalidades planejadas:
 

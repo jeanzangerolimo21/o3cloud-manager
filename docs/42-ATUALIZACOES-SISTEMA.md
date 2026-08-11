@@ -57,6 +57,8 @@ Implementação inicial:
 - Exibição de divergência local versus upstream quando configurado.
 - Exibição de alterações locais para bloquear atualização futura com worktree suja.
 - Permissão `atualizacoes_sistema` restrita a Administrador.
+- Botão `Verificar atualizações` em modo somente leitura, consultando tags remotas por Git e registrando histórico.
+- Tabela `config_atualizacoes_verificacoes` criada para auditoria de verificações.
 
 Funcionalidades planejadas:
 
