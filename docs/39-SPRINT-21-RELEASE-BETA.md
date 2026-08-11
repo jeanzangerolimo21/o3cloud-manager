@@ -111,11 +111,18 @@ Acesso:
 
 Pendências da próxima etapa:
 
-- Teste explícito de escrita do destino antes de salvar.
+- Teste explícito de escrita do destino antes de salvar, mantido para a versão Beta porque o diretório NAS/MOUNT ainda não foi criado.
 - Destinos SFTP/SSH e S3 compatível com credenciais protegidas.
-- Script formal de restore e checklist assistido de validação.
+- Script formal de restore e healthcheck operacional criados em `deployment/restore-db.sh` e `deployment/healthcheck.sh`.
 
 ## 5. Atualizações do Sistema
+
+Status da implementação inicial:
+
+- Criada tela `Configurações > Atualizações do Sistema` em modo somente leitura.
+- Exibidos branch, commit, tag atual, última tag local, remoto, upstream, divergência com upstream e alterações locais.
+- Criada permissão `atualizacoes_sistema` para ADMIN pela migration `084_permissao_atualizacoes_sistema.sql`.
+- Execução de atualização pela tela permanece bloqueada para fase posterior, dependente de backup obrigatório, consulta segura de releases e histórico de execução.
 
 Funcionalidades planejadas:
 
@@ -144,6 +151,12 @@ deployment/backup-storage.sh
 deployment/update.sh
 deployment/healthcheck.sh
 ```
+
+Status inicial:
+
+- `deployment/restore-db.sh` criado para restaurar dump `.sql`, `.sql.gz` ou artefato `o3cloud-backup-*.tar.gz` contendo `database.sql.gz`.
+- `deployment/healthcheck.sh` criado para validar serviço systemd, conexão MySQL e HTTP local.
+- Runner formal de migrations segue pendente; restore orienta revisão/aplicação de migrations quando o dump vier de outra versão.
 
 Fluxo mínimo de atualização:
 

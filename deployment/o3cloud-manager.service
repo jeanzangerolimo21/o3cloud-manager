@@ -8,7 +8,7 @@ Type=simple
 User=o3cloud
 Group=o3cloud
 WorkingDirectory=/opt/o3cloud-manager
-Environment=PATH=/opt/o3cloud-manager/venv/bin
+Environment=PATH=/opt/o3cloud-manager/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 Environment=FLASK_ENV=production
 Environment=O3_LOG_DIR=/opt/o3cloud-manager/logs
 ExecStart=/opt/o3cloud-manager/venv/bin/gunicorn --workers 3 --timeout 300 --bind 0.0.0.0:5000 --access-logfile - --error-logfile - wsgi:app

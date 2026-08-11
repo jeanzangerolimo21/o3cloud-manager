@@ -97,6 +97,22 @@ Implementação inicial:
 - Histórico com status, arquivo, tamanho, checksum e usuário executor.
 - Download liberado apenas para backups OK e caminhos válidos.
 
+Funcionalidades implementadas inicialmente:
+
+- Gerar backup agora.
+- Agendar periodicidade.
+- Definir retenção.
+- Escolher destino LOCAL ou MOUNT.
+- Consultar histórico.
+- Baixar arquivo local quando permitido.
+- Exibir status, tamanho, checksum e mensagem resumida.
+
+Funcionalidades planejadas para Beta:
+
+- Testar destino MOUNT/NAS antes de salvar, após criação do diretório no NAS.
+- Destinos SFTP/SSH.
+- Destino S3 compatível.
+
 Funcionalidades planejadas:
 
 - Gerar backup agora.
@@ -138,6 +154,15 @@ checksum
 
 Restore deve ser documentado e inicialmente executado por script operacional, não automaticamente pela tela.
 
+Implementação inicial:
+
+```bash
+deployment/restore-db.sh <backup.sql|backup.sql.gz|o3cloud-backup-*.tar.gz>
+deployment/healthcheck.sh
+```
+
+O script de restore aceita o artefato gerado pela tela quando houver `database.sql.gz` dentro do pacote, gera dump de segurança antes da restauração e executa healthcheck ao final. Para execução não interativa, exige `--yes` e `RESTORE_CONFIRM` igual ao nome do banco.
+
 Fluxo:
 
 ```text
@@ -160,3 +185,4 @@ Fluxo:
 - Download de backup apenas para Administrador.
 - Histórico deve registrar usuário e status.
 - Backup antes de atualização deve ser obrigatório.
+- Teste de escrita em destino MOUNT/NAS fica pendente para a Beta, pois o diretório no NAS ainda não existe.

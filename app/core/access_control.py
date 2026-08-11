@@ -60,6 +60,7 @@ MENU_PERMISSOES = (
     {"grupo": "Configuracoes", "key": "cache_sistema", "label": "Retencao de Cache"},
     {"grupo": "Configuracoes", "key": "sincronismos_agendados", "label": "Automacoes de Sincronismo"},
     {"grupo": "Configuracoes", "key": "backups_sistema", "label": "Backups do Sistema"},
+    {"grupo": "Configuracoes", "key": "atualizacoes_sistema", "label": "Atualizacoes do Sistema"},
 )
 
 TODAS_PERMISSOES = frozenset(item["key"] for item in MENU_PERMISSOES)
@@ -226,6 +227,7 @@ ENDPOINT_PERMISSOES = {
     "configuracoes.backups_salvar": "backups_sistema",
     "configuracoes.backups_executar": "backups_sistema",
     "configuracoes.backups_download": "backups_sistema",
+    "configuracoes.atualizacoes_index": "atualizacoes_sistema",
 }
 
 PUBLIC_ENDPOINTS = {"static", "storage", "autenticacao.login", "autenticacao.logout", "configuracoes.usuarios_aceitar_convite", "implantacao.acessar_compartilhamento_senha"}

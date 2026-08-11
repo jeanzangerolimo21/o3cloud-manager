@@ -2,7 +2,7 @@
 
 # Atualizações do Sistema
 
-Status: Planejado
+Status: Implementação inicial em andamento
 
 ---
 
@@ -49,6 +49,14 @@ Cada release deve possuir changelog resumido, migrations relevantes e instruçõ
 ---
 
 # Tela Configurações > Atualizações do Sistema
+
+Implementação inicial:
+
+- Tela administrativa `Configurações > Atualizações do Sistema`.
+- Exibição de branch, commit, data, mensagem, tag atual, última tag local, remoto e upstream.
+- Exibição de divergência local versus upstream quando configurado.
+- Exibição de alterações locais para bloquear atualização futura com worktree suja.
+- Permissão `atualizacoes_sistema` restrita a Administrador.
 
 Funcionalidades planejadas:
 

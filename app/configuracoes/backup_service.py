@@ -243,9 +243,7 @@ class BackupSistemaService:
         faltando = [key for key, value in required.items() if not value]
         if faltando:
             raise ValueError("Variaveis de banco ausentes para backup: " + ", ".join(faltando))
-        mysqldump = shutil.which("mysqldump")
-        if not mysqldump:
-            raise ValueError("mysqldump nao encontrado no servidor.")
+        mysqldump = BackupSistemaService._localizar_mysqldump()
         comando = [
             mysqldump,
             "--single-transaction",
@@ -264,6 +262,20 @@ class BackupSistemaService:
         if resultado.returncode != 0:
             detalhe = (resultado.stderr or b"").decode("utf-8", errors="ignore")[:300]
             raise ValueError("Falha ao executar mysqldump: " + detalhe)
+
+    @staticmethod
+    def _localizar_mysqldump():
+        candidatos = [
+            os.getenv("MYSQLDUMP_PATH"),
+            shutil.which("mysqldump"),
+            "/usr/bin/mysqldump",
+            "/usr/local/bin/mysqldump",
+            "/bin/mysqldump",
+        ]
+        for candidato in candidatos:
+            if candidato and os.path.isfile(candidato) and os.access(candidato, os.X_OK):
+                return candidato
+        raise ValueError("mysqldump nao encontrado no servidor. Instale o pacote cliente do MariaDB/MySQL ou configure MYSQLDUMP_PATH.")
 
     @staticmethod
     def _tar_storage(destino):

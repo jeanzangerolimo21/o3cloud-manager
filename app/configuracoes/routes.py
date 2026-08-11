@@ -13,6 +13,7 @@ from app.configuracoes.backup_service import BackupSistemaService
 from app.configuracoes.cache_service import CacheRetencaoService
 from app.configuracoes.email_service import EmailConfigService
 from app.configuracoes.sincronismos_service import SincronismosAgendadosService
+from app.configuracoes.atualizacao_service import AtualizacaoSistemaService
 
 
 configuracoes_bp = Blueprint("configuracoes", __name__, url_prefix="/configuracoes")
@@ -370,6 +371,19 @@ def sincronismos_executar(agendamento_id):
     else:
         flash(resultado, "success" if ": OK" in resultado else "warning")
     return redirect(url_for("configuracoes.sincronismos_index"))
+
+
+@configuracoes_bp.route("/atualizacoes")
+def atualizacoes_index():
+    _exigir_admin()
+    return render_template(
+        "configuracoes/atualizacoes/index.html",
+        **AtualizacaoSistemaService.contexto(),
+        page_title="Atualizações do Sistema",
+        page_description="Versão instalada, branch, commit, tags e plano de atualização controlada.",
+        page_icon="bi-cloud-arrow-down",
+        page_button_text=None,
+    )
 
 
 def _exigir_admin():

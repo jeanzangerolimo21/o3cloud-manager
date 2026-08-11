@@ -1,0 +1,115 @@
+{% extends "layout/base.html" %}
+{% block content %}
+<div class="container-fluid">
+  {% include "components/page_header.html" %}
+
+  <div class="alert alert-info d-flex gap-2 align-items-start">
+    <i class="bi bi-info-circle-fill"></i>
+    <div>Esta primeira fase é somente leitura. A execução de atualização pela tela ficará bloqueada até existir backup obrigatório, consulta segura de releases e histórico de execução.</div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <small class="text-muted">Branch</small>
+          <div class="fs-5 fw-semibold">{{ estado.branch or ('detached HEAD' if estado.detached else '-') }}</div>
+          <span class="badge text-bg-{{ 'warning' if estado.detached else 'primary' }}">{{ fase_atual }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <small class="text-muted">Commit</small>
+          <div class="fs-5 fw-semibold">{{ estado.commit_curto or '-' }}</div>
+          <small class="text-muted">{{ estado.commit_data or '-' }}</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <small class="text-muted">Tag atual</small>
+          <div class="fs-5 fw-semibold">{{ estado.tag_atual or '-' }}</div>
+          <small class="text-muted">Última tag local: {{ estado.ultima_tag or '-' }}</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <small class="text-muted">Worktree</small>
+          <div class="fs-5 fw-semibold">{{ 'Limpa' if estado.worktree_limpa else 'Com alterações' }}</div>
+          <span class="badge text-bg-{{ 'success' if estado.worktree_limpa else 'warning' }}">{{ estado.alteracoes|length }} item(ns)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-xl-7">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white"><strong>Versão instalada</strong></div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-3">Repositório</dt><dd class="col-sm-9"><code>{{ estado.repo_dir }}</code></dd>
+            <dt class="col-sm-3">Remoto</dt><dd class="col-sm-9"><code>{{ estado.remoto or '-' }}</code></dd>
+            <dt class="col-sm-3">Upstream</dt><dd class="col-sm-9">{{ estado.upstream or '-' }}</dd>
+            <dt class="col-sm-3">Sincronia</dt><dd class="col-sm-9">{{ estado.divergencia.status }}</dd>
+            <dt class="col-sm-3">Commit completo</dt><dd class="col-sm-9"><code>{{ estado.commit or '-' }}</code></dd>
+            <dt class="col-sm-3">Mensagem</dt><dd class="col-sm-9">{{ estado.commit_mensagem or '-' }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-5">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white"><strong>Pré-requisitos</strong></div>
+        <div class="list-group list-group-flush">
+          {% for item in pre_requisitos %}
+          <div class="list-group-item d-flex justify-content-between gap-3 align-items-start">
+            <div><strong>{{ item.nome }}</strong><br><small class="text-muted">{{ item.detalhe }}</small></div>
+            <span class="badge text-bg-{{ 'success' if item.status == 'OK' or item.status == 'Disponível' else 'warning' if item.status == 'Atenção' or item.status == 'Obrigatório' else 'secondary' }}">{{ item.status }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-xl-7">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white"><strong>Plano de atualização</strong></div>
+        <div class="card-body">
+          <ol class="mb-0">
+            {% for etapa in plano_atualizacao %}<li class="mb-2">{{ etapa }}</li>{% endfor %}
+          </ol>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-5">
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white"><strong>Tags locais recentes</strong></div>
+        <div class="card-body">
+          {% for tag in estado.tags_recentes %}<span class="badge text-bg-light border text-dark me-1 mb-1">{{ tag }}</span>{% else %}<span class="text-muted">Nenhuma tag local encontrada.</span>{% endfor %}
+        </div>
+      </div>
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white"><strong>Alterações locais</strong></div>
+        <div class="card-body">
+          {% if estado.alteracoes %}
+          <div class="small font-monospace">
+            {% for linha in estado.alteracoes[:12] %}<div>{{ linha }}</div>{% endfor %}
+            {% if estado.alteracoes|length > 12 %}<div class="text-muted">... mais {{ estado.alteracoes|length - 12 }} item(ns)</div>{% endif %}
+          </div>
+          {% else %}
+          <span class="text-muted">Nenhuma alteração local.</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
