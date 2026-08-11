@@ -91,6 +91,25 @@ Rentabilidade
 
 ---
 
+## Operação como Serviço
+
+Em produção, o Flask deve rodar como daemon `systemd` com `gunicorn`, usando o usuário `o3cloud`, e não por `python app.py` em modo debug.
+
+Arquivos operacionais:
+
+```text
+deployment/o3cloud-manager.service
+deployment/install-systemd-service.sh
+docs/38-SERVICO-SYSTEMD.md
+```
+
+Instalação como `root`:
+
+```bash
+cd /opt/o3cloud-manager
+deployment/install-systemd-service.sh
+```
+
 ## Documentação
 
 Toda a documentação técnica está disponível na pasta **docs/**.

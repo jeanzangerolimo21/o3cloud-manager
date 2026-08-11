@@ -1,6 +1,9 @@
 import json
+import os
 import re
-from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
+from app.core.storage import StorageService
+from app.leads.email_marketing import montar_email_marketing
 from app.leads.evento_importer import FIELD_LABELS, cnpj, digits, key, read_rows, suggest_mapping, validate_rows
 from app.repositories.evento_repository import EventoRepository
 
@@ -106,11 +109,25 @@ def preparar_disparo_email(evento_id):
   if tamanho>10*1024*1024:
    flash("O anexo deve ter no máximo 10MB.","danger"); return render_template("leads/eventos/disparo_email.html",evento=evento,config=config,total_destinatarios=len(emails),enviados_hoje=usados,form=request.form)
   anexo={"name":secure_filename(arquivo.filename),"content":arquivo.read()}
+ imagem_corpo_url=None
+ imagem_corpo=request.files.get("imagem_corpo")
+ if imagem_corpo and imagem_corpo.filename:
+  try:
+   validacao=StorageService.validar(imagem_corpo)
+   if validacao["extensao"] not in StorageService.IMAGE_EXTENSIONS:
+    raise ValueError("A imagem do corpo deve ser PNG, JPG, JPEG ou SVG.")
+   if validacao["tamanho"]>4*1024*1024:
+    raise ValueError("A imagem do corpo deve ter no máximo 4MB.")
+   salvo=StorageService.salvar(imagem_corpo,"email-marketing")
+   imagem_corpo_url=_url_publica_storage(salvo["url"])
+  except ValueError as exc:
+   flash(str(exc),"danger"); return render_template("leads/eventos/disparo_email.html",evento=evento,config=config,total_destinatarios=len(emails),enviados_hoje=usados,form=request.form)
  disparo_id=EventoEmailRepository.iniciar({"evento_id":evento_id,"config_email_id":config["id"],"assunto":assunto,"total_destinatarios":len(emails),"anexo_nome":anexo["name"] if anexo else None,"created_by":"sistema"})
  enviados=0; erro=None
  try:
+  corpo_final=montar_email_marketing(corpo,_url_logo_email(),imagem_corpo_url)
   for inicio in range(0,len(emails),50):
-   enviados+=BrevoService.enviar(config,assunto,corpo,emails[inicio:inicio+50],anexo)["enviados"]
+   enviados+=BrevoService.enviar(config,assunto,corpo_final,emails[inicio:inicio+50],anexo)["enviados"]
   status="ENVIADO"
  except Exception as exc:
   erro=str(exc)[:1000]; status="PARCIAL" if enviados else "ERRO"
@@ -122,6 +139,20 @@ def preparar_disparo_email(evento_id):
 
 def _email_usuario_logado():
  return session.get("usuario_email") or session.get("email") or "sistema"
+
+def _url_logo_email():
+ return (
+  os.getenv("EMAIL_MARKETING_LOGO_URL")
+  or "https://o3cloud.com.br/wp-content/uploads/2025/04/Ativo-3.png"
+ ).strip()
+
+def _url_publica_storage(caminho):
+ base_url=(
+  os.getenv("EMAIL_MARKETING_PUBLIC_BASE_URL")
+  or current_app.config.get("PUBLIC_BASE_URL")
+  or request.url_root.rstrip("/")
+ )
+ return base_url.rstrip()+caminho
 
 def _dados_participante_form():
  return {"nome":(request.form.get("nome") or "").strip()[:150],"telefone":digits(request.form.get("telefone"))[:30],"email":(request.form.get("email") or "").strip().lower()[:150],"empresa":(request.form.get("empresa") or "").strip()[:150],"cnpj":cnpj(request.form.get("cnpj"))}

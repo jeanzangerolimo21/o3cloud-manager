@@ -49,3 +49,12 @@ A aplicação utiliza rotação diária com retenção padrão de 30 arquivos. O
 - Inicialização do backend.
 
 A auditoria funcional permanece separada e continua responsável por registrar ações de negócio, como criação, alteração, aprovação e inativação.
+
+
+## Permissões e serviço
+
+A aplicação deve ser executada pelo serviço `o3cloud-manager.service`, que roda como `User=o3cloud` e `Group=o3cloud`.
+
+Não iniciar `python app.py` como `root`, pois o processo que cria ou rotaciona os arquivos define o proprietário dos logs. Se a aplicação for iniciada por `root`, arquivos como `access.log` e `application.log` podem voltar a ficar `root:root`.
+
+A instalação do serviço corrige as permissões em `/opt/o3cloud-manager/logs` antes de reiniciar o daemon.

@@ -1,0 +1,22 @@
+[Unit]
+Description=O3Cloud Manager Flask application
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=o3cloud
+Group=o3cloud
+WorkingDirectory=/opt/o3cloud-manager
+Environment=PATH=/opt/o3cloud-manager/venv/bin
+Environment=FLASK_ENV=production
+Environment=O3_LOG_DIR=/opt/o3cloud-manager/logs
+ExecStart=/opt/o3cloud-manager/venv/bin/gunicorn --workers 3 --timeout 300 --bind 0.0.0.0:5000 --access-logfile - --error-logfile - wsgi:app
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+SyslogIdentifier=o3cloud-manager
+
+[Install]
+WantedBy=multi-user.target

@@ -5,7 +5,7 @@
 
   <div class="alert alert-info d-flex gap-2 align-items-start">
     <i class="bi bi-info-circle-fill"></i>
-    <div>Os agendamentos abaixo apenas controlam a periodicidade. A execução periódica deve chamar o comando <code>flask sincronismos-processar-agendados</code> no servidor.</div>
+    <div>Os agendamentos abaixo controlam a periodicidade. O servidor deve chamar periodicamente <code>O3_LOG_DIR=/tmp/o3cloud-manager-logs venv/bin/flask --app app:create_app sincronismos-processar-agendados --limite 6</code>.</div>
   </div>
 
   <div class="card border-0 shadow-sm mb-4">

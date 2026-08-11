@@ -1,0 +1,6 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# O3Cloud Manager - processa sincronismos agendados salvos no banco.
+# Instalar com: crontab deployment/o3cloud-manager.cron
+*/5 * * * * cd /opt/o3cloud-manager && mkdir -p /tmp/o3cloud-manager-logs && O3_LOG_DIR=/tmp/o3cloud-manager-logs /opt/o3cloud-manager/venv/bin/flask --app app:create_app sincronismos-processar-agendados --limite 6 >> /tmp/o3cloud-manager-logs/sincronismos-cron.log 2>&1

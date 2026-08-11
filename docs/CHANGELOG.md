@@ -1,4 +1,6 @@
 # Changelog
+- Adicionado entrypoint `wsgi.py`, unit file `deployment/o3cloud-manager.service` e script `deployment/install-systemd-service.sh` para executar o O3Cloud Manager via systemd/gunicorn como usuário `o3cloud`, sem `python app.py` em debug.
+- Documentada a operação do daemon em `docs/38-SERVICO-SYSTEMD.md`, incluindo validação, logs e regra para não iniciar a aplicação como `root`.
 
 ## 2026-08-10 - Visao Geral Operacional e Estrutura Sprint 17
 
