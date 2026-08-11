@@ -188,6 +188,7 @@ Junho/2026
 # O3Cloud Manager v3.0
 
 # CHANGELOG
+- Tela de Atualizações passou a consultar GitHub Releases pela API pública, com `GITHUB_TOKEN` opcional, exibindo repositório GitHub, total de releases, release recomendada e changelog resumido quando publicado.
 - Publicada a tag `v0.9.0-beta.1` no remoto e validada a detecção pela tela de Atualizações do Sistema com 1 tag remota encontrada.
 - Adicionado botão `Verificar atualizações` em modo somente leitura, com histórico em `config_atualizacoes_verificacoes`, parsing de tags remotas e release recomendada sem executar instalação.
 - Criada tela `Configurações > Atualizações do Sistema` para a Sprint 21 em modo somente leitura, exibindo branch, commit, tags, remoto, upstream, alterações locais e plano de atualização controlada; adicionada migration `084_permissao_atualizacoes_sistema.sql`.

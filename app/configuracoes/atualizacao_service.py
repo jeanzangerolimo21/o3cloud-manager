@@ -1,7 +1,10 @@
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
+
+import requests
 
 from app.repositories.base_repository import BaseRepository
 
@@ -44,10 +47,16 @@ class AtualizacaoSistemaService:
         )
         try:
             tags_remotas = cls._tags_remotas(estado.get("remoto"))
+            github_repo = cls._github_repo_from_remote(estado.get("remoto"))
+            github_releases = cls._github_releases(github_repo) if github_repo else []
             release_recomendada = cls._release_recomendada(tags_remotas, estado)
+            github_release_recomendada = cls._github_release_recomendada(github_releases, estado)
             payload = {
                 "tags_remotas": tags_remotas[:30],
                 "release_recomendada": release_recomendada,
+                "github_repo": github_repo,
+                "github_releases": github_releases[:20],
+                "github_release_recomendada": github_release_recomendada,
                 "estado": {
                     "branch": estado.get("branch"),
                     "commit_curto": estado.get("commit_curto"),
@@ -59,12 +68,16 @@ class AtualizacaoSistemaService:
             status = "OK"
             mensagem = "Verificação concluída."
             releases_total = len(tags_remotas)
+            github_releases_total = len(github_releases)
         except Exception as erro:
             payload = {"erro": str(erro)[:500]}
             status = "ERRO"
             mensagem = str(erro)[:500]
             release_recomendada = None
+            github_release_recomendada = None
+            github_repo = estado.get("remoto")
             releases_total = 0
+            github_releases_total = 0
         cls.repository.execute(
             """
             UPDATE config_atualizacoes_verificacoes
@@ -72,15 +85,28 @@ class AtualizacaoSistemaService:
                    mensagem=%s,
                    releases_encontradas=%s,
                    release_recomendada=%s,
+                   github_repo=%s,
+                   github_releases_encontradas=%s,
+                   github_release_recomendada=%s,
                    payload_json=%s,
                    finalizado_em=NOW()
              WHERE id=%s
             """,
-            (status, mensagem, releases_total, release_recomendada, json.dumps(payload, ensure_ascii=True), execucao_id),
+            (
+                status,
+                mensagem,
+                releases_total,
+                release_recomendada,
+                github_repo,
+                github_releases_total,
+                github_release_recomendada,
+                json.dumps(payload, ensure_ascii=True),
+                execucao_id,
+            ),
         )
         if status != "OK":
             raise ValueError(mensagem)
-        return f"ATUALIZAÇÕES: OK - {mensagem} {releases_total} tag(s) remota(s) encontrada(s)."
+        return f"ATUALIZAÇÕES: OK - {mensagem} {releases_total} tag(s) remota(s) e {github_releases_total} GitHub Release(s) encontrada(s)."
 
     @classmethod
     def historico_verificacoes(cls):
@@ -128,6 +154,72 @@ class AtualizacaoSistemaService:
             "repo_dir": str(cls.REPO_DIR),
         }
 
+
+
+    @staticmethod
+    def _github_repo_from_remote(remoto):
+        if not remoto:
+            return None
+        remoto = remoto.strip()
+        padroes = (
+            r"github\.com[:/](?P<owner>[^/]+)/(?P<repo>[^/.]+)(?:\.git)?$",
+            r"https://github\.com/(?P<owner>[^/]+)/(?P<repo>[^/.]+)(?:\.git)?$",
+        )
+        for padrao in padroes:
+            match = re.search(padrao, remoto)
+            if match:
+                return f"{match.group('owner')}/{match.group('repo')}"
+        return None
+
+    @classmethod
+    def _github_releases(cls, repo):
+        token = os.getenv("GITHUB_TOKEN") or os.getenv("GITHUB_API_TOKEN")
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "o3cloud-manager-update-checker",
+        }
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        try:
+            resposta = requests.get(f"https://api.github.com/repos/{repo}/releases", headers=headers, timeout=20)
+        except requests.RequestException as erro:
+            raise ValueError("Falha ao consultar GitHub Releases.") from erro
+        if resposta.status_code == 404:
+            raise ValueError("Repositório GitHub não encontrado ou sem permissão de leitura.")
+        if resposta.status_code >= 400:
+            detalhe = ""
+            try:
+                detalhe = (resposta.json().get("message") or "")[:200]
+            except ValueError:
+                detalhe = resposta.text[:200]
+            raise ValueError(f"GitHub API retornou HTTP {resposta.status_code}: {detalhe}")
+        try:
+            dados = resposta.json()
+        except ValueError as erro:
+            raise ValueError("Resposta inválida da API do GitHub.") from erro
+        releases = []
+        for item in dados:
+            releases.append(
+                {
+                    "tag": item.get("tag_name"),
+                    "nome": item.get("name") or item.get("tag_name"),
+                    "draft": bool(item.get("draft")),
+                    "prerelease": bool(item.get("prerelease")),
+                    "publicada_em": item.get("published_at"),
+                    "url": item.get("html_url"),
+                    "body": (item.get("body") or "")[:1200],
+                }
+            )
+        return releases
+
+    @classmethod
+    def _github_release_recomendada(cls, releases, estado):
+        atual = estado.get("tag_atual") or estado.get("ultima_tag")
+        for release in releases:
+            tag = release.get("tag")
+            if tag and tag != atual and not release.get("draft"):
+                return tag
+        return None
 
     @classmethod
     def _tags_remotas(cls, remoto):

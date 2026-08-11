@@ -116,3 +116,49 @@ def test_verificar_atualizacoes_registra_historico(monkeypatch):
     assert chamadas[0][0] == "insert"
     assert chamadas[1][0] == "update"
     assert chamadas[1][1][3] == "v0.9.0-beta.2"
+
+
+
+def test_github_repo_from_remote_parseia_ssh_e_https():
+    assert AtualizacaoSistemaService._github_repo_from_remote("git@github.com:owner/repo.git") == "owner/repo"
+    assert AtualizacaoSistemaService._github_repo_from_remote("https://github.com/owner/repo.git") == "owner/repo"
+
+
+def test_github_releases_parseia_resposta(monkeypatch):
+    class Resposta:
+        status_code = 200
+        text = ""
+
+        @staticmethod
+        def json():
+            return [
+                {
+                    "tag_name": "v0.9.0-beta.1",
+                    "name": "Beta 1",
+                    "draft": False,
+                    "prerelease": True,
+                    "published_at": "2026-08-11T16:00:00Z",
+                    "html_url": "https://github.com/owner/repo/releases/tag/v0.9.0-beta.1",
+                    "body": "Changelog inicial",
+                }
+            ]
+
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_API_TOKEN", raising=False)
+    monkeypatch.setattr("requests.get", lambda *args, **kwargs: Resposta())
+
+    releases = AtualizacaoSistemaService._github_releases("owner/repo")
+
+    assert releases[0]["tag"] == "v0.9.0-beta.1"
+    assert releases[0]["nome"] == "Beta 1"
+    assert releases[0]["prerelease"] is True
+    assert releases[0]["body"] == "Changelog inicial"
+
+
+def test_github_release_recomendada_ignora_tag_atual():
+    releases = [
+        {"tag": "v0.9.0-beta.1", "draft": False},
+        {"tag": "v0.9.0-beta.2", "draft": False},
+    ]
+
+    assert AtualizacaoSistemaService._github_release_recomendada(releases, {"tag_atual": "v0.9.0-beta.1"}) == "v0.9.0-beta.2"
