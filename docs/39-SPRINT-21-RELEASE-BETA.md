@@ -64,6 +64,7 @@ Status inicial de release:
 
 - Tag `v0.9.0-beta.1` criada e publicada no remoto em 11/08/2026 a partir do commit `6f78d62`.
 - Verificação pela tela encontrou 1 tag remota após publicação. A consulta de GitHub Releases está funcional, mas ainda retornou 0 releases porque a release da tag não foi publicada no GitHub.
+- Tag `v0.9.0-beta.2` criada e publicada a partir do commit `55fb2ee`, contendo a integração de consulta a GitHub Releases. Verificação encontrou 2 tags remotas e 0 GitHub Releases publicadas.
 
 Regras:
 
