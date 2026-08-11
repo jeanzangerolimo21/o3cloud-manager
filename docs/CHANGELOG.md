@@ -1,4 +1,6 @@
 # Changelog
+- Aberto planejamento da Sprint 21 - Release Beta, Backup e Atualizacoes, documentando arquitetura Beta, estrategia de branches/releases, backup/restore e atualizacoes do sistema.
+- Criados `docs/39-SPRINT-21-RELEASE-BETA.md`, `docs/40-ARQUITETURA-BETA.md`, `docs/41-BACKUP-RESTORE.md` e `docs/42-ATUALIZACOES-SISTEMA.md`.
 - Adicionado entrypoint `wsgi.py`, unit file `deployment/o3cloud-manager.service` e script `deployment/install-systemd-service.sh` para executar o O3Cloud Manager via systemd/gunicorn como usuário `o3cloud`, sem `python app.py` em debug.
 - Documentada a operação do daemon em `docs/38-SERVICO-SYSTEMD.md`, incluindo validação, logs e regra para não iniciar a aplicação como `root`.
 

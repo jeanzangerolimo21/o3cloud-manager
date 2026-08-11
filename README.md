@@ -101,6 +101,10 @@ Arquivos operacionais:
 deployment/o3cloud-manager.service
 deployment/install-systemd-service.sh
 docs/38-SERVICO-SYSTEMD.md
+docs/39-SPRINT-21-RELEASE-BETA.md
+docs/40-ARQUITETURA-BETA.md
+docs/41-BACKUP-RESTORE.md
+docs/42-ATUALIZACOES-SISTEMA.md
 ```
 
 Instalação como `root`:

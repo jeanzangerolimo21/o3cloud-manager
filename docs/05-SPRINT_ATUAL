@@ -4,121 +4,141 @@
 
 Versao: 3.0 Alpha
 
-Ultima atualizacao: 10/08/2026
+Ultima atualizacao: 11/08/2026
 
-Status: Oficial
+Status: Planejamento
 
 ---
 
 # Sprint Registrada
 
-## Sprint 20
+## Sprint 21
 
-Modulo de Relatorios Customizaveis
+Release Beta, Backup e Atualizações
 
 Status:
 
-Concluida tecnicamente em 10/08/2026
+Planejada antes do desenvolvimento
 
 ---
 
 # Contexto
 
-A Sprint 20 foi aberta para criar um modulo central de Relatorios Customizaveis sem SQL livre, preservando seguranca por catalogo de fontes e permissoes.
+A Sprint 20 foi concluida tecnicamente em 10/08/2026 com Relatorios Customizaveis, jobs, retencao de cache e sincronismos agendados.
 
-Ela foi concluida tecnicamente em 10/08/2026, incorporando tambem itens administrativos ligados ao uso operacional dos relatorios: jobs de exportacao, retencao de cache e sincronismos agendados.
+A Sprint 21 foi aberta para preparar a release Beta do O3Cloud Manager, com foco em operacao segura, backup, restore, versionamento, atualizacoes controladas e migracao dos dados reais existentes para um ambiente Beta.
+
+Esta sprint deve ser documentada antes da implementacao das telas e scripts, para evitar que backup e atualizacao sejam construidos de forma improvisada.
 
 Documentos de referencia:
 
-- `docs/35-FECHAMENTO-SPRINT-18.md`
-- `docs/36-LOGS-BACKEND.md`
+- `docs/39-SPRINT-21-RELEASE-BETA.md`
+- `docs/40-ARQUITETURA-BETA.md`
+- `docs/41-BACKUP-RESTORE.md`
+- `docs/42-ATUALIZACOES-SISTEMA.md`
+- `docs/38-SERVICO-SYSTEMD.md`
 - `docs/37-FECHAMENTO-SPRINT-20.md`
-- `docs/17-SPRINTS.md`
-- `docs/12-DER.md`
-- `docs/13-MODELO-FISICO-DADOS.md`
+- `docs/36-LOGS-BACKEND.md`
 - `docs/CHANGELOG.md`
 
 ---
 
 # Objetivo da Sprint
 
-Entregar um modulo de Relatorios Customizaveis seguro, permitindo que usuarios autorizados criem, salvem, executem, exportem e imprimam relatorios por fonte de dados autorizada.
+Preparar o O3Cloud Manager para operacao Beta com arquitetura de deploy, backup, restore, versionamento e atualizacao controlada, preservando o banco e o storage com dados reais ja existentes.
 
 ---
 
-# Escopo Implementado
+# Escopo Planejado
 
-## 1. Relatorios Customizaveis
-
-Status:
-
-Concluido tecnicamente
-
-Entregas:
-
-- Modulo `app/relatorios` criado com catalogo de fontes autorizadas.
-- Builder com selecao de campos, filtros, ordenacao, agrupamentos, agregacoes e previa.
-- Modelos salvos com visibilidade PRIVADO, PERFIL e GLOBAL.
-- Historico de execucoes em `relatorios_execucoes`.
-- Exportacoes CSV, XLSX, DOCX e PDF, alem de impressao HTML.
-- Protecao contra SQL livre por validacao de fonte, campo, operador e parametros.
-
-## 2. Jobs e Operacao
+## 1. Arquitetura Beta
 
 Status:
 
-Concluido tecnicamente
+Planejado
 
-Entregas:
+Entregas previstas:
 
-- Fila `relatorios_jobs` para geracao assincrona controlada.
-- Armazenamento de arquivos em `storage/relatorios`.
-- Comando CLI `flask relatorios-processar-jobs`.
-- Tentativa de envio de link por e-mail ao usuario solicitante quando SMTP estiver configurado.
+- Definir topologia recomendada para Beta.
+- Avaliar separacao entre servidor de aplicacao e servidor de banco.
+- Definir volume dedicado para `/opt/o3cloud-manager/storage`.
+- Documentar variaveis de ambiente e servicos necessarios.
 
-## 3. Retencao de Cache
-
-Status:
-
-Concluido tecnicamente
-
-Entregas:
-
-- Tela Configuracoes > Retencao de Cache.
-- Politicas por cache de 30 a 365 dias.
-- Limpeza por retencao, limpeza total e historico de execucoes.
-
-## 4. Sincronismos Agendados
+## 2. Branches, Tags e Releases
 
 Status:
 
-Concluido tecnicamente
+Planejado
 
-Entregas:
+Entregas previstas:
 
-- Tela Configuracoes > Automacoes de Sincronismo.
-- Agendamentos para Omie, Zabbix, Proxmox, ClickSign, PBS e TrueNAS.
-- Comando CLI `flask sincronismos-processar-agendados`.
+- Definir uso de `develop`, `beta`, `main` e tags.
+- Definir padrao de tags `v0.9.x-beta.x` e `v1.x.x`.
+- Documentar fluxo de promocao `develop -> beta -> main`.
+
+## 3. Backup e Restore
+
+Status:
+
+Planejado
+
+Entregas previstas:
+
+- Scripts de dump SQL e restore SQL.
+- Backup compactado de storage.
+- Historico de backups.
+- Periodicidade e retencao.
+- Destinos local, SFTP/SSH, S3 compativel e NAS/caminho montado.
+
+## 4. Configuracoes > Backups
+
+Status:
+
+Planejado
+
+Entregas previstas:
+
+- Tela administrativa para gerar backup agora.
+- Configuracao de periodicidade.
+- Selecao/teste de destino.
+- Historico, status, tamanho, duracao e erro resumido.
+
+## 5. Configuracoes > Atualizacoes do Sistema
+
+Status:
+
+Planejado
+
+Entregas previstas:
+
+- Exibir versao atual, branch, commit e tag.
+- Consultar releases no GitHub.
+- Exibir changelog da release.
+- Preparar atualizacao com backup obrigatorio.
+- Registrar historico de atualizacoes.
+
+## 6. Migracao para Beta
+
+Status:
+
+Planejado
+
+Entregas previstas:
+
+- Dump SQL do ambiente atual.
+- Restore no servidor Beta.
+- Migracao de `/opt/o3cloud-manager/storage`.
+- Validacao de permissoes, migrations e modulos criticos.
 
 ---
 
-# Fora do Escopo
+# Fora do Escopo Inicial
 
-- SQL livre digitado pelo usuario.
-- BI visual completo, dashboards drag-and-drop e pivot table avancado.
-- Automacoes destrutivas em infraestrutura.
-- Carga financeira definitiva sem validacao oficial da equipe.
-
----
-
-# Criterios de Aceite
-
-- Somente usuarios autorizados acessam Relatorios.
-- Fontes e campos sao disponibilizados por catalogo autorizado.
-- Usuario consegue selecionar campos, filtrar, ordenar, agrupar, calcular, salvar modelo, executar, exportar e imprimir.
-- Exportacoes CSV, XLSX, DOCX e PDF funcionam com identificacao O3Cloud.
-- Execucoes sao registradas e consultas nao aceitam SQL arbitrario.
-- Documentacao, DER, modelo fisico e CHANGELOG ficam atualizados.
+- Alta disponibilidade.
+- Replicacao de banco em tempo real.
+- Rollback totalmente automatizado pela interface.
+- CI/CD completo com deploy automatico em producao.
+- Backup imutavel/WORM.
 
 ---
 
@@ -130,20 +150,16 @@ Versao:
 
 Sprint Atual:
 
-20
+21
 
 Situacao:
 
-Concluida tecnicamente em 10/08/2026
+Planejada antes do desenvolvimento
 
 Sprint anterior:
 
-- `docs/35-FECHAMENTO-SPRINT-18.md`
-
-Documento de fechamento:
-
 - `docs/37-FECHAMENTO-SPRINT-20.md`
 
-Pendencias para a release Beta:
+Documento principal da Sprint 21:
 
-- Validacao assistida com usuarios, perfis, dados reais controlados, SMTP homologado e evidencias de aceite.
+- `docs/39-SPRINT-21-RELEASE-BETA.md`
