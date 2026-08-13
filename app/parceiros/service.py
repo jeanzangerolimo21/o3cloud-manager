@@ -5,7 +5,7 @@ from app.utils.telefone import formatar_telefone
 class ParceiroService:
 
     @classmethod
-    def listar(cls, pesquisa=None, status_negociacao=None, ativo=None, pagina=1):
+    def listar(cls, pesquisa=None, status_negociacao=None, ativo=None, executivo_id=None, pagina=1):
         limit = 50
         offset = (pagina - 1) * limit
 
@@ -13,6 +13,7 @@ class ParceiroService:
             pesquisa=pesquisa,
             status_negociacao=status_negociacao,
             ativo=ativo,
+            executivo_id=executivo_id,
             limit=limit,
             offset=offset
         )
@@ -20,7 +21,8 @@ class ParceiroService:
         total = ParceiroRepository.total(
             pesquisa=pesquisa,
             status_negociacao=status_negociacao,
-            ativo=ativo
+            ativo=ativo,
+            executivo_id=executivo_id
         )
 
         return [cls._formatar_telefones(parceiro) for parceiro in parceiros], total
@@ -54,6 +56,7 @@ class ParceiroService:
         dados["contato_2_telefone"] = formatar_telefone(dados.get("contato_2_telefone"))
         dados["contato_3_telefone"] = formatar_telefone(dados.get("contato_3_telefone"))
         dados["sigla"] = (dados.get("sigla") or "").strip().upper() or None
+        dados["premiacao_ativa"] = str(dados.get("premiacao_ativa", "0")) in ("1", "true", "True", "on")
         return dados
 
     @classmethod

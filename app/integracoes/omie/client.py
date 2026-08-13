@@ -9,6 +9,10 @@ class OmieClient:
 
     BASE_CONTRATOS = "https://app.omie.com.br/api/v1/servicos/contrato/"
     BASE_CLIENTES = "https://app.omie.com.br/api/v1/geral/clientes/"
+    BASE_PROJETOS = "https://app.omie.com.br/api/v1/geral/projetos/"
+    BASE_VENDEDORES = "https://app.omie.com.br/api/v1/geral/vendedores/"
+    BASE_CONTAS_RECEBER = "https://app.omie.com.br/api/v1/financas/contareceber/"
+    BASE_CATEGORIAS = "https://app.omie.com.br/api/v1/geral/categorias/"
 
     def __init__(self):
 
@@ -69,7 +73,80 @@ class OmieClient:
             {
                 "pagina": pagina,
                 "registros_por_pagina": 100,
-                "apenas_importado_api": "N"
+                "apenas_importado_api": "N",
+                "cExibeObs": "S"
             }
+
+        )
+
+    # -----------------------------------------
+    # CADASTROS AUXILIARES
+    # -----------------------------------------
+
+    def listar_vendedores(self, pagina=1):
+
+        return self._post(
+
+            self.BASE_VENDEDORES,
+
+            "ListarVendedores",
+
+            {
+                "pagina": pagina,
+                "registros_por_pagina": 100
+            }
+
+        )
+
+    def listar_projetos(self, pagina=1):
+
+        return self._post(
+
+            self.BASE_PROJETOS,
+
+            "ListarProjetos",
+
+            {
+                "pagina": pagina,
+                "registros_por_pagina": 100
+            }
+
+        )
+
+    # -----------------------------------------
+    # FINANCEIRO
+    # -----------------------------------------
+
+    def listar_categorias(self, pagina=1):
+
+        return self._post(
+
+            self.BASE_CATEGORIAS,
+
+            "ListarCategorias",
+
+            {
+                "pagina": pagina,
+                "registros_por_pagina": 100
+            }
+
+        )
+
+    def listar_contas_receber(self, pagina=1, filtros=None):
+
+        params = {
+            "pagina": pagina,
+            "registros_por_pagina": 100,
+        }
+        if filtros:
+            params.update(filtros)
+
+        return self._post(
+
+            self.BASE_CONTAS_RECEBER,
+
+            "ListarContasReceber",
+
+            params
 
         )

@@ -532,9 +532,13 @@ Versão:
 
 3.0 Alpha
 
-Sprint:
+Última sprint encerrada:
 
-10 em andamento
+Sprint 21 - Release Beta, Backup e Atualizações, concluída tecnicamente em 12/08/2026.
+
+Sprint atual:
+
+Sprint 17 - Comissões de Executivos e Expansão da Sincronização Financeira OMIE, retomada em 12/08/2026.
 
 Status Geral:
 
@@ -542,7 +546,7 @@ Status Geral:
 
 Próxima Entrega:
 
-Dashboard Executivo com filtros executivos por período, parceiro, executivo e status.
+Adaptação de Regras Campanhas para exibir contratos ativos com início de vigência dentro do intervalo da campanha, sem filtrar a visualização geral quando não houver campanha cadastrada.
 
 
 

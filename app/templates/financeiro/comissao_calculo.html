@@ -1,0 +1,86 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">Cálculo de Premiação</h2>
+            <p class="text-muted mb-0">{{ contrato.cliente_nome }} · Contrato {{ contrato.contrato_numero }}</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.comissoes', campanha_id=contrato.campanha_id) }}"><i class="bi bi-arrow-left"></i> Premiações</a>
+            <a class="btn btn-outline-secondary" href="{{ url_for('contratos.view', contrato_id=contrato.contrato_id) }}"><i class="bi bi-file-earmark-text"></i> Contrato</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white"><strong>Dados para cálculo</strong></div>
+                <div class="card-body">
+                    <form method="POST" class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Campanha aplicada</label>
+                            <select class="form-select" name="campanha_id" onchange="window.location='{{ url_for('financeiro.calcular_comissao', contrato_id=contrato.contrato_id) }}?campanha_id=' + this.value">
+                                {% if not campanhas %}<option value="">Nenhuma campanha pela vigência</option>{% endif %}
+                                {% for campanha in campanhas %}
+                                <option value="{{ campanha.id }}" {% if contrato.campanha_id == campanha.id %}selected{% endif %}>{{ campanha.nome }} - P {{ ('%.2f'|format(campanha.percentual_parceiro or 0)).replace('.', ',') }}% / E {{ ('%.2f'|format(campanha.percentual_executivo or 0)).replace('.', ',') }}%</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Valor manual base</label>
+                            <input class="form-control" name="valor_manual_base" value="{{ valor_manual_base or '' }}" placeholder="Ex.: 1.250,00">
+                            <div class="form-text">Quando preenchido com valor maior que zero, substitui a base do contrato somente neste cálculo. A conferência financeira considera apenas o primeiro título/parcela.</div>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end">
+                            <button class="btn btn-primary"><i class="bi bi-calculator"></i> Calcular Premiação</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white"><strong>Resultado</strong></div>
+                <div class="card-body">
+                    {% if calculo %}
+                    <small class="text-muted">Premiação calculada</small>
+                    <h2 class="mb-3">{{ calculo.valor_comissao|moeda }}</h2>
+                    <div class="d-flex justify-content-between border-bottom py-2"><span>Base usada</span><strong>{{ calculo.valor_base_calculo|moeda }}</strong></div>
+                    <div class="d-flex justify-content-between border-bottom py-2"><span>Parceiro</span><strong>{{ calculo.valor_premiacao_parceiro|moeda }} · {{ ('%.2f'|format(calculo.percentual_parceiro or 0)).replace('.', ',') }}%</strong></div>
+                    <div class="d-flex justify-content-between border-bottom py-2"><span>Executivo</span><strong>{{ calculo.valor_premiacao_executivo|moeda }} · {{ ('%.2f'|format(calculo.percentual_executivo or 0)).replace('.', ',') }}%</strong></div>
+                    <div class="d-flex justify-content-between py-2"><span>Origem da base</span><strong>{{ 'Manual' if calculo.usou_valor_manual else 'Contrato' }}</strong></div>
+                    {% else %}
+                    <div class="text-muted">Informe o valor manual base quando necessário e execute o cálculo para visualizar a premiação paga.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Base do contrato</small><h5 class="mb-0">{{ contrato.valor_base_comissao|moeda }}</h5></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Recebido elegível</small><h5 class="mb-0">{{ contrato.valor_recebido_elegivel|moeda }}</h5></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Atrasado</small><h5 class="mb-0 {% if contrato.valor_atrasado %}text-danger{% endif %}">{{ contrato.valor_atrasado|moeda }}</h5></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Status financeiro</small><h5 class="mb-0">{{ contrato.status_pagamento|replace('_', ' ')|title }}</h5></div></div></div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white"><strong>Conferência do contrato</strong></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3"><strong>Contrato</strong><br><span class="font-monospace">{{ contrato.contrato_numero }}</span></div>
+                <div class="col-md-3"><strong>Cliente</strong><br>{{ contrato.cliente_nome or '-' }}</div>
+                <div class="col-md-3"><strong>Vendedor</strong><br>{{ contrato.vendedor_nome or contrato.codigo_vendedor or '-' }}</div>
+                <div class="col-md-3"><strong>Projeto</strong><br>{{ contrato.projeto_nome or contrato.codigo_projeto or '-' }}</div>
+                <div class="col-md-3"><strong>Vigência</strong><br>{{ contrato.inicio_vigencia|date_br if contrato.inicio_vigencia else '-' }} até {{ contrato.fim_vigencia|date_br if contrato.fim_vigencia else '-' }}</div>
+                <div class="col-md-3"><strong>Campanha</strong><br>{{ contrato.campanha_nome or '-' }}</div>
+                <div class="col-md-3"><strong>Parceiro premiado</strong><br>{{ contrato.parceiro_premiacao_nome or '-' }}{% if contrato.parceiro_premiacao_nome %}<br><small class="text-muted">{{ ('%.2f'|format(contrato.percentual_parceiro_aplicado or 0)).replace('.', ',') }}%</small>{% endif %}</div>
+                <div class="col-md-3"><strong>Executivo premiado</strong><br>{{ contrato.executivo_premiacao_nome or '-' }}{% if contrato.executivo_premiacao_nome %}<br><small class="text-muted">{{ ('%.2f'|format(contrato.percentual_executivo_aplicado or 0)).replace('.', ',') }}%</small>{% endif %}</div>
+                <div class="col-md-3"><strong>Primeiro título</strong><br>{{ 'Localizado' if contrato.recebimentos_total else 'Não localizado' }}{% if contrato.recebimentos_excluidos %}<br><small class="text-muted">Categoria excluída</small>{% endif %}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

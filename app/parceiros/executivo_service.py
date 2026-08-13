@@ -60,8 +60,29 @@ class ParceiroExecutivoService:
             raise ValueError("Executivo não encontrado.")
 
         dados = cls.normalizar(dados)
-        cls.validar(dados)
+        cls.validar(dados, executivo_id=executivo_id)
         return cls.repository.atualizar(executivo_id, dados)
+
+    @classmethod
+    def atualizar_premiacao(cls, executivo_id, premiacao_ativa):
+        executivo = cls.buscar_por_id(executivo_id)
+
+        if not executivo:
+            raise ValueError("Executivo não encontrado.")
+
+        if str(premiacao_ativa) not in ("0", "1"):
+            raise ValueError("Status de premiação inválido.")
+
+        return cls.repository.atualizar_premiacao(executivo_id, str(premiacao_ativa) == "1")
+
+    @classmethod
+    def excluir(cls, executivo_id):
+        executivo = cls.buscar_por_id(executivo_id)
+
+        if not executivo:
+            raise ValueError("Executivo não encontrado.")
+
+        return cls.repository.excluir(executivo_id)
 
     @classmethod
     def normalizar(cls, dados):
@@ -71,12 +92,13 @@ class ParceiroExecutivoService:
         dados["telefone"] = formatar_telefone(dados.get("telefone"))
         dados["chave_pix"] = (dados.get("chave_pix") or "").strip()
         dados["informacoes_pagamento"] = ((dados.get("informacoes_pagamento") or "").strip())
+        dados["premiacao_ativa"] = str(dados.get("premiacao_ativa", "0")) == "1"
         dados["parceiro_id"] = cls._normalizar_inteiro(dados.get("parceiro_id"))
         dados["ativo"] = str(dados.get("ativo", "1")) == "1"
         return dados
 
     @classmethod
-    def validar(cls, dados):
+    def validar(cls, dados, executivo_id=None):
         if not dados["nome"]:
             raise ValueError("Nome completo é obrigatório.")
 
@@ -94,6 +116,10 @@ class ParceiroExecutivoService:
 
         if dados["informacoes_pagamento"] and len(dados["informacoes_pagamento"]) > 2000:
             raise ValueError("Informações de pagamento devem possuir no máximo 2000 caracteres.")
+
+        duplicado = cls.repository.buscar_duplicado(dados["nome"], dados.get("email"), ignorar_id=executivo_id)
+        if duplicado:
+            raise ValueError("Executivo já cadastrado. Verifique o cadastro existente antes de criar outro registro igual.")
 
         if dados["parceiro_id"]:
             parceiro = ParceiroRepository.buscar_por_id(dados["parceiro_id"])

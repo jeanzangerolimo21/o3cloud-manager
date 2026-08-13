@@ -20,7 +20,7 @@
                 </form>
             {% endif %}
             {% if contrato.arquivo_assinado %}
-                <a href="{{ url_for('contratos.download', contrato_id=contrato.id) }}" class="btn btn-success"><i class="bi bi-download"></i> Download assinado</a>
+                <a href="{{ url_for('contratos.abrir', contrato_id=contrato.id) }}" class="btn btn-success" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Abrir contrato</a>
             {% endif %}
         </div>
     </div>
@@ -32,6 +32,7 @@
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <div>
                 <h3 class="mb-0">{{ contrato.cliente_razao_social or contrato.cliente_nome }}</h3>
+                {% if contrato.cliente_nome and contrato.cliente_nome != contrato.cliente_razao_social %}<div class="text-muted">{{ contrato.cliente_nome }}</div>{% endif %}
                 <small class="text-muted">{{ contrato.cliente_cnpj|cnpj_br if contrato.cliente_cnpj else 'CNPJ nao informado' }} · Contrato {{ contrato.numero }}</small>
             </div>
             <div class="d-flex gap-2">
@@ -41,7 +42,10 @@
         </div>
         <div class="card-body">
             <div class="row g-4">
+                <div class="col-md-3"><strong>Razão Social</strong><br>{{ contrato.cliente_razao_social or '-' }}</div>
+                <div class="col-md-3"><strong>Nome Fantasia</strong><br>{{ contrato.cliente_nome or '-' }}</div>
                 <div class="col-md-3"><strong>Fechamento</strong><br>{{ contrato.data_fechamento|date_br if contrato.data_fechamento else '-' }}</div>
+                <div class="col-md-3"><strong>Vigência</strong><br>{{ contrato.inicio_vigencia|date_br if contrato.inicio_vigencia else '-' }} até {{ contrato.fim_vigencia|date_br if contrato.fim_vigencia else '-' }}</div>
                 <div class="col-md-3"><strong>Recorrencia</strong><br>{{ (contrato.valor_promocional or contrato.valor_mensal)|moeda }}</div>
                 <div class="col-md-3"><strong>Setup + Projeto</strong><br>{{ ((contrato.valor_setup or 0) + (contrato.valor_projeto or 0))|moeda }}</div>
                 <div class="col-md-3"><strong>Usuarios</strong><br>{{ contrato.quantidade_usuarios or '-' }}</div>
@@ -52,13 +56,24 @@
             </div>
 
             <hr>
+            <h5>Informações Comerciais</h5>
+            <div class="row g-4">
+                <div class="col-md-3"><strong>Vendedor OMIE</strong><br>{{ contrato.vendedor_nome or contrato.codigo_vendedor or '-' }}</div>
+                <div class="col-md-3"><strong>Projeto OMIE</strong><br>{{ contrato.projeto_nome or contrato.codigo_projeto or '-' }}</div>
+                <div class="col-md-2"><strong>Valor Bruto</strong><br>{{ contrato.valor_servicos_bruto|moeda if contrato.valor_servicos_bruto is not none else '-' }}</div>
+                <div class="col-md-2"><strong>Descontos</strong><br>{{ contrato.valor_descontos|moeda if contrato.valor_descontos is not none else '-' }}</div>
+                <div class="col-md-2"><strong>Valor Líquido</strong><br>{{ contrato.valor_servicos_liquido|moeda if contrato.valor_servicos_liquido is not none else '-' }}</div>
+                <div class="col-12"><strong>Observações do Contrato OMIE</strong><br><span class="text-muted">{{ contrato.observacao_contrato or 'Sem observações do contrato.' }}</span></div>
+            </div>
+
+            <hr>
             <div class="row g-4">
                 <div class="col-md-6">
                     <h5>Contrato assinado</h5>
                     {% if contrato.arquivo_assinado %}
                         <p class="mb-1">{{ contrato.arquivo_assinado_original or contrato.arquivo_assinado }}</p>
                         <p class="text-muted mb-2">Assinado em: {{ contrato.clicksign_assinado_em|datetime_br if contrato.clicksign_assinado_em else '-' }}</p>
-                        <a class="btn btn-success" href="{{ url_for('contratos.download', contrato_id=contrato.id) }}"><i class="bi bi-download"></i> Download</a>
+                        <div class="d-flex gap-2 flex-wrap"><a class="btn btn-success" href="{{ url_for('contratos.abrir', contrato_id=contrato.id) }}" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Abrir contrato</a><a class="btn btn-outline-secondary" href="{{ url_for('contratos.download', contrato_id=contrato.id) }}"><i class="bi bi-download"></i> Download</a></div>
                     {% else %}
                         <form method="POST" enctype="multipart/form-data" action="{{ url_for('contratos.upload_assinado', contrato_id=contrato.id) }}" class="d-flex gap-2">
                             <input class="form-control" type="file" name="arquivo_assinado" accept="application/pdf,.pdf" required>
@@ -79,10 +94,10 @@
             <div class="card-header bg-white"><strong>Escopo Comercial do Omie</strong></div>
             <div class="table-responsive">
                 <table class="table table-sm table-hover mb-0">
-                    <thead><tr><th>Descricao</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th></tr></thead>
+                    <thead><tr><th>Descricao</th><th>Qtd</th><th>Valor Unit.</th><th>Desconto</th><th>Total</th></tr></thead>
                     <tbody>
                         {% for item in itens %}
-                            <tr><td>{{ item.descricao }}</td><td>{{ item.quantidade }}</td><td>{{ item.valor_unitario|moeda }}</td><td>{{ item.valor_total|moeda }}</td></tr>
+                            <tr><td>{{ item.descricao }}</td><td>{{ item.quantidade }}</td><td>{{ item.valor_unitario|moeda }}</td><td>{{ item.desconto|moeda }}</td><td>{{ item.valor_total|moeda }}</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

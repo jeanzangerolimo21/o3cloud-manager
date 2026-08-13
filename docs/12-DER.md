@@ -51,12 +51,30 @@ Cliente
         ▼
 Contrato
         │
-        ├──────────────┐
-        ▼              ▼
- Receita         Contrato Detalhes
-                        │
-                        ▼
-                  Licenças O3Web
+        ├──────────────┬────────────────────┬────────────────────┐
+        ▼              ▼                    ▼                    ▼
+ Receita         Contrato Detalhes   Dados Comerciais OMIE  Recebimentos OMIE
+                        │                    │
+                        ▼                    ▼
+                  Licenças O3Web      Vendedor, Projeto,
+                                      Bruto, Desconto, Líquido
+
+Contrato
+   │
+   │ N:N via ambiente_contratos
+   ▼
+Ambiente
+   │
+   │ N:N via ambiente_proxmox_recursos
+   ▼
+Recurso Proxmox
+   │
+   │ N:1 por integracao_id + node
+   ▼
+Node Proxmox
+   │
+   ▼
+Receita por Servidor
 
 __________________________________________________________________________________________
 Dominio Infraestrutura

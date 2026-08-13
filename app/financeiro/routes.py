@@ -11,6 +11,7 @@ from flask import request
 from flask import session
 from flask import url_for
 
+from app.configuracoes.sincronismos_service import SincronismosAgendadosService
 from app.financeiro.inadimplencias_service import InadimplenciaService
 from app.financeiro.service import FinanceiroService
 
@@ -31,27 +32,113 @@ def dashboard():
     )
 
 
-@financeiro_bp.route("/financeiro/faturamentos", methods=["GET", "POST"])
-def faturamentos():
+@financeiro_bp.route("/financeiro/comissoes")
+def comissoes():
 
-    resumo_importacao = None
+    filtros = FinanceiroService.filtros_comissoes(request.args)
+    pagina = max(1, request.args.get("page", 1, type=int))
+    limite = 50
+    resumo = FinanceiroService.resumo_comissoes_contratos(filtros)
+    total = int(resumo.get("total") or 0)
+    total_paginas = max(1, (total + limite - 1) // limite)
+    if pagina > total_paginas:
+        pagina = total_paginas
 
+    return render_template(
+        "financeiro/comissoes.html",
+        comissoes=FinanceiroService.listar_comissoes_contratos(filtros, pagina=pagina, limite=limite),
+        resumo=resumo,
+        filtros=filtros,
+        campanhas=FinanceiroService.listar_campanhas_comissao(),
+        campanha_selecionada=FinanceiroService.buscar_campanha_comissao(filtros.get("campanha_id")),
+        status_options=FinanceiroService.status_comissoes(),
+        pagina=pagina,
+        total_paginas=total_paginas,
+        total=total,
+    )
+
+
+@financeiro_bp.route("/financeiro/comissoes/<int:contrato_id>/calcular", methods=["GET", "POST"])
+def calcular_comissao(contrato_id):
+
+    campanha_id = request.args.get("campanha_id", type=int) or request.form.get("campanha_id", type=int)
+    contrato = FinanceiroService.buscar_comissao_contrato(contrato_id, campanha_id)
+    if not contrato:
+        flash("Contrato ativo não encontrado para cálculo de premiação.", "danger")
+        return redirect(url_for("financeiro.comissoes"))
+
+    if not contrato.get("premiacao_liberada"):
+        flash("Contrato sem parceiro ou executivo habilitado para premiação.", "warning")
+        destino = url_for("financeiro.comissoes", campanha_id=campanha_id) if campanha_id else url_for("financeiro.comissoes")
+        return redirect(destino)
+
+    calculo = None
+    valor_manual_base = request.form.get("valor_manual_base") if request.method == "POST" else ""
     if request.method == "POST":
         try:
-            resumo_importacao = FinanceiroService.importar_faturamentos_csv(request.files.get("arquivo"))
-            if resumo_importacao["erros"]:
-                flash("Importacao concluida com erros. Verifique o resumo abaixo.", "warning")
-            else:
-                flash("Faturamentos importados com sucesso.", "success")
-        except Exception as erro:
+            calculo = FinanceiroService.calcular_comissao_manual(contrato, request.form)
+            flash("Premiação calculada para conferência financeira.", "success")
+        except ValueError as erro:
             flash(str(erro), "danger")
+
+    return render_template(
+        "financeiro/comissao_calculo.html",
+        contrato=contrato,
+        campanhas=FinanceiroService.campanhas_contrato(contrato_id),
+        calculo=calculo,
+        valor_manual_base=valor_manual_base,
+    )
+
+
+@financeiro_bp.route("/financeiro/receitas-servidor")
+def receitas_servidor():
+
+    filtros = FinanceiroService.filtros_receitas_servidor(request.args)
+    dashboard = FinanceiroService.receitas_por_servidor(filtros)
+
+    return render_template(
+        "financeiro/receitas_servidor.html",
+        dashboard=dashboard,
+        filtros=filtros,
+    )
+
+
+@financeiro_bp.route("/financeiro/faturamentos")
+def faturamentos():
+
+    filtros_recebimentos = FinanceiroService.filtros_recebimentos(request.args)
+    pagina_recebimentos = max(1, request.args.get("recebimentos_page", 1, type=int))
+    limite_recebimentos = 50
+    resumo_recebimentos = FinanceiroService.resumo_recebimentos_omie(filtros_recebimentos)
+    total_recebimentos = int(resumo_recebimentos.get("total") or 0)
+    total_paginas_recebimentos = max(1, (total_recebimentos + limite_recebimentos - 1) // limite_recebimentos)
+    if pagina_recebimentos > total_paginas_recebimentos:
+        pagina_recebimentos = total_paginas_recebimentos
 
     return render_template(
         "financeiro/faturamentos.html",
         faturamentos=FinanceiroService.listar_faturamentos(),
         resumo=FinanceiroService.resumo_faturamentos(),
-        resumo_importacao=resumo_importacao,
+        recebimentos=FinanceiroService.listar_recebimentos_omie(filtros_recebimentos, pagina=pagina_recebimentos, limite=limite_recebimentos),
+        resumo_recebimentos=resumo_recebimentos,
+        filtros_recebimentos=filtros_recebimentos,
+        pagina_recebimentos=pagina_recebimentos,
+        total_paginas_recebimentos=total_paginas_recebimentos,
+        total_recebimentos=total_recebimentos,
+        situacoes_recebimentos=FinanceiroService.situacoes_recebimentos_omie(),
     )
+
+
+@financeiro_bp.route("/financeiro/faturamentos/sincronizar-recebimentos-omie", methods=["POST"])
+def sincronizar_recebimentos_omie():
+
+    try:
+        resultado = SincronismosAgendadosService.executar_manual_por_tipo("OMIE_RECEBIMENTOS", _email_usuario_logado())
+    except Exception as erro:
+        flash("Falha ao sincronizar recebimentos OMIE: {}".format(erro), "danger")
+    else:
+        flash(resultado, "success" if ": OK" in resultado else "warning")
+    return redirect(url_for("financeiro.faturamentos"))
 
 
 @financeiro_bp.route("/financeiro/faturamentos/modelo.csv")

@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
+from app.administrativo.aso_service import AdministrativoAsoService
 from app.administrativo.service import AdministrativoService
 from app.core.auditoria import registrar_evento
 
@@ -28,6 +29,116 @@ def index():
     contexto = AdministrativoService.contexto_index(filtros, _usuario_id())
     contexto.update(filtros=filtros, categorias=AdministrativoService.CATEGORIAS, prioridades=AdministrativoService.PRIORIDADES, status_options=AdministrativoService.STATUS)
     return render_template("administrativo/index.html", **contexto)
+
+
+@administrativo_bp.route("/aso")
+def aso():
+    filtros = {"q": request.args.get("q"), "cliente_id": request.args.get("cliente_id"), "status": request.args.get("status")}
+    return render_template("administrativo/aso/index.html", **AdministrativoAsoService.contexto_index(filtros, _usuario_id()))
+
+
+@administrativo_bp.route("/aso/colaboradores/novo", methods=["GET", "POST"])
+def novo_colaborador_aso():
+    contexto = AdministrativoAsoService.contexto_index(usuario_id=_usuario_id())
+    contexto.update(colaborador={"status": "ATIVO"}, modo="novo")
+    if request.method == "POST":
+        try:
+            resultado = AdministrativoAsoService.criar_colaborador(request.form, request.files.getlist("exames"), _usuario_email())
+        except (ValueError, OSError) as erro:
+            flash(str(erro), "danger")
+            contexto["colaborador"] = request.form
+            return render_template("administrativo/aso/form.html", **contexto)
+        colaborador_id = resultado["colaborador_id"]
+        registrar_evento("ADMIN_ASO_COLABORADOR_CRIADO", "administrativo_aso_colaboradores", colaborador_id, {"nome": request.form.get("nome_completo"), "demandas": resultado.get("demanda_ids", [])})
+        flash("Colaborador ASO cadastrado com agendamento na agenda." if resultado.get("demanda_ids") else "Colaborador ASO cadastrado.", "success")
+        return redirect(url_for("administrativo.detalhe_colaborador_aso", colaborador_id=colaborador_id))
+    return render_template("administrativo/aso/form.html", **contexto)
+
+
+@administrativo_bp.route("/aso/colaboradores/<int:colaborador_id>")
+def detalhe_colaborador_aso(colaborador_id):
+    colaborador = AdministrativoAsoService.detalhe_colaborador(colaborador_id)
+    if not colaborador:
+        flash("Colaborador ASO não encontrado.", "danger")
+        return redirect(url_for("administrativo.aso"))
+    contexto = AdministrativoAsoService.contexto_index(usuario_id=_usuario_id())
+    contexto["colaborador"] = colaborador
+    return render_template("administrativo/aso/detalhe.html", **contexto)
+
+
+@administrativo_bp.route("/aso/colaboradores/<int:colaborador_id>/editar", methods=["GET", "POST"])
+def editar_colaborador_aso(colaborador_id):
+    colaborador = AdministrativoAsoService.detalhe_colaborador(colaborador_id)
+    if not colaborador:
+        flash("Colaborador ASO não encontrado.", "danger")
+        return redirect(url_for("administrativo.aso"))
+    contexto = AdministrativoAsoService.contexto_index(usuario_id=_usuario_id())
+    contexto.update(colaborador=colaborador, modo="editar")
+    if request.method == "POST":
+        try:
+            AdministrativoAsoService.atualizar_colaborador(colaborador_id, request.form, request.files.getlist("exames"), _usuario_email())
+        except (ValueError, OSError) as erro:
+            flash(str(erro), "danger")
+            contexto["colaborador"] = {**colaborador, **request.form}
+            return render_template("administrativo/aso/form.html", **contexto)
+        registrar_evento("ADMIN_ASO_COLABORADOR_ATUALIZADO", "administrativo_aso_colaboradores", colaborador_id, {"nome": request.form.get("nome_completo")})
+        flash("Colaborador ASO atualizado.", "success")
+        return redirect(url_for("administrativo.detalhe_colaborador_aso", colaborador_id=colaborador_id))
+    return render_template("administrativo/aso/form.html", **contexto)
+
+
+@administrativo_bp.route("/aso/colaboradores/<int:colaborador_id>/lembretes", methods=["POST"])
+def criar_lembrete_aso(colaborador_id):
+    try:
+        demanda_ids = AdministrativoAsoService.criar_lembrete(colaborador_id, request.form, _usuario_email())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        registrar_evento("ADMIN_ASO_LEMBRETE_CRIADO", "administrativo_aso_lembretes", colaborador_id, {"demandas": demanda_ids})
+        flash("Lembrete ASO criado na agenda.", "success")
+    return redirect(url_for("administrativo.detalhe_colaborador_aso", colaborador_id=colaborador_id))
+
+
+@administrativo_bp.route("/aso/colaboradores/<int:colaborador_id>/exames", methods=["POST"])
+def anexar_exames_aso(colaborador_id):
+    try:
+        AdministrativoAsoService.anexar_exames(colaborador_id, request.files.getlist("exames"))
+    except (ValueError, OSError) as erro:
+        flash(str(erro), "danger")
+    else:
+        registrar_evento("ADMIN_ASO_EXAMES_ANEXADOS", "administrativo_aso_exames", colaborador_id)
+        flash("Arquivo(s) anexado(s).", "success")
+    return redirect(url_for("administrativo.detalhe_colaborador_aso", colaborador_id=colaborador_id))
+
+
+@administrativo_bp.route("/aso/colaboradores/<int:colaborador_id>/exames/<int:exame_id>/excluir", methods=["POST"])
+def excluir_exame_aso(colaborador_id, exame_id):
+    if not _pode_excluir_demanda():
+        flash("Apenas Administrador, Diretoria ou Gestor Administrativo podem excluir arquivos ASO.", "danger")
+        return redirect(url_for("administrativo.detalhe_colaborador_aso", colaborador_id=colaborador_id))
+    try:
+        AdministrativoAsoService.excluir_exame(colaborador_id, exame_id)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        registrar_evento("ADMIN_ASO_EXAME_EXCLUIDO", "administrativo_aso_exames", exame_id, {"colaborador_id": colaborador_id})
+        flash("Arquivo excluído.", "success")
+    return redirect(url_for("administrativo.detalhe_colaborador_aso", colaborador_id=colaborador_id))
+
+
+@administrativo_bp.route("/aso/colaboradores/<int:colaborador_id>/lembretes/<int:lembrete_id>/excluir", methods=["POST"])
+def excluir_lembrete_aso(colaborador_id, lembrete_id):
+    if not _pode_excluir_demanda():
+        flash("Apenas Administrador, Diretoria ou Gestor Administrativo podem excluir agendamentos ASO.", "danger")
+        return redirect(url_for("administrativo.detalhe_colaborador_aso", colaborador_id=colaborador_id))
+    try:
+        AdministrativoAsoService.excluir_lembrete(colaborador_id, lembrete_id, _usuario_email())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        registrar_evento("ADMIN_ASO_LEMBRETE_EXCLUIDO", "administrativo_aso_lembretes", lembrete_id, {"colaborador_id": colaborador_id})
+        flash("Agendamento ASO excluído.", "success")
+    return redirect(url_for("administrativo.detalhe_colaborador_aso", colaborador_id=colaborador_id))
 
 
 @administrativo_bp.route("/demandas/nova", methods=["GET", "POST"])

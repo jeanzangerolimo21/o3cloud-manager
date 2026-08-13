@@ -214,6 +214,14 @@ def download(contrato_id):
     return send_file(caminho, as_attachment=True, download_name=nome, mimetype="application/pdf")
 
 
+@contratos_bp.route("/<int:contrato_id>/abrir")
+def abrir(contrato_id):
+    caminho, nome = ContratoService.caminho_assinado(contrato_id)
+    if not caminho:
+        abort(404)
+    return send_file(caminho, as_attachment=False, download_name=nome, mimetype="application/pdf")
+
+
 @contratos_bp.route("/<int:contrato_id>/excluir")
 def excluir(contrato_id):
     contrato = ContratoRepository.buscar_por_id(contrato_id)

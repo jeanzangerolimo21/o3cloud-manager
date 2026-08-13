@@ -18,6 +18,11 @@ class SincronismosAgendadosService:
             "descricao": "Clientes, contratos e itens comerciais.",
             "icone": "bi-cloud-check",
         },
+        "OMIE_RECEBIMENTOS": {
+            "nome": "Omie - Recebimentos",
+            "descricao": "Contas a Receber recebidas para cache financeiro e comissoes.",
+            "icone": "bi-cash-coin",
+        },
         "ZABBIX": {
             "nome": "Zabbix",
             "descricao": "Hosts e alarmes recentes para cache operacional.",
@@ -94,6 +99,14 @@ class SincronismosAgendadosService:
         return cls._executar(agendamento, usuario_email, manual=True)
 
     @classmethod
+    def executar_manual_por_tipo(cls, tipo, usuario_email):
+        tipo = cls._normalizar_tipo(tipo)
+        agendamento = cls._buscar_por_tipo(tipo)
+        if not agendamento:
+            raise ValueError("Agendamento nao encontrado.")
+        return cls._executar(agendamento, usuario_email, manual=True)
+
+    @classmethod
     def processar_pendentes(cls, limite=5):
         limite = max(1, min(int(limite or 5), 20))
         agendamentos = cls.repository.fetch_all(
@@ -128,6 +141,10 @@ class SincronismosAgendadosService:
     @classmethod
     def _buscar_por_id(cls, agendamento_id):
         return cls.repository.fetch_one("SELECT * FROM config_sincronismos_agendados WHERE id=%s", (agendamento_id,))
+
+    @classmethod
+    def _buscar_por_tipo(cls, tipo):
+        return cls.repository.fetch_one("SELECT * FROM config_sincronismos_agendados WHERE tipo=%s", (tipo,))
 
     @classmethod
     def _executar(cls, agendamento, usuario_email, manual=False):
@@ -174,6 +191,7 @@ class SincronismosAgendadosService:
     def _handler(cls, tipo):
         handlers = {
             "OMIE": cls._sincronizar_omie,
+            "OMIE_RECEBIMENTOS": cls._sincronizar_omie_recebimentos,
             "ZABBIX": cls._sincronizar_zabbix,
             "PROXMOX": cls._sincronizar_proxmox,
             "CLICKSIGN": cls._sincronizar_clicksign,
@@ -199,6 +217,24 @@ class SincronismosAgendadosService:
         return {
             "status": "OK",
             "mensagem": "Sincronismo Omie concluido. Contratos processados: {}.".format(contratos.get("processados", 0)),
+        }
+
+    @staticmethod
+    def _sincronizar_omie_recebimentos(usuario_email):
+        from app.integracoes.omie.sync import OmieSync
+
+        recebimentos = OmieSync().sincronizar_recebimentos() or {}
+        return {
+            "status": "OK",
+            "mensagem": (
+                "Recebimentos Omie atualizados. "
+                "Processados: {processados}. Novos: {novos}. Atualizados: {atualizados}. Ignorados: {ignorados}."
+            ).format(
+                processados=recebimentos.get("processados", 0),
+                novos=recebimentos.get("novos", 0),
+                atualizados=recebimentos.get("atualizados", 0),
+                ignorados=recebimentos.get("ignorados", 0),
+            ),
         }
 
     @staticmethod

@@ -148,7 +148,7 @@ contratos
 
 Representa o contrato comercial.
 
-Não possui valores financeiros.
+Possui valores recorrentes, setup/projeto e campos comerciais sincronizados do OMIE quando aplicavel.
 
 faturamentos
 
@@ -275,6 +275,15 @@ Campos
 * numero
 * descricao
 * valor_mensal
+* codigo_vendedor
+* vendedor_nome
+* codigo_projeto
+* projeto_nome
+* observacoes
+* observacao_contrato
+* valor_servicos_bruto
+* valor_descontos
+* valor_servicos_liquido
 * status
 
 ---
@@ -307,6 +316,52 @@ Relacionamento
 Cliente
 
 Contrato (opcional)
+
+---
+
+## financeiro_recebimentos
+
+Descrição
+
+Títulos recebidos do OMIE utilizados como base de validação financeira para comissões.
+
+Origem
+
+OMIE Contas a Receber
+
+Campos principais
+
+* codigo_externo
+* cliente_id
+* contrato_id
+* numero_documento
+* numero_documento_fiscal
+* numero_parcela
+* numero_contrato
+* categoria_codigo
+* categoria_nome
+* categoria_excluida
+* motivo_exclusao
+* valor_original
+* valor_recebido
+* valor_desconto
+* valor_juros
+* data_vencimento
+* data_recebimento
+* data_emissao
+* situacao
+* codigo_cliente_omie
+* codigo_contrato_omie
+* codigo_vendedor
+* codigo_projeto
+* origem
+* synced_at
+
+Regras
+
+* `codigo_externo` é único e usa `codigo_lancamento_omie`.
+* vínculo com contrato usa `codigo_cliente_omie` + `numero_contrato`.
+* categorias contendo SETUP ou IMPLANTACAO/IMPLANTAÇÃO são marcadas como excluídas da comissão.
 
 ---
 
@@ -590,3 +645,76 @@ O banco de dados deverá servir como base única para:
 * APIs
 * Futuras funcionalidades da V3
 
+
+
+---
+
+# Atualizacao 13/08/2026 - ASO, Premiacoes e Receitas por Servidor
+
+## administrativo_aso_agendamentos
+
+Tabela de agendamentos ASO vinculados ao colaborador administrativo.
+
+Campos funcionais relevantes:
+
+* colaborador_id
+* gestor_usuario_id
+* agenda_usuario_id
+* data_agendamento
+* observacoes
+* ativo
+
+## administrativo_aso_lembretes
+
+Tabela de lembretes de ASO.
+
+Campo adicionado:
+
+* enviar_email TINYINT(1): indica se o lembrete deve disparar e-mail.
+
+Regras:
+
+* antecedencia permitida: 7, 15 ou 30 dias.
+* lembrete e vinculado ao agendamento ASO.
+
+## parceiros
+
+Campo adicionado:
+
+* premiacao_ativa TINYINT(1) NOT NULL DEFAULT 0
+
+Regra:
+
+* parceiro com `premiacao_ativa = 1` pode participar do calculo de premiacoes de campanha.
+
+## parceiros_executivos
+
+Campo funcional:
+
+* premiacao_ativa TINYINT(1) NOT NULL DEFAULT 0
+
+Regras:
+
+* alteracao rapida de premiacao atualiza somente `premiacao_ativa`.
+* exclusao operacional de executivo deve manter historico: `ativo = 0` e `parceiro_id = NULL`.
+
+## Receita por Servidor
+
+A tela `Financeiro > Receitas por Servidor` nao cria nova tabela. Ela calcula leitura operacional a partir das tabelas existentes:
+
+* proxmox_node_inventory
+* proxmox_vm_inventory
+* ambiente_proxmox_recursos
+* ambientes
+* ambiente_contratos
+* contratos
+* clientes
+
+Regra de calculo:
+
+* considerar somente node Proxmox ativo e integracao Proxmox ativa;
+* considerar somente recurso Proxmox ativo;
+* considerar somente ambiente ativo;
+* considerar somente contrato ativo com status `ATIVO`;
+* receita mensal = `valor_promocional` quando maior que zero, senao `valor_mensal`;
+* o mesmo contrato deve ser contado apenas uma vez por node, ainda que possua multiplos recursos Proxmox vinculados.

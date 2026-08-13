@@ -33,6 +33,7 @@
                         <th>Parceiro</th>
                         <th>Executivos</th>
                         <th>Vigência</th>
+                        <th class="text-center">Contratos</th>
                         <th>Situação</th>
                         <th class="text-end">Ações</th>
                     </tr>
@@ -44,6 +45,7 @@
                         <td><span class="badge text-bg-light border">{{ ('%.2f'|format(regra.percentual_parceiro or 0)).replace('.', ',') }}%</span></td>
                         <td><span class="badge text-bg-light border">{{ ('%.2f'|format(regra.percentual_executivo or 0)).replace('.', ',') }}%</span></td>
                         <td>{{ regra.vigencia_inicio|date_br }} até {{ regra.vigencia_fim|date_br }}</td>
+                        <td class="text-center"><span class="badge text-bg-light border">{{ regra.contratos_elegiveis_total or 0 }}</span></td>
                         <td>{% set ativo = regra.ativo %}{% include "components/status_badge.html" %}</td>
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
@@ -57,7 +59,7 @@
                         </td>
                     </tr>
                     {% else %}
-                        {% set colspan = 6 %}
+                        {% set colspan = 7 %}
                         {% set empty_message = "Nenhuma regra de campanha encontrada." %}
                         {% include "components/empty_state.html" %}
                     {% endfor %}

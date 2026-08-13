@@ -4,13 +4,13 @@ from app.repositories.base_repository import BaseRepository
 class ParceiroRepository(BaseRepository):
 
     @classmethod
-    def total(cls, pesquisa=None, status_negociacao=None, ativo=None):
+    def total(cls, pesquisa=None, status_negociacao=None, ativo=None, executivo_id=None):
         conn = cls.connection()
         cursor = conn.cursor(dictionary=True)
 
         sql = """
             SELECT COUNT(*) AS total
-            FROM parceiros
+            FROM parceiros p
         """
 
         parametros = []
@@ -18,6 +18,7 @@ class ParceiroRepository(BaseRepository):
         if pesquisa:
             sql += """
                 WHERE
+                    (
                     nome LIKE %s
                     OR sigla LIKE %s
                     OR razao_social LIKE %s
@@ -27,6 +28,7 @@ class ParceiroRepository(BaseRepository):
                     OR cnpj LIKE %s
                     OR REGEXP_REPLACE(cnpj, '[^0-9A-Za-z]', '') LIKE %s
                     OR status_negociacao LIKE %s
+                    )
             """
 
             termo = f"%{pesquisa}%"
@@ -43,13 +45,18 @@ class ParceiroRepository(BaseRepository):
             sql += " ativo = %s"
             parametros.append(ativo)
 
+        if executivo_id:
+            sql += " WHERE" if not pesquisa and not status_negociacao and ativo not in (0, 1) else " AND"
+            sql += " EXISTS (SELECT 1 FROM parceiros_executivos pe WHERE pe.parceiro_id = p.id AND pe.id = %s)"
+            parametros.append(executivo_id)
+
         cursor.execute(sql, tuple(parametros))
         total = cursor.fetchone()["total"]
         cls.close(conn, cursor)
         return total
 
     @classmethod
-    def listar(cls, pesquisa=None, status_negociacao=None, ativo=None, limit=50, offset=0):
+    def listar(cls, pesquisa=None, status_negociacao=None, ativo=None, executivo_id=None, limit=50, offset=0):
         conn = cls.connection()
         cursor = conn.cursor(dictionary=True)
 
@@ -66,9 +73,10 @@ class ParceiroRepository(BaseRepository):
                 email,
                 telefone,
                 ativo,
+                premiacao_ativa,
                 COALESCE(status_negociacao, 'PRIMEIRO_CONTATO') AS status_negociacao,
                 categoria_parceiro
-            FROM parceiros
+            FROM parceiros p
         """
 
         parametros = []
@@ -99,6 +107,10 @@ class ParceiroRepository(BaseRepository):
         if ativo in (0, 1):
             condicoes.append("ativo = %s")
             parametros.append(ativo)
+
+        if executivo_id:
+            condicoes.append("EXISTS (SELECT 1 FROM parceiros_executivos pe WHERE pe.parceiro_id = p.id AND pe.id = %s)")
+            parametros.append(executivo_id)
 
         if condicoes:
             sql += " WHERE "
@@ -170,6 +182,7 @@ class ParceiroRepository(BaseRepository):
                 p.executivo_responsavel_id,
                 p.status_negociacao,
                 p.informacoes_gerais,
+                p.premiacao_ativa,
                 pe.nome AS executivo_responsavel_nome
             FROM parceiros p
             LEFT JOIN parceiros_executivos pe
@@ -218,13 +231,14 @@ class ParceiroRepository(BaseRepository):
                 contato_3_telefone,
                 executivo_responsavel_id,
                 status_negociacao,
-                informacoes_gerais
+                informacoes_gerais,
+                premiacao_ativa
             )
             VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s
+                %s, %s
             )
         """, (
             cls.generate_uuid(),
@@ -258,6 +272,7 @@ class ParceiroRepository(BaseRepository):
             dados.get("executivo_responsavel_id"),
             dados.get("status_negociacao"),
             dados.get("informacoes_gerais"),
+            cls.bool_to_int(dados.get("premiacao_ativa", False)),
         ))
 
         conn.commit()
@@ -301,7 +316,8 @@ class ParceiroRepository(BaseRepository):
                 contato_3_telefone = %s,
                 executivo_responsavel_id = %s,
                 status_negociacao = %s,
-                informacoes_gerais = %s
+                informacoes_gerais = %s,
+                premiacao_ativa = %s
             WHERE id = %s
         """, (
             dados["nome"],
@@ -334,6 +350,7 @@ class ParceiroRepository(BaseRepository):
             dados.get("executivo_responsavel_id"),
             dados.get("status_negociacao"),
             dados.get("informacoes_gerais"),
+            cls.bool_to_int(dados.get("premiacao_ativa", False)),
             parceiro_id,
         ))
 

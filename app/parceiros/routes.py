@@ -4,6 +4,7 @@ from flask import flash
 from flask import redirect
 from flask import render_template
 from flask import request
+from flask import session
 from flask import url_for
 
 from app.clientes.service import ClienteService
@@ -40,12 +41,14 @@ def index():
     pesquisa = request.args.get("q")
     status_negociacao = request.args.get("negociacao")
     ativo = _normalizar_filtro_ativo(request.args.get("ativo"))
+    executivo_id = request.args.get("executivo_id", type=int)
     pagina = request.args.get("page", 1, type=int)
 
     parceiros, total = ParceiroService.listar(
         pesquisa=pesquisa,
         status_negociacao=status_negociacao,
         ativo=ativo,
+        executivo_id=executivo_id,
         pagina=pagina
     )
 
@@ -57,6 +60,8 @@ def index():
         pesquisa=pesquisa,
         selected_negociacao=status_negociacao,
         selected_ativo=request.args.get("ativo", "1"),
+        selected_executivo_id=executivo_id,
+        executivos_filtro=ParceiroExecutivoService.listar_todos_ativos(),
         pagina=pagina,
         total=total,
         total_paginas=total_paginas,
@@ -75,7 +80,7 @@ def index():
 @parceiros_bp.route("/novo", methods=["GET", "POST"])
 def novo():
     executivos = ParceiroExecutivoService.listar_todos_ativos()
-    clientes_importacao = ClienteService.listar_para_importacao()
+    clientes_importacao = ClienteService.listar_para_importacao() if _admin() else []
 
     if request.method == "POST":
         logo = None
@@ -148,7 +153,7 @@ def visualizar(parceiro_id):
 def editar(parceiro_id):
     parceiro = ParceiroService.buscar_por_id(parceiro_id)
     executivos = ParceiroExecutivoService.listar_todos_ativos()
-    clientes_importacao = ClienteService.listar_para_importacao()
+    clientes_importacao = ClienteService.listar_para_importacao() if _admin() else []
 
     if not parceiro:
         return redirect(url_for("parceiros.index"))
@@ -270,6 +275,7 @@ def listar_executivos(parceiro_id=None):
         page_button_text="Novo Executivo",
         page_button_icon="bi-plus-circle",
         page_button_url=page_button_url,
+        pode_excluir_executivo=_pode_excluir_executivo(),
     )
 
 
@@ -286,6 +292,7 @@ def novo_executivo():
             "parceiro_id": request.form.get("parceiro_id"),
             "chave_pix": request.form.get("chave_pix"),
             "informacoes_pagamento": request.form.get("informacoes_pagamento"),
+            "premiacao_ativa": request.form.get("premiacao_ativa", "0"),
             "ativo": request.form.get("ativo", "1"),
         }
 
@@ -317,6 +324,7 @@ def visualizar_executivo(executivo_id):
         "parceiros/executivos/view.html",
         executivo=executivo,
         cancel_url=_executivo_cancel_url(executivo.get("parceiro_id")),
+        pode_excluir_executivo=_pode_excluir_executivo(),
     )
 
 
@@ -338,6 +346,7 @@ def editar_executivo(executivo_id):
             "parceiro_id": request.form.get("parceiro_id"),
             "chave_pix": request.form.get("chave_pix"),
             "informacoes_pagamento": request.form.get("informacoes_pagamento"),
+            "premiacao_ativa": request.form.get("premiacao_ativa", "0"),
             "ativo": request.form.get("ativo", "1"),
         }
 
@@ -355,6 +364,57 @@ def editar_executivo(executivo_id):
         parceiro_id=executivo.get("parceiro_id"),
         cancel_url=_executivo_cancel_url(executivo.get("parceiro_id")),
     )
+
+
+@parceiros_bp.route("/executivos/<int:executivo_id>/premiacao", methods=["POST"])
+def atualizar_premiacao_executivo(executivo_id):
+    executivo = ParceiroExecutivoService.buscar_por_id(executivo_id)
+
+    if not executivo:
+        flash("Executivo não encontrado.", "danger")
+        return redirect(url_for("parceiros.listar_executivos"))
+
+    try:
+        ParceiroExecutivoService.atualizar_premiacao(
+            executivo_id,
+            request.form.get("premiacao_ativa"),
+        )
+        flash("Status de premiação do executivo atualizado com sucesso.", "success")
+    except ValueError as erro:
+        flash(str(erro), "danger")
+
+    return redirect(_redirect_pos_acao(_executivo_cancel_url(executivo.get("parceiro_id"))))
+
+
+@parceiros_bp.route("/executivos/<int:executivo_id>/excluir", methods=["POST"])
+def excluir_executivo(executivo_id):
+    if not _pode_excluir_executivo():
+        flash("Apenas Administrador ou Diretoria podem excluir executivos.", "danger")
+        return redirect(url_for("parceiros.listar_executivos"))
+
+    executivo = ParceiroExecutivoService.buscar_por_id(executivo_id)
+
+    if not executivo:
+        flash("Executivo não encontrado.", "danger")
+        return redirect(url_for("parceiros.listar_executivos"))
+
+    parceiro_id = executivo.get("parceiro_id")
+
+    try:
+        ParceiroExecutivoService.excluir(executivo_id)
+        flash("Executivo excluído e desvinculado do parceiro com sucesso.", "success")
+    except ValueError as erro:
+        flash(str(erro), "danger")
+
+    return redirect(_executivo_cancel_url(parceiro_id))
+
+
+def _admin():
+    return session.get("usuario_perfil") == "ADMIN"
+
+
+def _pode_excluir_executivo():
+    return session.get("usuario_perfil") in ("ADMIN", "DIRETORIA")
 
 
 def _coletar_dados_parceiro_form(logo=None, parceiro_atual=None):
@@ -393,6 +453,7 @@ def _coletar_dados_parceiro_form(logo=None, parceiro_atual=None):
         "descricao": informacoes_gerais,
         "logo": logo,
         "ativo": 1 if request.form.get("ativo") else 0,
+        "premiacao_ativa": 1 if request.form.get("premiacao_ativa") else 0,
         "cnpj": _normalizar_cnpj(request.form.get("cnpj")),
         "segmento": (request.form.get("segmento") or "").strip(),
         "categoria_parceiro": _normalizar_categoria_parceiro(request.form.get("categoria_parceiro")),
@@ -443,6 +504,7 @@ def _parceiro_form_payload():
         "status_negociacao": request.form.get("status_negociacao"),
         "informacoes_gerais": request.form.get("informacoes_gerais"),
         "ativo": 1 if request.form.get("ativo") else 0,
+        "premiacao_ativa": 1 if request.form.get("premiacao_ativa") else 0,
     }
 
 
@@ -476,6 +538,13 @@ def _partner_id_from_request():
         return int(valor)
     except (TypeError, ValueError):
         return None
+
+
+def _redirect_pos_acao(default_url):
+    next_url = request.form.get("next")
+    if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+        return next_url
+    return default_url
 
 
 def _executivo_cancel_url(parceiro_id):

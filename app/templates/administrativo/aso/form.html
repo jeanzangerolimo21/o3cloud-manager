@@ -1,0 +1,145 @@
+{% extends "layout/base.html" %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h2 class="mb-1">{{ 'Novo Colaborador ASO' if modo == 'novo' else 'Editar Colaborador ASO' }}</h2>
+            <p class="text-muted mb-0">Cadastro do colaborador e anexos de exames realizados.</p>
+        </div>
+        <a class="btn btn-outline-secondary" href="{{ url_for('administrativo.aso') }}"><i class="bi bi-arrow-left"></i> Voltar</a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Colaborador cadastrado</label>
+                        <select class="form-select" name="cliente_id" id="cliente_id">
+                            <option value="">Selecionar colaborador</option>
+                            {% for cliente in clientes %}
+                                {% set nome_cliente = cliente.nome_fantasia or cliente.razao_social %}
+                                <option value="{{ cliente.id }}" data-nome="{{ nome_cliente }}" {% if colaborador.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj|cnpj_br }}{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Colaborador manual</label>
+                        <input class="form-control" name="cliente_nome" id="cliente_nome" value="{{ colaborador.cliente_nome or '' }}" maxlength="180" placeholder="Use quando o colaborador ainda não estiver cadastrado">
+                    </div>
+                    <div class="col-md-6"><label class="form-label">Nome completo</label><input required class="form-control" name="nome_completo" value="{{ colaborador.nome_completo or '' }}" maxlength="180"></div>
+                    <div class="col-md-3"><label class="form-label">CPF</label><input required class="form-control" name="cpf" value="{{ colaborador.cpf or '' }}" maxlength="20"></div>
+                    <div class="col-md-3"><label class="form-label">Status</label><select class="form-select" name="status">{% for item in status_options %}<option value="{{ item }}" {% if (colaborador.status or 'ATIVO') == item %}selected{% endif %}>{{ item|title }}</option>{% endfor %}</select></div>
+                    <div class="col-md-3"><label class="form-label">Data de Nascimento</label><input required type="date" class="form-control" name="data_nascimento" value="{{ colaborador.data_nascimento or '' }}"></div>
+                    <div class="col-md-3"><label class="form-label">Data de admissão</label><input required type="date" class="form-control" name="data_admissao" value="{{ colaborador.data_admissao or '' }}"></div>
+                    <div class="col-md-6">
+                        <label class="form-label">Exames realizados</label>
+                        <input type="file" class="form-control js-exames-input" name="exames" multiple data-file-list="exames_selecionados">
+                        <div class="form-text">Selecione um ou mais arquivos. Você pode anexar novos arquivos antes de salvar.</div>
+                        <div id="exames_selecionados" class="list-group list-group-flush border rounded mt-2 d-none"></div>
+                    </div>
+                </div>
+
+                {% if modo == 'novo' %}
+                <hr class="my-4">
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" role="switch" id="criar_agendamento_aso" name="criar_agendamento_aso" value="1" {% if colaborador.criar_agendamento_aso %}checked{% endif %}>
+                    <label class="form-check-label fw-semibold" for="criar_agendamento_aso">Criar agendamento ASO na agenda</label>
+                </div>
+                <div id="agendamento_aso_campos" class="row g-3">
+                    <div class="col-md-4"><label class="form-label">Data do ASO</label><input type="date" class="form-control" name="data_aso" value="{{ colaborador.data_aso or '' }}" data-agendamento-required></div>
+                    <div class="col-md-8"><label class="form-label">Dono da agenda</label><select class="form-select" name="dono_agenda_id" data-agendamento-required><option value="">Selecionar usuário</option>{% for usuario in usuarios %}<option value="{{ usuario.id }}" {% if (colaborador.dono_agenda_id|string == usuario.id|string) or (not colaborador.dono_agenda_id and dono_agenda_padrao_id|string == usuario.id|string) %}selected{% endif %}>{{ usuario.nome }}{% if usuario.email %} - {{ usuario.email }}{% endif %}</option>{% endfor %}</select></div>
+                    <div class="col-md-8"><label class="form-label">Compartilhar com outros usuários</label><select class="form-select" name="compartilhar_usuario_ids" multiple size="4">{% set compartilhados = colaborador.getlist('compartilhar_usuario_ids') if colaborador.getlist is defined else [] %}{% for usuario in usuarios %}<option value="{{ usuario.id }}" {% if usuario.id|string in compartilhados %}selected{% endif %}>{{ usuario.nome }}{% if usuario.email %} - {{ usuario.email }}{% endif %}</option>{% endfor %}</select></div>
+                    <div class="col-md-4">
+                        <label class="form-label d-block">Lembrete por e-mail</label>
+                        <div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="enviar_lembrete_email" name="enviar_lembrete_email" value="1" {% if colaborador.enviar_lembrete_email %}checked{% endif %}><label class="form-check-label" for="enviar_lembrete_email">Enviar lembrete</label></div>
+                        <select class="form-select" name="antecedencia_dias" id="antecedencia_dias">{% for dias in antecedencias %}<option value="{{ dias }}" {% if (colaborador.antecedencia_dias or 7)|string == dias|string %}selected{% endif %}>{{ dias }} dias antes</option>{% endfor %}</select>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-white d-flex justify-content-end gap-2">
+                <a class="btn btn-outline-secondary" href="{{ url_for('administrativo.aso') }}">Cancelar</a>
+                <button class="btn btn-primary"><i class="bi bi-check-lg"></i> Salvar</button>
+            </div>
+        </div>
+    </form>
+</div>
+<script>
+(function () {
+  const select = document.getElementById("cliente_id");
+  const manual = document.getElementById("cliente_nome");
+  if (select && manual) {
+    select.addEventListener("change", function () {
+      if (!select.value) return;
+      const option = select.options[select.selectedIndex];
+      manual.value = option.dataset.nome || "";
+    });
+  }
+
+  function configurarListaArquivos(input) {
+    const lista = document.getElementById(input.dataset.fileList);
+    if (!lista || typeof DataTransfer === "undefined") return;
+    const arquivos = new DataTransfer();
+
+    function renderizar() {
+      lista.innerHTML = "";
+      lista.classList.toggle("d-none", arquivos.files.length === 0);
+      Array.from(arquivos.files).forEach(function (arquivo, index) {
+        const item = document.createElement("div");
+        item.className = "list-group-item d-flex justify-content-between align-items-center gap-2 py-2";
+
+        const nome = document.createElement("small");
+        nome.className = "text-break";
+        nome.textContent = arquivo.name;
+
+        const remover = document.createElement("button");
+        remover.type = "button";
+        remover.className = "btn btn-sm btn-outline-danger";
+        remover.title = "Remover arquivo";
+        remover.innerHTML = '<i class="bi bi-x-lg"></i>';
+        remover.addEventListener("click", function () {
+          const atualizados = new DataTransfer();
+          Array.from(arquivos.files).forEach(function (itemArquivo, itemIndex) {
+            if (itemIndex !== index) atualizados.items.add(itemArquivo);
+          });
+          arquivos.items.clear();
+          Array.from(atualizados.files).forEach(function (itemArquivo) { arquivos.items.add(itemArquivo); });
+          input.files = arquivos.files;
+          renderizar();
+        });
+
+        item.appendChild(nome);
+        item.appendChild(remover);
+        lista.appendChild(item);
+      });
+    }
+
+    input.addEventListener("change", function () {
+      Array.from(input.files).forEach(function (arquivo) { arquivos.items.add(arquivo); });
+      input.files = arquivos.files;
+      renderizar();
+    });
+  }
+
+  document.querySelectorAll(".js-exames-input").forEach(configurarListaArquivos);
+
+  const criarAgenda = document.getElementById("criar_agendamento_aso");
+  const camposAgenda = document.getElementById("agendamento_aso_campos");
+  const enviarEmail = document.getElementById("enviar_lembrete_email");
+  const antecedencia = document.getElementById("antecedencia_dias");
+  function atualizarAgendamento() {
+    if (!criarAgenda || !camposAgenda) return;
+    const ativo = criarAgenda.checked;
+    camposAgenda.querySelectorAll("input, select").forEach(function (campo) {
+      campo.disabled = !ativo;
+      if (campo.hasAttribute("data-agendamento-required")) campo.required = ativo;
+    });
+    if (antecedencia && enviarEmail) antecedencia.disabled = !ativo || !enviarEmail.checked;
+  }
+  if (criarAgenda) criarAgenda.addEventListener("change", atualizarAgendamento);
+  if (enviarEmail) enviarEmail.addEventListener("change", atualizarAgendamento);
+  atualizarAgendamento();
+}());
+</script>
+{% endblock %}

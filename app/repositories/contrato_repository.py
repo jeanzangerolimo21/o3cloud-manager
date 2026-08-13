@@ -100,6 +100,11 @@ class ContratoRepository(BaseRepository):
                 c.valor_setup,
                 c.valor_projeto,
                 c.valor_promocional,
+                c.valor_servicos_bruto,
+                c.valor_descontos,
+                c.valor_servicos_liquido,
+                c.vendedor_nome,
+                c.projeto_nome,
                 c.quantidade_usuarios,
                 c.data_fechamento,
                 c.inicio_vigencia,
@@ -318,12 +323,14 @@ class ContratoRepository(BaseRepository):
                 uuid, cliente_id, codigo_externo, origem, numero, descricao, status,
                 inicio_vigencia, fim_vigencia, observacoes, ativo, synced_at,
                 valor_mensal, dia_faturamento, tipo_faturamento, codigo_vendedor,
-                codigo_projeto, codigo_cc
+                vendedor_nome, codigo_projeto, projeto_nome, codigo_cc,
+                observacao_contrato, valor_servicos_bruto, valor_descontos, valor_servicos_liquido
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, NOW(),
                 %s, %s, %s, %s,
-                %s, %s
+                %s, %s, %s, %s,
+                %s, %s, %s, %s
             )
             """,
             (
@@ -342,8 +349,14 @@ class ContratoRepository(BaseRepository):
                 dados.get("dia_faturamento"),
                 dados.get("tipo_faturamento"),
                 dados.get("codigo_vendedor"),
+                dados.get("vendedor_nome"),
                 dados.get("codigo_projeto"),
+                dados.get("projeto_nome"),
                 dados.get("codigo_cc"),
+                dados.get("observacao_contrato"),
+                dados.get("valor_servicos_bruto"),
+                dados.get("valor_descontos"),
+                dados.get("valor_servicos_liquido"),
             ),
         )
         conn.commit()
@@ -384,8 +397,14 @@ class ContratoRepository(BaseRepository):
                 dia_faturamento=%s,
                 tipo_faturamento=%s,
                 codigo_vendedor=%s,
+                vendedor_nome=%s,
                 codigo_projeto=%s,
+                projeto_nome=%s,
                 codigo_cc=%s,
+                observacao_contrato=%s,
+                valor_servicos_bruto=%s,
+                valor_descontos=%s,
+                valor_servicos_liquido=%s,
                 ativo=%s,
                 synced_at=NOW()
             WHERE id=%s
@@ -403,8 +422,14 @@ class ContratoRepository(BaseRepository):
                 dados.get("dia_faturamento"),
                 dados.get("tipo_faturamento"),
                 dados.get("codigo_vendedor"),
+                dados.get("vendedor_nome"),
                 dados.get("codigo_projeto"),
+                dados.get("projeto_nome"),
                 dados.get("codigo_cc"),
+                dados.get("observacao_contrato"),
+                dados.get("valor_servicos_bruto"),
+                dados.get("valor_descontos"),
+                dados.get("valor_servicos_liquido"),
                 1 if dados.get("ativo", True) else 0,
                 contrato_id,
             ),

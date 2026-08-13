@@ -1,0 +1,67 @@
+{% extends "layout/base.html" %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h2 class="mb-1">Agendamento ASO</h2>
+            <p class="text-muted mb-0">Colaboradores, exames anexados e lembretes na agenda administrativa.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary" href="{{ url_for('administrativo.index') }}"><i class="bi bi-arrow-left"></i> Demandas</a>
+            {% if pode_editar('administrativo') %}<a class="btn btn-primary" href="{{ url_for('administrativo.novo_colaborador_aso') }}"><i class="bi bi-person-plus"></i> Novo Colaborador</a>{% endif %}
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <form class="row g-2">
+                        <div class="col-md-4"><label class="form-label">Pesquisar</label><input class="form-control" name="q" value="{{ filtros.q or '' }}" placeholder="Nome, CPF ou colaborador"></div>
+                        <div class="col-md-3"><label class="form-label">Colaborador</label><select class="form-select" name="cliente_id"><option value="">Todos</option>{% for cliente in clientes %}{% set nome_cliente = cliente.nome_fantasia or cliente.razao_social %}<option value="{{ cliente.id }}" {% if filtros.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ nome_cliente }}</option>{% endfor %}</select></div>
+                        <div class="col-md-3"><label class="form-label">Status</label><select class="form-select" name="status"><option value="">Todos</option>{% for item in status_options %}<option value="{{ item }}" {% if filtros.status == item %}selected{% endif %}>{{ item|title }}</option>{% endfor %}</select></div>
+                        <div class="col-md-2 d-flex align-items-end"><button class="btn btn-outline-primary w-100"><i class="bi bi-search"></i> Filtrar</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white"><strong>Clientes com colaboradores</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for cliente in clientes_com_colaboradores[:5] %}
+                    <a class="list-group-item d-flex justify-content-between align-items-center" href="{{ url_for('administrativo.aso', cliente_id=cliente.id) if cliente.id else url_for('administrativo.aso') }}"><span>{{ cliente.nome or 'Colaborador manual' }}</span><span class="badge text-bg-secondary">{{ cliente.total_colaboradores }}</span></a>
+                    {% else %}
+                    <div class="list-group-item text-muted">Nenhum colaborador cadastrado.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>Colaborador</th><th>Cliente</th><th>Admissão</th><th>Exames</th><th>Próximo ASO</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                        {% for colaborador in colaboradores %}
+                        <tr>
+                            <td><a class="fw-semibold" href="{{ url_for('administrativo.detalhe_colaborador_aso', colaborador_id=colaborador.id) }}">{{ colaborador.nome_completo }}</a><br><small class="text-muted">{{ colaborador.cpf }}</small></td>
+                            <td>{{ colaborador.cliente_exibicao or '-' }}{% if colaborador.cliente_cnpj %}<br><small class="text-muted">{{ colaborador.cliente_cnpj|cnpj_br }}</small>{% endif %}</td>
+                            <td>{{ colaborador.data_admissao|date_br }}</td>
+                            <td>{{ colaborador.total_exames or 0 }}</td>
+                            <td>{{ colaborador.proximo_aso|date_br if colaborador.proximo_aso else '-' }}</td>
+                            <td><span class="badge text-bg-{{ 'success' if colaborador.status == 'ATIVO' else 'secondary' }}">{{ colaborador.status|title }}</span></td>
+                            <td><div class="btn-group btn-group-sm"><a class="btn btn-outline-primary" href="{{ url_for('administrativo.detalhe_colaborador_aso', colaborador_id=colaborador.id) }}" title="Visualizar"><i class="bi bi-eye"></i></a>{% if pode_editar('administrativo') %}<a class="btn btn-outline-secondary" href="{{ url_for('administrativo.editar_colaborador_aso', colaborador_id=colaborador.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>{% endif %}</div></td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" class="text-center text-muted py-4">Nenhum colaborador ASO encontrado.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -5,19 +5,13 @@
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
         <div>
             <h2 class="mb-1">Faturamentos</h2>
-            <p class="text-muted mb-0">Area preparada para carga oficial da Beta; sem faturamento real homologado, os valores permanecem como pendencia de preenchimento.</p>
+            <p class="text-muted mb-0">Consulta operacional de recebimentos OMIE sincronizados em cache local para conferência financeira e premiações.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.dashboard_executivo') }}"><i class="bi bi-graph-up-arrow"></i> Dashboard</a>
-            <a class="btn btn-outline-primary" href="{{ url_for('financeiro.exportar_modelo_faturamentos_csv') }}"><i class="bi bi-download"></i> Modelo CSV</a>
-        </div>
-    </div>
-
-    <div class="alert alert-info d-flex align-items-start gap-2" role="alert">
-        <i class="bi bi-info-circle-fill mt-1"></i>
-        <div>
-            <strong>Controle pre-Beta.</strong>
-            Importe faturamentos somente quando a base oficial for validada com a equipe. Ausencia de registros nesta tela e pendencia de carga futura, nao falha operacional.
+            <form method="POST" action="{{ url_for('financeiro.sincronizar_recebimentos_omie') }}" onsubmit="return confirm('Sincronizar recebimentos OMIE agora? A consulta usa o cache local depois da atualização.');">
+                <button class="btn btn-outline-success"><i class="bi bi-arrow-repeat"></i> Sincronizar OMIE</button>
+            </form>
         </div>
     </div>
 
@@ -56,47 +50,9 @@
         </div>
     </div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-lg-5">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white"><strong>Importar faturamentos oficiais</strong></div>
-                <div class="card-body">
-                    <form method="POST" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label class="form-label">Arquivo CSV</label>
-                            <input class="form-control" type="file" name="arquivo" accept=".csv,.txt" required>
-                        </div>
-                        <button class="btn btn-primary w-100"><i class="bi bi-upload"></i> Importar</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-7">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white"><strong>Resultado</strong></div>
-                <div class="card-body">
-                    {% if resumo_importacao %}
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-4"><span class="badge text-bg-secondary">Processadas {{ resumo_importacao.processadas }}</span></div>
-                            <div class="col-md-4"><span class="badge text-bg-success">Atualizadas {{ resumo_importacao.atualizadas }}</span></div>
-                            <div class="col-md-4"><span class="badge text-bg-light border">Ignoradas {{ resumo_importacao.ignoradas }}</span></div>
-                        </div>
-                        {% if resumo_importacao.erros %}
-                            <div class="alert alert-warning mb-0"><strong>Linhas com erro</strong><ul class="mb-0 mt-2">{% for erro in resumo_importacao.erros[:20] %}<li>{{ erro }}</li>{% endfor %}</ul></div>
-                        {% else %}
-                            <p class="text-muted mb-0">Nenhum erro encontrado.</p>
-                        {% endif %}
-                    {% else %}
-                        <p class="text-muted mb-0">Use o modelo CSV apenas na carga oficial da Beta. Preencha <code>competencia</code>, <code>valor_bruto</code> e, quando aplicavel, comissao e valor liquido.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <strong>Faturamentos carregados para conferencia</strong>
+            <strong>Faturamentos cadastrados</strong>
             <span class="badge text-bg-light border">{{ faturamentos|length }} exibido(s)</span>
         </div>
         <div class="table-responsive">
@@ -108,7 +64,7 @@
                         <th>Cliente</th>
                         <th>Origem</th>
                         <th class="text-end">Bruto</th>
-                        <th class="text-end">Comissao</th>
+                        <th class="text-end">Premiacao</th>
                         <th class="text-end">Liquido</th>
                     </tr>
                 </thead>
@@ -124,11 +80,131 @@
                             <td class="text-end"><strong>{{ item.valor_liquido|moeda }}</strong></td>
                         </tr>
                     {% else %}
-                        <tr><td colspan="7" class="text-muted">Nenhum faturamento oficial carregado. Pendencia prevista ate a Beta.</td></tr>
+                        <tr><td colspan="7" class="text-muted">Nenhum faturamento manual cadastrado. A conferência operacional usa os recebimentos OMIE abaixo.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
+            <div>
+                <strong>Recebimentos OMIE - Contas a Receber</strong>
+                <div class="text-muted small">Títulos recebidos sincronizados em cache local para conferência financeira e premiações.</div>
+            </div>
+            <span class="badge text-bg-light border align-self-start">{{ recebimentos|length }} de {{ total_recebimentos or 0 }} exibido(s)</span>
+        </div>
+        <div class="card-body border-bottom">
+            <form method="GET" class="row g-2 align-items-end">
+                <div class="col-lg-3">
+                    <label class="form-label">Buscar</label>
+                    <input class="form-control" name="q_recebimento" value="{{ filtros_recebimentos.q or '' }}" placeholder="Cliente, contrato, documento, categoria...">
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Recebido de</label>
+                    <input class="form-control" type="date" name="recebimento_de" value="{{ filtros_recebimentos.data_de or '' }}">
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Até</label>
+                    <input class="form-control" type="date" name="recebimento_ate" value="{{ filtros_recebimentos.data_ate or '' }}">
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Categoria</label>
+                    <select class="form-select" name="categoria_excluida">
+                        <option value="">Todas</option>
+                        <option value="0" {% if filtros_recebimentos.categoria_excluida == '0' %}selected{% endif %}>Elegíveis</option>
+                        <option value="1" {% if filtros_recebimentos.categoria_excluida == '1' %}selected{% endif %}>Excluídas</option>
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" name="situacao_recebimento">
+                        <option value="">Todos</option>
+                        {% for item in situacoes_recebimentos %}
+                        <option value="{{ item.situacao }}" {% if filtros_recebimentos.situacao == item.situacao %}selected{% endif %}>{{ item.situacao or 'SEM STATUS' }} ({{ item.total }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-1 d-grid">
+                    <button class="btn btn-primary" title="Filtrar"><i class="bi bi-search"></i></button>
+                </div>
+            </form>
+        </div>
+        <div class="card-body border-bottom">
+            <div class="row g-3">
+                <div class="col-md-2"><small class="text-muted">Recebimentos</small><h4 class="mb-0">{{ resumo_recebimentos.total or 0 }}</h4></div>
+                <div class="col-md-2"><small class="text-muted">Contratos</small><h4 class="mb-0">{{ resumo_recebimentos.contratos_total or 0 }}</h4></div>
+                <div class="col-md-2"><small class="text-muted">Vinculados</small><h4 class="mb-0">{{ resumo_recebimentos.vinculados or 0 }}</h4></div>
+                <div class="col-md-2"><small class="text-muted">Excluídos</small><h4 class="mb-0">{{ resumo_recebimentos.categorias_excluidas or 0 }}</h4></div>
+                <div class="col-md-2"><small class="text-muted">Atrasados</small><h4 class="mb-0 text-danger">{{ resumo_recebimentos.atrasados or 0 }}</h4>{% if resumo_recebimentos.valor_atrasado %}<small class="text-danger">{{ resumo_recebimentos.valor_atrasado|moeda }}</small>{% endif %}</div>
+                <div class="col-md-2"><small class="text-muted">Recebido</small><h4 class="mb-0">{{ resumo_recebimentos.valor_recebido|moeda }}</h4></div>
+            </div>
+            <div class="small text-muted mt-2">
+                Período sincronizado: {{ resumo_recebimentos.primeira_data|date_br if resumo_recebimentos.primeira_data else '-' }} a {{ resumo_recebimentos.ultima_data|date_br if resumo_recebimentos.ultima_data else '-' }}. Apenas recebimentos com contrato, cliente e nota fiscal vinculados ficam no cache operacional.
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Recebimento</th>
+                        <th>Contrato</th>
+                        <th>Cliente</th>
+                        <th>Documento</th>
+                        <th>Categoria</th>
+                        <th>Status</th>
+                        <th class="text-end">Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in recebimentos %}
+                        {% set situacao_upper = (item.situacao or '')|upper %}
+                        {% set alerta_atraso = situacao_upper in ['ATRASADO', 'VENCIDO'] %}
+                        <tr class="{% if alerta_atraso %}table-danger{% endif %}">
+                            <td>{{ item.data_recebimento|date_br if item.data_recebimento else '-' }}<br><small class="{% if alerta_atraso %}text-danger fw-semibold{% else %}text-muted{% endif %}">Venc. {{ item.data_vencimento|date_br if item.data_vencimento else '-' }}</small></td>
+                            <td>
+                                {% if item.contrato_id %}
+                                    <a href="{{ url_for('contratos.view', contrato_id=item.contrato_id) }}" class="font-monospace">{{ item.contrato_numero or item.numero_contrato }}</a>
+                                {% else %}
+                                    <span class="font-monospace text-muted">{{ item.numero_contrato or '-' }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.cliente_nome or ('OMIE ' ~ item.codigo_cliente_omie) }}</td>
+                            <td>{{ item.numero_documento or '-' }}<br><small class="text-muted">NF {{ item.numero_documento_fiscal or '-' }} · {{ item.numero_parcela or '-' }}</small></td>
+                            <td>
+                                {{ item.categoria_nome or item.categoria_codigo or '-' }}
+                                {% if item.categoria_excluida %}<br><span class="badge text-bg-warning">Excluída premiação</span>{% endif %}
+                            </td>
+                            <td><span class="badge text-bg-{{ 'danger' if alerta_atraso else 'success' }}">{{ item.situacao or 'RECEBIDO' }}</span></td>
+                            <td class="text-end"><strong>{{ item.valor_recebido|moeda }}</strong><br><small class="text-muted">Desc. {{ item.valor_desconto|moeda }}</small></td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="7" class="text-muted">Nenhum recebimento OMIE encontrado para os filtros informados.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if total_paginas_recebimentos > 1 %}
+        <div class="card-footer bg-white">
+            <nav aria-label="Paginação de recebimentos OMIE">
+                <ul class="pagination justify-content-center flex-wrap mb-0">
+                    <li class="page-item {% if pagina_recebimentos <= 1 %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('financeiro.faturamentos', recebimentos_page=pagina_recebimentos - 1, q_recebimento=filtros_recebimentos.q, recebimento_de=filtros_recebimentos.data_de, recebimento_ate=filtros_recebimentos.data_ate, categoria_excluida=filtros_recebimentos.categoria_excluida, situacao_recebimento=filtros_recebimentos.situacao) }}">Anterior</a>
+                    </li>
+                    {% for p in range(1, total_paginas_recebimentos + 1) %}
+                    <li class="page-item {% if p == pagina_recebimentos %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('financeiro.faturamentos', recebimentos_page=p, q_recebimento=filtros_recebimentos.q, recebimento_de=filtros_recebimentos.data_de, recebimento_ate=filtros_recebimentos.data_ate, categoria_excluida=filtros_recebimentos.categoria_excluida, situacao_recebimento=filtros_recebimentos.situacao) }}">{{ p }}</a>
+                    </li>
+                    {% endfor %}
+                    <li class="page-item {% if pagina_recebimentos >= total_paginas_recebimentos %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('financeiro.faturamentos', recebimentos_page=pagina_recebimentos + 1, q_recebimento=filtros_recebimentos.q, recebimento_de=filtros_recebimentos.data_de, recebimento_ate=filtros_recebimentos.data_ate, categoria_excluida=filtros_recebimentos.categoria_excluida, situacao_recebimento=filtros_recebimentos.situacao) }}">Próxima</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
 </div>
 {% endblock %}

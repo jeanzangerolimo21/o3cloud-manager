@@ -459,495 +459,1391 @@ Status:
 # MÓDULO FINANCEIRO
 # COMISSÕES DE EXECUTIVOS
 
----
 
-## Status
+# Sprint 17 – Comissões de Executivos e Expansão da Sincronização Financeira OMIE
 
-Planejado - estrutura revisada em 10/08/2026 antes do fechamento do pacote Beta.
+Status: Retomada em 12/08/2026 após fechamento técnico do Sprint 21.
 
----
+Decisão de retomada:
 
-## Estrutura Atualizada em 10/08/2026
+* reaproveitar a tela existente de `Regras Campanhas`;
+* não criar um cadastro paralelo de campanhas de comissão nesta etapa;
+* adaptar a campanha para exibir os contratos ativos cuja data de início de vigência esteja dentro do intervalo da campanha;
+* facilitar a visualização de qual contrato pertence a qual campanha quando existir campanha cadastrada;
+* quando não houver campanha criada, não aplicar filtro por campanha na visualização de contratos/comissões.
 
-Antes de iniciar o Sprint Final de homologacao da Beta, o Sprint 17 permanece como frente pendente para organizar o modulo Financeiro de Comissoes e fechar a nova Visao Geral operacional do sistema.
+Atualização 12/08/2026:
 
-Pendencias de estruturacao:
+* descoberta OMIE inicial documentada em `docs/44-DESCOBERTA-OMIE-SPRINT-17.md`;
+* migration `087_expandir_contratos_comissoes_sprint17.sql` aplicada no banco local;
+* contratos OMIE expandidos com vendedor, projeto, observação do contrato, valor bruto, descontos e valor líquido;
+* sincronização de contratos OMIE passou a enviar `cExibeObs=S` para retornar `observacoes.cObsContrato`;
+* sincronização completa atualizou 210 contratos OMIE com os novos campos comerciais;
+* detalhe de Contratos passou a exibir a seção `Informações Comerciais`;
+* migration `088_create_financeiro_recebimentos_sprint17.sql` aplicada no banco local;
+* recebimentos OMIE sincronizados com idempotência por `codigo_lancamento_omie`;
+* janela local de 90 dias foi refinada para manter 505 recebimentos com contrato, cliente e nota fiscal vinculados;
+* migration `090_limpar_recebimentos_omie_sem_vinculo_sprint17.sql` removeu 90 recebimentos sem vínculo operacional do cache;
+* tela `Financeiro > Faturamentos` passou a exibir os recebimentos OMIE sincronizados para consulta operacional;
+* recebimentos OMIE ficaram em cache local, com atualização manual pela tela de Faturamentos;
+* criado sincronismo separado `OMIE_RECEBIMENTOS`, inativo por padrão, para execução manual ou automação agendada em Configurações.
+* `Regras Campanhas` passou a exibir os contratos ativos com `inicio_vigencia` dentro do intervalo da campanha.
+* tela de Faturamentos passou a paginar Recebimentos OMIE e destacar títulos `ATRASADO` em vermelho.
 
-- confirmar regras de comissionamento por executivo, produto, contrato e recorrencia;
-- definir criterios de aprovacao, fechamento mensal, pagamento e auditoria;
-- revisar indicadores executivos que devem alimentar a Visao Geral;
-- manter evidencias de calculo e rastreabilidade para homologacao posterior;
-- nao considerar o pacote Beta fechado antes desta estrutura estar alinhada.
+Atualização 13/08/2026:
 
----
+* ASO passou a criar agendamento a partir do cadastro do colaborador, com agenda do Gestor Administrativo, compartilhamento com outro usuario habilitado e lembretes por e-mail de 7, 15 ou 30 dias.
+* Campo `Exames realizados` passou a evidenciar anexos multiplos e listar os arquivos selecionados abaixo do campo.
+* Implantacoes e Kanban de Implantacao passaram a exibir CNPJ do cliente diretamente na lista/card.
+* Parceiros receberam `premiacao_ativa`, permitindo campanha com premiacao para Parceiro, Executivo ou ambos.
+* Tela `Financeiro > Premiações` passou a exibir somente contratos com Parceiro ou Executivo habilitado e a considerar apenas o primeiro titulo/parcela ativo.
+* Executivos passaram a ter exclusao operacional para Administrador e Diretoria, com inativacao e remocao do vinculo com parceiro.
+* Lista de Executivos passou a permitir mudar rapidamente o status de premiacao sem abrir edicao.
+* Criada tela `Financeiro > Receitas por Servidor`, com receita mensal por node Proxmox baseada em ambientes e contratos ativos vinculados.
 
-## Objetivo
+## 1. Objetivo
 
-Expandir o módulo Financeiro do O3Cloud Manager adicionando o gerenciamento completo de Comissões de Executivos, permitindo parametrização de regras comerciais, cálculo automático das comissões, aprovações gerenciais, integração com contratos e controle financeiro dos pagamentos realizados.
+Evoluir a integração financeira do O3Cloud Manager com o OMIE para disponibilizar todas as informações necessárias ao cálculo e auditoria de comissões dos executivos comerciais.
 
-Este módulo deverá permitir o gerenciamento completo do ciclo de comissionamento dos executivos comerciais da O3Cloud.
+O Sprint deverá:
 
----
-
-# Escopo
-
-Esta Sprint contempla:
-
-- Dashboard de Comissões
-- Cadastro de Parâmetros
-- Cadastro de Regras
-- Cadastro de Executivos
-- Cálculo Automático
-- Comissão Recorrente
-- Simulador de Comissão
-- Aprovação
-- Fechamento Mensal
-- Pagamentos
-- Relatórios
-- Auditoria
-
----
-
-# Arquitetura
-
-Seguir integralmente:
-
-- AGENTS.md
-- DOMAIN_RULES.md
-- Definition Of Done
-- Architecture Freeze
-
-Não alterar arquitetura existente.
-
-Este módulo fará parte do módulo Financeiro.
+1. ampliar a sincronização dos Contratos OMIE;
+2. importar informações adicionais necessárias ao cálculo de comissão;
+3. sincronizar recebimentos dos últimos 90 dias através de Contas a Receber;
+4. criar a tela **Financeiro → Comissões**;
+5. adaptar a tela existente de **Regras/Campanhas de Comissão**;
+6. selecionar automaticamente os contratos elegíveis conforme a vigência da campanha;
+7. considerar somente contratos ATIVOS;
+8. permitir valor manual complementar utilizado pelas regras da campanha;
+9. deixar a arquitetura preparada para cálculo e auditoria das comissões.
 
 ---
 
-# Banco de Dados
+# 2. Princípio Arquitetural
 
-Criar migrations seguindo o padrão do projeto.
-
-Sugestão de tabelas:
-
-financeiro_comissoes
-
-financeiro_comissoes_parametros
-
-financeiro_comissoes_regras
-
-financeiro_comissoes_fechamentos
-
-financeiro_comissoes_pagamentos
-
-financeiro_comissoes_historico
-
----
-
-# Cadastro de Executivos
-
-Campos
-
-- UUID
-- Nome
-- Usuário
-- Departamento
-- Ativo
-- Observações
-
----
-
-# Cadastro de Comissão
-
-Campos
-
-- UUID
-- Executivo
-- Cliente
-- Contrato
-- Produto
-- Categoria
-- Tipo de Serviço
-- Valor da Venda
-- Percentual Aplicado
-- Valor da Comissão
-- Competência
-- Data da Venda
-- Status
-- Observações
-
----
-
-# Status
-
-Pendente
-
-Calculada
-
-Em Aprovação
-
-Aprovada
-
-Paga
-
-Cancelada
-
-Estornada
-
----
-
-# Cadastro de Regras
-
-O sistema deverá permitir parametrização por:
-
-- Produto
-- Categoria
-- Serviço
-- Fabricante
-- Tipo de Contrato
-- Tipo de Cliente
-- Faixa de Valor
-- Campanhas Comerciais
-
-Jamais utilizar percentuais fixos no código.
-
-Todo cálculo deverá utilizar regras cadastradas pelo usuário.
-
----
-
-# Comissão Recorrente
-
-O sistema deverá permitir:
-
-Pagamento Único
-
-Pagamento Recorrente
-
-Pagamento por Quantidade de Meses
-
-Pagamento Enquanto Contrato Estiver Ativo
-
-Data Inicial
-
-Data Final
-
-Suspensão Automática caso o contrato seja encerrado.
-
----
-
-# Simulador de Comissão
-
-Antes da venda ser concluída o Executivo poderá simular:
-
-Valor da Venda
-
-Percentual Aplicado
-
-Valor Estimado da Comissão
-
-Comissão Recorrente
-
-Total Acumulado
-
-Margem Comercial (caso permitido pelo perfil)
-
-Esta funcionalidade será utilizada apenas para simulação, não gerando registros financeiros.
-
----
-
-# Fluxo Operacional
-
-Contrato Comercial
-
-↓
-
-Aprovação Comercial
-
-↓
-
-Integração OMIE
-
-↓
-
-Aplicação da Regra de Comissão
-
-↓
-
-Cálculo Automático
-
-↓
-
-Gestor Comercial Aprova
-
-↓
-
-Financeiro Libera
-
-↓
-
-Pagamento
-
-↓
-
-Histórico
-
-↓
-
-Auditoria
-
----
-
-# Dashboard de Comissões
-
-Widgets
-
-Comissão do Mês
-
-Valor Pago
-
-Valor Pendente
-
-Total Vendido
-
-Meta Comercial
-
-Percentual Atingido
-
-Ranking dos Executivos
-
-Comissão por Produto
-
-Comissão por Categoria
-
-Comissão por Cliente
-
-Gráfico Evolução Mensal
-
----
-
-# Dashboard Executivo
-
-Meu Total Vendido
-
-Minha Comissão
-
-Minha Meta
-
-Valor Recebido
-
-Valor Pendente
-
-Ranking
-
-Próximos Pagamentos
-
----
-
-# Fechamento Mensal
-
-O Gestor poderá:
-
-Fechar Competência
-
-Recalcular Comissão
-
-Cancelar Fechamento
-
-Reabrir Competência
-
-Exportar Relatórios
-
----
-
-# Relatórios
-
-Comissão por Executivo
-
-Comissão por Cliente
-
-Comissão por Produto
-
-Comissão por Categoria
-
-Comissão por Período
-
-Ranking Comercial
-
-Valores Pagos
-
-Valores Pendentes
-
-Comparativo Mensal
-
-Exportação PDF
-
-Exportação Excel
-
----
-
-# Integração OMIE
-
-Sempre que possível utilizar os contratos e faturamentos sincronizados com a OMIE para cálculo das comissões.
-
-O cálculo deverá considerar apenas contratos elegíveis conforme regras parametrizadas.
-
----
-
-# Auditoria
-
-Registrar:
-
-Usuário
-
-Data
-
-Hora
-
-IP
-
-Operação
-
-Competência
-
-Valores Anteriores
-
-Valores Novos
-
-Responsável pela Aprovação
-
----
-
-# Permissões
-
-Perfis
-
-Administrador
-
-Diretoria
-
-Financeiro
-
-Gestor Comercial
-
-Executivo
-
-Cada perfil deverá utilizar o sistema de permissões do O3Cloud Manager.
-
----
-
-# Segurança
-
-Executivos visualizarão apenas:
-
-Suas próprias comissões
-
-Suas metas
-
-Seus pagamentos
-
-Jamais visualizarão comissões de outros Executivos.
-
-Gestores visualizarão apenas sua equipe.
-
-Administradores e Diretoria visualizarão todas as informações.
-
----
-
-# Notificações
-
-Nova Comissão Calculada
-
-Comissão Aprovada
-
-Comissão Rejeitada
-
-Pagamento Efetuado
-
-Competência Fechada
-
-Competência Reaberta
-
----
-
-# Critérios de Aceite
-
-Cadastro de Regras funcionando.
-
-Cadastro de Executivos funcionando.
-
-Simulador funcionando.
-
-Cálculo automático funcionando.
-
-Comissão recorrente funcionando.
-
-Dashboard funcionando.
-
-Relatórios funcionando.
-
-Permissões funcionando.
-
-Auditoria implementada.
-
-Integração OMIE preservada.
-
----
-
-# Definition Of Done
+Manter o padrão atual do O3Cloud Manager:
 
 Repository
-
+↓
 Service
-
+↓
 Routes
-
+↓
 Templates
-
+↓
 Testes
 
-Documentação
+Integrações OMIE:
 
-Changelog atualizado
+Client
+↓
+Mapper
+↓
+Service
+↓
+Repository
+↓
+MariaDB
 
-Sprint atualizada
+Não colocar regras de comissão:
 
-Roadmap atualizado
+* no Mapper;
+* no Repository;
+* nas Routes;
+* diretamente nos templates.
 
-Architecture Freeze preservado.
-
----
-
-# Observações Técnicas
-
-O módulo deverá ser desenvolvido de forma totalmente parametrizada.
-
-Nenhuma regra de comissão poderá ficar fixa no código.
-
-Todas as regras deverão ser cadastradas através da interface administrativa.
-
-A arquitetura deverá permitir futuras integrações com:
-
-- O3Cloud Infrastructure
-- IA Comercial
-- BI
-- Power BI
-- Dashboards Executivos
-- Automação via n8n
+As regras deverão permanecer na camada de Service.
 
 ---
 
-# Melhorias Futuras (V2)
+# 3. Escopo 17.1 – Expansão da Sincronização de Contratos
 
-- Comissão por Margem de Lucro
-- Comissão por Meta Atingida
-- Comissão por Grupo Econômico
-- Comissão por Equipe
-- Gamificação Comercial
-- Ranking em Tempo Real
-- IA para previsão de comissão
-- IA para projeção de metas
-- Integração com Power BI
-- Aprovação Digital via Clicksign
-- Workflow automatizado via O3Infra
+A sincronização atual de contratos deverá ser ampliada.
+
+## 3.1 Observações do Contrato
+
+Sincronizar o campo existente no OMIE identificado na interface como:
+
+**“Observações do contrato (elas não serão exibidas Nota Fiscal)”**
+
+Esse conteúdo deverá ser armazenado no O3Cloud Manager e exibido como observação do contrato.
+
+### Regra importante
+
+Antes de implementar o Mapper:
+
+1. consultar um contrato real pela API OMIE;
+2. localizar no JSON exatamente qual propriedade corresponde ao campo exibido na interface do OMIE;
+3. documentar o caminho JSON encontrado;
+4. somente depois implementar o mapeamento.
+
+Não presumir que seja o mesmo campo de observação atualmente utilizado.
+
+Caso existam:
+
+* observação interna;
+* observação da NF;
+* observação do contrato;
+
+mantê-las separadas.
+
+Não sobrescrever campos diferentes com o mesmo conteúdo.
+
+---
+
+# 4. Vendedor
+
+Na aba **Informações Adicionais** do contrato OMIE existe o Vendedor.
+
+Atualmente o O3Cloud Manager já possui suporte ao código do vendedor.
+
+Deverá passar a sincronizar também:
+
+* código do vendedor;
+* nome do vendedor.
+
+Exemplo conceitual:
+
+```text
+codigo_vendedor = 11586524905
+vendedor_nome = João da Silva
+```
+
+O nome deverá ser exibido no detalhe do contrato.
+
+### Regra
+
+Se a API de contratos retornar apenas o código:
+
+1. utilizar endpoint oficial do OMIE apropriado para vendedores;
+2. resolver `codigo_vendedor → nome`;
+3. evitar consultar o mesmo vendedor repetidamente dentro do loop de contratos;
+4. utilizar cache em memória durante a execução ou sincronização prévia quando adequado.
+
+Não realizar centenas de chamadas iguais para o mesmo vendedor.
+
+---
+
+# 5. Projeto
+
+Na aba **Informações Adicionais** do OMIE também pode existir Projeto.
+
+Sincronizar:
+
+* código do projeto;
+* nome do projeto.
+
+Exemplo:
+
+```text
+codigo_projeto = 12345
+projeto_nome = Projeto Migração ABC
+```
+
+Quando o contrato não possuir projeto:
+
+```text
+codigo_projeto = NULL ou 0
+projeto_nome = NULL
+```
+
+Não tratar ausência de Projeto como erro de sincronização.
+
+---
+
+# 6. Valores dos Serviços
+
+Separar no contrato os valores comerciais necessários para comissão.
+
+Sincronizar/calcular:
+
+## valor_servicos_bruto
+
+Soma dos serviços do contrato antes dos descontos aplicáveis.
+
+## valor_descontos
+
+Soma total dos descontos existentes nos itens/contrato.
+
+## valor_servicos_liquido
+
+Resultado após descontos.
+
+Conceitualmente:
+
+```text
+valor_servicos_liquido =
+valor_servicos_bruto - valor_descontos
+```
+
+O campo atual:
+
+```text
+valor_mensal
+```
+
+deve permanecer.
+
+Não remover nem alterar o significado do campo atual sem migration e análise de impacto.
+
+---
+
+# 7. Desconto para Comissão
+
+O desconto precisa ser armazenado de forma explícita porque será utilizado no cálculo da comissão.
+
+Manter distinção entre:
+
+* desconto de item;
+* desconto total do contrato;
+* valor líquido.
+
+Nos itens do contrato já existem informações relacionadas a desconto.
+
+Revisar o payload real do OMIE e garantir que sejam corretamente sincronizados:
+
+```text
+valor_desconto
+percentual_desconto, se disponível
+tipo_desconto, se necessário
+```
+
+No contrato, consolidar:
+
+```text
+valor_descontos
+```
+
+Não calcular comissão utilizando valor bruto quando a regra exigir valor após desconto.
+
+---
+
+# 8. Revisão da Tabela `contratos`
+
+Criar migration para incluir somente os campos ausentes necessários.
+
+Sugestão conceitual:
+
+```text
+observacao_contrato
+vendedor_nome
+projeto_nome
+valor_servicos_bruto
+valor_descontos
+valor_servicos_liquido
+```
+
+Campos existentes que deverão ser preservados:
+
+```text
+codigo_vendedor
+codigo_projeto
+valor_mensal
+```
+
+Antes da migration:
+
+```sql
+SHOW CREATE TABLE contratos\G
+```
+
+e validar os nomes existentes para evitar duplicidade.
+
+---
+
+# 9. Revisão de `contratos_itens`
+
+Validar se a tabela atual já possui:
+
+```text
+quantidade
+valor_unitario
+valor_total
+desconto
+acrescimo
+```
+
+Caso já possua, reutilizar.
+
+Não duplicar informações.
+
+Revisar o Mapper de itens para garantir que o desconto real retornado pelo OMIE esteja persistido corretamente.
+
+---
+
+# 10. Validação Financeira pelo Contas a Receber
+
+Para o cálculo de comissão, o contrato não deve ser considerado pago apenas por existir no OMIE.
+
+O O3Cloud Manager deverá sincronizar informações do módulo:
+
+**OMIE → Contas a Receber**
+
+Período:
+
+**últimos 90 dias**
+
+---
+
+# 11. Regra de Recebimentos
+
+Sincronizar registros de Contas a Receber cuja situação seja equivalente a:
+
+**Recebido**
+
+A implementação deverá primeiro validar no payload real do OMIE qual campo/código representa a situação `Recebido`.
+
+Não assumir texto ou código sem teste da API.
+
+---
+
+# 12. Exclusões de Categoria
+
+Não considerar para comissão registros cuja categoria contenha, de forma case-insensitive:
+
+```text
+SETUP
+```
+
+ou
+
+```text
+IMPLANTACAO
+```
+
+Também tratar variações de acentuação:
+
+```text
+IMPLANTAÇÃO
+Implantação
+implantacao
+```
+
+A normalização deve ser feita de forma segura.
+
+Exemplos que devem ser excluídos:
+
+```text
+SETUP O3 CLOUD
+SERVIÇO DE SETUP
+IMPLANTACAO
+IMPLANTAÇÃO CLOUD
+TAXA DE IMPLANTAÇÃO
+```
+
+Não utilizar comparação apenas por igualdade.
+
+Utilizar regra equivalente a:
+
+`categoria contém termo proibido`.
+
+---
+
+# 13. Janela de Sincronização
+
+Ao executar a sincronização de recebimentos:
+
+```text
+hoje - 90 dias
+até
+hoje
+```
+
+A data utilizada para esse filtro deverá ser documentada:
+
+* data de recebimento;
+* data de pagamento;
+* data de baixa;
+
+conforme o campo correto disponibilizado pela API OMIE.
+
+Para comissão, priorizar a data que represente efetivamente o recebimento/baixa financeira.
+
+---
+
+# 14. Nova Tabela de Recebimentos
+
+Criar tabela específica.
+
+Nome sugerido:
+
+```text
+financeiro_recebimentos
+```
+
+Campos conceituais:
+
+```text
+id
+uuid
+
+codigo_externo
+cliente_id
+contrato_id
+
+numero_documento
+numero_parcela
+
+categoria_codigo
+categoria_nome
+
+valor_original
+valor_recebido
+valor_desconto
+valor_juros
+
+data_vencimento
+data_recebimento
+
+situacao
+
+codigo_cliente_omie
+codigo_contrato_omie
+
+origem
+synced_at
+
+created_at
+updated_at
+```
+
+Adaptar aos dados realmente disponibilizados pela API.
+
+---
+
+# 15. Vínculo Recebimento ↔ Contrato
+
+Esse ponto é crítico.
+
+O Codex deverá descobrir, através do payload real do OMIE, qual identificador permite associar de maneira confiável:
+
+```text
+Conta a Receber
+       ↓
+Contrato OMIE
+```
+
+Prioridade:
+
+1. código do contrato;
+2. identificador/documento explicitamente relacionado;
+3. outro relacionamento oficial da API.
+
+Não relacionar contratos por descrição textual se houver identificador técnico disponível.
+
+Se não existir vínculo inequívoco no endpoint utilizado:
+
+* documentar;
+* não inventar correspondência;
+* propor regra segura antes de implementar.
+
+---
+
+# 16. Idempotência dos Recebimentos
+
+Uma nova sincronização dos mesmos 90 dias não poderá duplicar registros.
+
+Criar identificação única baseada no identificador oficial do OMIE.
+
+Fluxo:
+
+```text
+Recebimento existe?
+    ↓
+SIM → UPDATE
+NÃO → INSERT
+```
+
+Executar o sincronismo repetidamente deve produzir:
+
+```text
+Novos: 0
+Atualizados: N
+```
+
+e nunca registros duplicados.
+
+---
+
+# 17. Histórico de Sincronização
+
+Registrar no mecanismo atual de:
+
+```text
+sync_execucoes
+```
+
+Nova operação lógica:
+
+```text
+OMIE_RECEBIMENTOS
+```
+
+Se o ENUM atual não suportar esse valor, avaliar:
+
+* expandir corretamente; ou
+* continuar utilizando integração `OMIE` e identificar o tipo da rotina em outro campo/log.
+
+Não repetir o problema anterior de gravar valor não permitido pelo ENUM.
+
+---
+
+# 18. Nova Tela – Financeiro → Comissões
+
+Adicionar item:
+
+```text
+Financeiro
+├── ...
+├── Inadimplentes
+└── Comissões
+```
+
+Rota sugerida:
+
+```text
+/financeiro/comissoes
+```
+
+---
+
+# 19. Tela Principal de Comissões
+
+Listar inicialmente apenas contratos:
+
+```text
+status = ATIVO
+```
+
+Exibir:
+
+* número do contrato;
+* cliente;
+* vendedor;
+* projeto;
+* vigência inicial;
+* valor mensal;
+* valor bruto dos serviços;
+* descontos;
+* valor líquido;
+* situação de recebimento;
+* campanha/regra associada;
+* comissão calculada, quando existir.
+
+Filtros:
+
+* período;
+* vendedor;
+* cliente;
+* contrato;
+* projeto;
+* status de recebimento;
+* campanha.
+
+---
+
+# 20. Campo de Valor Manual
+
+Na tela de Comissões deverá existir um campo livre numérico para lançamento manual.
+
+Esse valor será utilizado pelas regras de campanha.
+
+Nome conceitual:
+
+```text
+valor_manual_comissao
+```
+
+ou:
+
+```text
+base_manual
+```
+
+O valor:
+
+* deve aceitar decimal;
+* deve possuir formatação monetária;
+* deve registrar usuário;
+* deve registrar data da alteração;
+* não deve sobrescrever valores sincronizados do OMIE.
+
+Esse campo é complementar.
+
+Nunca utilizar o mesmo campo de `valor_mensal` ou `valor_servicos`.
+
+---
+
+# 21. Auditoria do Valor Manual
+
+Guardar:
+
+```text
+valor
+usuario
+data_hora
+```
+
+Preferencialmente preservar histórico de alterações se o sistema já possuir mecanismo de auditoria.
+
+O valor manual pode impactar comissão, portanto não deve ser alterado sem rastreabilidade.
+
+---
+
+# 22. Campanhas / Regras de Comissão
+
+Evoluir a tela existente:
+
+```text
+Regras Campanhas
+```
+
+A campanha deverá possuir:
+
+* nome;
+* descrição;
+* data inicial;
+* data final;
+* status;
+* regras de cálculo;
+* observações;
+* criado por;
+* data de criação.
+
+Regra de implementação:
+
+* não duplicar cadastro de campanhas em outro módulo;
+* manter a campanha atual como fonte operacional;
+* adicionar a visualização de contratos elegíveis dentro do detalhe/edição da campanha;
+* quando nenhuma campanha existir, a listagem geral não deverá filtrar contratos por campanha.
+
+---
+
+# 23. Seleção Automática de Contratos da Campanha
+
+Ao abrir ou salvar uma campanha:
+
+Selecionar automaticamente os contratos cuja:
+
+```text
+inicio_vigencia
+```
+
+esteja dentro do intervalo:
+
+```text
+campanha.data_inicio
+até
+campanha.data_fim
+```
+
+Regra:
+
+```text
+inicio_vigencia >= data_inicio
+AND
+inicio_vigencia <= data_fim
+AND
+status = ATIVO
+```
+
+Esses contratos deverão ficar visíveis dentro da campanha.
+
+---
+
+# 24. Contratos Dentro da Campanha
+
+Exibir tabela:
+
+```text
+Contrato
+Cliente
+Vendedor
+Projeto
+Início da Vigência
+Valor Mensal
+Valor Bruto
+Desconto
+Valor Líquido
+Valor Manual
+Recebido?
+Comissão
+```
+
+A lista deverá ser recalculável.
+
+Não duplicar contratos a cada abertura da campanha.
+
+---
+
+# 25. Snapshot da Campanha
+
+Existe uma diferença importante entre:
+
+**contratos atualmente elegíveis**
+
+e
+
+**contratos efetivamente considerados no fechamento da campanha**.
+
+A arquitetura deverá preparar suporte para snapshot.
+
+Enquanto a campanha estiver:
+
+```text
+RASCUNHO
+```
+
+pode recalcular automaticamente os contratos elegíveis.
+
+Após:
+
+```text
+FECHADA
+```
+
+os contratos e valores utilizados devem permanecer registrados para auditoria.
+
+Uma alteração posterior no contrato não deverá modificar silenciosamente uma comissão já fechada.
+
+---
+
+# 26. Status de Campanha
+
+Sugestão:
+
+```text
+RASCUNHO
+EM_APURACAO
+FECHADA
+CANCELADA
+```
+
+Regras:
+
+### RASCUNHO
+
+Pode alterar regras e intervalo.
+
+### EM_APURACAO
+
+Contratos selecionados e cálculo em conferência.
+
+### FECHADA
+
+Não recalcular automaticamente.
+
+### CANCELADA
+
+Mantém histórico, mas não produz comissão.
+
+---
+
+# 27. Regras de Comissão
+
+A arquitetura deve permitir regras configuráveis.
+
+Não colocar percentuais fixos em Python.
+
+Exemplo conceitual:
+
+```text
+Campanha Agosto/2026
+
+Período:
+01/08/2026 a 31/08/2026
+
+Regra:
+X% sobre base elegível
+
+Condições:
+Contrato ativo
+Recebimento confirmado
+Categoria permitida
+```
+
+Os detalhes definitivos das fórmulas poderão ser expandidos posteriormente, mas a modelagem deve nascer parametrizável.
+
+---
+
+# 28. Base Elegível para Comissão
+
+Separar claramente:
+
+```text
+valor bruto
+desconto
+valor líquido
+valor manual
+valor recebido
+base da comissão
+```
+
+Nunca utilizar apenas:
+
+```text
+valor_mensal
+```
+
+sem identificar qual regra está sendo aplicada.
+
+Criar no Service um cálculo explícito:
+
+```text
+base_comissao
+```
+
+A origem dessa base deve ser rastreável.
+
+---
+
+# 29. Confirmação de Pagamento
+
+A tela de Comissões deverá indicar claramente:
+
+```text
+RECEBIDO
+NÃO RECEBIDO
+NÃO LOCALIZADO
+```
+
+Nunca considerar `NÃO LOCALIZADO` como pago.
+
+A confirmação deverá utilizar os dados sincronizados de Contas a Receber.
+
+---
+
+# 30. Categorias Excluídas
+
+Mesmo quando o recebimento estiver `RECEBIDO`, não considerá-lo como base elegível quando a categoria possuir:
+
+```text
+SETUP
+```
+
+ou
+
+```text
+IMPLANTACAO / IMPLANTAÇÃO
+```
+
+Exibir o motivo:
+
+```text
+Recebimento desconsiderado:
+Categoria excluída da comissão.
+```
+
+Isso facilita auditoria pelo Financeiro.
+
+---
+
+# 31. Modelagem de Campanhas
+
+Reaproveitar e evoluir a tabela existente:
+
+```text
+regras_campanhas_comissao
+```
+
+Campos existentes devem ser preservados, especialmente:
+
+```text
+id
+uuid
+nome
+percentual_parceiro
+percentual_executivo
+percentual_comissao
+vigencia_inicio
+vigencia_fim
+descricao
+ativo
+created_by
+updated_by
+created_at
+updated_at
+```
+
+Campos adicionais somente devem ser criados se forem necessários para a visualização dos contratos da campanha, apuração ou fechamento. Não criar uma nova tabela principal de campanhas nesta etapa.
+
+---
+
+# 32. Relação Campanha ↔ Contratos
+
+Criar tabela auxiliar de vínculo e snapshot:
+
+```text
+regras_campanhas_contratos
+```
+
+Campos sugeridos:
+
+```text
+id
+uuid
+
+campanha_id
+contrato_id
+
+vendedor_codigo
+vendedor_nome
+
+valor_mensal
+valor_servicos_bruto
+valor_descontos
+valor_servicos_liquido
+
+valor_manual
+
+valor_recebido_elegivel
+
+base_comissao
+percentual_comissao
+valor_comissao
+
+status_recebimento
+
+incluido_automaticamente
+
+created_at
+updated_at
+```
+
+Essa tabela também servirá como snapshot durante o fechamento.
+
+---
+
+# 33. Regras de Integridade
+
+Não permitir o mesmo:
+
+```text
+campanha_id + contrato_id
+```
+
+duplicado.
+
+Criar índice/constraint apropriado.
+
+---
+
+# 34. Repository de Comissão
+
+Implementação inicial em 12/08/2026 seguindo o padrão atual do módulo Financeiro, sem criar submódulo separado nesta etapa:
+
+```text
+app/financeiro/repository.py
+app/financeiro/service.py
+app/financeiro/routes.py
+app/templates/financeiro/comissoes.html
+```
+
+Métodos implementados para consulta operacional:
+
+```python
+listar_campanhas_comissao()
+buscar_campanha_comissao()
+listar_comissoes_contratos()
+resumo_comissoes_contratos()
+filtros_comissoes()
+status_comissoes()
+```
+
+A consulta usa contratos ativos, regras de campanha existentes e o cache local `financeiro_recebimentos`. Snapshot persistido e fechamento de campanha permanecem reservados para a etapa de apuração definitiva.
+
+---
+
+# 35. ComissãoService
+
+Toda regra deverá estar na camada:
+
+```text
+ComissaoService
+```
+
+Responsabilidades:
+
+* determinar contratos elegíveis;
+* verificar recebimentos;
+* excluir categorias;
+* calcular base;
+* considerar descontos;
+* considerar valor manual;
+* executar regra da campanha;
+* fechar campanha;
+* preservar snapshot.
+
+---
+
+# 36. Permissões
+
+O módulo respeita o sistema atual de usuários/perfis.
+
+Implementado em 12/08/2026:
+
+```text
+menu_key: comissoes
+endpoint: financeiro.comissoes
+migration: 091_permissao_comissoes_sprint17.sql
+```
+
+A permissão inicial foi herdada dos perfis que já possuíam acesso a `faturamento`, mantendo a tela restrita aos perfis financeiros já autorizados. Permissões granulares de fechamento/edição ficam para a etapa de apuração definitiva.
+
+---
+
+# 37. Interface – Comissões
+
+Tela:
+
+```text
+Financeiro → Comissões
+```
+
+Cards sugeridos:
+
+```text
+Contratos Ativos
+Recebidos Elegíveis
+Pendentes
+Comissão Apurada
+```
+
+Tabela principal abaixo.
+
+Não transformar a primeira versão em dashboard complexo.
+
+Priorizar auditoria e clareza.
+
+Implementado em 12/08/2026:
+
+* menu `Financeiro > Comissões`;
+* filtros por busca, campanha e status financeiro;
+* cards de contratos, recebidos, atrasados, não localizados, base de comissão e comissão prevista;
+* tabela com contrato, cliente, campanha, vendedor/projeto, vigência, status, base, recebido, atraso e comissão;
+* botão de cálculo na linha do contrato direcionando para `Financeiro > Comissões > Cálculo`;
+* destaque vermelho para contratos com recebimentos `ATRASADO`/`VENCIDO`;
+* paginação no rodapé;
+* quando campanha é selecionada, filtra contratos com `inicio_vigencia` dentro do intervalo da campanha;
+* quando não há campanha selecionada, exibe contratos ativos sem filtrar por campanha.
+
+---
+
+# 38. Detalhe do Contrato na Comissão
+
+Ao clicar no contrato, mostrar:
+
+```text
+Contrato
+Cliente
+Vendedor
+Projeto
+
+Vigência
+
+Valor bruto
+Desconto
+Valor líquido
+
+Valor manual
+
+Recebimentos localizados
+Categorias
+
+Base elegível
+
+Regra aplicada
+
+Comissão calculada
+```
+
+Isso permitirá ao Financeiro auditar exatamente de onde veio o cálculo.
+
+Implementado em 12/08/2026:
+
+* tela `financeiro/comissao_calculo.html`;
+* rota `financeiro.calcular_comissao`;
+* campo livre `valor_manual_base` para o Financeiro informar a base manual;
+* cálculo usando `valor_manual_base` quando maior que zero, ou a base do contrato quando vazio;
+* aplicação do percentual executivo da campanha vinculada pela vigência;
+* conferência de base do contrato, recebido elegível, atraso, status financeiro, vendedor, projeto e vigência.
+
+O cálculo permanece como conferência operacional sem fechamento/snapshot persistido nesta etapa.
+
+---
+
+# 39. Alterações na Tela de Contratos
+
+A tela existente de contratos deverá passar a mostrar também:
+
+* Vendedor;
+* Projeto;
+* Valor dos Serviços;
+* Descontos;
+* Valor Líquido.
+
+No detalhe:
+
+Adicionar seção:
+
+```text
+Informações Comerciais
+```
+
+com:
+
+```text
+Vendedor
+Projeto
+Valor Bruto dos Serviços
+Descontos
+Valor Líquido
+```
+
+E:
+
+```text
+Observações do Contrato
+```
+
+utilizando o novo campo correto sincronizado do OMIE.
+
+---
+
+# 40. Compatibilidade
+
+Não quebrar:
+
+* sincronização atual de Clientes;
+* sincronização de Contratos;
+* sincronização de Itens;
+* tela atual de Contratos;
+* paginação;
+* pesquisa;
+* relacionamento Cliente → Contrato;
+* funcionalidades existentes do Financeiro.
+
+---
+
+# 41. Ordem de Implementação
+
+Executar nesta ordem.
+
+## 17.1 – Descoberta da API
+
+Antes de migrations:
+
+* inspecionar contrato real;
+* localizar observação correta;
+* localizar vendedor;
+* localizar projeto;
+* localizar descontos;
+* testar endpoint de vendedor/projeto;
+* testar Contas a Receber;
+* identificar chave de relacionamento Recebimento ↔ Contrato;
+* documentar payloads.
+
+Não programar por suposição.
+
+## 17.2 – Migration de Contratos
+
+Adicionar campos necessários.
+
+## 17.3 – Mapper / Repository / Service de Contratos
+
+Atualizar sincronização.
+
+## 17.4 – Recebimentos OMIE
+
+Implementado:
+
+* client OMIE para Contas a Receber e categorias;
+* mapper de recebimentos com identificação de status recebido;
+* repository e service com persistência idempotente em cache local;
+* sync dos últimos 90 dias com exclusão de categorias SETUP/IMPLANTACAO;
+* sincronismo separado `OMIE_RECEBIMENTOS` para execução manual ou agendada;
+* botão manual na tela `Financeiro > Faturamentos` para atualizar o cache sob demanda.
+
+## 17.5 – Testar últimos 90 dias
+
+Validar recebimentos e categorias excluídas.
+
+## 17.6 – Tela Comissões
+
+Criar listagem dos contratos ativos.
+
+## 17.7 – Valor Manual
+
+Adicionar edição e auditoria.
+
+## 17.8 – Campanhas
+
+Adaptar o cadastro existente de Regras Campanhas e preservar o intervalo de datas.
+
+## 17.9 – Seleção Automática
+
+Relacionar e exibir contratos ativos pela vigência inicial dentro do intervalo da campanha.
+
+## 17.10 – Cálculo
+
+Aplicar regra configurada.
+
+## 17.11 – Fechamento
+
+Preservar snapshot.
+
+## 17.12 – Testes e Documentação
+
+Finalizar Sprint.
+
+---
+
+# 42. Testes Obrigatórios – Contratos
+
+Testar contrato:
+
+1. sem observação;
+2. com observação interna;
+3. com vendedor;
+4. sem vendedor;
+5. com projeto;
+6. sem projeto;
+7. sem desconto;
+8. com desconto;
+9. com vários itens;
+10. com descontos em itens diferentes;
+11. sincronização repetida;
+12. alteração posterior no OMIE.
+
+---
+
+# 43. Testes Obrigatórios – Recebimentos
+
+Testar:
+
+1. últimos 90 dias;
+2. registro RECEBIDO;
+3. registro não recebido;
+4. categoria normal;
+5. categoria contendo SETUP;
+6. categoria contendo setup;
+7. categoria contendo IMPLANTACAO;
+8. categoria contendo IMPLANTAÇÃO;
+9. recebimento sem contrato identificável;
+10. execução repetida;
+11. duplicidade;
+12. alteração de valor;
+13. alteração da situação;
+14. paginação da API.
+
+---
+
+# 44. Testes Obrigatórios – Campanhas
+
+Testar:
+
+1. campanha sem contratos;
+2. contrato com vigência antes do período;
+3. dentro do período;
+4. depois do período;
+5. contrato CANCELADO;
+6. contrato SUSPENSO;
+7. contrato ATIVO;
+8. contrato recebido;
+9. contrato não recebido;
+10. categoria excluída;
+11. desconto;
+12. valor manual;
+13. vendedor;
+14. projeto;
+15. fechamento;
+16. tentativa de recalcular campanha fechada;
+17. duplicidade de contrato;
+18. auditoria;
+19. ausencia de campanhas nao filtrando a listagem geral.
+
+---
+
+# 45. Critérios de Aceite
+
+Sprint 17 estará concluído quando:
+
+* observação correta do contrato estiver sincronizada;
+* vendedor estiver sincronizado por código e nome;
+* projeto estiver sincronizado por código e nome;
+* valores brutos de serviços estiverem disponíveis;
+* descontos estiverem separados;
+* valor líquido estiver calculado;
+* tela de Contratos exibir essas informações;
+* recebimentos dos últimos 90 dias forem sincronizados;
+* situação RECEBIDO puder ser identificada;
+* categorias SETUP e IMPLANTAÇÃO forem excluídas;
+* recebimentos não forem duplicados;
+* recebimentos forem consultados por cache local, com sincronização manual e agendada separada;
+* cache de recebimentos considerar somente registros com contrato, cliente e nota fiscal vinculados;
+* Financeiro possuir tela Comissões;
+* somente contratos ATIVOS forem listados;
+* valor manual puder ser informado;
+* alterações manuais forem auditáveis;
+* campanhas possuírem intervalo na tela existente de Regras Campanhas;
+* contratos forem selecionados automaticamente pela vigência inicial;
+* contratos selecionados ficarem visíveis dentro da campanha;
+* ausência de campanha não filtrar a visualização geral;
+* recebimento puder ser auditado;
+* comissão puder utilizar desconto;
+* campanha fechada preservar snapshot;
+* nenhum módulo existente for quebrado;
+* documentação, DER, modelo físico e CHANGELOG forem atualizados;
+* parceiros e executivos tiverem habilitacao independente para premiacao;
+* tela de premiacoes listar apenas contratos elegiveis e somente a primeira parcela/titulo;
+* Receita por Servidor mostrar receita mensal por node Proxmox a partir de ambientes e contratos ativos vinculados.
+
+---
+
+# 46. Fora do Escopo
+
+Não implementar neste Sprint:
+
+* pagamento automático da comissão;
+* integração bancária para pagar executivo;
+* folha de pagamento;
+* emissão de recibo;
+* alteração automática do OMIE;
+* edição de contrato OMIE pelo O3Cloud Manager;
+* regras arbitrárias executando Python/SQL;
+* dashboards avançados de BI;
+* previsão futura de comissão.
+
+O foco é:
+
+**sincronização correta → recebimento → campanha → base → cálculo → auditoria.**
+
+---
+
+# 47. Regra Final de Desenvolvimento para o Codex
+
+Antes de alterar qualquer arquivo:
+
+1. ler a documentação atual;
+2. revisar `ContratoMapper`;
+3. revisar `ContratoRepository`;
+4. revisar `ContratoService`;
+5. revisar `OmieClient`;
+6. revisar `OmieSync`;
+7. executar `SHOW CREATE TABLE contratos`;
+8. executar `SHOW CREATE TABLE contratos_itens`;
+9. testar payload real do OMIE;
+10. somente depois propor migrations.
+
+Seguir a sequência padrão do projeto:
+
+**Repository → Service → Routes → Templates → Testes**
+
+Implementar e homologar uma etapa por vez.
+
+Não realizar refatorações fora do Sprint 17.
+
+------------------------------------------------
 
 # SPRINT 18
 # MÓDULO ADMINISTRATIVO

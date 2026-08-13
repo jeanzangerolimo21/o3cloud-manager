@@ -1,6 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from html import unescape
 from app.core.constants.origens import ORIGEM_OMIE
 
 
@@ -26,6 +25,9 @@ class ContratoMapper:
         inf_adic = item.get("infAdic", {})
         observacoes = item.get("observacoes", {})
         codigo_status = str(cabecalho.get("cCodSit"))
+        totais_servicos = ContratoMapper._totais_servicos(
+            item.get("itensContrato", [])
+        )
 
         if codigo_status not in ContratoMapper.STATUS_MAP:
 
@@ -40,7 +42,6 @@ class ContratoMapper:
             codigo_status,
             "ENCAMINHADO_PROJETO"
         )
-
 
         return {
 
@@ -78,6 +79,14 @@ class ContratoMapper:
 
             "observacoes": observacoes.get("cObsContrato"),
 
+            "observacao_contrato": observacoes.get("cObsContrato"),
+
+            "valor_servicos_bruto": totais_servicos["bruto"],
+
+            "valor_descontos": totais_servicos["descontos"],
+
+            "valor_servicos_liquido": totais_servicos["liquido"],
+
             "origem": ORIGEM_OMIE
 
         }
@@ -100,3 +109,24 @@ class ContratoMapper:
             return Decimal("0.00")
 
         return Decimal(str(valor))
+
+    @staticmethod
+    def _totais_servicos(itens):
+
+        bruto = Decimal("0.00")
+        descontos = Decimal("0.00")
+
+        for item in itens or []:
+            cabecalho = item.get("itemCabecalho", {})
+            quantidade = ContratoMapper._decimal(cabecalho.get("quant"))
+            valor_unitario = ContratoMapper._decimal(cabecalho.get("valorUnit"))
+            bruto += quantidade * valor_unitario
+            descontos += ContratoMapper._decimal(cabecalho.get("valorDesconto"))
+
+        liquido = bruto - descontos
+
+        return {
+            "bruto": bruto.quantize(Decimal("0.01")),
+            "descontos": descontos.quantize(Decimal("0.01")),
+            "liquido": liquido.quantize(Decimal("0.01")),
+        }

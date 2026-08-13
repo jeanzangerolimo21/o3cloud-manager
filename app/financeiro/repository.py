@@ -6,6 +6,198 @@ from app.repositories.base_repository import BaseRepository
 
 class FinanceiroRepository(BaseRepository):
 
+
+    @classmethod
+    def receitas_por_servidor(cls, filtros=None):
+        filtros = filtros or {}
+        where_nodes = ["n.ativo = 1", "i.tipo = 'proxmox'", "i.ativo = 1"]
+        params_nodes = []
+        where_detalhes = ["n.ativo = 1", "i.tipo = 'proxmox'", "i.ativo = 1"]
+        params_detalhes = []
+
+        node = (filtros.get("node") or "").strip()
+        if node:
+            where_nodes.append("n.node = %s")
+            params_nodes.append(node)
+            where_detalhes.append("n.node = %s")
+            params_detalhes.append(node)
+
+        pesquisa = (filtros.get("q") or "").strip()
+        if pesquisa:
+            termo = f"%{pesquisa}%"
+            where_nodes.append("""
+                (
+                    n.node LIKE %s
+                    OR i.nome LIKE %s
+                    OR i.base_url LIKE %s
+                    OR EXISTS (
+                        SELECT 1
+                        FROM proxmox_vm_inventory p_busca
+                        LEFT JOIN ambiente_proxmox_recursos apr_busca ON apr_busca.proxmox_inventory_id = p_busca.id
+                        LEFT JOIN ambientes a_busca ON a_busca.id = apr_busca.ambiente_id AND a_busca.ativo = 1
+                        LEFT JOIN ambiente_clientes ac_busca ON ac_busca.ambiente_id = a_busca.id
+                        LEFT JOIN clientes cli_busca ON cli_busca.id = ac_busca.cliente_id
+                        LEFT JOIN ambiente_contratos act_busca ON act_busca.ambiente_id = a_busca.id
+                        LEFT JOIN contratos c_busca ON c_busca.id = act_busca.contrato_id AND c_busca.ativo = 1
+                        WHERE p_busca.integracao_id = n.integracao_id
+                          AND p_busca.node = n.node
+                          AND p_busca.ativo = 1
+                          AND (
+                              a_busca.nome LIKE %s
+                              OR c_busca.numero LIKE %s
+                              OR COALESCE(cli_busca.nome_fantasia, cli_busca.razao_social, '') LIKE %s
+                          )
+                    )
+                )
+            """)
+            params_nodes.extend([termo, termo, termo, termo, termo, termo])
+            where_detalhes.append("""
+                (
+                    n.node LIKE %s
+                    OR i.nome LIKE %s
+                    OR i.base_url LIKE %s
+                    OR a.nome LIKE %s
+                    OR c.numero LIKE %s
+                    OR COALESCE(cli.nome_fantasia, cli.razao_social, '') LIKE %s
+                )
+            """)
+            params_detalhes.extend([termo, termo, termo, termo, termo, termo])
+
+        nodes = cls.fetch_all(
+            f"""
+            SELECT
+                n.id,
+                n.integracao_id,
+                i.nome AS cluster_nome,
+                i.base_url,
+                n.node,
+                n.status,
+                n.cpu_total,
+                n.memoria_total_mb,
+                n.disco_total_gb,
+                n.ultimo_sync_em,
+                COALESCE(rec.recursos_total, 0) AS recursos_total,
+                COALESCE(rec.ambientes_total, 0) AS ambientes_total,
+                COALESCE(rec.contratos_total, 0) AS contratos_total,
+                COALESCE(rec.receita_mensal, 0) AS receita_mensal
+            FROM proxmox_node_inventory n
+            INNER JOIN implantacao_integracoes_config i ON i.id = n.integracao_id
+            LEFT JOIN (
+                SELECT
+                    recursos.integracao_id,
+                    recursos.node,
+                    recursos.recursos_total,
+                    recursos.ambientes_total,
+                    COALESCE(receitas.contratos_total, 0) AS contratos_total,
+                    COALESCE(receitas.receita_mensal, 0) AS receita_mensal
+                FROM (
+                    SELECT
+                        p.integracao_id,
+                        p.node,
+                        COUNT(DISTINCT p.id) AS recursos_total,
+                        COUNT(DISTINCT a.id) AS ambientes_total
+                    FROM proxmox_vm_inventory p
+                    LEFT JOIN ambiente_proxmox_recursos apr ON apr.proxmox_inventory_id = p.id
+                    LEFT JOIN ambientes a ON a.id = apr.ambiente_id AND a.ativo = 1
+                    WHERE p.ativo = 1
+                    GROUP BY p.integracao_id, p.node
+                ) recursos
+                LEFT JOIN (
+                    SELECT
+                        base.integracao_id,
+                        base.node,
+                        COUNT(DISTINCT base.contrato_id) AS contratos_total,
+                        COALESCE(SUM(base.receita_mensal), 0) AS receita_mensal
+                    FROM (
+                        SELECT DISTINCT
+                            p.integracao_id,
+                            p.node,
+                            c.id AS contrato_id,
+                            COALESCE(NULLIF(c.valor_promocional, 0), c.valor_mensal, 0) AS receita_mensal
+                        FROM proxmox_vm_inventory p
+                        INNER JOIN ambiente_proxmox_recursos apr ON apr.proxmox_inventory_id = p.id
+                        INNER JOIN ambientes a ON a.id = apr.ambiente_id AND a.ativo = 1
+                        INNER JOIN ambiente_contratos act ON act.ambiente_id = a.id
+                        INNER JOIN contratos c ON c.id = act.contrato_id AND c.ativo = 1 AND c.status = 'ATIVO'
+                        WHERE p.ativo = 1
+                    ) base
+                    GROUP BY base.integracao_id, base.node
+                ) receitas ON receitas.integracao_id = recursos.integracao_id AND receitas.node = recursos.node
+            ) rec ON rec.integracao_id = n.integracao_id AND rec.node = n.node
+            WHERE {' AND '.join(where_nodes)}
+            ORDER BY receita_mensal DESC, n.node ASC
+            """,
+            tuple(params_nodes),
+        )
+
+        detalhes = cls.fetch_all(
+            f"""
+            SELECT
+                n.integracao_id,
+                i.nome AS cluster_nome,
+                n.node,
+                a.id AS ambiente_id,
+                a.nome AS ambiente_nome,
+                a.ambiente_tipo,
+                COALESCE(GROUP_CONCAT(DISTINCT COALESCE(cli_amb.nome_fantasia, cli_amb.razao_social) ORDER BY COALESCE(cli_amb.nome_fantasia, cli_amb.razao_social) SEPARATOR ', '), '-') AS ambiente_clientes,
+                c.id AS contrato_id,
+                c.numero AS contrato_numero,
+                COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_contrato,
+                c.status AS contrato_status,
+                COALESCE(NULLIF(c.valor_promocional, 0), c.valor_mensal, 0) AS receita_mensal,
+                COUNT(DISTINCT p.id) AS recursos_total,
+                GROUP_CONCAT(DISTINCT CONCAT(UPPER(p.tipo), ' ', p.vmid, ' - ', COALESCE(p.nome, '-')) ORDER BY p.vmid SEPARATOR ' | ') AS recursos
+            FROM proxmox_node_inventory n
+            INNER JOIN implantacao_integracoes_config i ON i.id = n.integracao_id
+            INNER JOIN proxmox_vm_inventory p ON p.integracao_id = n.integracao_id AND p.node = n.node AND p.ativo = 1
+            INNER JOIN ambiente_proxmox_recursos apr ON apr.proxmox_inventory_id = p.id
+            INNER JOIN ambientes a ON a.id = apr.ambiente_id AND a.ativo = 1
+            LEFT JOIN ambiente_clientes ac ON ac.ambiente_id = a.id
+            LEFT JOIN clientes cli_amb ON cli_amb.id = ac.cliente_id
+            INNER JOIN ambiente_contratos act ON act.ambiente_id = a.id
+            INNER JOIN contratos c ON c.id = act.contrato_id AND c.ativo = 1 AND c.status = 'ATIVO'
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            WHERE {' AND '.join(where_detalhes)}
+            GROUP BY n.integracao_id, i.nome, n.node, a.id, a.nome, a.ambiente_tipo,
+                     c.id, c.numero, cliente_contrato, c.status, c.valor_promocional, c.valor_mensal
+            ORDER BY n.node ASC, receita_mensal DESC, a.nome ASC, c.numero ASC
+            LIMIT 300
+            """,
+            tuple(params_detalhes),
+        )
+
+        nodes_select = cls.fetch_all(
+            """
+            SELECT DISTINCT n.node
+            FROM proxmox_node_inventory n
+            INNER JOIN implantacao_integracoes_config i ON i.id = n.integracao_id
+            WHERE n.ativo = 1
+              AND i.tipo = 'proxmox'
+              AND i.ativo = 1
+            ORDER BY n.node ASC
+            """
+        )
+
+        receita_total = sum(item.get("receita_mensal") or 0 for item in nodes)
+        recursos_total = sum(item.get("recursos_total") or 0 for item in nodes)
+        ambientes_total = len({item.get("ambiente_id") for item in detalhes if item.get("ambiente_id")})
+        contratos_total = len({item.get("contrato_id") for item in detalhes if item.get("contrato_id")})
+
+        return {
+            "resumo": {
+                "nodes_total": len(nodes),
+                "nodes_com_receita": len([item for item in nodes if (item.get("receita_mensal") or 0) > 0]),
+                "receita_mensal": receita_total,
+                "recursos_total": recursos_total,
+                "ambientes_total": ambientes_total,
+                "contratos_total": contratos_total,
+            },
+            "nodes": nodes,
+            "detalhes": detalhes,
+            "nodes_select": nodes_select,
+        }
+
+
     @classmethod
     def listar_faturamentos(cls, limite=100):
 
@@ -44,6 +236,398 @@ class FinanceiroRepository(BaseRepository):
             WHERE ativo = 1
             """
         ) or {}
+
+
+    @classmethod
+    def listar_recebimentos_omie(cls, filtros=None, limite=50, offset=0):
+        filtros = filtros or {}
+        where = [
+            "r.contrato_id IS NOT NULL",
+            "r.cliente_id IS NOT NULL",
+            "COALESCE(r.numero_documento_fiscal, '') <> ''",
+        ]
+        params = []
+
+        pesquisa = (filtros.get("q") or "").strip()
+        if pesquisa:
+            like = f"%{pesquisa}%"
+            where.append("""
+                (
+                    COALESCE(cli.nome_fantasia, '') LIKE %s
+                    OR COALESCE(cli.razao_social, '') LIKE %s
+                    OR COALESCE(c.numero, r.numero_contrato, '') LIKE %s
+                    OR COALESCE(r.numero_documento, '') LIKE %s
+                    OR COALESCE(r.numero_documento_fiscal, '') LIKE %s
+                    OR COALESCE(r.categoria_nome, '') LIKE %s
+                )
+            """)
+            params.extend([like, like, like, like, like, like])
+
+        if filtros.get("data_de"):
+            where.append("r.data_recebimento >= %s")
+            params.append(filtros["data_de"])
+        if filtros.get("data_ate"):
+            where.append("r.data_recebimento <= %s")
+            params.append(filtros["data_ate"])
+        if filtros.get("categoria_excluida") in ("0", "1"):
+            where.append("r.categoria_excluida = %s")
+            params.append(int(filtros["categoria_excluida"]))
+        if filtros.get("situacao"):
+            where.append("UPPER(r.situacao) = %s")
+            params.append(filtros["situacao"].upper())
+        where_sql = " WHERE " + " AND ".join(where)
+        params.extend([limite, offset])
+
+        return cls.fetch_all(
+            f"""
+            SELECT
+                r.id,
+                r.codigo_externo,
+                r.contrato_id,
+                r.numero_contrato,
+                r.numero_documento,
+                r.numero_documento_fiscal,
+                r.numero_parcela,
+                r.categoria_codigo,
+                r.categoria_nome,
+                r.categoria_excluida,
+                r.motivo_exclusao,
+                r.valor_original,
+                r.valor_recebido,
+                r.valor_desconto,
+                r.valor_juros,
+                r.data_vencimento,
+                r.data_recebimento,
+                r.data_emissao,
+                r.situacao,
+                r.codigo_cliente_omie,
+                r.codigo_vendedor,
+                r.codigo_projeto,
+                c.numero AS contrato_numero,
+                COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome
+            FROM financeiro_recebimentos r
+            LEFT JOIN contratos c ON c.id = r.contrato_id
+            LEFT JOIN clientes cli ON cli.id = r.cliente_id
+            {where_sql}
+            ORDER BY r.data_recebimento DESC, r.id DESC
+            LIMIT %s OFFSET %s
+            """,
+            tuple(params),
+        )
+
+    @classmethod
+    def resumo_recebimentos_omie(cls, filtros=None):
+        filtros = filtros or {}
+        where = [
+            "r.contrato_id IS NOT NULL",
+            "r.cliente_id IS NOT NULL",
+            "COALESCE(r.numero_documento_fiscal, '') <> ''",
+        ]
+        params = []
+
+        pesquisa = (filtros.get("q") or "").strip()
+        if pesquisa:
+            like = f"%{pesquisa}%"
+            where.append("""
+                (
+                    COALESCE(cli.nome_fantasia, '') LIKE %s
+                    OR COALESCE(cli.razao_social, '') LIKE %s
+                    OR COALESCE(c.numero, r.numero_contrato, '') LIKE %s
+                    OR COALESCE(r.numero_documento, '') LIKE %s
+                    OR COALESCE(r.numero_documento_fiscal, '') LIKE %s
+                    OR COALESCE(r.categoria_nome, '') LIKE %s
+                )
+            """)
+            params.extend([like, like, like, like, like, like])
+
+        if filtros.get("data_de"):
+            where.append("r.data_recebimento >= %s")
+            params.append(filtros["data_de"])
+        if filtros.get("data_ate"):
+            where.append("r.data_recebimento <= %s")
+            params.append(filtros["data_ate"])
+        if filtros.get("categoria_excluida") in ("0", "1"):
+            where.append("r.categoria_excluida = %s")
+            params.append(int(filtros["categoria_excluida"]))
+        if filtros.get("situacao"):
+            where.append("UPPER(r.situacao) = %s")
+            params.append(filtros["situacao"].upper())
+        where_sql = " WHERE " + " AND ".join(where)
+        return cls.fetch_one(
+            f"""
+            SELECT
+                COUNT(*) AS total,
+                COUNT(DISTINCT r.contrato_id) AS contratos_total,
+                COALESCE(SUM(CASE WHEN UPPER(COALESCE(r.situacao, '')) IN ('RECEBIDO', 'PAGO', 'LIQUIDADO') THEN r.valor_recebido ELSE 0 END), 0) AS valor_recebido,
+                COALESCE(SUM(CASE WHEN UPPER(COALESCE(r.situacao, '')) IN ('ATRASADO', 'VENCIDO') THEN r.valor_recebido ELSE 0 END), 0) AS valor_atrasado,
+                COUNT(*) AS vinculados,
+                0 AS sem_vinculo,
+                SUM(r.categoria_excluida = 1) AS categorias_excluidas,
+                MIN(r.data_recebimento) AS primeira_data,
+                MAX(r.data_recebimento) AS ultima_data,
+                SUM(CASE WHEN UPPER(COALESCE(r.situacao, '')) IN ('ATRASADO', 'VENCIDO') THEN 1 ELSE 0 END) AS atrasados
+            FROM financeiro_recebimentos r
+            LEFT JOIN contratos c ON c.id = r.contrato_id
+            LEFT JOIN clientes cli ON cli.id = r.cliente_id
+            {where_sql}
+            """,
+            tuple(params),
+        ) or {}
+
+    @classmethod
+    def situacoes_recebimentos_omie(cls):
+        return cls.fetch_all(
+            """
+            SELECT UPPER(COALESCE(situacao, '')) AS situacao, COUNT(*) AS total
+            FROM financeiro_recebimentos
+            WHERE contrato_id IS NOT NULL
+              AND cliente_id IS NOT NULL
+              AND COALESCE(numero_documento_fiscal, '') <> ''
+            GROUP BY UPPER(COALESCE(situacao, ''))
+            ORDER BY situacao
+            """
+        )
+
+    @classmethod
+    def listar_campanhas_comissao(cls):
+        return cls.fetch_all(
+            """
+            SELECT id, nome, percentual_parceiro, percentual_executivo, vigencia_inicio, vigencia_fim, ativo
+            FROM regras_campanhas_comissao
+            WHERE ativo = 1
+            ORDER BY vigencia_inicio DESC, id DESC
+            """
+        )
+
+    @classmethod
+    def buscar_campanha_comissao(cls, campanha_id):
+        if not campanha_id:
+            return None
+        return cls.fetch_one(
+            """
+            SELECT id, nome, percentual_parceiro, percentual_executivo, vigencia_inicio, vigencia_fim, ativo
+            FROM regras_campanhas_comissao
+            WHERE id = %s
+              AND ativo = 1
+            LIMIT 1
+            """,
+            (campanha_id,),
+        )
+
+    @classmethod
+    def listar_comissoes_contratos(cls, filtros=None, limite=50, offset=0):
+        sql, params = cls._comissoes_sql(filtros)
+        params.extend([limite, offset])
+        return cls.fetch_all(
+            f"""
+            {sql}
+            ORDER BY base.status_pagamento ASC, base.cliente_nome ASC, base.contrato_numero ASC
+            LIMIT %s OFFSET %s
+            """,
+            tuple(params),
+        )
+
+    @classmethod
+    def buscar_comissao_contrato(cls, contrato_id, campanha_id=None):
+        filtros = {"contrato_id": contrato_id}
+        if campanha_id:
+            filtros["campanha_id"] = campanha_id
+        sql, params = cls._comissoes_sql(filtros)
+        return cls.fetch_one(
+            f"""
+            {sql}
+            ORDER BY base.campanha_inicio DESC, base.campanha_id DESC
+            LIMIT 1
+            """,
+            tuple(params),
+        )
+
+    @classmethod
+    def listar_campanhas_contrato(cls, contrato_id):
+        return cls.fetch_all(
+            """
+            SELECT rc.id, rc.nome, rc.percentual_parceiro, rc.percentual_executivo, rc.vigencia_inicio, rc.vigencia_fim
+            FROM contratos c
+            INNER JOIN regras_campanhas_comissao rc
+                ON rc.ativo = 1
+               AND c.inicio_vigencia BETWEEN rc.vigencia_inicio AND rc.vigencia_fim
+            WHERE c.id = %s
+              AND c.ativo = 1
+              AND c.status = 'ATIVO'
+            ORDER BY rc.vigencia_inicio DESC, rc.id DESC
+            """,
+            (contrato_id,),
+        )
+
+    @classmethod
+    def resumo_comissoes_contratos(cls, filtros=None):
+        sql, params = cls._comissoes_sql(filtros)
+        return cls.fetch_one(
+            f"""
+            SELECT
+                COUNT(*) AS total,
+                SUM(base.status_pagamento = 'RECEBIDO') AS contratos_recebidos,
+                SUM(base.status_pagamento = 'ATRASADO') AS contratos_atrasados,
+                SUM(base.status_pagamento = 'NAO_LOCALIZADO') AS contratos_nao_localizados,
+                COALESCE(SUM(base.valor_base_comissao), 0) AS valor_base_comissao,
+                COALESCE(SUM(base.valor_recebido_elegivel), 0) AS valor_recebido_elegivel,
+                COALESCE(SUM(base.valor_atrasado), 0) AS valor_atrasado,
+                COALESCE(SUM(base.valor_comissao_prevista), 0) AS valor_comissao_prevista
+            FROM ({sql}) base
+            """,
+            tuple(params),
+        ) or {}
+
+    @classmethod
+    def _comissoes_sql(cls, filtros=None):
+        filtros = filtros or {}
+        where = [
+            "c.ativo = 1",
+            "c.status = 'ATIVO'",
+        ]
+        params = []
+
+        pesquisa = (filtros.get("q") or "").strip()
+        if pesquisa:
+            like = f"%{pesquisa}%"
+            where.append("""
+                (
+                    COALESCE(cli.nome_fantasia, '') LIKE %s
+                    OR COALESCE(cli.razao_social, '') LIKE %s
+                    OR COALESCE(c.numero, '') LIKE %s
+                    OR COALESCE(c.vendedor_nome, '') LIKE %s
+                    OR COALESCE(c.projeto_nome, '') LIKE %s
+                )
+            """)
+            params.extend([like, like, like, like, like])
+
+        contrato_id = filtros.get("contrato_id")
+        if contrato_id:
+            where.append("c.id = %s")
+            params.append(contrato_id)
+
+        campanha_id = filtros.get("campanha_id")
+        if campanha_id:
+            where.append("rc.id = %s")
+            params.append(campanha_id)
+
+        where_sql = " AND ".join(where)
+        base_valor = "COALESCE(NULLIF(c.valor_servicos_liquido, 0), NULLIF(c.valor_promocional, 0), c.valor_mensal, 0)"
+        sql = f"""
+            SELECT *
+            FROM (
+                SELECT
+                    c.id AS contrato_id,
+                    c.numero AS contrato_numero,
+                    c.codigo_externo AS contrato_codigo_externo,
+                    c.inicio_vigencia,
+                    c.fim_vigencia,
+                    c.valor_servicos_liquido,
+                    c.valor_promocional,
+                    c.valor_mensal,
+                    c.vendedor_nome,
+                    c.codigo_vendedor,
+                    p.id AS parceiro_premiacao_id,
+                    p.nome AS parceiro_premiacao_nome,
+                    pe.id AS executivo_premiacao_id,
+                    pe.nome AS executivo_premiacao_nome,
+                    CASE
+                        WHEN p.id IS NOT NULL OR ((COALESCE(TRIM(c.vendedor_nome), '') <> '' OR COALESCE(TRIM(c.projeto_nome), '') <> '') AND pe.id IS NOT NULL) THEN 1
+                        ELSE 0
+                    END AS premiacao_liberada,
+                    c.projeto_nome,
+                    c.codigo_projeto,
+                    cli.id AS cliente_id,
+                    COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
+                    cli.razao_social,
+                    rc.id AS campanha_id,
+                    rc.nome AS campanha_nome,
+                    rc.percentual_parceiro,
+                    rc.percentual_executivo,
+                    CASE WHEN p.id IS NOT NULL THEN rc.percentual_parceiro ELSE 0 END AS percentual_parceiro_aplicado,
+                    CASE WHEN pe.id IS NOT NULL THEN rc.percentual_executivo ELSE 0 END AS percentual_executivo_aplicado,
+                    rc.vigencia_inicio AS campanha_inicio,
+                    rc.vigencia_fim AS campanha_fim,
+                    {base_valor} AS valor_base_comissao,
+                    COALESCE(SUM(CASE
+                        WHEN UPPER(COALESCE(r.situacao, '')) IN ('RECEBIDO', 'PAGO', 'LIQUIDADO')
+                         AND COALESCE(r.categoria_excluida, 0) = 0
+                        THEN r.valor_recebido ELSE 0 END), 0) AS valor_recebido_elegivel,
+                    COALESCE(SUM(CASE
+                        WHEN UPPER(COALESCE(r.situacao, '')) IN ('ATRASADO', 'VENCIDO')
+                        THEN COALESCE(r.valor_recebido, r.valor_original, 0) ELSE 0 END), 0) AS valor_atrasado,
+                    COALESCE(SUM(CASE
+                        WHEN COALESCE(r.categoria_excluida, 0) = 1
+                        THEN r.valor_recebido ELSE 0 END), 0) AS valor_recebido_excluido,
+                    COUNT(r.id) AS recebimentos_total,
+                    SUM(COALESCE(r.categoria_excluida, 0) = 1) AS recebimentos_excluidos,
+                    CASE
+                        WHEN COALESCE(SUM(CASE
+                            WHEN UPPER(COALESCE(r.situacao, '')) IN ('ATRASADO', 'VENCIDO')
+                            THEN COALESCE(r.valor_recebido, r.valor_original, 0) ELSE 0 END), 0) > 0 THEN 'ATRASADO'
+                        WHEN COALESCE(SUM(CASE
+                            WHEN UPPER(COALESCE(r.situacao, '')) IN ('RECEBIDO', 'PAGO', 'LIQUIDADO')
+                             AND COALESCE(r.categoria_excluida, 0) = 0
+                            THEN r.valor_recebido ELSE 0 END), 0) > 0 THEN 'RECEBIDO'
+                        ELSE 'NAO_LOCALIZADO'
+                    END AS status_pagamento,
+                    ROUND(({base_valor}) * CASE WHEN p.id IS NOT NULL THEN COALESCE(rc.percentual_parceiro, 0) ELSE 0 END / 100, 2) AS valor_premiacao_parceiro,
+                    ROUND(({base_valor}) * CASE WHEN pe.id IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0) ELSE 0 END / 100, 2) AS valor_premiacao_executivo,
+                    ROUND(({base_valor}) * (CASE WHEN p.id IS NOT NULL THEN COALESCE(rc.percentual_parceiro, 0) ELSE 0 END + CASE WHEN pe.id IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0) ELSE 0 END) / 100, 2) AS valor_comissao_prevista
+                FROM contratos c
+                INNER JOIN clientes cli ON cli.id = c.cliente_id
+                LEFT JOIN parceiros p ON p.id = c.parceiro_id AND p.ativo = 1 AND COALESCE(p.premiacao_ativa, 0) = 1
+                LEFT JOIN regras_campanhas_comissao rc
+                    ON rc.ativo = 1
+                   AND c.inicio_vigencia BETWEEN rc.vigencia_inicio AND rc.vigencia_fim
+                LEFT JOIN (
+                    SELECT
+                        LOWER(TRIM(nome)) COLLATE utf8mb4_unicode_ci AS nome_normalizado,
+                        MIN(id) AS id,
+                        MIN(nome) AS nome
+                    FROM parceiros_executivos
+                    WHERE ativo = 1
+                      AND COALESCE(premiacao_ativa, 0) = 1
+                    GROUP BY LOWER(TRIM(nome)) COLLATE utf8mb4_unicode_ci
+                ) pe
+                    ON pe.nome_normalizado IN (
+                        LOWER(TRIM(c.vendedor_nome)) COLLATE utf8mb4_unicode_ci,
+                        LOWER(TRIM(c.projeto_nome)) COLLATE utf8mb4_unicode_ci
+                    )
+                LEFT JOIN financeiro_recebimentos r
+                    ON r.id = (
+                        SELECT r1.id
+                        FROM financeiro_recebimentos r1
+                        WHERE r1.contrato_id = c.id
+                          AND r1.cliente_id = cli.id
+                          AND COALESCE(r1.numero_documento_fiscal, '') <> ''
+                        ORDER BY
+                          CASE WHEN COALESCE(TRIM(r1.numero_parcela), '') REGEXP '^[0-9]+$' THEN CAST(r1.numero_parcela AS UNSIGNED) ELSE 999999 END ASC,
+                          r1.data_vencimento IS NULL ASC,
+                          r1.data_vencimento ASC,
+                          r1.id ASC
+                        LIMIT 1
+                    )
+                WHERE {where_sql}
+                GROUP BY
+                    c.id, c.numero, c.codigo_externo, c.inicio_vigencia, c.fim_vigencia,
+                    c.valor_servicos_liquido, c.valor_promocional, c.valor_mensal,
+                    c.vendedor_nome, c.codigo_vendedor, p.id, p.nome, pe.id, pe.nome, c.projeto_nome, c.codigo_projeto,
+                    cli.id, cli.nome_fantasia, cli.razao_social,
+                    rc.id, rc.nome, rc.percentual_parceiro, rc.percentual_executivo, rc.vigencia_inicio, rc.vigencia_fim
+            ) base
+        """
+
+        filtros_base = ["base.premiacao_liberada = 1"]
+
+        status = (filtros.get("status_pagamento") or "").strip().upper()
+        if status in ("RECEBIDO", "ATRASADO", "NAO_LOCALIZADO"):
+            filtros_base.append("base.status_pagamento = %s")
+            params.append(status)
+
+        if filtros_base:
+            sql += " WHERE " + " AND ".join(filtros_base)
+        return sql, params
 
     @classmethod
     def contratos_para_faturamento(cls):

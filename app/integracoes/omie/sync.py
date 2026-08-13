@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from app.integracoes.omie.client import OmieClient
 from app.core.logging_config import get_logger
 from app.integracoes.omie.cliente_mapper import ClienteMapper
@@ -5,6 +7,7 @@ from app.contratos.service import ContratoService
 from app.clientes.service import ClienteService
 from app.repositories.sync_repository import SyncRepository
 from app.contratos.item_service import ContratoItemService
+from app.financeiro.recebimentos_service import FinanceiroRecebimentoService
 
 
 logger = get_logger("integrations")
@@ -135,6 +138,8 @@ class OmieSync:
         novos = 0
         atualizados = 0
         ignorados = 0
+        vendedores_cache = ContratoService._indexar_cadastros_omie(self.client.listar_vendedores)
+        projetos_cache = ContratoService._indexar_cadastros_omie(self.client.listar_projetos)
 
         try:
 
@@ -152,7 +157,11 @@ class OmieSync:
                 for contrato in contratos:
 
 
-                    resultado = ContratoService.sincronizar_contrato(contrato)
+                    resultado = ContratoService.sincronizar_contrato(
+                        contrato,
+                        vendedores_cache,
+                        projetos_cache,
+                    )
 
                     itens = ContratoItemService.sincronizar_itens(contrato)
                     if isinstance(itens, list):
@@ -227,3 +236,92 @@ class OmieSync:
 
             raise erro
 
+    def sincronizar_recebimentos(self, dias=90):
+
+        _log("=" * 60)
+        _log("Iniciando sincronização de recebimentos OMIE...")
+        _log("=" * 60)
+
+        sync_id = SyncRepository.iniciar("OMIE")
+        categorias_cache = self._indexar_categorias()
+        data_ate = date.today()
+        data_de = data_ate - timedelta(days=dias)
+        processados = 0
+        novos = 0
+        atualizados = 0
+        ignorados = 0
+
+        try:
+            for status_omie in ("PAGO", "ATRASADO"):
+                pagina = 1
+                while True:
+                    filtros = {
+                        "filtrar_por_status": status_omie,
+                        "ordenar_por": "DATA_PAGAMENTO" if status_omie == "PAGO" else "DATA_VENCIMENTO",
+                        "ordem_descrescente": "S",
+                    }
+                    resposta = self.client.listar_contas_receber(pagina, filtros)
+                    recebimentos = resposta.get("conta_receber_cadastro", [])
+                    if not recebimentos:
+                        break
+
+                    for recebimento in recebimentos:
+                        resultado = FinanceiroRecebimentoService.sincronizar_omie(
+                            recebimento,
+                            categorias_cache,
+                            data_de,
+                            data_ate,
+                        )
+                        if resultado == "INSERT":
+                            novos += 1
+                        elif resultado == "UPDATE":
+                            atualizados += 1
+                        else:
+                            ignorados += 1
+                        processados += 1
+
+                    total_paginas = resposta.get("total_de_paginas", pagina)
+                    if pagina >= total_paginas:
+                        break
+                    pagina += 1
+
+            SyncRepository.finalizar(
+                sync_id,
+                "SUCESSO",
+                processados,
+                novos,
+                atualizados,
+                ignorados,
+            )
+            return {
+                "processados": processados,
+                "novos": novos,
+                "atualizados": atualizados,
+                "ignorados": ignorados,
+            }
+        except Exception as erro:
+            SyncRepository.finalizar(
+                sync_id,
+                "ERRO",
+                processados,
+                novos,
+                atualizados,
+                ignorados,
+                str(erro),
+            )
+            raise
+
+    def _indexar_categorias(self):
+        pagina = 1
+        categorias = {}
+        while True:
+            resposta = self.client.listar_categorias(pagina)
+            for item in resposta.get("categoria_cadastro", []):
+                codigo = item.get("codigo")
+                if codigo:
+                    categorias[codigo] = item.get("descricao") or item.get("descricao_padrao")
+            total_paginas = resposta.get("total_de_paginas", pagina)
+            if pagina >= total_paginas:
+                break
+            pagina += 1
+        return categorias

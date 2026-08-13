@@ -62,6 +62,7 @@
                         </div>
                         <div class="kanban-card-title" title="{{ card.cliente_nome or card.titulo }}">{{ card.cliente_nome or card.titulo }}</div>
                         <div class="kanban-meta">
+                            <div><i class="bi bi-building"></i> {{ card.cliente_cnpj|cnpj_br if card.cliente_cnpj else 'CNPJ não vinculado' }}</div>
                             <div>{{ card.parceiro_nome or card.executivo_nome or 'Sem parceiro' }}</div>
                             <div class="kanban-meta-line" title="{{ card.titulo }}">{{ card.titulo }}</div>
                             {% if card.data_prevista_entrega %}

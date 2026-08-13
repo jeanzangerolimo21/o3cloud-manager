@@ -1,0 +1,129 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set resumo = dashboard.resumo or {} %}
+
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">Receitas por Servidor</h2>
+            <p class="text-muted mb-0">Receita recorrente mensal dos contratos ativos vinculados aos ambientes alocados em cada node Proxmox sincronizado.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-secondary" href="{{ url_for('infraestrutura.nodes') }}"><i class="bi bi-hdd-network"></i> Nodes Proxmox</a>
+            <a class="btn btn-outline-secondary" href="{{ url_for('ambientes.index') }}"><i class="bi bi-diagram-3"></i> Ambientes</a>
+        </div>
+    </div>
+
+    <form method="GET" class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-5">
+                    <label class="form-label">Buscar</label>
+                    <input class="form-control" name="q" value="{{ filtros.q or '' }}" placeholder="Node, cluster, URL, ambiente, cliente ou contrato">
+                </div>
+                <div class="col-lg-4">
+                    <label class="form-label">Node</label>
+                    <select class="form-select" name="node">
+                        <option value="">Todos</option>
+                        {% for item in dashboard.nodes_select %}
+                            <option value="{{ item.node }}" {% if filtros.node == item.node %}selected{% endif %}>{{ item.node }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-3 d-flex gap-2">
+                    <button class="btn btn-primary flex-fill"><i class="bi bi-search"></i> Filtrar</button>
+                    <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.receitas_servidor') }}" title="Limpar filtros"><i class="bi bi-arrow-counterclockwise"></i></a>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Receita mensal</small><h3 class="mb-1">{{ resumo.receita_mensal|moeda }}</h3><small class="text-muted">Contratos ativos vinculados</small></div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Nodes com receita</small><h3 class="mb-1">{{ resumo.nodes_com_receita or 0 }}/{{ resumo.nodes_total or 0 }}</h3><small class="text-muted">Nodes Proxmox sincronizados</small></div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Ambientes</small><h3 class="mb-1">{{ resumo.ambientes_total or 0 }}</h3><small class="text-muted">{{ resumo.recursos_total or 0 }} recurso(s) Proxmox</small></div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Contratos</small><h3 class="mb-1">{{ resumo.contratos_total or 0 }}</h3><small class="text-muted">Contados uma vez por node</small></div></div></div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
+            <div>
+                <strong>Receita por node</strong>
+                <div class="text-muted small">O valor usa valor promocional quando preenchido; caso contrario usa o valor mensal do contrato ativo.</div>
+            </div>
+            <span class="badge text-bg-light border align-self-start">{{ dashboard.nodes|length }} node(s)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Node</th>
+                        <th>Cluster</th>
+                        <th>Status</th>
+                        <th class="text-end">Ambientes</th>
+                        <th class="text-end">Recursos</th>
+                        <th class="text-end">Contratos</th>
+                        <th class="text-end">Receita mensal</th>
+                        <th>Ultimo sync</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for node in dashboard.nodes %}
+                        <tr>
+                            <td><strong>{{ node.node }}</strong></td>
+                            <td>{{ node.cluster_nome or '-' }}<br><small class="text-muted">{{ node.base_url or '-' }}</small></td>
+                            <td><span class="badge text-bg-{{ 'success' if node.status == 'online' else 'secondary' }}">{{ node.status or '-' }}</span></td>
+                            <td class="text-end">{{ node.ambientes_total or 0 }}</td>
+                            <td class="text-end">{{ node.recursos_total or 0 }}</td>
+                            <td class="text-end">{{ node.contratos_total or 0 }}</td>
+                            <td class="text-end"><strong>{{ node.receita_mensal|moeda }}</strong></td>
+                            <td>{{ node.ultimo_sync_em|datetime_br if node.ultimo_sync_em else '-' }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="8" class="text-muted py-4">Nenhum node Proxmox sincronizado encontrado para os filtros selecionados.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
+            <div>
+                <strong>Composicao por ambiente e contrato</strong>
+                <div class="text-muted small">Amostra limitada a 300 linhas para conferencia operacional.</div>
+            </div>
+            <span class="badge text-bg-light border align-self-start">{{ dashboard.detalhes|length }} vinculo(s)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Node</th>
+                        <th>Ambiente</th>
+                        <th>Cliente</th>
+                        <th>Contrato</th>
+                        <th class="text-end">Recursos</th>
+                        <th class="text-end">Receita mensal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in dashboard.detalhes %}
+                        <tr>
+                            <td><strong>{{ item.node }}</strong><br><small class="text-muted">{{ item.cluster_nome or '-' }}</small></td>
+                            <td>{{ item.ambiente_nome }}<br><small class="text-muted">{{ item.ambiente_tipo or '-' }}</small></td>
+                            <td>{{ item.cliente_contrato or item.ambiente_clientes or '-' }}</td>
+                            <td><span class="font-monospace">{{ item.contrato_numero }}</span><br><small class="text-muted">{{ item.contrato_status }}</small></td>
+                            <td class="text-end">{{ item.recursos_total or 0 }}</td>
+                            <td class="text-end"><strong>{{ item.receita_mensal|moeda }}</strong></td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="6" class="text-muted py-4">Nenhum contrato ativo vinculado aos ambientes dos nodes filtrados.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

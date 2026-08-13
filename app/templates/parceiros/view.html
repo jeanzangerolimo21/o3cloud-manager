@@ -120,9 +120,13 @@
                     <strong>Executivo Responsável</strong><br>
                     {{ parceiro.executivo_responsavel_nome or '— Sem executivo —' }}
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-3">
                     <strong>Executivos Cadastrados</strong><br>
                     {{ total_executivos }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Premiações</strong><br>
+                    {% if parceiro.premiacao_ativa %}<span class="badge text-bg-success">Habilitado</span>{% else %}<span class="badge text-bg-secondary">Não habilitado</span>{% endif %}
                 </div>
                 <div class="col-12">
                     <strong>Informações Gerais</strong><br>

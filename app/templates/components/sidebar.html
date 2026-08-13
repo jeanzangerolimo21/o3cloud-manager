@@ -2,13 +2,6 @@
     {"titulo": None, "itens": [
         {"key": "visao_geral", "url": "/", "icone": "bi-speedometer2", "label": "Visao Geral", "classe": "menu-item"},
     ]},
-    {"titulo": "Financeiro", "itens": [
-        {"key": "dashboard_executivo", "endpoint": "financeiro.dashboard_executivo", "icone": "bi-graph-up-arrow", "label": "Dashboard Executivo"},
-        {"key": "produtos_clientes", "endpoint": "financeiro.produtos_clientes", "icone": "bi-boxes", "label": "Produtos por Cliente"},
-        {"key": "faturamento", "endpoint": "financeiro.faturamentos", "icone": "bi-receipt", "label": "Faturamento"},
-        {"key": "inadimplentes", "endpoint": "financeiro.inadimplentes", "icone": "bi-exclamation-octagon", "label": "Inadimplentes"},
-        {"key": "contratos", "endpoint": "contratos.index", "icone": "bi-file-earmark-text", "label": "Contratos"},
-    ]},
     {"titulo": "Cadastros", "itens": [
         {"key": "ambientes", "endpoint": "ambientes.index", "icone": "bi-hdd-network", "label": "Ambientes"},
         {"key": "implantadores", "endpoint": "ambientes.implantadores", "icone": "bi-person-badge", "label": "Implantadores"},
@@ -19,6 +12,15 @@
         {"key": "produtos_fechados", "endpoint": "catalogo.listar_produtos", "icone": "bi-box", "label": "Produtos Fechados"},
         {"key": "dimensionamento_tecnico", "endpoint": "catalogo.listar_servidores", "icone": "bi-tools", "label": "Dimensionamento Técnico"},
         {"key": "regras_campanhas", "endpoint": "regras_campanhas.index", "icone": "bi-percent", "label": "Regras Campanhas"},
+    ]},
+    {"titulo": "Financeiro", "itens": [
+        {"key": "dashboard_executivo", "endpoint": "financeiro.dashboard_executivo", "icone": "bi-graph-up-arrow", "label": "Dashboard Executivo"},
+        {"key": "produtos_clientes", "endpoint": "financeiro.produtos_clientes", "icone": "bi-boxes", "label": "Produtos por Cliente"},
+        {"key": "faturamento", "endpoint": "financeiro.faturamentos", "icone": "bi-receipt", "label": "Faturamento"},
+        {"key": "receitas_servidor", "endpoint": "financeiro.receitas_servidor", "icone": "bi-server", "label": "Receitas por Servidor"},
+        {"key": "comissoes", "endpoint": "financeiro.comissoes", "icone": "bi-cash-coin", "label": "Premiações"},
+        {"key": "inadimplentes", "endpoint": "financeiro.inadimplentes", "icone": "bi-exclamation-octagon", "label": "Inadimplentes"},
+        {"key": "contratos", "endpoint": "contratos.index", "icone": "bi-file-earmark-text", "label": "Contratos"},
     ]},
     {"titulo": "CRM Comercial", "itens": [
         {"key": "leads", "endpoint": "leads.index", "icone": "bi-bullseye", "label": "Leads"},
@@ -31,6 +33,7 @@
     ]},
     {"titulo": "Administrativo", "itens": [
         {"key": "administrativo", "endpoint": "administrativo.index", "icone": "bi-clipboard-check", "label": "Demandas e Agenda"},
+        {"key": "administrativo", "endpoint": "administrativo.aso", "icone": "bi-heart-pulse", "label": "Agendamento ASO"},
         {"key": "administrativo", "endpoint": "administrativo.notificacoes", "icone": "bi-bell", "label": "Notificações"},
     ]},
     {"titulo": "Operações", "itens": [

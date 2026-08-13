@@ -38,13 +38,22 @@
         {% endif %}
     </div>
 
+    <div class="col-md-6">
+        <strong>Premiação</strong><br>
+        {% if executivo.premiacao_ativa %}
+            <span class="badge bg-success">Habilitada</span>
+        {% else %}
+            <span class="badge bg-secondary">Não habilitada</span>
+        {% endif %}
+    </div>
+
     <div class="col-12">
         <strong>Chave Pix</strong><br>
         {{ executivo.chave_pix or "-" }}
     </div>
 
     <div class="col-12">
-        <strong>Informações para Pagamento de Comissões</strong><br>
+        <strong>Informações para Pagamento de Premiações</strong><br>
         <div class="mt-2 text-muted" style="white-space: pre-line;">{{ executivo.informacoes_pagamento or "Nenhuma informação cadastrada." }}</div>
     </div>
 
@@ -71,4 +80,16 @@
     <i class="bi bi-pencil"></i>
     Editar
 </a>
+{% if pode_excluir_executivo %}
+<form
+    method="post"
+    action="{{ url_for('parceiros.excluir_executivo', executivo_id=executivo.id) }}"
+    class="d-inline"
+    onsubmit="return confirm('Excluir este executivo e remover o vínculo com o parceiro?');">
+    <button type="submit" class="btn btn-danger">
+        <i class="bi bi-trash"></i>
+        Excluir
+    </button>
+</form>
+{% endif %}
 {% endblock %}

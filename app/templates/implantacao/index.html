@@ -59,7 +59,7 @@
         <div class="card-body">
             <form method="GET" class="mb-4">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-3"><label class="form-label">Pesquisar</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Buscar por cliente, contrato, responsável ou parceiro..."></div>
+                    <div class="col-md-3"><label class="form-label">Pesquisar</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Buscar por cliente, CNPJ, contrato, responsável ou parceiro..."></div>
                     <div class="col-md-2"><label class="form-label">Status</label><select class="form-select" name="status"><option value="">Todos</option>{% for valor, descricao in status_options.items() %}<option value="{{ valor }}" {% if selected_status == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}</select></div>
                     <div class="col-md-2"><label class="form-label">Responsável</label><input class="form-control" name="responsavel" value="{{ responsavel or '' }}" placeholder="Nome"></div>
                     <div class="col-md-2"><label class="form-label">Prazo</label><select class="form-select" name="prazo"><option value="">Todos</option>{% for valor, descricao in prazo_options.items() %}<option value="{{ valor }}" {% if selected_prazo == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}</select></div>
@@ -78,7 +78,7 @@
                         {% for implantacao in implantacoes %}
                         <tr>
                             <td><strong>{{ implantacao.titulo }}</strong><br><small class="text-muted">Contrato {{ implantacao.contrato_numero or implantacao.contrato_id }}</small></td>
-                            <td>{{ implantacao.cliente_nome or '-' }}{% if implantacao.pendencia_financeira %}<br><span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> Pendência Financeira</span>{% endif %}<br><small class="text-muted">{{ implantacao.executivo_nome or implantacao.parceiro_nome or '-' }}</small></td>
+                            <td><strong>{{ implantacao.cliente_nome or '-' }}</strong><br><small class="text-muted">{{ implantacao.cliente_cnpj|cnpj_br if implantacao.cliente_cnpj else 'CNPJ não vinculado' }}</small>{% if implantacao.pendencia_financeira %}<br><span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> Pendência Financeira</span>{% endif %}<br><small class="text-muted">{{ implantacao.executivo_nome or implantacao.parceiro_nome or '-' }}</small></td>
                             <td><span class="badge bg-secondary">{{ status_options.get(implantacao.status, implantacao.status) }}</span></td>
                             <td>{{ implantacao.responsavel or implantacao.implantador_nome or '-' }}</td>
                             <td>

@@ -143,7 +143,7 @@ FONTES = {
             CampoRelatorio("contrato", "Contrato", "c.numero"),
             CampoRelatorio("origem", "Origem", "f.origem", TIPO_STATUS),
             CampoRelatorio("valor_bruto", "Valor bruto", "f.valor_bruto", TIPO_MOEDA, agregavel=True, formato="moeda"),
-            CampoRelatorio("valor_comissao", "Comissao", "f.valor_comissao", TIPO_MOEDA, agregavel=True, formato="moeda"),
+            CampoRelatorio("valor_comissao", "Premiacao", "f.valor_comissao", TIPO_MOEDA, agregavel=True, formato="moeda"),
             CampoRelatorio("valor_liquido", "Valor liquido", "f.valor_liquido", TIPO_MOEDA, agregavel=True, formato="moeda"),
         ),
         "f.ativo = 1",

@@ -1,4 +1,52 @@
 # Changelog
+
+## 2026-08-13 - Ajustes Operacionais ASO, Premiações e Receita por Servidor
+
+- Tela `Administrativo > Agendamento ASO` passou a permitir criar agendamento já no cadastro do colaborador, vinculando o compromisso à agenda do Gestor Administrativo.
+- Agendamento ASO passou a aceitar compartilhamento com outro usuário que tenha agenda habilitada e lembretes por e-mail com 7, 15 ou 30 dias de antecedência.
+- Campo `Exames realizados` no ASO recebeu seleção incremental de múltiplos arquivos, com lista dos nomes anexados abaixo do campo para reduzir ambiguidade operacional.
+- Lista de Implantações e cards do Kanban de Implantação passaram a exibir CNPJ do cliente sem exigir abertura do detalhe.
+- Cadastro de Parceiros recebeu flag `premiacao_ativa`, permitindo campanhas que premiam apenas Parceiro, apenas Executivo ou ambos.
+- Tela `Financeiro > Premiações` passou a listar somente contratos com Parceiro ou Executivo habilitado para premiação e a considerar somente o primeiro título/parcela do contrato ativo.
+- Cadastro e edição de Parceiros passaram a ocultar `Importar de Cliente` para perfis não Administrador.
+- Tela de Executivos passou a permitir exclusão operacional para perfis Administrador e Diretoria, inativando o executivo e removendo o vínculo com o parceiro sem apagar histórico financeiro.
+- Lista de Executivos passou a permitir alteração rápida do status de premiação (`Habilitada` / `Não habilitada`) sem abrir a edição completa.
+- Criada tela `Financeiro > Receitas por Servidor`, calculando receita recorrente mensal por node Proxmox a partir dos ambientes e contratos ativos vinculados.
+- Nova permissão/menu `receitas_servidor` adicionada ao grupo Financeiro.
+- Migrations relacionadas: `092_add_premiacao_ativa_executivos.sql`, `093_create_administrativo_aso.sql`, `094_add_enviar_email_aso_lembretes.sql` e `095_add_premiacao_ativa_parceiros.sql`.
+
+## 2026-08-12 - Sprint 17 Etapas 17.1 a 17.3
+
+- Criada tela `Financeiro > Comissões` com consulta operacional de contratos ativos, campanhas, vigência, recebimentos OMIE elegíveis, comissão prevista e alerta vermelho para contratos com títulos atrasados.
+- Tela `Financeiro > Comissões` recebeu botão de cálculo por contrato e nova tela de cálculo com campo livre `valor_manual_base`, aplicando o percentual executivo da campanha vinculada pela vigência.
+- Adicionada permissão/menu `comissoes` pela migration `091_permissao_comissoes_sprint17.sql`, herdando acesso dos perfis que já visualizam `faturamento`.
+- Tela de Faturamentos recebeu paginação dos Recebimentos OMIE e destaque vermelho para títulos `ATRASADO`; sincronização passou a buscar `PAGO` e `ATRASADO`.
+- `Regras Campanhas` passou a exibir contratos ativos elegíveis pela data de início de vigência dentro do intervalo da campanha, com contagem na listagem e tabela no formulário.
+- Tela de Faturamentos deixou de exibir importação CSV/modelo CSV, mantendo foco na consulta do cache de Recebimentos OMIE.
+- Cache de Recebimentos OMIE passou a persistir somente títulos com contrato, cliente e nota fiscal vinculados; migration `090_limpar_recebimentos_omie_sem_vinculo_sprint17.sql` removeu 90 registros fora do escopo operacional.
+- Visualização de Contratos passou a exibir a vigência sincronizada do OMIE (`inicio_vigencia` e `fim_vigencia`) para conferência de comissão.
+- Sincronização de contratos OMIE passou a enviar `cExibeObs=S`, garantindo retorno de `observacoes.cObsContrato` para a observação de contrato que não sai na Nota Fiscal.
+- Recebimentos OMIE ficaram em cache local na tabela `financeiro_recebimentos`, consultados pela tela de Faturamentos sem chamada direta ao OMIE.
+- Criado sincronismo separado `OMIE_RECEBIMENTOS`, inativo por padrão, disponível em Configurações > Automações de Sincronismo para execução manual ou agendada.
+- Tela `Financeiro > Faturamentos` recebeu ação manual `Sincronizar OMIE` para atualizar o cache de Contas a Receber sob demanda.
+- Documentada a descoberta OMIE inicial em `docs/44-DESCOBERTA-OMIE-SPRINT-17.md`, incluindo contratos, vendedores, projetos e Contas a Receber.
+- Criada e aplicada no banco local a migration `087_expandir_contratos_comissoes_sprint17.sql` para campos comerciais de contratos.
+- Sincronizacao de contratos OMIE passou a resolver `vendedor_nome` e `projeto_nome` com cache por execucao, evitando chamadas repetidas por contrato.
+- Contratos OMIE passaram a persistir `observacao_contrato`, `valor_servicos_bruto`, `valor_descontos` e `valor_servicos_liquido`.
+- Sincronizacao completa atualizou 210 contratos OMIE com os novos campos comerciais.
+- Detalhe de Contratos passou a exibir `Informações Comerciais` e desconto dos itens.
+- Criada e aplicada no banco local a migration `088_create_financeiro_recebimentos_sprint17.sql` para recebimentos OMIE.
+- Implementada sincronizacao de recebimentos com idempotencia por `codigo_lancamento_omie`, vinculo por cliente OMIE + numero do contrato e exclusao de categorias SETUP/IMPLANTACAO.
+- Carga inicial de recebimentos persistiu 595 titulos na janela de 90 dias, com 505 vinculados a contratos e 89 categorias excluidas de comissao.
+- Tela `Financeiro > Faturamentos` passou a exibir os recebimentos OMIE sincronizados, com filtros por texto, periodo, vinculo de contrato e categoria elegivel/excluida.
+
+## 2026-08-12 - Fechamento Sprint 21 e Retomada Sprint 17
+
+- Sprint 21 registrada como concluida tecnicamente em `docs/43-FECHAMENTO-SPRINT-21.md`, com backup, restore, servico systemd, versionamento e atualizacoes controladas encaminhados para homologacao Beta.
+- `docs/05-SPRINT_ATUAL` passou a registrar o Sprint 17 como sprint retomada para desenvolvimento.
+- `docs/00-VISAO-GERAL.md` e `docs/ROADMAP.md` atualizados para refletir Sprint 21 como ultima sprint encerrada e Sprint 17 como frente atual.
+- Sprint 17 ajustada para reaproveitar a tela existente de `Regras Campanhas`, exibindo dentro de cada campanha os contratos ativos com inicio de vigencia dentro do intervalo da campanha.
+- Definido que, quando nao houver campanha cadastrada, a visualizacao geral nao deve aplicar filtro por campanha.
 - Iniciada implementação do Sprint 21 com módulo administrativo de Backups do Sistema: migration 083_create_config_backups.sql, tela em Configurações, serviço de geração de backup banco/storage/completo, comando CLI agendado e cron operacional.
 - Aberto planejamento da Sprint 21 - Release Beta, Backup e Atualizacoes, documentando arquitetura Beta, estrategia de branches/releases, backup/restore e atualizacoes do sistema.
 - Criados `docs/39-SPRINT-21-RELEASE-BETA.md`, `docs/40-ARQUITETURA-BETA.md`, `docs/41-BACKUP-RESTORE.md` e `docs/42-ATUALIZACOES-SISTEMA.md`.

@@ -20,6 +20,114 @@ class FinanceiroService:
         return FinanceiroRepository.resumo_faturamentos()
 
     @staticmethod
+    def filtros_recebimentos(dados):
+
+        return {
+            "q": FinanceiroService._texto(dados.get("q_recebimento")),
+            "data_de": FinanceiroService._texto(dados.get("recebimento_de")),
+            "data_ate": FinanceiroService._texto(dados.get("recebimento_ate")),
+            "categoria_excluida": FinanceiroService._texto(dados.get("categoria_excluida")),
+            "situacao": FinanceiroService._texto(dados.get("situacao_recebimento")),
+        }
+
+    @staticmethod
+    def listar_recebimentos_omie(filtros=None, pagina=1, limite=50):
+
+        pagina = max(1, int(pagina or 1))
+        offset = (pagina - 1) * limite
+        return FinanceiroRepository.listar_recebimentos_omie(filtros, limite=limite, offset=offset)
+
+    @staticmethod
+    def resumo_recebimentos_omie(filtros=None):
+
+        return FinanceiroRepository.resumo_recebimentos_omie(filtros)
+
+    @staticmethod
+    def situacoes_recebimentos_omie():
+
+        return FinanceiroRepository.situacoes_recebimentos_omie()
+
+    @staticmethod
+    def filtros_comissoes(dados):
+
+        return {
+            "q": FinanceiroService._texto(dados.get("q")),
+            "campanha_id": FinanceiroService._inteiro(dados.get("campanha_id")),
+            "status_pagamento": FinanceiroService._texto(dados.get("status_pagamento")),
+            "premiacao_liberada": FinanceiroService._texto(dados.get("premiacao_liberada")),
+        }
+
+    @staticmethod
+    def listar_campanhas_comissao():
+
+        return FinanceiroRepository.listar_campanhas_comissao()
+
+    @staticmethod
+    def buscar_campanha_comissao(campanha_id):
+
+        return FinanceiroRepository.buscar_campanha_comissao(campanha_id)
+
+    @staticmethod
+    def listar_comissoes_contratos(filtros=None, pagina=1, limite=50):
+
+        pagina = max(1, int(pagina or 1))
+        offset = (pagina - 1) * limite
+        return FinanceiroRepository.listar_comissoes_contratos(filtros, limite=limite, offset=offset)
+
+    @staticmethod
+    def resumo_comissoes_contratos(filtros=None):
+
+        return FinanceiroRepository.resumo_comissoes_contratos(filtros)
+
+    @staticmethod
+    def buscar_comissao_contrato(contrato_id, campanha_id=None):
+
+        return FinanceiroRepository.buscar_comissao_contrato(contrato_id, campanha_id)
+
+    @staticmethod
+    def campanhas_contrato(contrato_id):
+
+        return FinanceiroRepository.listar_campanhas_contrato(contrato_id)
+
+    @classmethod
+    def calcular_comissao_manual(cls, contrato, dados):
+
+        if not contrato:
+            raise ValueError("Contrato ativo não encontrado para cálculo de premiação.")
+        if not contrato.get("campanha_id"):
+            raise ValueError("O contrato não possui campanha vinculada pela vigência. Selecione ou ajuste uma Regra de Campanha antes do cálculo.")
+
+        valor_manual = cls._normalizar_decimal(dados.get("valor_manual_base"), permitir_vazio=True)
+        base_contrato = cls._decimal_seguro(contrato.get("valor_base_comissao"))
+        base_calculo = valor_manual if valor_manual > 0 else base_contrato
+        percentual_parceiro = cls._decimal_seguro(contrato.get("percentual_parceiro_aplicado"))
+        percentual_executivo = cls._decimal_seguro(contrato.get("percentual_executivo_aplicado"))
+        valor_premiacao_parceiro = (base_calculo * percentual_parceiro / Decimal("100")).quantize(Decimal("0.01"))
+        valor_premiacao_executivo = (base_calculo * percentual_executivo / Decimal("100")).quantize(Decimal("0.01"))
+        valor_comissao = valor_premiacao_parceiro + valor_premiacao_executivo
+
+        return {
+            "valor_manual_base": valor_manual,
+            "valor_base_contrato": base_contrato,
+            "valor_base_calculo": base_calculo,
+            "percentual_parceiro": percentual_parceiro,
+            "percentual_executivo": percentual_executivo,
+            "valor_premiacao_parceiro": valor_premiacao_parceiro,
+            "valor_premiacao_executivo": valor_premiacao_executivo,
+            "valor_comissao": valor_comissao,
+            "usou_valor_manual": valor_manual > 0,
+        }
+
+    @staticmethod
+    def status_comissoes():
+
+        return {
+            "RECEBIDO": "Recebido",
+            "ATRASADO": "Atrasado",
+            "NAO_LOCALIZADO": "Nao localizado",
+        }
+
+    @staticmethod
     def contratos_para_faturamento():
 
         return FinanceiroRepository.contratos_para_faturamento()
@@ -155,6 +263,19 @@ class FinanceiroService:
             "origem": FinanceiroService._texto(dados.get("origem")),
             "situacao": FinanceiroService._texto(dados.get("situacao")),
         }
+
+    @staticmethod
+    def filtros_receitas_servidor(dados):
+
+        return {
+            "q": FinanceiroService._texto(dados.get("q")),
+            "node": FinanceiroService._texto(dados.get("node")),
+        }
+
+    @staticmethod
+    def receitas_por_servidor(filtros=None):
+
+        return FinanceiroRepository.receitas_por_servidor(filtros)
 
     @staticmethod
     def produtos_clientes(filtros=None):
@@ -329,6 +450,14 @@ class FinanceiroService:
             return int(valor or 0) or None
         except (TypeError, ValueError):
             return None
+
+    @staticmethod
+    def _decimal_seguro(valor):
+
+        try:
+            return Decimal(str(valor or "0")).quantize(Decimal("0.01"))
+        except (InvalidOperation, ValueError):
+            return Decimal("0.00")
 
     @staticmethod
     def _limpar_params(params):

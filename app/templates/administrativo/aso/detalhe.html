@@ -1,0 +1,154 @@
+{% extends "layout/base.html" %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h2 class="mb-1">{{ colaborador.nome_completo }}</h2>
+            <p class="text-muted mb-0">{{ colaborador.cliente_exibicao or 'Colaborador manual' }} · {{ colaborador.cpf }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary" href="{{ url_for('administrativo.aso') }}"><i class="bi bi-arrow-left"></i> Voltar</a>
+            {% if pode_editar('administrativo') %}<a class="btn btn-primary" href="{{ url_for('administrativo.editar_colaborador_aso', colaborador_id=colaborador.id) }}"><i class="bi bi-pencil"></i> Editar</a>{% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white"><strong>Cadastro</strong></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Cliente</dt><dd class="col-sm-8">{{ colaborador.cliente_exibicao or '-' }}</dd>
+                        <dt class="col-sm-4">CPF</dt><dd class="col-sm-8">{{ colaborador.cpf }}</dd>
+                        <dt class="col-sm-4">Nascimento</dt><dd class="col-sm-8">{{ colaborador.data_nascimento|date_br }}</dd>
+                        <dt class="col-sm-4">Admissão</dt><dd class="col-sm-8">{{ colaborador.data_admissao|date_br }}</dd>
+                        <dt class="col-sm-4">Status</dt><dd class="col-sm-8"><span class="badge text-bg-{{ 'success' if colaborador.status == 'ATIVO' else 'secondary' }}">{{ colaborador.status|title }}</span></dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2"><strong>Exames realizados</strong><span class="badge text-bg-secondary">{{ colaborador.exames|length }}</span></div>
+                {% if pode_editar('administrativo') %}
+                <div class="card-body border-bottom">
+                    <form method="post" enctype="multipart/form-data" action="{{ url_for('administrativo.anexar_exames_aso', colaborador_id=colaborador.id) }}" class="row g-2">
+                        <div class="col-12">
+                            <input required type="file" class="form-control js-exames-input" name="exames" multiple data-file-list="exames_anexar_selecionados">
+                            <div class="form-text">Selecione um ou mais arquivos. Você pode anexar novos arquivos antes de enviar.</div>
+                            <div id="exames_anexar_selecionados" class="list-group list-group-flush border rounded mt-2 d-none"></div>
+                        </div>
+                        <div class="col-12"><button class="btn btn-outline-primary"><i class="bi bi-upload"></i> Anexar exames</button></div>
+                    </form>
+                </div>
+                {% endif %}
+                <div class="list-group list-group-flush">
+                    {% for exame in colaborador.exames %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                        <a class="text-decoration-none" href="{{ exame.url }}" target="_blank"><i class="bi bi-paperclip"></i> {{ exame.arquivo_original }}</a>
+                        <div class="d-flex align-items-center gap-2">
+                            <small class="text-muted">{{ exame.created_at|datetime_br }}</small>
+                            {% if pode_excluir() %}<form method="post" action="{{ url_for('administrativo.excluir_exame_aso', colaborador_id=colaborador.id, exame_id=exame.id) }}" onsubmit="return confirm('Excluir este arquivo de exame?');"><button class="btn btn-sm btn-outline-danger" title="Excluir arquivo"><i class="bi bi-trash"></i></button></form>{% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="list-group-item text-muted">Nenhum exame anexado.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            {% if pode_editar('administrativo') %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white"><strong>Novo agendamento na agenda</strong></div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('administrativo.criar_lembrete_aso', colaborador_id=colaborador.id) }}" class="row g-3">
+                        <div class="col-md-6"><label class="form-label">Data do ASO</label><input required type="date" class="form-control" name="data_aso"></div>
+                        <div class="col-md-6"><label class="form-label">Avisar antes</label><select class="form-select" name="antecedencia_dias" id="antecedencia_dias_aso">{% for dias in antecedencias %}<option value="{{ dias }}">{{ dias }} dias</option>{% endfor %}</select></div>
+                        <div class="col-12"><label class="form-label">Dono da agenda</label><select required class="form-select" name="dono_agenda_id"><option value="">Selecionar usuário</option>{% for usuario in usuarios %}<option value="{{ usuario.id }}" {% if dono_agenda_padrao_id|string == usuario.id|string %}selected{% endif %}>{{ usuario.nome }}{% if usuario.email %} - {{ usuario.email }}{% endif %}</option>{% endfor %}</select></div>
+                        <div class="col-12"><label class="form-label">Compartilhar com outros usuários</label><select class="form-select" name="compartilhar_usuario_ids" multiple size="5">{% for usuario in usuarios %}<option value="{{ usuario.id }}">{{ usuario.nome }}{% if usuario.email %} - {{ usuario.email }}{% endif %}</option>{% endfor %}</select></div>
+                        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="enviar_lembrete_email_aso" name="enviar_lembrete_email" value="1" checked><label class="form-check-label" for="enviar_lembrete_email_aso">Enviar lembrete por e-mail</label></div></div>
+                        <div class="col-12"><button class="btn btn-primary w-100"><i class="bi bi-calendar-plus"></i> Criar agendamento</button></div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Lembretes criados</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for lembrete in colaborador.lembretes %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                        <a class="text-decoration-none flex-grow-1" href="{{ url_for('administrativo.detalhe', demanda_id=lembrete.demanda_id) }}">
+                            <div class="d-flex justify-content-between gap-2"><strong>{{ lembrete.data_aso|date_br }}</strong><span class="badge text-bg-{{ 'secondary' if not lembrete.enviar_email else ('success' if lembrete.aviso_enviado else 'warning') }}">{{ 'Sem e-mail' if not lembrete.enviar_email else ('E-mail enviado' if lembrete.aviso_enviado else 'E-mail pendente') }}</span></div>
+                            <small class="text-muted">{{ lembrete.usuario_nome or '-' }} · {{ lembrete.antecedencia_dias }} dias antes · {{ lembrete.tipo_participacao|title }}</small>
+                        </a>
+                        {% if pode_excluir() %}<form method="post" action="{{ url_for('administrativo.excluir_lembrete_aso', colaborador_id=colaborador.id, lembrete_id=lembrete.id) }}" onsubmit="return confirm('Excluir este agendamento ASO? A demanda vinculada será cancelada na agenda.');"><button class="btn btn-sm btn-outline-danger" title="Excluir agendamento"><i class="bi bi-trash"></i></button></form>{% endif %}
+                    </div>
+                    {% else %}
+                    <div class="list-group-item text-muted">Nenhum lembrete criado.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+  function configurarListaArquivos(input) {
+    const lista = document.getElementById(input.dataset.fileList);
+    if (!lista || typeof DataTransfer === "undefined") return;
+    const arquivos = new DataTransfer();
+
+    function renderizar() {
+      lista.innerHTML = "";
+      lista.classList.toggle("d-none", arquivos.files.length === 0);
+      Array.from(arquivos.files).forEach(function (arquivo, index) {
+        const item = document.createElement("div");
+        item.className = "list-group-item d-flex justify-content-between align-items-center gap-2 py-2";
+
+        const nome = document.createElement("small");
+        nome.className = "text-break";
+        nome.textContent = arquivo.name;
+
+        const remover = document.createElement("button");
+        remover.type = "button";
+        remover.className = "btn btn-sm btn-outline-danger";
+        remover.title = "Remover arquivo";
+        remover.innerHTML = '<i class="bi bi-x-lg"></i>';
+        remover.addEventListener("click", function () {
+          const atualizados = new DataTransfer();
+          Array.from(arquivos.files).forEach(function (itemArquivo, itemIndex) {
+            if (itemIndex !== index) atualizados.items.add(itemArquivo);
+          });
+          arquivos.items.clear();
+          Array.from(atualizados.files).forEach(function (itemArquivo) { arquivos.items.add(itemArquivo); });
+          input.files = arquivos.files;
+          renderizar();
+        });
+
+        item.appendChild(nome);
+        item.appendChild(remover);
+        lista.appendChild(item);
+      });
+    }
+
+    input.addEventListener("change", function () {
+      Array.from(input.files).forEach(function (arquivo) { arquivos.items.add(arquivo); });
+      input.files = arquivos.files;
+      renderizar();
+    });
+  }
+
+  document.querySelectorAll(".js-exames-input").forEach(configurarListaArquivos);
+
+  const enviarEmail = document.getElementById("enviar_lembrete_email_aso");
+  const antecedencia = document.getElementById("antecedencia_dias_aso");
+  function atualizarAntecedencia() {
+    if (antecedencia && enviarEmail) antecedencia.disabled = !enviarEmail.checked;
+  }
+  if (enviarEmail) enviarEmail.addEventListener("change", atualizarAntecedencia);
+  atualizarAntecedencia();
+}());
+</script>
+{% endblock %}

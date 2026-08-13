@@ -2,9 +2,11 @@
 
 # Sprint 21 - Release Beta, Backup e Atualizações
 
-Status: Em desenvolvimento
+Status: Concluída tecnicamente
 
 Data de abertura: 11/08/2026
+
+Data de fechamento técnico: 12/08/2026
 
 ---
 
@@ -227,3 +229,12 @@ Esses itens podem ser planejados após estabilização da Beta.
 - `docs/38-SERVICO-SYSTEMD.md`
 - `docs/36-LOGS-BACKEND.md`
 - `docs/37-FECHAMENTO-SPRINT-20.md`
+- `docs/43-FECHAMENTO-SPRINT-21.md`
+
+---
+
+# Fechamento Técnico
+
+O Sprint 21 foi concluído tecnicamente em 12/08/2026.
+
+As entregas de backup, restore, serviço systemd, versionamento e atualizações controladas ficam encaminhadas para homologação Beta com dados reais. A execução automática de atualização pela interface permanece fora da liberação até validação operacional completa.

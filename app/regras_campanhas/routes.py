@@ -45,11 +45,11 @@ def novo():
             regra_id = RegraCampanhaService.criar(request.form, _email_usuario_logado())
         except ValueError as erro:
             flash(str(erro), "danger")
-            return render_template("regras_campanhas/form.html", modo="novo", regra=request.form)
+            return render_template("regras_campanhas/form.html", modo="novo", regra=request.form, **RegraCampanhaService.contexto_form(request.form))
         registrar_evento("REGRA_CAMPANHA_CRIADA", "regras_campanhas_comissao", regra_id, {"nome": request.form.get("nome"), "vigencia_inicio": request.form.get("vigencia_inicio"), "vigencia_fim": request.form.get("vigencia_fim")})
         flash("Regra de campanha cadastrada.", "success")
         return redirect(url_for("regras_campanhas.index"))
-    return render_template("regras_campanhas/form.html", modo="novo", regra={"ativo": 1})
+    return render_template("regras_campanhas/form.html", modo="novo", regra={"ativo": 1}, contratos_elegiveis=[])
 
 
 @regras_campanhas_bp.route("/<int:regra_id>/editar", methods=["GET", "POST"])
@@ -64,11 +64,11 @@ def editar(regra_id):
         except ValueError as erro:
             flash(str(erro), "danger")
             regra = {**regra, **request.form}
-            return render_template("regras_campanhas/form.html", modo="editar", regra=regra)
+            return render_template("regras_campanhas/form.html", modo="editar", regra=regra, **RegraCampanhaService.contexto_form(regra))
         registrar_evento("REGRA_CAMPANHA_ATUALIZADA", "regras_campanhas_comissao", regra_id, {"nome": request.form.get("nome"), "vigencia_inicio": request.form.get("vigencia_inicio"), "vigencia_fim": request.form.get("vigencia_fim")})
         flash("Regra de campanha atualizada.", "success")
         return redirect(url_for("regras_campanhas.index"))
-    return render_template("regras_campanhas/form.html", modo="editar", regra=regra)
+    return render_template("regras_campanhas/form.html", modo="editar", regra=regra, **RegraCampanhaService.contexto_form(regra))
 
 
 @regras_campanhas_bp.route("/<int:regra_id>/excluir", methods=["POST"])

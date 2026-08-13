@@ -1,0 +1,164 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">Premiações</h2>
+            <p class="text-muted mb-0">Consulta operacional de contratos ativos, campanhas e recebimentos OMIE elegíveis para apuração de premiação.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.faturamentos') }}"><i class="bi bi-receipt"></i> Faturamento</a>
+            <a class="btn btn-outline-secondary" href="{{ url_for('regras_campanhas.index') }}"><i class="bi bi-percent"></i> Regras Campanhas</a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-2 align-items-end">
+                <div class="col-lg-3">
+                    <label class="form-label">Buscar</label>
+                    <input class="form-control" name="q" value="{{ filtros.q or '' }}" placeholder="Cliente, contrato, vendedor ou projeto...">
+                </div>
+                <div class="col-lg-3">
+                    <label class="form-label">Campanha</label>
+                    <select class="form-select" name="campanha_id">
+                        <option value="">Todas as campanhas / sem filtro de vigência</option>
+                        {% for campanha in campanhas %}
+                        <option value="{{ campanha.id }}" {% if filtros.campanha_id == campanha.id %}selected{% endif %}>{{ campanha.nome }} - {{ campanha.vigencia_inicio|date_br }} a {{ campanha.vigencia_fim|date_br }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Status financeiro</label>
+                    <select class="form-select" name="status_pagamento">
+                        <option value="">Todos</option>
+                        {% for chave, label in status_options.items() %}
+                        <option value="{{ chave }}" {% if filtros.status_pagamento == chave %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-lg-4 d-grid">
+                    <button class="btn btn-primary"><i class="bi bi-search"></i> Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if campanha_selecionada %}
+    <div class="alert alert-info d-flex align-items-start gap-2">
+        <i class="bi bi-info-circle mt-1"></i>
+        <div>
+            <strong>{{ campanha_selecionada.nome }}</strong><br>
+            Vigência {{ campanha_selecionada.vigencia_inicio|date_br }} a {{ campanha_selecionada.vigencia_fim|date_br }} com {{ ('%.2f'|format(campanha_selecionada.percentual_parceiro or 0)).replace('.', ',') }}% para parceiro e {{ ('%.2f'|format(campanha_selecionada.percentual_executivo or 0)).replace('.', ',') }}% para executivo.
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Contratos</small><h3 class="mb-0">{{ resumo.total or 0 }}</h3></div></div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Recebidos</small><h3 class="mb-0 text-success">{{ resumo.contratos_recebidos or 0 }}</h3></div></div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Atrasados</small><h3 class="mb-0 text-danger">{{ resumo.contratos_atrasados or 0 }}</h3></div></div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Não localizados</small><h3 class="mb-0">{{ resumo.contratos_nao_localizados or 0 }}</h3></div></div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Base premiação</small><h5 class="mb-0">{{ resumo.valor_base_comissao|moeda }}</h5></div></div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Premiação prevista</small><h5 class="mb-0">{{ resumo.valor_comissao_prevista|moeda }}</h5></div></div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
+            <div>
+                <strong>Contratos para premiação</strong>
+                <div class="text-muted small">Entram apenas contratos com parceiro ou executivo habilitado. Valores financeiros consideram somente o primeiro título/parcela do contrato.</div>
+            </div>
+            <span class="badge text-bg-light border align-self-start">{{ comissoes|length }} de {{ total or 0 }} exibido(s)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Contrato</th>
+                        <th>Cliente</th>
+                        <th>Campanha</th>
+                        <th>Vendedor</th>
+                        <th>Vigência</th>
+                        <th>Status</th>
+                        <th class="text-end">Base</th>
+                        <th class="text-end">Recebido</th>
+                        <th class="text-end">Atrasado</th>
+                        <th class="text-end">Premiação</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in comissoes %}
+                        {% set atrasado = item.status_pagamento == 'ATRASADO' %}
+                        {% set recebido = item.status_pagamento == 'RECEBIDO' %}
+                        <tr class="{% if atrasado %}table-danger{% endif %}">
+                            <td><a href="{{ url_for('contratos.view', contrato_id=item.contrato_id) }}" class="font-monospace">{{ item.contrato_numero }}</a><br><small class="text-muted">ID {{ item.contrato_id }}</small></td>
+                            <td>{{ item.cliente_nome or '-' }}{% if item.razao_social and item.razao_social != item.cliente_nome %}<br><small class="text-muted">{{ item.razao_social }}</small>{% endif %}</td>
+                            <td>{% if item.campanha_id %}{{ item.campanha_nome }}<br><small class="text-muted">Parceiro {{ ('%.2f'|format(item.percentual_parceiro or 0)).replace('.', ',') }}% · Executivo {{ ('%.2f'|format(item.percentual_executivo or 0)).replace('.', ',') }}%</small>{% else %}<span class="text-muted">Sem campanha vinculada</span>{% endif %}</td>
+                            <td>{{ item.vendedor_nome or item.codigo_vendedor or '-' }}{% if item.projeto_nome or item.codigo_projeto %}<br><small class="text-muted">{{ item.projeto_nome or item.codigo_projeto }}</small>{% endif %}{% if item.parceiro_premiacao_nome %}<br><small class="text-success">Parceiro: {{ item.parceiro_premiacao_nome }}</small>{% endif %}{% if item.executivo_premiacao_nome %}<br><small class="text-success">Executivo: {{ item.executivo_premiacao_nome }}</small>{% endif %}</td>
+                            <td>{{ item.inicio_vigencia|date_br if item.inicio_vigencia else '-' }}<br><small class="text-muted">até {{ item.fim_vigencia|date_br if item.fim_vigencia else '-' }}</small></td>
+                            <td>
+                                {% if atrasado %}
+                                <span class="badge text-bg-danger">Atrasado</span>
+                                {% elif recebido %}
+                                <span class="badge text-bg-success">Recebido</span>
+                                {% else %}
+                                <span class="badge text-bg-secondary">Não localizado</span>
+                                {% endif %}
+                                <br><small class="text-muted">{{ '1º título localizado' if item.recebimentos_total else '1º título não localizado' }}</small>
+                            </td>
+                            <td class="text-end">{{ item.valor_base_comissao|moeda }}</td>
+                            <td class="text-end">{{ item.valor_recebido_elegivel|moeda }}{% if item.valor_recebido_excluido %}<br><small class="text-warning">Excl. {{ item.valor_recebido_excluido|moeda }}</small>{% endif %}</td>
+                            <td class="text-end {% if atrasado %}text-danger fw-semibold{% endif %}">{{ item.valor_atrasado|moeda }}</td>
+                            <td class="text-end"><strong>{{ item.valor_comissao_prevista|moeda }}</strong>{% if item.valor_premiacao_parceiro or item.valor_premiacao_executivo %}<br><small class="text-muted">P {{ item.valor_premiacao_parceiro|moeda }} · E {{ item.valor_premiacao_executivo|moeda }}</small>{% endif %}</td>
+                            <td class="text-end">
+                                {% if item.campanha_id and item.premiacao_liberada %}
+                                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('financeiro.calcular_comissao', contrato_id=item.contrato_id, campanha_id=item.campanha_id) if item.campanha_id else url_for('financeiro.calcular_comissao', contrato_id=item.contrato_id) }}" title="Calcular premiação">
+                                    <i class="bi bi-calculator"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="11" class="text-muted">Nenhum contrato encontrado para os filtros informados.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if total_paginas > 1 %}
+        <div class="card-footer bg-white">
+            <nav aria-label="Paginação de premiações">
+                <ul class="pagination justify-content-center flex-wrap mb-0">
+                    <li class="page-item {% if pagina <= 1 %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('financeiro.comissoes', page=pagina - 1, q=filtros.q, campanha_id=filtros.campanha_id, status_pagamento=filtros.status_pagamento) }}">Anterior</a>
+                    </li>
+                    {% for p in range(1, total_paginas + 1) %}
+                    <li class="page-item {% if p == pagina %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('financeiro.comissoes', page=p, q=filtros.q, campanha_id=filtros.campanha_id, status_pagamento=filtros.status_pagamento) }}">{{ p }}</a>
+                    </li>
+                    {% endfor %}
+                    <li class="page-item {% if pagina >= total_paginas %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('financeiro.comissoes', page=pagina + 1, q=filtros.q, campanha_id=filtros.campanha_id, status_pagamento=filtros.status_pagamento) }}">Próxima</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

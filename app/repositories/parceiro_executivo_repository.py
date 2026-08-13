@@ -51,6 +51,7 @@ class ParceiroExecutivoRepository(BaseRepository):
                 pe.telefone,
                 pe.chave_pix,
                 pe.informacoes_pagamento,
+                pe.premiacao_ativa,
                 pe.ativo,
                 pe.created_at,
                 pe.updated_at,
@@ -123,6 +124,7 @@ class ParceiroExecutivoRepository(BaseRepository):
                 pe.telefone,
                 pe.chave_pix,
                 pe.informacoes_pagamento,
+                pe.premiacao_ativa,
                 pe.ativo,
                 pe.created_at,
                 pe.updated_at,
@@ -135,6 +137,29 @@ class ParceiroExecutivoRepository(BaseRepository):
         """
 
         return cls.fetch_one(sql, (executivo_id,))
+
+
+    @classmethod
+    def buscar_duplicado(cls, nome, email=None, ignorar_id=None):
+        sql = f"""
+            SELECT id, nome, email
+            FROM {cls.TABLE}
+            WHERE (LOWER(TRIM(nome)) = LOWER(TRIM(%s))
+        """
+        params = [nome]
+
+        if email:
+            sql += " OR LOWER(TRIM(email)) = LOWER(TRIM(%s))"
+            params.append(email)
+
+        sql += ")"
+
+        if ignorar_id:
+            sql += " AND id <> %s"
+            params.append(ignorar_id)
+
+        sql += " LIMIT 1"
+        return cls.fetch_one(sql, tuple(params))
 
     @classmethod
     def contar_por_parceiro(cls, parceiro_id):
@@ -158,11 +183,12 @@ class ParceiroExecutivoRepository(BaseRepository):
                 telefone,
                 chave_pix,
                 informacoes_pagamento,
+                premiacao_ativa,
                 ativo
             )
             VALUES
             (
-                %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
         """
 
@@ -176,6 +202,7 @@ class ParceiroExecutivoRepository(BaseRepository):
                 dados.get("telefone"),
                 dados.get("chave_pix"),
                 dados.get("informacoes_pagamento"),
+                cls.bool_to_int(dados.get("premiacao_ativa", False)),
                 cls.bool_to_int(dados.get("ativo", True)),
             ),
         )
@@ -190,6 +217,7 @@ class ParceiroExecutivoRepository(BaseRepository):
                 telefone = %s,
                 chave_pix = %s,
                 informacoes_pagamento = %s,
+                premiacao_ativa = %s,
                 ativo = %s
             WHERE id = %s
         """
@@ -203,7 +231,29 @@ class ParceiroExecutivoRepository(BaseRepository):
                 dados.get("telefone"),
                 dados.get("chave_pix"),
                 dados.get("informacoes_pagamento"),
+                cls.bool_to_int(dados.get("premiacao_ativa", False)),
                 cls.bool_to_int(dados.get("ativo", True)),
                 executivo_id,
             ),
         )
+
+    @classmethod
+    def atualizar_premiacao(cls, executivo_id, premiacao_ativa):
+        sql = f"""
+            UPDATE {cls.TABLE}
+            SET premiacao_ativa = %s
+            WHERE id = %s
+        """
+
+        return cls.execute(sql, (cls.bool_to_int(premiacao_ativa), executivo_id))
+
+    @classmethod
+    def excluir(cls, executivo_id):
+        sql = f"""
+            UPDATE {cls.TABLE}
+            SET parceiro_id = NULL,
+                ativo = 0
+            WHERE id = %s
+        """
+
+        return cls.execute(sql, (executivo_id,))

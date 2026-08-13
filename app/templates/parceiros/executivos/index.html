@@ -37,6 +37,7 @@
             <th>E-mail</th>
             <th>WhatsApp</th>
             <th>Chave Pix</th>
+            <th>Premiação</th>
             <th>Status</th>
             <th width="170" class="text-center">Ações</th>
         </tr>
@@ -61,6 +62,22 @@
                 {{ executivo.chave_pix or "-" }}
             </td>
             <td>
+                <form
+                    method="post"
+                    action="{{ url_for('parceiros.atualizar_premiacao_executivo', executivo_id=executivo.id) }}"
+                    class="m-0">
+                    <input type="hidden" name="next" value="{{ request.full_path }}">
+                    <select
+                        class="form-select form-select-sm"
+                        name="premiacao_ativa"
+                        aria-label="Status de premiação de {{ executivo.nome }}"
+                        onchange="this.form.submit()">
+                        <option value="1" {% if executivo.premiacao_ativa %}selected{% endif %}>Habilitada</option>
+                        <option value="0" {% if not executivo.premiacao_ativa %}selected{% endif %}>Não habilitada</option>
+                    </select>
+                </form>
+            </td>
+            <td>
                 {% if executivo.ativo %}
                     <span class="badge bg-success">Ativo</span>
                 {% else %}
@@ -70,13 +87,33 @@
             <td class="text-center">
                 {% set view_url = url_for('parceiros.visualizar_executivo', executivo_id=executivo.id) %}
                 {% set edit_url = url_for('parceiros.editar_executivo', executivo_id=executivo.id) %}
+                {% if pode_excluir_executivo %}
+                <div class="btn-group btn-group-sm" role="group">
+                    <a href="{{ view_url }}" class="btn btn-outline-primary" title="Visualizar">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="{{ edit_url }}" class="btn btn-outline-warning" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <form
+                        method="post"
+                        action="{{ url_for('parceiros.excluir_executivo', executivo_id=executivo.id) }}"
+                        class="d-inline"
+                        onsubmit="return confirm('Excluir este executivo e remover o vínculo com o parceiro?');">
+                        <button type="submit" class="btn btn-outline-danger" title="Excluir">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+                {% else %}
                 {% set disable_url = None %}
                 {% include "components/crud_actions.html" %}
+                {% endif %}
             </td>
         </tr>
         {% else %}
         <tr>
-            <td colspan="7" class="text-center text-muted py-5">
+            <td colspan="8" class="text-center text-muted py-5">
                 Nenhum executivo cadastrado.
             </td>
         </tr>

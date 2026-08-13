@@ -4,54 +4,55 @@
 
 Versao: 3.0 Alpha
 
-Ultima atualizacao: 11/08/2026
+Ultima atualizacao: 13/08/2026
 
-Status: Planejamento
+Status: Em desenvolvimento
 
 ---
 
 # Sprint Registrada
 
-## Sprint 21
+## Sprint 17
 
-Release Beta, Backup e Atualizações
+Comissoes, Premiacoes, ASO e Receita por Servidor
 
 Status:
 
-Planejada antes do desenvolvimento
+Retomada apos fechamento tecnico do Sprint 21
 
 ---
 
 # Contexto
 
-A Sprint 20 foi concluida tecnicamente em 10/08/2026 com Relatorios Customizaveis, jobs, retencao de cache e sincronismos agendados.
+A Sprint 21 foi concluida tecnicamente em 12/08/2026 com arquitetura Beta, backup, restore, servico systemd, versionamento e atualizacoes controladas em modo seguro.
 
-A Sprint 21 foi aberta para preparar a release Beta do O3Cloud Manager, com foco em operacao segura, backup, restore, versionamento, atualizacoes controladas e migracao dos dados reais existentes para um ambiente Beta.
+Com o fechamento tecnico do Sprint 21, o desenvolvimento retorna ao Sprint 17 para concluir a frente financeira de comissoes.
 
-Esta sprint deve ser documentada antes da implementacao das telas e scripts, para evitar que backup e atualizacao sejam construidos de forma improvisada.
+O Sprint 17 deve aproveitar a tela existente de `Regras Campanhas`, evitando duplicar cadastro de campanhas. A evolucao principal sera vincular e exibir dentro de cada campanha os contratos cuja data de inicio de vigencia esteja dentro do intervalo da campanha.
+
+Quando nao houver campanha criada, a tela de contratos/comissoes nao deve aplicar filtro por campanha.
 
 Documentos de referencia:
 
+- `docs/17-SPRINTS.md`
+- `docs/43-FECHAMENTO-SPRINT-21.md`
 - `docs/39-SPRINT-21-RELEASE-BETA.md`
 - `docs/40-ARQUITETURA-BETA.md`
 - `docs/41-BACKUP-RESTORE.md`
 - `docs/42-ATUALIZACOES-SISTEMA.md`
-- `docs/38-SERVICO-SYSTEMD.md`
-- `docs/37-FECHAMENTO-SPRINT-20.md`
-- `docs/36-LOGS-BACKEND.md`
 - `docs/CHANGELOG.md`
 
 ---
 
 # Objetivo da Sprint
 
-Preparar o O3Cloud Manager para operacao Beta com arquitetura de deploy, backup, restore, versionamento e atualizacao controlada, preservando o banco e o storage com dados reais ja existentes.
+Evoluir a integracao financeira com o OMIE e os vinculos operacionais do O3Cloud Manager para preparar a apuracao de premiacoes, melhorar o fluxo administrativo de ASO e disponibilizar visao de receita recorrente por node Proxmox.
 
 ---
 
 # Escopo Planejado
 
-## 1. Arquitetura Beta
+## 1. Descoberta OMIE
 
 Status:
 
@@ -59,24 +60,14 @@ Planejado
 
 Entregas previstas:
 
-- Definir topologia recomendada para Beta.
-- Avaliar separacao entre servidor de aplicacao e servidor de banco.
-- Definir volume dedicado para `/opt/o3cloud-manager/storage`.
-- Documentar variaveis de ambiente e servicos necessarios.
+- Inspecionar payload real de contratos OMIE.
+- Identificar campo correto de observacoes do contrato.
+- Identificar vendedor, projeto e descontos.
+- Testar endpoints necessarios para resolver nome de vendedor/projeto.
+- Testar Contas a Receber.
+- Identificar vinculo tecnico entre recebimento e contrato.
 
-## 2. Branches, Tags e Releases
-
-Status:
-
-Planejado
-
-Entregas previstas:
-
-- Definir uso de `develop`, `beta`, `main` e tags.
-- Definir padrao de tags `v0.9.x-beta.x` e `v1.x.x`.
-- Documentar fluxo de promocao `develop -> beta -> main`.
-
-## 3. Backup e Restore
+## 2. Expansao de Contratos
 
 Status:
 
@@ -84,13 +75,11 @@ Planejado
 
 Entregas previstas:
 
-- Scripts de dump SQL e restore SQL.
-- Backup compactado de storage.
-- Historico de backups.
-- Periodicidade e retencao.
-- Destinos local, SFTP/SSH, S3 compativel e NAS/caminho montado.
+- Criar migration apenas para campos ausentes.
+- Sincronizar vendedor, projeto, observacao correta e valores comerciais.
+- Exibir informacoes comerciais no detalhe do contrato.
 
-## 4. Configuracoes > Backups
+## 3. Recebimentos OMIE
 
 Status:
 
@@ -98,26 +87,13 @@ Planejado
 
 Entregas previstas:
 
-- Tela administrativa para gerar backup agora.
-- Configuracao de periodicidade.
-- Selecao/teste de destino.
-- Historico, status, tamanho, duracao e erro resumido.
+- Criar tabela de recebimentos financeiros.
+- Sincronizar ultimos 90 dias.
+- Garantir idempotencia por identificador oficial OMIE.
+- Identificar situacao equivalente a RECEBIDO.
+- Excluir categorias que contenham SETUP ou IMPLANTACAO/IMPLANTAÇÃO.
 
-## 5. Configuracoes > Atualizacoes do Sistema
-
-Status:
-
-Planejado
-
-Entregas previstas:
-
-- Exibir versao atual, branch, commit e tag.
-- Consultar releases no GitHub.
-- Exibir changelog da release.
-- Preparar atualizacao com backup obrigatorio.
-- Registrar historico de atualizacoes.
-
-## 6. Migracao para Beta
+## 4. Regras de Campanha
 
 Status:
 
@@ -125,20 +101,62 @@ Planejado
 
 Entregas previstas:
 
-- Dump SQL do ambiente atual.
-- Restore no servidor Beta.
-- Migracao de `/opt/o3cloud-manager/storage`.
-- Validacao de permissoes, migrations e modulos criticos.
+- Reaproveitar a tela existente de `Regras Campanhas`.
+- Exibir dentro da campanha os contratos ativos com `inicio_vigencia` dentro do intervalo da campanha.
+- Evitar duplicidade de contratos vinculados a uma campanha.
+- Permitir visualizar rapidamente qual contrato pertence a qual campanha.
+- Nao filtrar contratos por campanha quando nao houver campanha criada.
+
+## 5. Premiacoes
+
+Status:
+
+Implementado parcialmente
+
+Entregas realizadas:
+
+- Contratos com Parceiro ou Executivo habilitado para premiacao aparecem na tela `Financeiro > Premiações`.
+- Parceiro e Executivo possuem flag propria de habilitacao para premiacao.
+- Calculo considera Parceiro, Executivo ou ambos conforme a regra da campanha.
+- Premiacoes consideram somente o primeiro titulo/parcela ativo do contrato.
+- Executivos podem ter o status de premiacao alterado diretamente na listagem.
+
+## 6. Administrativo ASO
+
+Status:
+
+Implementado
+
+Entregas realizadas:
+
+- Cadastro de colaborador permite criar agendamento ASO na agenda do Gestor Administrativo.
+- Agendamento pode ser compartilhado com outro usuario com agenda habilitada.
+- Lembretes por e-mail podem ser programados com 7, 15 ou 30 dias de antecedencia.
+- Campo de exames realizados exibe lista dos arquivos selecionados e permite anexos multiplos de forma incremental.
+
+## 7. Receitas por Servidor
+
+Status:
+
+Implementado
+
+Entregas realizadas:
+
+- Nova tela `Financeiro > Receitas por Servidor`.
+- Receita mensal calculada por node Proxmox sincronizado.
+- Calculo cruza node, recurso Proxmox, ambiente ativo e contrato ativo vinculado.
+- Cada contrato e contado uma vez por node para evitar duplicidade por multiplas VMs/containers.
 
 ---
 
 # Fora do Escopo Inicial
 
-- Alta disponibilidade.
-- Replicacao de banco em tempo real.
-- Rollback totalmente automatizado pela interface.
-- CI/CD completo com deploy automatico em producao.
-- Backup imutavel/WORM.
+- Pagamento automatico de comissao.
+- Integracao bancaria para pagamento de executivo.
+- Folha de pagamento.
+- Alteracao automatica no OMIE.
+- Regras arbitrarias executando Python ou SQL.
+- Dashboards avancados de BI.
 
 ---
 
@@ -150,16 +168,16 @@ Versao:
 
 Sprint Atual:
 
-21
+17
 
 Situacao:
 
-Planejada antes do desenvolvimento
+Em desenvolvimento com entregas operacionais adicionais registradas em 13/08/2026
 
 Sprint anterior:
 
-- `docs/37-FECHAMENTO-SPRINT-20.md`
+- `docs/43-FECHAMENTO-SPRINT-21.md`
 
-Documento principal da Sprint 21:
+Documento principal da Sprint 17:
 
-- `docs/39-SPRINT-21-RELEASE-BETA.md`
+- `docs/17-SPRINTS.md`

@@ -55,6 +55,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
                 c.numero AS contrato_numero,
                 c.status AS contrato_status,
                 COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
+                cli.cnpj AS cliente_cnpj,
                 exec.nome AS executivo_nome,
                 p.nome AS parceiro_nome,
                 checklist.total_itens,
@@ -876,6 +877,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
                 (
                     i.titulo LIKE %s
                     OR COALESCE(cli.nome_fantasia, cli.razao_social, '') LIKE %s
+                    OR COALESCE(cli.cnpj, '') LIKE %s
                     OR COALESCE(c.numero, '') LIKE %s
                     OR COALESCE(i.responsavel, '') LIKE %s
                     OR COALESCE(i.implantador_nome, '') LIKE %s
@@ -884,7 +886,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
                 )
                 """
             )
-            params.extend([termo] * 7)
+            params.extend([termo] * 8)
         if status:
             where.append("i.status = %s")
             params.append(status)

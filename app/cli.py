@@ -34,6 +34,7 @@ def init_cli(app):
     app.cli.add_command(relatorios_processar_jobs_command)
     app.cli.add_command(sincronismos_processar_agendados_command)
     app.cli.add_command(backups_processar_agendados_command)
+    app.cli.add_command(aso_processar_lembretes_command)
 
 
 @click.command("relatorios-processar-jobs")
@@ -75,6 +76,21 @@ def backups_processar_agendados_command(limite):
     resultados = BackupSistemaService.processar_pendentes(limite)
     if not resultados:
         click.echo("Nenhum backup pendente.")
+        return
+    for resultado in resultados:
+        click.echo(resultado)
+
+
+@click.command("aso-processar-lembretes")
+@with_appcontext
+@click.option("--limite", default=20, show_default=True, help="Quantidade maxima de lembretes ASO pendentes para processar.")
+def aso_processar_lembretes_command(limite):
+    """Envia e-mails de lembrete de ASO na antecedencia configurada."""
+    from app.administrativo.aso_service import AdministrativoAsoService
+
+    resultados = AdministrativoAsoService.processar_lembretes_email(limite)
+    if not resultados:
+        click.echo("Nenhum lembrete ASO pendente.")
         return
     for resultado in resultados:
         click.echo(resultado)

@@ -10,7 +10,7 @@
 
             <a
                 class="page-link"
-                href="?page={{ p }}{% if pesquisa %}&q={{ pesquisa }}{% endif %}">
+                href="?page={{ p }}{% for nome, valor in request.args.items() %}{% if nome != 'page' and valor %}&{{ nome }}={{ valor|urlencode }}{% endif %}{% endfor %}">
 
                 {{ p }}
 

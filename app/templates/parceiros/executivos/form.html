@@ -36,7 +36,15 @@
         </select>
     </div>
 
-    <div class="col-md-6">
+    <div class="col-md-4">
+        <label class="form-label">Premiação</label>
+        <select class="form-select" name="premiacao_ativa">
+            <option value="0" {% if not executivo or not executivo.premiacao_ativa %}selected{% endif %}>Não habilitado</option>
+            <option value="1" {% if executivo and executivo.premiacao_ativa %}selected{% endif %}>Habilitado</option>
+        </select>
+    </div>
+
+    <div class="col-md-4">
         <label class="form-label">E-mail</label>
         <input
             type="email"
@@ -46,7 +54,7 @@
             value="{{ executivo.email if executivo else '' }}">
     </div>
 
-    <div class="col-md-6">
+    <div class="col-md-4">
         <label class="form-label">WhatsApp</label>
         <input
             type="text"
@@ -81,7 +89,7 @@
     </div>
 
     <div class="col-12">
-        <label class="form-label">Informações para Pagamento de Comissões</label>
+        <label class="form-label">Informações para Pagamento de Premiações</label>
         <textarea
             class="form-control"
             rows="5"

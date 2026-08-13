@@ -49,3 +49,19 @@ Escopo da tela:
 Regra importante: segredos de LDAP, Active Directory e FreeIPA nao devem ser exibidos em texto puro, trafegar em logs ou ser retornados para usuarios sem permissao administrativa.
 
 Documento de detalhamento: `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
+
+
+---
+
+# Atualizacao 13/08/2026 - Permissoes Financeiras e Executivos
+
+Nova permissao de menu:
+
+- `receitas_servidor`: libera a tela `Financeiro > Receitas por Servidor` para perfis autorizados no grupo Financeiro.
+
+Regras operacionais adicionadas:
+
+- Exclusao de Executivos permitida apenas para perfis `ADMIN` e `DIRETORIA`.
+- A exclusao de Executivo e logica: define `ativo = 0` e remove o vinculo com Parceiro, preservando historico financeiro/contratual.
+- Alteracao rapida do status de premiacao do Executivo ocorre pela lista de Executivos e atualiza somente `premiacao_ativa`.
+- Importacao de dados de Cliente no cadastro/edicao de Parceiros aparece apenas para perfil `ADMIN`.

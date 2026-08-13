@@ -34,8 +34,9 @@ class ContratoService:
     }
 
     @classmethod
-    def sincronizar_contrato(cls, contrato_omie):
+    def sincronizar_contrato(cls, contrato_omie, vendedores_cache=None, projetos_cache=None):
         dados = ContratoMapper.from_omie(contrato_omie)
+        cls._aplicar_nomes_omie(dados, vendedores_cache, projetos_cache)
         cliente = ClienteRepository.buscar_por_codigo_externo(dados["cliente_codigo_externo"])
 
         if not cliente:
@@ -67,11 +68,51 @@ class ContratoService:
     @classmethod
     def sincronizar(cls):
         omie = OmieClient()
+        vendedores_cache = cls._indexar_cadastros_omie(omie.listar_vendedores)
+        projetos_cache = cls._indexar_cadastros_omie(omie.listar_projetos)
         resposta = omie.listar_contratos()
         return [
-            cls.sincronizar_contrato(contrato)
+            cls.sincronizar_contrato(contrato, vendedores_cache, projetos_cache)
             for contrato in resposta.get("contratoCadastro", [])
         ]
+
+    @classmethod
+    def _aplicar_nomes_omie(cls, dados, vendedores_cache=None, projetos_cache=None):
+        dados["vendedor_nome"] = cls._nome_cadastro_omie(
+            dados.get("codigo_vendedor"),
+            vendedores_cache,
+        )
+        dados["projeto_nome"] = cls._nome_cadastro_omie(
+            dados.get("codigo_projeto"),
+            projetos_cache,
+        )
+
+    @staticmethod
+    def _nome_cadastro_omie(codigo, cache):
+        if not codigo:
+            return None
+        if not cache:
+            return None
+        return cache.get(int(codigo))
+
+    @classmethod
+    def _indexar_cadastros_omie(cls, listar):
+        pagina = 1
+        cadastros = {}
+
+        while True:
+            resposta = listar(pagina)
+            for item in resposta.get("cadastro", []):
+                codigo = item.get("codigo")
+                if codigo:
+                    cadastros[int(codigo)] = item.get("nome")
+
+            total_paginas = resposta.get("total_de_paginas", pagina)
+            if pagina >= total_paginas:
+                break
+            pagina += 1
+
+        return cadastros
 
     @classmethod
     def listar(cls, filtros, pagina=1, limit=50):

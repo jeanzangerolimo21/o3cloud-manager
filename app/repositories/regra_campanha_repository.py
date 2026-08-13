@@ -8,20 +8,68 @@ class RegraCampanhaRepository(BaseRepository):
     def listar(cls, pesquisa=None, ativo="1", limit=50, offset=0):
         where, params = cls._filtros(pesquisa, ativo)
         sql = f"""
-            SELECT id, uuid, nome, percentual_parceiro, percentual_executivo, percentual_comissao, vigencia_inicio, vigencia_fim,
-                   descricao, ativo, created_by, updated_by, created_at, updated_at
-            FROM {cls.TABLE}
+            SELECT r.id, r.uuid, r.nome, r.percentual_parceiro, r.percentual_executivo, r.percentual_comissao, r.vigencia_inicio, r.vigencia_fim,
+                   r.descricao, r.ativo, r.created_by, r.updated_by, r.created_at, r.updated_at,
+                   COUNT(c.id) AS contratos_elegiveis_total
+            FROM {cls.TABLE} r
+            LEFT JOIN contratos c
+              ON c.ativo = 1
+             AND c.status = 'ATIVO'
+             AND c.inicio_vigencia BETWEEN r.vigencia_inicio AND r.vigencia_fim
             {where}
-            ORDER BY vigencia_inicio DESC, vigencia_fim DESC, id DESC
+            GROUP BY r.id, r.uuid, r.nome, r.percentual_parceiro, r.percentual_executivo, r.percentual_comissao, r.vigencia_inicio, r.vigencia_fim,
+                     r.descricao, r.ativo, r.created_by, r.updated_by, r.created_at, r.updated_at
+            ORDER BY r.vigencia_inicio DESC, r.vigencia_fim DESC, r.id DESC
             LIMIT %s OFFSET %s
         """
         params.extend([limit, offset])
         return cls.fetch_all(sql, tuple(params))
 
     @classmethod
+    def listar_contratos_elegiveis(cls, inicio, fim):
+        if not inicio or not fim:
+            return []
+        return cls.fetch_all(
+            """
+            SELECT
+                c.id,
+                c.numero,
+                c.status,
+                c.origem,
+                c.inicio_vigencia,
+                c.fim_vigencia,
+                c.valor_mensal,
+                c.valor_servicos_bruto,
+                c.valor_descontos,
+                c.valor_servicos_liquido,
+                c.vendedor_nome,
+                c.codigo_vendedor,
+                c.projeto_nome,
+                c.codigo_projeto,
+                cli.nome_fantasia AS cliente_nome,
+                cli.razao_social AS cliente_razao_social,
+                COALESCE(SUM(CASE WHEN r.categoria_excluida = 0 THEN r.valor_recebido ELSE 0 END), 0) AS valor_recebido_elegivel,
+                COUNT(r.id) AS recebimentos_total,
+                COALESCE(SUM(CASE WHEN r.categoria_excluida = 1 THEN 1 ELSE 0 END), 0) AS recebimentos_excluidos
+            FROM contratos c
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            LEFT JOIN financeiro_recebimentos r ON r.contrato_id = c.id
+            WHERE c.ativo = 1
+              AND c.status = 'ATIVO'
+              AND c.inicio_vigencia BETWEEN %s AND %s
+            GROUP BY c.id, c.numero, c.status, c.origem, c.inicio_vigencia, c.fim_vigencia,
+                     c.valor_mensal, c.valor_servicos_bruto, c.valor_descontos, c.valor_servicos_liquido,
+                     c.vendedor_nome, c.codigo_vendedor, c.projeto_nome, c.codigo_projeto,
+                     cli.nome_fantasia, cli.razao_social
+            ORDER BY c.inicio_vigencia ASC, cli.nome_fantasia ASC, c.numero ASC
+            """,
+            (inicio, fim),
+        )
+
+    @classmethod
     def total(cls, pesquisa=None, ativo="1"):
         where, params = cls._filtros(pesquisa, ativo)
-        return cls.scalar(f"SELECT COUNT(*) FROM {cls.TABLE} {where}", tuple(params)) or 0
+        return cls.scalar(f"SELECT COUNT(*) FROM {cls.TABLE} r {where}", tuple(params)) or 0
 
     @classmethod
     def buscar_por_id(cls, regra_id):
@@ -103,11 +151,11 @@ class RegraCampanhaRepository(BaseRepository):
         condicoes = []
         params = []
         if pesquisa:
-            condicoes.append("(nome LIKE %s OR descricao LIKE %s)")
+            condicoes.append("(r.nome LIKE %s OR r.descricao LIKE %s)")
             termo = f"%{pesquisa}%"
             params.extend([termo, termo])
         if str(ativo) in ("0", "1"):
-            condicoes.append("ativo = %s")
+            condicoes.append("r.ativo = %s")
             params.append(int(ativo))
         where = "WHERE " + " AND ".join(condicoes) if condicoes else ""
         return where, params

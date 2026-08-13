@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container-fluid">
     {% set page_title = "Editar Regra" if modo == "editar" else "Nova Regra" %}
-    {% set page_description = "Campanha de comissão com percentuais por tipo e vigência definida." %}
+    {% set page_description = "Campanha de premiação com percentuais por tipo e vigência definida." %}
     {% set page_icon = "bi-percent" %}
     {% set page_button_url = url_for('regras_campanhas.index') %}
     {% set page_button_icon = "bi-arrow-left" %}
@@ -58,5 +58,52 @@
             </form>
         </div>
     </div>
+
+    {% if modo == "editar" or regra.vigencia_inicio or regra.vigencia_fim %}
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
+            <div>
+                <strong>Contratos elegíveis pela vigência</strong>
+                <div class="text-muted small">Contratos ativos com início de vigência dentro do intervalo da campanha.</div>
+            </div>
+            <span class="badge text-bg-light border align-self-start">{{ contratos_elegiveis|length }} contrato(s)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Contrato</th>
+                        <th>Cliente</th>
+                        <th>Vendedor</th>
+                        <th>Projeto</th>
+                        <th>Vigência</th>
+                        <th class="text-end">Bruto</th>
+                        <th class="text-end">Desconto</th>
+                        <th class="text-end">Líquido</th>
+                        <th class="text-end">Recebido</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contrato in contratos_elegiveis %}
+                    <tr>
+                        <td><a class="font-monospace" href="{{ url_for('contratos.view', contrato_id=contrato.id) }}">{{ contrato.numero }}</a><br><small class="text-muted">{{ contrato.status }}</small></td>
+                        <td>{{ contrato.cliente_nome or contrato.cliente_razao_social }}</td>
+                        <td>{{ contrato.vendedor_nome or contrato.codigo_vendedor or '-' }}</td>
+                        <td>{{ contrato.projeto_nome or contrato.codigo_projeto or '-' }}</td>
+                        <td>{{ contrato.inicio_vigencia|date_br if contrato.inicio_vigencia else '-' }} até {{ contrato.fim_vigencia|date_br if contrato.fim_vigencia else '-' }}</td>
+                        <td class="text-end">{{ contrato.valor_servicos_bruto|moeda if contrato.valor_servicos_bruto is not none else '-' }}</td>
+                        <td class="text-end">{{ contrato.valor_descontos|moeda if contrato.valor_descontos is not none else '-' }}</td>
+                        <td class="text-end"><strong>{{ contrato.valor_servicos_liquido|moeda if contrato.valor_servicos_liquido is not none else '-' }}</strong></td>
+                        <td class="text-end">{{ contrato.valor_recebido_elegivel|moeda }}{% if contrato.recebimentos_excluidos %}<br><small class="text-muted">{{ contrato.recebimentos_excluidos }} excluído(s)</small>{% endif %}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9" class="text-muted py-3">Nenhum contrato ativo com início de vigência dentro do período da campanha.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 {% endblock %}

@@ -21,6 +21,23 @@ class RegraCampanhaService:
         return cls.repository.buscar_por_id(regra_id)
 
     @classmethod
+    def contratos_elegiveis(cls, regra):
+        if not regra:
+            return []
+        try:
+            inicio = cls._data(regra.get("vigencia_inicio"))
+            fim = cls._data(regra.get("vigencia_fim"))
+        except ValueError:
+            return []
+        return cls.repository.listar_contratos_elegiveis(inicio, fim)
+
+    @classmethod
+    def contexto_form(cls, regra):
+        return {
+            "contratos_elegiveis": cls.contratos_elegiveis(regra),
+        }
+
+    @classmethod
     def criar(cls, dados, usuario_email="sistema"):
         payload = cls._normalizar(dados)
         payload["created_by"] = usuario_email or "sistema"
