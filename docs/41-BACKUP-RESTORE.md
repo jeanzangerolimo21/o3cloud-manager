@@ -152,9 +152,40 @@ checksum
 
 # Restore
 
-Restore deve ser documentado e inicialmente executado por script operacional, não automaticamente pela tela.
+O restore pode ser executado pela tela administrativa ou por script operacional.
 
-Implementação inicial:
+## Restore pela tela
+
+Local:
+
+```text
+Configurações > Backups do Sistema > Restauração de backup
+```
+
+Requisitos:
+
+- Permissão `backups_sistema` com edição.
+- Arquivo `.tar.gz`, `.tgz`, `.sql` ou `.sql.gz`.
+- Confirmação textual `RESTAURAR`.
+- Seleção explícita do que será restaurado: banco de dados, storage ou ambos.
+
+Comportamento:
+
+- Restore de banco usa `deployment/restore-db.sh` com `--yes --skip-service`.
+- Restore de storage exige artefato completo contendo `storage.tar.gz`.
+- Antes de substituir o storage atual, o sistema cria uma cópia local de segurança em `storage/backups/pre-restore`.
+- A extração do storage valida caminhos para bloquear path traversal.
+- O diretório `storage/backups` é preservado durante a troca do storage.
+
+Uso recomendado:
+
+- Novo servidor Beta.
+- Janela de manutenção.
+- Migração assistida do ambiente atual para servidores separados.
+
+## Restore por script
+
+Implementação operacional:
 
 ```bash
 deployment/restore-db.sh <backup.sql|backup.sql.gz|o3cloud-backup-*.tar.gz>
@@ -163,7 +194,7 @@ deployment/healthcheck.sh
 
 O script de restore aceita o artefato gerado pela tela quando houver `database.sql.gz` dentro do pacote, gera dump de segurança antes da restauração e executa healthcheck ao final. Para execução não interativa, exige `--yes` e `RESTORE_CONFIRM` igual ao nome do banco.
 
-Fluxo:
+Fluxo operacional recomendado:
 
 ```text
 1. parar aplicação

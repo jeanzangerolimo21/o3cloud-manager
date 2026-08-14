@@ -91,6 +91,33 @@ systemctl status mariadb --no-pager
 mysql -e "SHOW DATABASES LIKE 'o3cloud_manager';"
 ```
 
+## Restauracao do ambiente atual
+
+Para migrar o ambiente atual para os novos servidores, usar preferencialmente um backup completo gerado em:
+
+```text
+Configurações > Backups do Sistema
+```
+
+Fluxo recomendado:
+
+1. No ambiente atual, gerar backup completo ou localizar o artefato em `storage/backups/sistema`.
+2. Instalar `db01` com `deployment/install-db-server.sh`.
+3. Instalar `app01` com `deployment/install-app-server.sh` apontando para o `db01`.
+4. Acessar o novo `app01` como Administrador.
+5. Abrir `Configurações > Backups do Sistema > Restauração de backup`.
+6. Enviar o artefato completo `.tar.gz` ou `.tgz`.
+7. Marcar `Banco de dados` e `Storage`.
+8. Digitar `RESTAURAR` no campo de confirmação.
+9. Executar `deployment/healthcheck.sh` no `app01`.
+
+Observações:
+
+- Arquivos `.sql` e `.sql.gz` restauram somente o banco; nesse caso o storage precisa ser copiado por outro procedimento.
+- Ao restaurar storage pela tela, o artefato precisa conter `storage.tar.gz`.
+- A tela cria uma cópia local de segurança do storage anterior em `storage/backups/pre-restore`.
+- Em servidor novo, o uso de `--skip-service` pelo restore da tela evita interromper o serviço durante a requisição; se houver usuários conectados, usar janela de manutenção.
+
 ## Observacoes operacionais
 
 - O storage oficial da aplicacao fica em `/opt/o3cloud-manager/storage` no `app01`.

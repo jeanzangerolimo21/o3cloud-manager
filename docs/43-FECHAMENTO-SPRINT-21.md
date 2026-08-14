@@ -18,6 +18,7 @@ Status: Concluída tecnicamente
 - Tag `v0.9.0-beta.2` criada e publicada no remoto a partir do commit `55fb2ee`.
 - Serviço systemd/gunicorn documentado e preparado para operação sem `python app.py` em debug.
 - Tela `Configurações > Backups do Sistema` criada para Administrador.
+- Restauração assistida adicionada à tela de Backups do Sistema, com upload, confirmação `RESTAURAR` e seleção de banco/storage.
 - Histórico de backups persistido.
 - Serviço de backup local para banco, storage ou completo criado.
 - Comando CLI `flask backups-processar-agendados` criado.
@@ -55,7 +56,7 @@ Status: Concluída tecnicamente
 
 - Publicar GitHub Release formal vinculada às tags Beta.
 - Validar backup completo com dados reais controlados.
-- Validar restore em ambiente Beta separado.
+- Validar restore em ambiente Beta separado usando a tela administrativa e o script operacional.
 - Validar permissões do usuário `o3cloud` no servidor Beta.
 - Validar destino externo de backup quando o caminho NAS/MOUNT estiver criado.
 - Definir credenciais protegidas para SFTP/SSH ou S3 compatível, se esses destinos forem ativados.

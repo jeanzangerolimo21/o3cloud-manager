@@ -99,6 +99,7 @@ Status da implementação inicial:
 - Criada migration 083_create_config_backups.sql para agendamento, histórico de execuções e permissão backups_sistema para ADMIN.
 - Criado serviço administrativo para backup do banco, storage ou completo.
 - Criada tela Configurações > Backups do Sistema para salvar periodicidade, retenção, destino local/MOUNT, executar backup manual e baixar artefato local permitido.
+- Adicionada restauracao assistida pela tela de Backups do Sistema, com upload de artefato, confirmacao `RESTAURAR` e selecao de banco de dados e storage.
 - Criado comando CLI flask backups-processar-agendados --limite 1.
 - Adicionada rotina ao cron operacional para processar backups pendentes a cada 15 minutos.
 
@@ -111,6 +112,7 @@ Funcionalidades planejadas:
 - Testar destino externo.
 - Consultar histórico.
 - Baixar backup local quando permitido.
+- Restaurar backup pela tela administrativa quando autorizado.
 - Exibir status, tamanho, duração e erro resumido.
 
 Acesso:
@@ -121,7 +123,7 @@ Pendências da próxima etapa:
 
 - Teste explícito de escrita do destino antes de salvar, mantido para a versão Beta porque o diretório NAS/MOUNT ainda não foi criado.
 - Destinos SFTP/SSH e S3 compatível com credenciais protegidas.
-- Script formal de restore e healthcheck operacional criados em `deployment/restore-db.sh` e `deployment/healthcheck.sh`.
+- Healthcheck apos restore em ambiente Beta separado.
 
 ## 5. Atualizações do Sistema
 
