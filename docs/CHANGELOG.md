@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-14 - Instalacao Beta em Servidores Separados
+
+- Criados scripts `deployment/install-db-server.sh`, `deployment/install-app-server.sh` e `deployment/apply-migrations.sh` para separar banco de dados e servidor de aplicacao/storage.
+- Documentado procedimento em `docs/47-INSTALACAO-BETA-SERVIDORES-SEPARADOS.md`, com requisitos recomendados, variaveis obrigatorias, ordem de execucao e validacao pos-instalacao.
+
 ## 2026-08-14 - Sprint 22 Monitoramento de Reajustes Contratuais
 
 - Criada tela `Financeiro > Reajustes Contratuais` para monitorar aniversarios contratuais calculados a partir de `contratos.inicio_vigencia`.
