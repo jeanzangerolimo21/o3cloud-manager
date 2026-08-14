@@ -3,7 +3,7 @@
 <div class="container-fluid">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div><h2 class="mb-1">Administrativo</h2><p class="text-muted mb-0">Demandas, agenda e acompanhamento da equipe.</p></div>
-        <div class="d-flex gap-2"><a class="btn btn-outline-success" href="{{ url_for('administrativo.aso') }}"><i class="bi bi-heart-pulse"></i> Agendamento ASO</a><a class="btn btn-outline-primary" href="{{ url_for('administrativo.agenda') }}"><i class="bi bi-calendar3"></i> Agenda</a>{% if pode_editar('administrativo') %}<a class="btn btn-primary" href="{{ url_for('administrativo.nova_demanda') }}"><i class="bi bi-plus-circle"></i> Nova Demanda</a>{% endif %}</div>
+        <div class="d-flex gap-2">{% if pode_acessar('administrativo_aso') %}<a class="btn btn-outline-success" href="{{ url_for('administrativo.aso') }}"><i class="bi bi-heart-pulse"></i> Agendamento ASO</a>{% endif %}<a class="btn btn-outline-primary" href="{{ url_for('administrativo.agenda') }}"><i class="bi bi-calendar3"></i> Agenda</a>{% if pode_editar('administrativo') %}<a class="btn btn-primary" href="{{ url_for('administrativo.nova_demanda') }}"><i class="bi bi-plus-circle"></i> Nova Demanda</a>{% endif %}</div>
     </div>
     <div class="row g-3 mb-4">
         {% for label, key, color in [('Demandas abertas','total','primary'),('Pendentes','pendentes','warning'),('Em andamento','andamento','info'),('Atrasadas','atrasadas','danger'),('Concluídas','concluidas','success')] %}

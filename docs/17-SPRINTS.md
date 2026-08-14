@@ -4,7 +4,7 @@
 
 Versão: 3.0 Alpha
 
-Última atualização: 10/08/2026
+Última atualização: 14/08/2026
 
 Status: Oficial
 
@@ -462,7 +462,7 @@ Status:
 
 # Sprint 17 – Comissões de Executivos e Expansão da Sincronização Financeira OMIE
 
-Status: Retomada em 12/08/2026 após fechamento técnico do Sprint 21.
+Status: Concluida tecnicamente em 14/08/2026; Sprint Final de homologacao Beta como proxima etapa.
 
 Decisão de retomada:
 
@@ -500,6 +500,24 @@ Atualização 13/08/2026:
 * Executivos passaram a ter exclusao operacional para Administrador e Diretoria, com inativacao e remocao do vinculo com parceiro.
 * Lista de Executivos passou a permitir mudar rapidamente o status de premiacao sem abrir edicao.
 * Criada tela `Financeiro > Receitas por Servidor`, com receita mensal por node Proxmox baseada em ambientes e contratos ativos vinculados.
+* Acompanhamento detalhado das etapas de 13/08/2026 registrado em `docs/45-ACOMPANHAMENTO-SPRINT-17-2026-08-13.md`, incluindo entregas consolidadas e frente ainda pendente no workspace.
+
+Atualização 14/08/2026 - 2FA e TOTP:
+
+* 2FA por e-mail revisado e aprovado para homologacao assistida.
+* TOTP implementado para autenticacao remota e perfis administrativos.
+* Usuario configura TOTP em `Minha Conta`, confirmando o primeiro codigo antes da ativacao.
+* Login `/login/2fa` passou a validar EMAIL ou TOTP conforme `two_factor_metodo`.
+* Segredo TOTP fica protegido pelo mecanismo de criptografia do Cofre de Senhas.
+* Testes automatizados de 2FA/TOTP, backup e atualizacoes passaram com `23 passed`.
+
+Atualização 14/08/2026 - Fechamento tecnico:
+
+* Usuario confirmou a validacao funcional assistida das 8 etapas solicitadas para o Sprint 17.
+* Ajustado controle de acesso para permitir perfil Infraestrutura em `Retencao de Cache`, `Automacoes de Sincronismo` e `Backups do Sistema` conforme permissoes do perfil.
+* Validacao tecnica final executada com `venv/bin/python -B -m pytest`, resultado `34 passed`.
+* Compilacao Python dos arquivos alterados executada sem erro.
+* Migrations `096`, `097`, `098` e `099` aplicadas/conferidas e registradas em `schema_migrations` em 14/08/2026; ausencia de CPFs duplicados confirmada antes da constraint da `096`.
 
 ## 1. Objetivo
 
@@ -1797,6 +1815,13 @@ Sprint 17 estará concluído quando:
 * parceiros e executivos tiverem habilitacao independente para premiacao;
 * tela de premiacoes listar apenas contratos elegiveis e somente a primeira parcela/titulo;
 * Receita por Servidor mostrar receita mensal por node Proxmox a partir de ambientes e contratos ativos vinculados.
+
+Status final Sprint 17:
+
+* Concluido tecnicamente em 14/08/2026.
+* Validacao funcional assistida concluida pelo usuario nas 8 etapas solicitadas.
+* Testes automatizados finais: `34 passed`.
+* Sprint Final segue como etapa de homologacao Beta, evidencias, commit/tag/release e plano de rollback; migrations `096`, `097`, `098` e `099` ja foram aplicadas/conferidas no banco local/alvo em 14/08/2026.
 
 ---
 

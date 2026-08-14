@@ -47,9 +47,6 @@ def index():
         page_title="Contatos",
         page_description="Gestão de contatos vinculados ao CRM Comercial.",
         page_icon="bi-person-lines-fill",
-        page_button_text="Novo Contato",
-        page_button_icon="bi-plus-circle",
-        page_button_url=url_for("contatos.novo"),
     )
 
 

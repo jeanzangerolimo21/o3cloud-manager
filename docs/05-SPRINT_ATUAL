@@ -4,9 +4,9 @@
 
 Versao: 3.0 Alpha
 
-Ultima atualizacao: 13/08/2026
+Ultima atualizacao: 14/08/2026
 
-Status: Em desenvolvimento
+Status: Sprint 17 concluido tecnicamente
 
 ---
 
@@ -18,7 +18,7 @@ Comissoes, Premiacoes, ASO e Receita por Servidor
 
 Status:
 
-Retomada apos fechamento tecnico do Sprint 21
+Concluido tecnicamente em 14/08/2026
 
 ---
 
@@ -40,6 +40,8 @@ Documentos de referencia:
 - `docs/40-ARQUITETURA-BETA.md`
 - `docs/41-BACKUP-RESTORE.md`
 - `docs/42-ATUALIZACOES-SISTEMA.md`
+- `docs/45-ACOMPANHAMENTO-SPRINT-17-2026-08-13.md`
+- `docs/46-CHECKLIST-FECHAMENTO-SPRINT-17.md`
 - `docs/CHANGELOG.md`
 
 ---
@@ -50,15 +52,15 @@ Evoluir a integracao financeira com o OMIE e os vinculos operacionais do O3Cloud
 
 ---
 
-# Escopo Planejado
+# Escopo Implementado
 
 ## 1. Descoberta OMIE
 
 Status:
 
-Planejado
+Implementado
 
-Entregas previstas:
+Entregas realizadas:
 
 - Inspecionar payload real de contratos OMIE.
 - Identificar campo correto de observacoes do contrato.
@@ -71,9 +73,9 @@ Entregas previstas:
 
 Status:
 
-Planejado
+Implementado
 
-Entregas previstas:
+Entregas realizadas:
 
 - Criar migration apenas para campos ausentes.
 - Sincronizar vendedor, projeto, observacao correta e valores comerciais.
@@ -83,9 +85,9 @@ Entregas previstas:
 
 Status:
 
-Planejado
+Implementado
 
-Entregas previstas:
+Entregas realizadas:
 
 - Criar tabela de recebimentos financeiros.
 - Sincronizar ultimos 90 dias.
@@ -97,9 +99,9 @@ Entregas previstas:
 
 Status:
 
-Planejado
+Implementado
 
-Entregas previstas:
+Entregas realizadas:
 
 - Reaproveitar a tela existente de `Regras Campanhas`.
 - Exibir dentro da campanha os contratos ativos com `inicio_vigencia` dentro do intervalo da campanha.
@@ -111,7 +113,7 @@ Entregas previstas:
 
 Status:
 
-Implementado parcialmente
+Implementado
 
 Entregas realizadas:
 
@@ -147,6 +149,20 @@ Entregas realizadas:
 - Calculo cruza node, recurso Proxmox, ambiente ativo e contrato ativo vinculado.
 - Cada contrato e contado uma vez por node para evitar duplicidade por multiplas VMs/containers.
 
+
+## 8. Segurança de Autenticação
+
+Status:
+
+Implementado para homologacao assistida
+
+Entregas realizadas:
+
+- 2FA por e-mail para usuarios locais com codigo temporario, limite de tentativas e dispositivo confiavel.
+- TOTP para autenticacao remota, configurado pelo proprio usuario em `Minha Conta`.
+- Login em duas etapas escolhe automaticamente EMAIL ou TOTP conforme `two_factor_metodo`.
+- Administrador pode exigir duplo fator, mas TOTP so pode ser usado depois de configurado pelo usuario.
+
 ---
 
 # Fora do Escopo Inicial
@@ -172,7 +188,15 @@ Sprint Atual:
 
 Situacao:
 
-Em desenvolvimento com entregas operacionais adicionais registradas em 13/08/2026
+Concluido tecnicamente em 14/08/2026, com entrada no Sprint Final de homologacao Beta
+
+Acompanhamento e fechamento tecnico:
+
+- `docs/45-ACOMPANHAMENTO-SPRINT-17-2026-08-13.md`
+
+Checklist de fechamento do Sprint 17:
+
+- `docs/46-CHECKLIST-FECHAMENTO-SPRINT-17.md`
 
 Sprint anterior:
 
@@ -181,3 +205,9 @@ Sprint anterior:
 Documento principal da Sprint 17:
 
 - `docs/17-SPRINTS.md`
+
+Conferencias operacionais antes do Sprint Final:
+
+- Migrations `096`, `097`, `098` e `099` aplicadas/conferidas e registradas em `schema_migrations` em 14/08/2026.
+- Confirmada ausencia de CPFs duplicados antes da constraint da migration `096`.
+- Pendente apenas consolidar commit/tag e atualizar GitHub.

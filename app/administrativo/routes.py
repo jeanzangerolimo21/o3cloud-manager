@@ -17,6 +17,7 @@ def _agenda_corporativa(): return session.get("usuario_perfil") in ("ADMIN", "DI
 def _possui_agenda(): return bool(session.get("usuario_possui_agenda"))
 def _moderador(): return session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "GESTOR", "ADMINISTRATIVO_GESTOR")
 def _pode_excluir_demanda(): return session.get("usuario_perfil") in ("ADMIN", "DIRETORIA", "ADMINISTRATIVO_GESTOR")
+def _pode_excluir_agendamento_aso(): return session.get("usuario_perfil") in ("ADMIN", "ADMINISTRATIVO_GESTOR")
 
 
 @administrativo_bp.route("/")
@@ -63,6 +64,7 @@ def detalhe_colaborador_aso(colaborador_id):
         return redirect(url_for("administrativo.aso"))
     contexto = AdministrativoAsoService.contexto_index(usuario_id=_usuario_id())
     contexto["colaborador"] = colaborador
+    contexto["pode_excluir_agendamento_aso"] = _pode_excluir_agendamento_aso()
     return render_template("administrativo/aso/detalhe.html", **contexto)
 
 
@@ -86,6 +88,21 @@ def editar_colaborador_aso(colaborador_id):
         return redirect(url_for("administrativo.detalhe_colaborador_aso", colaborador_id=colaborador_id))
     return render_template("administrativo/aso/form.html", **contexto)
 
+
+@administrativo_bp.route("/aso/colaboradores/<int:colaborador_id>/excluir", methods=["POST"])
+def excluir_colaborador_aso(colaborador_id):
+    if not _pode_excluir_demanda():
+        flash("Apenas Administrador, Diretoria ou Gestor Administrativo podem excluir colaboradores ASO.", "danger")
+        return redirect(url_for("administrativo.detalhe_colaborador_aso", colaborador_id=colaborador_id))
+    try:
+        AdministrativoAsoService.excluir_colaborador(colaborador_id, _usuario_email())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+        return redirect(url_for("administrativo.detalhe_colaborador_aso", colaborador_id=colaborador_id))
+    else:
+        registrar_evento("ADMIN_ASO_COLABORADOR_EXCLUIDO", "administrativo_aso_colaboradores", colaborador_id)
+        flash("Colaborador ASO excluído.", "success")
+        return redirect(url_for("administrativo.aso"))
 
 @administrativo_bp.route("/aso/colaboradores/<int:colaborador_id>/lembretes", methods=["POST"])
 def criar_lembrete_aso(colaborador_id):
@@ -128,8 +145,8 @@ def excluir_exame_aso(colaborador_id, exame_id):
 
 @administrativo_bp.route("/aso/colaboradores/<int:colaborador_id>/lembretes/<int:lembrete_id>/excluir", methods=["POST"])
 def excluir_lembrete_aso(colaborador_id, lembrete_id):
-    if not _pode_excluir_demanda():
-        flash("Apenas Administrador, Diretoria ou Gestor Administrativo podem excluir agendamentos ASO.", "danger")
+    if not _pode_excluir_agendamento_aso():
+        flash("Apenas Administrador ou Gestor Administrativo podem excluir agendamentos ASO.", "danger")
         return redirect(url_for("administrativo.detalhe_colaborador_aso", colaborador_id=colaborador_id))
     try:
         AdministrativoAsoService.excluir_lembrete(colaborador_id, lembrete_id, _usuario_email())

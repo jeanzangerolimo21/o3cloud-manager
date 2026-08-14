@@ -250,3 +250,45 @@ config_cache_limpezas
 config_sincronismos_agendados
     ↓
 config_sincronismos_execucoes
+
+__________________________________________________________________________________________
+Dominio Autenticacao - 2FA
+__________________________________________________________________________________________
+
+Usuario
+   │
+   ├── 1:N Codigos 2FA por e-mail
+   │
+   ├── 1:N Dispositivos confiaveis
+   │
+   └── 1:1 Configuracao TOTP
+
+Regras principais:
+
+* EMAIL usa codigo temporario enviado por SMTP;
+* TOTP usa segredo individual configurado em Minha Conta;
+* login em duas etapas seleciona EMAIL ou TOTP conforme metodo do usuario;
+* dispositivo confiavel permite dispensar segundo fator por ate 30 dias.
+__________________________________________________________________________________________
+Alertas Operacionais por E-mail
+__________________________________________________________________________________________
+
+auth_usuarios
+    │
+    ├── preferencias de alerta operacional
+    │
+    ▼
+zabbix_alarm_cache + pbs_backup_snapshots + truenas_backup_cache
+    │
+    ▼
+comando flask operacao-alertas-enviar
+    │
+    ▼
+e-mail basico para usuarios selecionados
+
+Regra:
+
+* Zabbix considera alarmes abertos com severidade critica.
+* PBS considera recursos ativos sem backup dentro da politica configurada.
+* TrueNAS considera diretorios sem modificacao ha mais de 5 dias.
+* O usuario recebe somente se estiver habilitado, ativo, com e-mail e no horario/periodicidade configurados.

@@ -35,6 +35,7 @@ def init_cli(app):
     app.cli.add_command(sincronismos_processar_agendados_command)
     app.cli.add_command(backups_processar_agendados_command)
     app.cli.add_command(aso_processar_lembretes_command)
+    app.cli.add_command(operacao_alertas_enviar_command)
 
 
 @click.command("relatorios-processar-jobs")
@@ -92,5 +93,18 @@ def aso_processar_lembretes_command(limite):
     if not resultados:
         click.echo("Nenhum lembrete ASO pendente.")
         return
+    for resultado in resultados:
+        click.echo(resultado)
+
+
+@click.command("operacao-alertas-enviar")
+@with_appcontext
+@click.option("--limite", default=20, show_default=True, help="Quantidade maxima de usuarios para processar.")
+@click.option("--forcar", is_flag=True, help="Envia para usuarios habilitados ignorando periodicidade/horario.")
+def operacao_alertas_enviar_command(limite, forcar):
+    """Envia alertas criticos de operacao por e-mail."""
+    from app.infraestrutura.alertas_operacao_service import AlertasOperacaoService
+
+    resultados = AlertasOperacaoService.processar_pendentes(limite=limite, forcar=forcar)
     for resultado in resultados:
         click.echo(resultado)

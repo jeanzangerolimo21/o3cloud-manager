@@ -16,6 +16,7 @@ security_logger = get_logger("security")
 MENU_PERMISSOES = (
     {"grupo": "Geral", "key": "visao_geral", "label": "Visao Geral"},
     {"grupo": "Administrativo", "key": "administrativo", "label": "Administrativo"},
+    {"grupo": "Administrativo", "key": "administrativo_aso", "label": "Agendamento ASO"},
     {"grupo": "Cadastros", "key": "ambientes", "label": "Ambientes"},
     {"grupo": "Cadastros", "key": "implantadores", "label": "Implantadores"},
     {"grupo": "Cadastros", "key": "clientes", "label": "Clientes"},
@@ -68,6 +69,15 @@ MENU_PERMISSOES = (
 TODAS_PERMISSOES = frozenset(item["key"] for item in MENU_PERMISSOES)
 
 ENDPOINT_PERMISSOES = {
+    "administrativo.aso": "administrativo_aso",
+    "administrativo.novo_colaborador_aso": "administrativo_aso",
+    "administrativo.detalhe_colaborador_aso": "administrativo_aso",
+    "administrativo.editar_colaborador_aso": "administrativo_aso",
+    "administrativo.excluir_colaborador_aso": "administrativo_aso",
+    "administrativo.criar_lembrete_aso": "administrativo_aso",
+    "administrativo.anexar_exames_aso": "administrativo_aso",
+    "administrativo.excluir_exame_aso": "administrativo_aso",
+    "administrativo.excluir_lembrete_aso": "administrativo_aso",
     "administrativo": "administrativo",
     "financeiro.dashboard": "visao_geral",
     "financeiro.dashboard_executivo": "dashboard_executivo",
@@ -236,7 +246,7 @@ ENDPOINT_PERMISSOES = {
     "configuracoes.atualizacoes_verificar": "atualizacoes_sistema",
 }
 
-PUBLIC_ENDPOINTS = {"static", "storage", "autenticacao.login", "autenticacao.logout", "configuracoes.usuarios_aceitar_convite", "implantacao.acessar_compartilhamento_senha"}
+PUBLIC_ENDPOINTS = {"static", "storage", "autenticacao.login", "autenticacao.login_2fa", "autenticacao.reenviar_2fa", "autenticacao.logout", "configuracoes.usuarios_aceitar_convite", "implantacao.acessar_compartilhamento_senha"}
 
 WRITE_ENDPOINT_MARKERS = (
     "adicionar",
@@ -260,6 +270,18 @@ WRITE_ENDPOINT_MARKERS = (
     "upload",
 )
 
+FALLBACK_ENDPOINTS = (
+    "financeiro.dashboard",
+    "financeiro.dashboard_executivo",
+    "propostas.dashboard",
+    "clientes.index",
+    "contatos.index",
+    "implantacao.index",
+    "infraestrutura.clusters",
+    "relatorios.index",
+    "configuracoes.usuarios_index",
+)
+
 def init_access_control(app):
     @app.before_request
     def verificar_permissao():
@@ -277,7 +299,9 @@ def init_access_control(app):
         security_logger.warning("Access denied", extra={"operation": "ACESSO_NEGADO"})
         if request.method == "GET":
             flash("Acesso não autorizado para este perfil.", "warning")
-            return redirect(url_for("financeiro.dashboard"))
+            endpoint_fallback = endpoint_fallback_acesso(request.endpoint)
+            if endpoint_fallback:
+                return redirect(url_for(endpoint_fallback))
         abort(403)
 
     @app.context_processor
@@ -327,6 +351,24 @@ def pode_acessar_endpoint(menu_key, endpoint, method):
     if nivel == "EDICAO":
         return True
     return not endpoint_requer_edicao(endpoint, method)
+
+
+def endpoint_fallback_acesso(endpoint_atual=None):
+    endpoints = []
+    dashboard_principal = session.get("usuario_dashboard_principal")
+    if dashboard_principal:
+        endpoints.append(dashboard_principal)
+    endpoints.extend(FALLBACK_ENDPOINTS)
+
+    for endpoint in endpoints:
+        if not endpoint or endpoint == endpoint_atual:
+            continue
+        permissao = permissao_endpoint(endpoint)
+        if not permissao:
+            continue
+        if pode_acessar_endpoint(permissao, endpoint, "GET"):
+            return endpoint
+    return None
 
 
 def endpoint_requer_exclusao(endpoint):

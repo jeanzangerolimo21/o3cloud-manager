@@ -4,7 +4,7 @@
 
 Versão: 3.0 Alpha
 
-Última atualização: 03/08/2026
+Última atualização: 14/08/2026
 
 Status: Oficial
 
@@ -534,19 +534,19 @@ Versão:
 
 Última sprint encerrada:
 
-Sprint 21 - Release Beta, Backup e Atualizações, concluída tecnicamente em 12/08/2026.
+Sprint 17 - Comissões, Premiações, ASO, Receita por Servidor e Segurança de Autenticação, concluída tecnicamente em 14/08/2026.
 
 Sprint atual:
 
-Sprint 17 - Comissões de Executivos e Expansão da Sincronização Financeira OMIE, retomada em 12/08/2026.
+Sprint Final - Homologação Beta e fechamento da versão.
 
 Status Geral:
 
-🚧 Desenvolvimento Ativo
+✅ Sprint 17 concluído tecnicamente; Sprint Final em preparação
 
 Próxima Entrega:
 
-Adaptação de Regras Campanhas para exibir contratos ativos com início de vigência dentro do intervalo da campanha, sem filtrar a visualização geral quando não houver campanha cadastrada.
+Homologação Beta com escopo funcional congelado, evidências assistidas, commit/tag/release e plano de rollback; migrations pendentes do Sprint 17 já aplicadas/conferidas em 14/08/2026.
 
 
 

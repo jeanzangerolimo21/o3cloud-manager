@@ -25,15 +25,15 @@ Transformar dados operacionais, financeiros e de infraestrutura em informações
 
 # Status Atual do Desenvolvimento
 
-Ultima sprint encerrada: Sprint 21 - Release Beta, Backup e Atualizacoes.
+Ultima sprint encerrada: Sprint 17 - Comissoes, Premiacoes, ASO, Receita por Servidor e Seguranca de Autenticacao.
 
-Sprint atual retomada: Sprint 17 - Comissoes de Executivos e Expansao da Sincronizacao Financeira OMIE.
+Proxima etapa: Sprint Final - Homologacao Beta e fechamento da versao.
 
 Data de fechamento tecnico da Sprint 21: 12/08/2026.
 
 Data de retomada do Sprint 17: 12/08/2026.
 
-Atualizacao operacional registrada em 13/08/2026.
+Data de fechamento tecnico do Sprint 17: 14/08/2026.
 
 Status atual:
 
@@ -41,10 +41,10 @@ Status atual:
 - Sprint 19 implementada em 10/08/2026 com controle de inadimplencia financeira e bloqueios operacionais.
 - Sprint 20 concluida tecnicamente em 10/08/2026 com Relatorios Customizaveis, exportacoes, jobs, retencao de cache e sincronismos agendados.
 - Sprint 21 concluida tecnicamente em 12/08/2026 com arquitetura Beta, backups, restore, servico systemd, versionamento e atualizacoes controladas.
-- Sprint 17 retomada em 12/08/2026 para concluir Comissoes/Premiacoes, aproveitando a tela existente de Regras Campanhas e exibindo contratos elegiveis dentro da campanha conforme vigencia.
-- Em 13/08/2026 foram adicionadas melhorias operacionais de ASO, anexos de exames, CNPJ em Implantacao/Kanban, premiacao independente para Parceiros/Executivos, exclusao operacional de Executivos e Receita por Servidor no Financeiro.
+- Sprint 17 concluida tecnicamente em 14/08/2026 com Comissoes/Premiacoes, recebimentos OMIE, ASO, Receita por Servidor, 2FA por e-mail, TOTP e alertas operacionais por e-mail.
+- Validacao funcional assistida das 8 etapas do Sprint 17 concluida pelo usuario em 14/08/2026.
 - Visao Geral operacional atualizada em 10/08/2026 com indices consolidados de contratos, propostas, inadimplencia, administrativo, ClickSign, Zabbix, Proxmox, PBS, TrueNAS e Kanban de Implantacao.
-- Homologacao operacional da Beta segue pendente de validacao assistida com usuarios, perfis, backups, restore e dados reais controlados.
+- Sprint Final passa a ser a proxima etapa, focada em homologacao Beta, evidencias, commit/tag/release e rollback; migrations pendentes do Sprint 17 foram aplicadas/conferidas em 14/08/2026.
 
 Documentos de referencia:
 
@@ -72,6 +72,8 @@ Entregas consolidadas recentes:
 - Painel principal com top 5 contratos, inadimplentes, demandas administrativas, propostas, assinaturas ClickSign, alertas de infraestrutura, backups pendentes e filas/movimentacoes do Kanban.
 - Planejamento da release Beta com arquitetura, backup/restore, destinos externos, GitHub Releases e atualizacao controlada por Administrador.
 - `Financeiro > Receitas por Servidor` cruza nodes Proxmox sincronizados, ambientes e contratos ativos para apresentar receita recorrente mensal por servidor.
+- 2FA por e-mail, TOTP e dispositivo confiavel por 30 dias para usuarios locais.
+- Alertas operacionais por e-mail para Zabbix critico, PBS fora do prazo e TrueNAS sem modificacao ha mais de 5 dias.
 
 ---
 

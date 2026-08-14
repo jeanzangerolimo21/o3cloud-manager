@@ -718,3 +718,65 @@ Regra de calculo:
 * considerar somente contrato ativo com status `ATIVO`;
 * receita mensal = `valor_promocional` quando maior que zero, senao `valor_mensal`;
 * o mesmo contrato deve ser contado apenas uma vez por node, ainda que possua multiplos recursos Proxmox vinculados.
+
+---
+
+# Autenticacao - 2FA e TOTP
+
+auth_usuarios
+
+Campos adicionados pela frente de duplo fator:
+
+* exigir_2fa
+* two_factor_metodo
+* two_factor_secret
+* two_factor_configurado_em
+* receber_alertas_operacao
+* alertas_operacao_periodicidade
+* alertas_operacao_horario
+* alertas_operacao_ultimo_envio_em
+
+Os campos de alertas operacionais controlam envio diario/semanal por usuario para Zabbix critico, PBS fora do prazo e TrueNAS sem modificacao recente.
+
+auth_2fa_codigos
+
+Armazena desafios temporarios de 2FA por e-mail.
+
+Campos principais:
+
+* id
+* uuid
+* usuario_id
+* codigo_hash
+* status
+* expira_em
+* usado_em
+* tentativas
+* ip_origem
+* user_agent
+* created_at
+
+auth_dispositivos_confiaveis
+
+Armazena dispositivos confiaveis por usuario, usando somente hash do token.
+
+Campos principais:
+
+* id
+* uuid
+* usuario_id
+* token_hash
+* descricao
+* ip_origem
+* user_agent
+* expira_em
+* ultimo_uso_em
+* revogado_em
+* created_at
+
+Regras:
+
+* codigo de e-mail nao e armazenado em texto puro;
+* segredo TOTP fica protegido em `two_factor_secret`;
+* `two_factor_configurado_em` so e preenchido apos validar o primeiro codigo TOTP;
+* dispositivo confiavel expira em 30 dias.

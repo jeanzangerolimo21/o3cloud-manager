@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class EmailService:
     @staticmethod
-    def enviar(assunto, corpo, destinatarios):
+    def enviar(assunto, corpo, destinatarios, corpo_html=None):
         destinatarios = sorted({email.strip().lower() for email in destinatarios if email and email.strip()})
         if not destinatarios:
             return {"enviado": False, "motivo": "sem_destinatarios"}
@@ -34,6 +34,8 @@ class EmailService:
         mensagem["From"] = remetente
         mensagem["To"] = ", ".join(destinatarios)
         mensagem.set_content(corpo)
+        if corpo_html:
+            mensagem.add_alternative(corpo_html, subtype="html")
 
         with smtplib.SMTP(host, port, timeout=20) as smtp:
             if usar_tls:

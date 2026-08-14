@@ -10,6 +10,7 @@ from flask import url_for
 
 from app.core.auditoria import registrar_evento
 from app.implantacao.service import ImplantacaoService
+from app.repositories.contrato_item_repository import ContratoItemRepository
 from app.implantacao.service import KANBAN_COLUNAS
 from app.implantacao.service import KANBAN_LABELS
 from app.implantacao.service import CHECKLIST_MODELOS
@@ -750,7 +751,8 @@ def visualizar_contrato_operacional(contrato_id):
     if not contrato:
         flash("Contrato não encontrado.", "danger")
         return redirect(url_for("implantacao.novo"))
-    return render_template("implantacao/contrato_operacional.html", contrato=contrato)
+    itens = ContratoItemRepository.listar_por_contrato(contrato_id)
+    return render_template("implantacao/contrato_operacional.html", contrato=contrato, itens=itens)
 
 @implantacao_bp.route("/<int:implantacao_id>")
 def visualizar(implantacao_id):

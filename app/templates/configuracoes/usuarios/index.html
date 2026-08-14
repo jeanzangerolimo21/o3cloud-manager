@@ -65,6 +65,7 @@
                         <th>Perfil</th>
                         <th>Status</th>
                         <th>Convite</th>
+                        <th>Alertas Operação</th>
                         <th class="text-end">Ações</th>
                     </tr>
                 </thead>
@@ -81,6 +82,14 @@
                             {% if usuario.convite_status %}
                                 <span class="badge text-bg-light border">{{ usuario.convite_status }}</span><br>
                                 <small class="text-muted">{{ usuario.convite_expira_em|date_br if usuario.convite_expira_em else "-" }}</small>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.receber_alertas_operacao %}
+                                <span class="badge bg-info text-dark">{{ 'Diário' if usuario.alertas_operacao_periodicidade == 'DIARIA' else 'Semanal' }}</span><br>
+                                <small class="text-muted">{{ (usuario.alertas_operacao_horario|string)[:5] }}</small>
                             {% else %}
                                 <span class="text-muted">-</span>
                             {% endif %}
@@ -102,7 +111,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum usuário cadastrado.</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-4">Nenhum usuário cadastrado.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

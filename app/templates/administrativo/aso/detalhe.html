@@ -9,6 +9,7 @@
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary" href="{{ url_for('administrativo.aso') }}"><i class="bi bi-arrow-left"></i> Voltar</a>
             {% if pode_editar('administrativo') %}<a class="btn btn-primary" href="{{ url_for('administrativo.editar_colaborador_aso', colaborador_id=colaborador.id) }}"><i class="bi bi-pencil"></i> Editar</a>{% endif %}
+            {% if pode_excluir() %}<form method="post" action="{{ url_for('administrativo.excluir_colaborador_aso', colaborador_id=colaborador.id) }}" onsubmit="return confirm('Excluir este colaborador ASO? Exames e agendamentos vinculados serão removidos, e as demandas da agenda serão canceladas.');"><button class="btn btn-outline-danger"><i class="bi bi-trash"></i> Excluir</button></form>{% endif %}
         </div>
     </div>
 
@@ -83,7 +84,7 @@
                             <div class="d-flex justify-content-between gap-2"><strong>{{ lembrete.data_aso|date_br }}</strong><span class="badge text-bg-{{ 'secondary' if not lembrete.enviar_email else ('success' if lembrete.aviso_enviado else 'warning') }}">{{ 'Sem e-mail' if not lembrete.enviar_email else ('E-mail enviado' if lembrete.aviso_enviado else 'E-mail pendente') }}</span></div>
                             <small class="text-muted">{{ lembrete.usuario_nome or '-' }} · {{ lembrete.antecedencia_dias }} dias antes · {{ lembrete.tipo_participacao|title }}</small>
                         </a>
-                        {% if pode_excluir() %}<form method="post" action="{{ url_for('administrativo.excluir_lembrete_aso', colaborador_id=colaborador.id, lembrete_id=lembrete.id) }}" onsubmit="return confirm('Excluir este agendamento ASO? A demanda vinculada será cancelada na agenda.');"><button class="btn btn-sm btn-outline-danger" title="Excluir agendamento"><i class="bi bi-trash"></i></button></form>{% endif %}
+                        {% if pode_excluir_agendamento_aso %}<form method="post" action="{{ url_for('administrativo.excluir_lembrete_aso', colaborador_id=colaborador.id, lembrete_id=lembrete.id) }}" onsubmit="return confirm('Excluir este agendamento ASO? A demanda vinculada será cancelada na agenda.');"><button class="btn btn-sm btn-outline-danger" title="Excluir agendamento"><i class="bi bi-trash"></i></button></form>{% endif %}
                     </div>
                     {% else %}
                     <div class="list-group-item text-muted">Nenhum lembrete criado.</div>

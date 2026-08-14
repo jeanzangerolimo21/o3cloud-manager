@@ -23,6 +23,17 @@ def _email_usuario_logado():
     return session.get("usuario_email") or session.get("email") or "sistema"
 
 
+def _usuario_form_contexto(usuario):
+    dados = dict(usuario or {})
+    horario = dados.get("alertas_operacao_horario")
+    if hasattr(horario, "total_seconds"):
+        total = int(horario.total_seconds())
+        dados["alertas_operacao_horario_form"] = f"{(total // 3600) % 24:02d}:{(total % 3600) // 60:02d}"
+    else:
+        dados["alertas_operacao_horario_form"] = str(horario or "08:00")[:5]
+    return dados
+
+
 @configuracoes_bp.route("/usuarios/perfis/novo", methods=["GET", "POST"])
 def usuarios_perfil_novo():
     if request.method == "POST":
@@ -96,13 +107,13 @@ def usuarios_novo():
     perfis = AuthConfigService.repository.listar_perfis()
     if request.method == "POST":
         try:
-            usuario_id = AuthConfigService.criar_usuario(request.form, _email_usuario_logado())
+            usuario_id = AuthConfigService.criar_usuario(request.form, _email_usuario_logado(), session.get("usuario_perfil") == "ADMIN")
         except ValueError as erro:
             flash(str(erro), "danger")
-            return render_template("configuracoes/usuarios/form.html", usuario=request.form, perfis=perfis, modo="novo")
+            return render_template("configuracoes/usuarios/form.html", usuario=_usuario_form_contexto(request.form), perfis=perfis, modo="novo")
         flash("Usuário cadastrado. Convite por e-mail é enviado apenas para usuário Local com status Convidado.", "success")
         return redirect(url_for("configuracoes.usuarios_editar", usuario_id=usuario_id))
-    return render_template("configuracoes/usuarios/form.html", usuario=AuthConfigService.novo_usuario_payload(), perfis=perfis, modo="novo")
+    return render_template("configuracoes/usuarios/form.html", usuario=_usuario_form_contexto(AuthConfigService.novo_usuario_payload()), perfis=perfis, modo="novo")
 
 
 @configuracoes_bp.route("/usuarios/<int:usuario_id>/editar", methods=["GET", "POST"])
@@ -114,14 +125,14 @@ def usuarios_editar(usuario_id):
     perfis = AuthConfigService.repository.listar_perfis()
     if request.method == "POST":
         try:
-            AuthConfigService.atualizar_usuario(usuario_id, request.form, _email_usuario_logado())
+            AuthConfigService.atualizar_usuario(usuario_id, request.form, _email_usuario_logado(), session.get("usuario_perfil") == "ADMIN")
         except ValueError as erro:
             flash(str(erro), "danger")
-            usuario = {**usuario, **request.form}
+            usuario = _usuario_form_contexto({**usuario, **request.form})
         else:
             flash("Usuário atualizado.", "success")
             return redirect(url_for("configuracoes.usuarios_index"))
-    return render_template("configuracoes/usuarios/form.html", usuario=usuario, perfis=perfis, modo="editar")
+    return render_template("configuracoes/usuarios/form.html", usuario=_usuario_form_contexto(usuario), perfis=perfis, modo="editar")
 
 
 @configuracoes_bp.route("/usuarios/<int:usuario_id>/remover", methods=["POST"])
@@ -160,12 +171,12 @@ def usuarios_aceitar_convite(token):
     convite = AuthConfigService.buscar_convite(token)
     if request.method == "POST":
         try:
-            AuthConfigService.aceitar_convite(token, request.form.get("senha"), request.form.get("confirmacao_senha"))
+            convite_aceito = AuthConfigService.aceitar_convite(token, request.form.get("senha"), request.form.get("confirmacao_senha"))
         except ValueError as erro:
             flash(str(erro), "danger")
         else:
             flash("Senha cadastrada. Seu usuário está ativo.", "success")
-            return redirect(url_for("configuracoes.usuarios_aceitar_convite", token=token))
+            return render_template("configuracoes/usuarios/convite.html", convite=convite_aceito, convite_aceito=True)
     return render_template("configuracoes/usuarios/convite.html", convite=convite)
 
 
@@ -253,7 +264,6 @@ def usuarios_provedor_testar(provedor_id):
 
 @configuracoes_bp.route("/backups")
 def backups_index():
-    _exigir_admin()
     return render_template(
         "configuracoes/backups/index.html",
         **BackupSistemaService.contexto(),
@@ -266,7 +276,6 @@ def backups_index():
 
 @configuracoes_bp.route("/backups/salvar", methods=["POST"])
 def backups_salvar():
-    _exigir_admin()
     try:
         BackupSistemaService.salvar_config(request.form, _email_usuario_logado())
     except ValueError as erro:
@@ -278,7 +287,6 @@ def backups_salvar():
 
 @configuracoes_bp.route("/backups/executar", methods=["POST"])
 def backups_executar():
-    _exigir_admin()
     try:
         resultado = BackupSistemaService.executar_manual(_email_usuario_logado())
     except ValueError as erro:
@@ -290,7 +298,6 @@ def backups_executar():
 
 @configuracoes_bp.route("/backups/<int:execucao_id>/download")
 def backups_download(execucao_id):
-    _exigir_admin()
     try:
         item, caminho = BackupSistemaService.caminho_download(execucao_id)
     except ValueError as erro:
@@ -301,7 +308,6 @@ def backups_download(execucao_id):
 
 @configuracoes_bp.route("/cache")
 def cache_index():
-    _exigir_admin()
     return render_template(
         "configuracoes/cache/index.html",
         **CacheRetencaoService.contexto(),
@@ -314,7 +320,6 @@ def cache_index():
 
 @configuracoes_bp.route("/cache/<cache_key>/retencao", methods=["POST"])
 def cache_retencao(cache_key):
-    _exigir_admin()
     try:
         CacheRetencaoService.salvar_retencao(cache_key, request.form.get("retencao_dias"), _email_usuario_logado())
     except ValueError as erro:
@@ -326,7 +331,6 @@ def cache_retencao(cache_key):
 
 @configuracoes_bp.route("/cache/<cache_key>/limpar", methods=["POST"])
 def cache_limpar(cache_key):
-    _exigir_admin()
     try:
         removidos = CacheRetencaoService.limpar(cache_key, request.form.get("modo"), _email_usuario_logado())
     except ValueError as erro:
@@ -338,7 +342,6 @@ def cache_limpar(cache_key):
 
 @configuracoes_bp.route("/sincronismos")
 def sincronismos_index():
-    _exigir_admin()
     return render_template(
         "configuracoes/sincronismos/index.html",
         **SincronismosAgendadosService.contexto(),
@@ -351,7 +354,6 @@ def sincronismos_index():
 
 @configuracoes_bp.route("/sincronismos/<tipo>/salvar", methods=["POST"])
 def sincronismos_salvar(tipo):
-    _exigir_admin()
     try:
         SincronismosAgendadosService.salvar(tipo, request.form, _email_usuario_logado())
     except ValueError as erro:
@@ -363,7 +365,6 @@ def sincronismos_salvar(tipo):
 
 @configuracoes_bp.route("/sincronismos/<int:agendamento_id>/executar", methods=["POST"])
 def sincronismos_executar(agendamento_id):
-    _exigir_admin()
     try:
         resultado = SincronismosAgendadosService.executar_manual(agendamento_id, _email_usuario_logado())
     except ValueError as erro:

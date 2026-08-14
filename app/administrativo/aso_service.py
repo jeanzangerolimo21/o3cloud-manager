@@ -32,6 +32,7 @@ class AdministrativoAsoService:
     def criar_colaborador(cls, dados, arquivos, usuario_email):
         payload = cls._normalizar_colaborador(dados)
         cls._validar_colaborador(payload)
+        cls._validar_cpf_unico(payload["cpf"])
         agendamento = cls._normalizar_agendamento(dados) if cls._flag(dados, "criar_agendamento_aso") else None
         if agendamento:
             cls._validar_usuarios_agenda(agendamento["usuario_ids"])
@@ -50,6 +51,7 @@ class AdministrativoAsoService:
             raise ValueError("Colaborador não encontrado.")
         payload = cls._normalizar_colaborador(dados)
         cls._validar_colaborador(payload)
+        cls._validar_cpf_unico(payload["cpf"], colaborador_id)
         payload["updated_by"] = usuario_email
         cls.repository.atualizar_colaborador(colaborador_id, payload)
         cls._salvar_exames(colaborador_id, arquivos)
@@ -61,6 +63,19 @@ class AdministrativoAsoService:
             colaborador["exames"] = cls.repository.listar_exames(colaborador_id)
             colaborador["lembretes"] = cls.repository.listar_lembretes(colaborador_id)
         return colaborador
+
+    @classmethod
+    def excluir_colaborador(cls, colaborador_id, usuario_email):
+        colaborador = cls.repository.buscar_colaborador(colaborador_id)
+        if not colaborador:
+            raise ValueError("Colaborador não encontrado.")
+        for lembrete in cls.repository.listar_lembretes(colaborador_id):
+            if lembrete.get("demanda_id"):
+                AdministrativoService.cancelar(lembrete.get("demanda_id"), usuario_email)
+        exames = cls.repository.listar_exames(colaborador_id)
+        cls.repository.excluir_colaborador(colaborador_id)
+        for exame in exames:
+            cls._remover_arquivo_storage(exame.get("caminho"))
 
     @classmethod
     def anexar_exames(cls, colaborador_id, arquivos):
@@ -181,6 +196,12 @@ class AdministrativoAsoService:
             salvo = StorageService.salvar(arquivo, f"exames/{colaborador_id}")
             if salvo:
                 cls.repository.inserir_exame(colaborador_id, salvo)
+
+    @classmethod
+    def _validar_cpf_unico(cls, cpf, ignorar_id=None):
+        existente = cls.repository.buscar_colaborador_por_cpf(cpf, ignorar_id)
+        if existente:
+            raise ValueError(f"Já existe colaborador cadastrado com este CPF: {existente.get('nome_completo')}.")
 
     @classmethod
     def _normalizar_colaborador(cls, dados):

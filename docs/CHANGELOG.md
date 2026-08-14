@@ -1,5 +1,60 @@
 # Changelog
 
+## 2026-08-14 - Fechamento Tecnico Sprint 17
+
+- Sprint 17 marcado como concluido tecnicamente apos validacao funcional assistida das 8 etapas solicitadas.
+- Removido bloqueio redundante de perfil ADMIN nas rotas de `Retencao de Cache`, `Automacoes de Sincronismo` e `Backups do Sistema`, mantendo controle por permissoes `cache_sistema`, `sincronismos_agendados` e `backups_sistema`.
+- Perfil Infraestrutura validado para acessar os modulos operacionais de configuracao conforme permissoes concedidas.
+- Validacao tecnica final executada com `venv/bin/python -B -m pytest`, resultado `34 passed`, e compilacao Python dos arquivos alterados sem erro.
+- Documentacao atualizada para indicar Sprint 17 encerrado e Sprint Final como proxima etapa de homologacao Beta; migrations `096`, `097`, `098` e `099` aplicadas/conferidas e registradas em `schema_migrations` em 14/08/2026.
+
+## 2026-08-14 - Alertas Operacionais por E-mail
+
+- Cadastro de usuario ganhou opcao para receber alertas de operacao por e-mail, com periodicidade diaria ou semanal e horario configuravel pelo Administrador.
+- Criado servico `AlertasOperacaoService` para consolidar Zabbix critico aberto, backups PBS fora do prazo e diretorios TrueNAS sem modificacao ha mais de 5 dias.
+- Adicionado comando CLI `flask operacao-alertas-enviar` e cron operacional a cada 15 minutos; o horario/periodicidade individual evita envios duplicados.
+- Migration `098_auth_usuarios_alertas_operacao.sql` aplicada no banco local em 14/08/2026.
+- Testes automatizados cobrem vencimento diario/semanal, envio com alerta e bloqueio de envio sem alertas.
+
+## 2026-08-14 - Correção de Permissões Somente Leitura em Clientes e Contatos
+
+- Perfis com acesso de leitura em `clientes` e `contatos` deixam de ver ações de criação, edição, sincronização e exclusão nas listas e telas de detalhe.
+- Controle global de acesso negado passou a redirecionar para a primeira tela permitida do perfil, evitando loop quando o dashboard padrão também não está autorizado.
+- Adicionado teste para garantir que perfil somente leitura acessa as listas, não acessa rotas de escrita e recebe fallback para `clientes.index`.
+
+## 2026-08-14 - Ajuste de Mensagem do Convite de Acesso
+
+- Fluxo de aceite de convite deixou de redirecionar para o token ja utilizado apos cadastro da senha.
+- Tela `Convite de Acesso` agora exibe estado final de senha cadastrada com botao para login, evitando mensagem incoerente de convite expirado ou ja utilizado apos sucesso.
+- Teste unitario cobre o retorno do convite aceito e a marcacao do convite como usado.
+
+## 2026-08-14 - Melhoria Visual do E-mail 2FA
+
+- `EmailService.enviar` passou a aceitar corpo HTML opcional mantendo texto simples como fallback.
+- E-mail de 2FA por codigo passou a enviar HTML com o codigo centralizado, fonte maior, espacamento e bloco destacado para facilitar leitura pelo usuario.
+- Teste de 2FA atualizado para validar que o codigo segue presente no texto simples e no corpo HTML.
+
+## 2026-08-14 - Checklist de Fechamento Sprint 17
+
+- Criado `docs/46-CHECKLIST-FECHAMENTO-SPRINT-17.md` com pendencias bloqueantes, validacoes funcionais, revisao de permissoes, qualidade tecnica e criterio de entrada no Sprint Final.
+- Checklist registra que o Sprint Final deve congelar escopo funcional, aplicar migrations pendentes, validar dados reais controlados, registrar evidencias, fechar changelog e preparar branch/tag/release Beta.
+
+## 2026-08-14 - TOTP para Autenticacao Remota
+
+- Implementado TOTP como metodo de duplo fator para usuarios locais, reaproveitando `two_factor_metodo`, `two_factor_secret` e `two_factor_configurado_em` da migration `097_auth_2fa_email.sql`.
+- `Minha Conta` passou a permitir iniciar configuracao TOTP, copiar chave manual/URI `otpauth://`, confirmar o primeiro codigo e desativar TOTP com codigo atual.
+- Login `/login/2fa` passou a validar EMAIL ou TOTP conforme metodo do usuario; reenvio de codigo permanece restrito ao metodo EMAIL.
+- Segredo TOTP e protegido pelo mecanismo de criptografia do Cofre de Senhas, e Administrador nao consegue selecionar TOTP para usuario que ainda nao concluiu a configuracao.
+- Testes de 2FA ampliados para 23 cenarios, incluindo vetor RFC 6238, confirmacao, login TOTP e desativacao.
+
+## 2026-08-14 - Documentacao de Acompanhamento Sprint 17
+
+- Criado `docs/45-ACOMPANHAMENTO-SPRINT-17-2026-08-13.md` para registrar as etapas realizadas em 13/08/2026.
+- Documento separa entregas consolidadas no commit `a06604b` das alteracoes ainda pendentes no workspace, como 2FA por e-mail, CPF unico e exclusao de colaboradores ASO.
+- 2FA por e-mail revisado e aprovado para homologacao assistida, com testes unitarios em `tests/test_auth_2fa_email_service.py` cobrindo envio, hash, expiracao, tentativas, validacao e dispositivo confiavel.
+- Evolucao TOTP foi registrada e implementada na entrada especifica de 14/08/2026 para autenticacao remota.
+- `docs/05-SPRINT_ATUAL` e `docs/17-SPRINTS.md` passaram a referenciar o acompanhamento para orientar a continuidade e finalizacao do Sprint 17.
+
 ## 2026-08-13 - Ajustes Operacionais ASO, Premiações e Receita por Servidor
 
 - Tela `Administrativo > Agendamento ASO` passou a permitir criar agendamento já no cadastro do colaborador, vinculando o compromisso à agenda do Gestor Administrativo.

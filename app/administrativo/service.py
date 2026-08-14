@@ -193,7 +193,11 @@ class AdministrativoService:
 
     @classmethod
     def _normalizar(cls, dados):
-        def texto(chave): return (dados.get(chave) or "").strip() or None
+        def texto(chave):
+            valor = dados.get(chave)
+            if valor in (None, ""):
+                return None
+            return str(valor).strip() or None
         def inteiro(chave):
             valor = texto(chave)
             return int(valor) if valor else None

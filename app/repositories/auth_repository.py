@@ -117,6 +117,9 @@ class AuthRepository(BaseRepository):
             """
             SELECT u.id, u.uuid, u.nome, u.email, u.login, u.origem, u.status,
                    u.externo_id, u.ultimo_login_em, u.ultima_sincronizacao_em,
+                   u.exigir_2fa, u.two_factor_metodo, u.two_factor_configurado_em,
+                   u.receber_alertas_operacao, u.alertas_operacao_periodicidade,
+                   u.alertas_operacao_horario, u.alertas_operacao_ultimo_envio_em,
                    u.created_at, u.updated_at, p.nome AS perfil_nome, p.codigo AS perfil_codigo,
                    c.status AS convite_status, c.expira_em AS convite_expira_em, c.enviado_em AS convite_enviado_em
             FROM auth_usuarios u
@@ -208,12 +211,18 @@ class AuthRepository(BaseRepository):
             """
             INSERT INTO auth_usuarios (
                 uuid, nome, email, login, origem, perfil_id, status, possui_agenda,
+                exigir_2fa, two_factor_metodo, receber_alertas_operacao,
+                alertas_operacao_periodicidade, alertas_operacao_horario,
                 externo_id, senha_hash, created_by, updated_by
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 cls.generate_uuid(), dados.get("nome"), dados.get("email"), dados.get("login"),
                 dados.get("origem"), dados.get("perfil_id"), dados.get("status"), cls.bool_to_int(dados.get("possui_agenda")),
+                cls.bool_to_int(dados.get("exigir_2fa")), dados.get("two_factor_metodo") or "EMAIL",
+                cls.bool_to_int(dados.get("receber_alertas_operacao")),
+                dados.get("alertas_operacao_periodicidade") or "DIARIA",
+                dados.get("alertas_operacao_horario") or "08:00",
                 dados.get("externo_id"), dados.get("senha_hash"), dados.get("created_by"), dados.get("updated_by"),
             ),
         )
@@ -224,13 +233,19 @@ class AuthRepository(BaseRepository):
             """
             UPDATE auth_usuarios
             SET nome=%s, email=%s, login=%s, origem=%s, perfil_id=%s,
-                status=%s, possui_agenda=%s, externo_id=%s, updated_by=%s
+                status=%s, possui_agenda=%s, exigir_2fa=%s, two_factor_metodo=%s,
+                receber_alertas_operacao=%s, alertas_operacao_periodicidade=%s,
+                alertas_operacao_horario=%s, externo_id=%s, updated_by=%s
             WHERE id=%s
             """,
             (
                 dados.get("nome"), dados.get("email"), dados.get("login"), dados.get("origem"),
-                dados.get("perfil_id"), dados.get("status"), cls.bool_to_int(dados.get("possui_agenda")), dados.get("externo_id"),
-                dados.get("updated_by"), usuario_id,
+                dados.get("perfil_id"), dados.get("status"), cls.bool_to_int(dados.get("possui_agenda")),
+                cls.bool_to_int(dados.get("exigir_2fa")), dados.get("two_factor_metodo") or "EMAIL",
+                cls.bool_to_int(dados.get("receber_alertas_operacao")),
+                dados.get("alertas_operacao_periodicidade") or "DIARIA",
+                dados.get("alertas_operacao_horario") or "08:00",
+                dados.get("externo_id"), dados.get("updated_by"), usuario_id,
             ),
         )
 
@@ -291,6 +306,114 @@ class AuthRepository(BaseRepository):
         return cls.execute(
             "UPDATE auth_usuarios SET ultimo_login_em=NOW(), updated_at=NOW() WHERE id=%s",
             (usuario_id,),
+        )
+
+    @classmethod
+    def expirar_codigos_2fa_usuario(cls, usuario_id):
+        return cls.execute(
+            """
+            UPDATE auth_2fa_codigos
+            SET status="EXPIRADO"
+            WHERE usuario_id=%s AND status="PENDENTE"
+            """,
+            (usuario_id,),
+        )
+
+    @classmethod
+    def inserir_codigo_2fa(cls, dados):
+        return cls.execute_insert(
+            """
+            INSERT INTO auth_2fa_codigos (
+                uuid, usuario_id, codigo_hash, status, expira_em, ip_origem, user_agent
+            ) VALUES (%s, %s, %s, "PENDENTE", %s, %s, %s)
+            """,
+            (
+                cls.generate_uuid(), dados.get("usuario_id"), dados.get("codigo_hash"),
+                dados.get("expira_em"), dados.get("ip_origem"), dados.get("user_agent"),
+            ),
+        )
+
+    @classmethod
+    def buscar_codigo_2fa_pendente(cls, usuario_id):
+        return cls.fetch_one(
+            """
+            SELECT *
+            FROM auth_2fa_codigos
+            WHERE usuario_id=%s AND status="PENDENTE" AND expira_em >= NOW()
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+            """,
+            (usuario_id,),
+        )
+
+    @classmethod
+    def marcar_codigo_2fa_usado(cls, codigo_id):
+        return cls.execute("UPDATE auth_2fa_codigos SET status=\"USADO\", usado_em=NOW() WHERE id=%s", (codigo_id,))
+
+    @classmethod
+    def registrar_tentativa_codigo_2fa(cls, codigo_id):
+        return cls.execute("UPDATE auth_2fa_codigos SET tentativas=tentativas+1 WHERE id=%s", (codigo_id,))
+
+    @classmethod
+    def buscar_dispositivo_confiavel(cls, usuario_id, token_hash):
+        return cls.fetch_one(
+            """
+            SELECT *
+            FROM auth_dispositivos_confiaveis
+            WHERE usuario_id=%s AND token_hash=%s AND revogado_em IS NULL AND expira_em >= NOW()
+            LIMIT 1
+            """,
+            (usuario_id, token_hash),
+        )
+
+    @classmethod
+    def registrar_uso_dispositivo_confiavel(cls, dispositivo_id):
+        return cls.execute("UPDATE auth_dispositivos_confiaveis SET ultimo_uso_em=NOW() WHERE id=%s", (dispositivo_id,))
+
+    @classmethod
+    def inserir_dispositivo_confiavel(cls, dados):
+        return cls.execute_insert(
+            """
+            INSERT INTO auth_dispositivos_confiaveis (
+                uuid, usuario_id, token_hash, descricao, ip_origem, user_agent, expira_em, ultimo_uso_em
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            """,
+            (
+                cls.generate_uuid(), dados.get("usuario_id"), dados.get("token_hash"), dados.get("descricao"),
+                dados.get("ip_origem"), dados.get("user_agent"), dados.get("expira_em"),
+            ),
+        )
+
+
+    @classmethod
+    def atualizar_totp_usuario(cls, usuario_id, secret_encrypted, atualizado_por=None):
+        return cls.execute(
+            """
+            UPDATE auth_usuarios
+            SET exigir_2fa=1,
+                two_factor_metodo="TOTP",
+                two_factor_secret=%s,
+                two_factor_configurado_em=NOW(),
+                updated_by=%s,
+                updated_at=NOW()
+            WHERE id=%s
+            """,
+            (secret_encrypted, atualizado_por, usuario_id),
+        )
+
+    @classmethod
+    def desativar_totp_usuario(cls, usuario_id, atualizado_por=None):
+        return cls.execute(
+            """
+            UPDATE auth_usuarios
+            SET two_factor_metodo="EMAIL",
+                two_factor_secret=NULL,
+                two_factor_configurado_em=NULL,
+                updated_by=%s,
+                updated_at=NOW()
+            WHERE id=%s
+            """,
+            (atualizado_por, usuario_id),
         )
 
     @classmethod

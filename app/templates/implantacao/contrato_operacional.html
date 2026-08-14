@@ -25,6 +25,34 @@
         </div>
     </div>
 
+    {% if itens %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white"><strong>Escopo Comercial do Omie</strong></div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Descricao</th>
+                            <th width="120">Qtd</th>
+                            <th>Vendedor OMIE</th>
+                            <th>Projeto OMIE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in itens %}
+                        <tr>
+                            <td>{{ item.descricao or '-' }}</td>
+                            <td>{{ item.quantidade or '-' }}</td>
+                            <td>{{ contrato.vendedor_nome or contrato.codigo_vendedor or '-' }}</td>
+                            <td>{{ contrato.projeto_nome or contrato.codigo_projeto or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
     <div class="row g-4">
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm h-100">

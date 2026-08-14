@@ -1,7 +1,13 @@
+import base64
 import hashlib
+import hmac
 import secrets
 import socket
+import struct
+import time
 from datetime import datetime, timedelta
+from html import escape
+from urllib.parse import quote
 
 from flask import url_for
 from werkzeug.security import check_password_hash
@@ -19,6 +25,14 @@ class AuthConfigService:
     STATUS_USUARIO = ("CONVIDADO", "ATIVO", "BLOQUEADO", "INATIVO")
     TIPOS_PROVEDOR = ("FREEIPA", "LDAP", "AD")
     MENU_PERMISSOES = MENU_PERMISSOES
+    MFA_COOKIE_NAME = "o3cloud_dispositivo_confiavel"
+    MFA_CODE_MINUTES = 10
+    MFA_TRUSTED_DEVICE_DAYS = 30
+    MFA_MAX_ATTEMPTS = 5
+    TOTP_ISSUER = "O3Cloud Manager"
+    TOTP_INTERVAL_SECONDS = 30
+    TOTP_DIGITS = 6
+    TOTP_WINDOW = 1
     DASHBOARDS_PRINCIPAIS = (
         {"valor": "financeiro.dashboard", "label": "Visao Geral", "menu_key": "visao_geral"},
         {"valor": "financeiro.dashboard_executivo", "label": "Dashboard Executivo", "menu_key": "dashboard_executivo"},
@@ -63,9 +77,168 @@ class AuthConfigService:
         if not senha_hash or not check_password_hash(senha_hash, senha or ""):
             cls._auditar(usuario.get("email") or usuario.get("login"), "LOGIN_FALHA", "auth_usuarios", usuario.get("id"), "Senha inválida", ip_origem, user_agent)
             raise ValueError("Usuário ou senha inválidos.")
-        cls.repository.registrar_login_usuario(usuario.get("id"))
-        cls._auditar(usuario.get("email") or usuario.get("login"), "LOGIN_SUCESSO", "auth_usuarios", usuario.get("id"), "Login realizado", ip_origem, user_agent)
+        cls._auditar(usuario.get("email") or usuario.get("login"), "LOGIN_SENHA_VALIDADA", "auth_usuarios", usuario.get("id"), "Senha validada", ip_origem, user_agent)
         return usuario
+
+    @classmethod
+    def concluir_login(cls, usuario, ip_origem=None, user_agent=None, detalhes="Login realizado"):
+        cls.repository.registrar_login_usuario(usuario.get("id"))
+        cls._auditar(usuario.get("email") or usuario.get("login"), "LOGIN_SUCESSO", "auth_usuarios", usuario.get("id"), detalhes, ip_origem, user_agent)
+
+    @classmethod
+    def exige_2fa(cls, usuario, token_dispositivo=None):
+        if not usuario or not usuario.get("exigir_2fa"):
+            return False
+        return not cls.dispositivo_confiavel(usuario.get("id"), token_dispositivo)
+
+    @classmethod
+    def metodo_2fa(cls, usuario):
+        metodo = (usuario.get("two_factor_metodo") or "EMAIL").upper()
+        return metodo if metodo in ("EMAIL", "TOTP") else "EMAIL"
+
+    @classmethod
+    def dispositivo_confiavel(cls, usuario_id, token_dispositivo=None):
+        if not usuario_id or not token_dispositivo:
+            return False
+        dispositivo = cls.repository.buscar_dispositivo_confiavel(usuario_id, cls._hash_token(token_dispositivo))
+        if not dispositivo:
+            return False
+        cls.repository.registrar_uso_dispositivo_confiavel(dispositivo.get("id"))
+        return True
+
+    @classmethod
+    def iniciar_2fa_email(cls, usuario_id, ip_origem=None, user_agent=None):
+        usuario = cls.repository.buscar_usuario(usuario_id)
+        if not usuario or usuario.get("status") != "ATIVO":
+            raise ValueError("Sessão de autenticação inválida. Faça login novamente.")
+        if not usuario.get("email"):
+            raise ValueError("Usuário sem e-mail cadastrado para receber o código de segurança.")
+        codigo = f"{secrets.randbelow(1000000):06d}"
+        expira_em = datetime.now() + timedelta(minutes=cls.MFA_CODE_MINUTES)
+        cls.repository.expirar_codigos_2fa_usuario(usuario_id)
+        cls.repository.inserir_codigo_2fa({
+            "usuario_id": usuario_id,
+            "codigo_hash": cls._hash_codigo_2fa(usuario_id, codigo),
+            "expira_em": expira_em,
+            "ip_origem": ip_origem,
+            "user_agent": user_agent,
+        })
+        assunto = "Código de segurança - O3Cloud Manager"
+        corpo = (
+            f"Olá, {usuario.get('nome')}.\n\n"
+            "Seu código de segurança é:\n\n"
+            f"    {codigo}\n\n"
+            f"Ele expira em {cls.MFA_CODE_MINUTES} minutos.\n\n"
+            "Caso você não tenha tentado acessar o sistema, ignore esta mensagem e avise o administrador."
+        )
+        corpo_html = cls._corpo_html_2fa(usuario, codigo)
+        try:
+            resultado = EmailService.enviar(assunto, corpo, [usuario.get("email")], corpo_html=corpo_html)
+        except Exception as erro:
+            resultado = {"enviado": False, "motivo": cls._mensagem_segura(erro), "destinatarios": [usuario.get("email")]}
+        cls._auditar(usuario.get("email") or usuario.get("login"), "LOGIN_2FA_CODIGO_ENVIADO", "auth_usuarios", usuario_id, resultado.get("motivo") or "Código enviado", ip_origem, user_agent)
+        if not resultado.get("enviado"):
+            raise ValueError(f"Não foi possível enviar o código de segurança ({resultado.get('motivo') or 'SMTP indisponível'}).")
+        return {"email": usuario.get("email"), "expira_em": expira_em}
+
+    @classmethod
+    def validar_2fa_email(cls, usuario_id, codigo, ip_origem=None, user_agent=None):
+        usuario = cls.repository.buscar_usuario(usuario_id)
+        if not usuario or usuario.get("status") != "ATIVO":
+            raise ValueError("Sessão de autenticação inválida. Faça login novamente.")
+        desafio = cls.repository.buscar_codigo_2fa_pendente(usuario_id)
+        if not desafio:
+            cls._auditar(usuario.get("email") or usuario.get("login"), "LOGIN_2FA_FALHA", "auth_usuarios", usuario_id, "Código expirado ou inexistente", ip_origem, user_agent)
+            raise ValueError("Código expirado. Faça login novamente para receber um novo código.")
+        if int(desafio.get("tentativas") or 0) >= cls.MFA_MAX_ATTEMPTS:
+            cls.repository.expirar_codigos_2fa_usuario(usuario_id)
+            cls._auditar(usuario.get("email") or usuario.get("login"), "LOGIN_2FA_BLOQUEADO", "auth_usuarios", usuario_id, "Limite de tentativas excedido", ip_origem, user_agent)
+            raise ValueError("Limite de tentativas excedido. Faça login novamente.")
+        codigo_hash = cls._hash_codigo_2fa(usuario_id, codigo)
+        if not hmac.compare_digest(codigo_hash, desafio.get("codigo_hash") or ""):
+            cls.repository.registrar_tentativa_codigo_2fa(desafio.get("id"))
+            cls._auditar(usuario.get("email") or usuario.get("login"), "LOGIN_2FA_FALHA", "auth_usuarios", usuario_id, "Código inválido", ip_origem, user_agent)
+            raise ValueError("Código inválido.")
+        cls.repository.marcar_codigo_2fa_usado(desafio.get("id"))
+        cls._auditar(usuario.get("email") or usuario.get("login"), "LOGIN_2FA_SUCESSO", "auth_usuarios", usuario_id, "Código validado", ip_origem, user_agent)
+        return usuario
+
+    @classmethod
+    def iniciar_configuracao_totp(cls, usuario_id):
+        usuario = cls.repository.buscar_usuario(usuario_id)
+        if not usuario or usuario.get("status") != "ATIVO":
+            raise ValueError("Usuário não encontrado ou inativo.")
+        if not usuario.get("email") and not usuario.get("login"):
+            raise ValueError("Usuário sem identificador para configurar TOTP.")
+        segredo = cls._gerar_totp_secret()
+        return {
+            "secret": segredo,
+            "secret_formatado": cls._formatar_totp_secret(segredo),
+            "otpauth_uri": cls._totp_uri(usuario, segredo),
+        }
+
+    @classmethod
+    def confirmar_configuracao_totp(cls, usuario_id, segredo, codigo, usuario_email="sistema", ip_origem=None, user_agent=None):
+        usuario = cls.repository.buscar_usuario(usuario_id)
+        if not usuario or usuario.get("status") != "ATIVO":
+            raise ValueError("Usuário não encontrado ou inativo.")
+        segredo = cls._normalizar_totp_secret(segredo)
+        if not cls._validar_totp(segredo, codigo):
+            cls._auditar(usuario_email, "TOTP_CONFIGURACAO_FALHA", "auth_usuarios", usuario_id, "Código TOTP inválido", ip_origem, user_agent)
+            raise ValueError("Código TOTP inválido.")
+        cls.repository.atualizar_totp_usuario(usuario_id, cls._encrypt_totp_secret(segredo), usuario_email)
+        cls._auditar(usuario_email, "TOTP_CONFIGURADO", "auth_usuarios", usuario_id, "TOTP habilitado", ip_origem, user_agent)
+        return cls.repository.buscar_usuario(usuario_id)
+
+    @classmethod
+    def desativar_totp(cls, usuario_id, codigo, usuario_email="sistema", ip_origem=None, user_agent=None):
+        usuario = cls.repository.buscar_usuario(usuario_id)
+        if not usuario or usuario.get("status") != "ATIVO":
+            raise ValueError("Usuário não encontrado ou inativo.")
+        if cls.metodo_2fa(usuario) == "TOTP" and usuario.get("two_factor_secret"):
+            if not cls.validar_codigo_totp_usuario(usuario, codigo):
+                cls._auditar(usuario_email, "TOTP_DESATIVACAO_FALHA", "auth_usuarios", usuario_id, "Código TOTP inválido", ip_origem, user_agent)
+                raise ValueError("Código TOTP inválido.")
+        cls.repository.desativar_totp_usuario(usuario_id, usuario_email)
+        cls._auditar(usuario_email, "TOTP_DESATIVADO", "auth_usuarios", usuario_id, "TOTP desabilitado", ip_origem, user_agent)
+        return cls.repository.buscar_usuario(usuario_id)
+
+    @classmethod
+    def validar_2fa_totp(cls, usuario_id, codigo, ip_origem=None, user_agent=None):
+        usuario = cls.repository.buscar_usuario(usuario_id)
+        if not usuario or usuario.get("status") != "ATIVO":
+            raise ValueError("Sessão de autenticação inválida. Faça login novamente.")
+        if cls.metodo_2fa(usuario) != "TOTP" or not usuario.get("two_factor_secret") or not usuario.get("two_factor_configurado_em"):
+            cls._auditar(usuario.get("email") or usuario.get("login"), "LOGIN_2FA_FALHA", "auth_usuarios", usuario_id, "TOTP não configurado", ip_origem, user_agent)
+            raise ValueError("TOTP não está configurado para este usuário.")
+        if not cls.validar_codigo_totp_usuario(usuario, codigo):
+            cls._auditar(usuario.get("email") or usuario.get("login"), "LOGIN_2FA_FALHA", "auth_usuarios", usuario_id, "Código TOTP inválido", ip_origem, user_agent)
+            raise ValueError("Código inválido.")
+        cls._auditar(usuario.get("email") or usuario.get("login"), "LOGIN_2FA_SUCESSO", "auth_usuarios", usuario_id, "Código TOTP validado", ip_origem, user_agent)
+        return usuario
+
+    @classmethod
+    def validar_codigo_totp_usuario(cls, usuario, codigo):
+        try:
+            segredo = cls._decrypt_totp_secret(usuario.get("two_factor_secret"))
+        except ValueError:
+            return False
+        return cls._validar_totp(segredo, codigo)
+
+    @classmethod
+    def criar_dispositivo_confiavel(cls, usuario_id, ip_origem=None, user_agent=None):
+        token = secrets.token_urlsafe(32)
+        expira_em = datetime.now() + timedelta(days=cls.MFA_TRUSTED_DEVICE_DAYS)
+        descricao = (user_agent or "").split(" ", 1)[0][:180] or "Navegador"
+        cls.repository.inserir_dispositivo_confiavel({
+            "usuario_id": usuario_id,
+            "token_hash": cls._hash_token(token),
+            "descricao": descricao,
+            "ip_origem": ip_origem,
+            "user_agent": user_agent,
+            "expira_em": expira_em,
+        })
+        return {"token": token, "expira_em": expira_em}
 
     @classmethod
     def atualizar_minha_conta(cls, usuario_id, dados, arquivo_foto=None):
@@ -241,15 +414,25 @@ class AuthConfigService:
 
     @classmethod
     def novo_usuario_payload(cls):
-        return {"origem": "LOCAL", "status": "CONVIDADO"}
+        return {
+            "origem": "LOCAL",
+            "status": "CONVIDADO",
+            "alertas_operacao_periodicidade": "DIARIA",
+            "alertas_operacao_horario": "08:00",
+        }
 
     @classmethod
     def buscar_usuario(cls, usuario_id):
         return cls.repository.buscar_usuario(usuario_id)
 
     @classmethod
-    def criar_usuario(cls, dados, usuario_email="sistema"):
+    def criar_usuario(cls, dados, usuario_email="sistema", administrador=False):
         payload = cls._normalizar_usuario(dados)
+        if payload.get("two_factor_metodo") == "TOTP":
+            raise ValueError("TOTP deve ser configurado pelo usuário após o primeiro acesso. Cadastre inicialmente com 2FA por e-mail.")
+        if not administrador:
+            payload["exigir_2fa"] = False
+            payload["two_factor_metodo"] = "EMAIL"
         if payload["email"] and cls.repository.buscar_usuario_por_email(payload["email"]):
             raise ValueError("Já existe usuário cadastrado com este e-mail.")
         payload["created_by"] = usuario_email or "sistema"
@@ -262,11 +445,16 @@ class AuthConfigService:
         return usuario_id
 
     @classmethod
-    def atualizar_usuario(cls, usuario_id, dados, usuario_email="sistema"):
+    def atualizar_usuario(cls, usuario_id, dados, usuario_email="sistema", administrador=False):
         existente = cls.repository.buscar_usuario(usuario_id)
         if not existente:
             raise ValueError("Usuário não encontrado.")
         payload = cls._normalizar_usuario(dados)
+        if not administrador:
+            payload["exigir_2fa"] = bool(existente.get("exigir_2fa"))
+            payload["two_factor_metodo"] = existente.get("two_factor_metodo") or "EMAIL"
+        if payload.get("two_factor_metodo") == "TOTP" and not existente.get("two_factor_secret"):
+            raise ValueError("TOTP ainda não foi configurado por este usuário em Minha Conta.")
         outro = cls.repository.buscar_usuario_por_email(payload["email"]) if payload["email"] else None
         if outro and int(outro["id"]) != int(usuario_id):
             raise ValueError("Já existe outro usuário cadastrado com este e-mail.")
@@ -376,6 +564,7 @@ class AuthConfigService:
             convite["usuario_id"],
             convite.get("usuario_email"),
         )
+        return convite
 
     @classmethod
     def novo_grupo_perfil_mapa_payload(cls):
@@ -541,6 +730,9 @@ class AuthConfigService:
             raise ValueError("Login é obrigatório quando o usuário externo não tiver e-mail cadastrado.")
         if origem != "LOCAL" and status == "CONVIDADO":
             status = "ATIVO"
+        metodo_2fa = (cls._texto(dados.get("two_factor_metodo")) or "EMAIL").upper()
+        if metodo_2fa not in ("EMAIL", "TOTP"):
+            metodo_2fa = "EMAIL"
         return {
             "nome": nome,
             "email": email or None,
@@ -551,7 +743,28 @@ class AuthConfigService:
             "externo_id": cls._texto(dados.get("externo_id")),
             "senha_hash": None,
             "possui_agenda": cls._flag(dados, "possui_agenda"),
+            "exigir_2fa": cls._flag(dados, "exigir_2fa"),
+            "two_factor_metodo": metodo_2fa,
+            "receber_alertas_operacao": cls._flag(dados, "receber_alertas_operacao"),
+            "alertas_operacao_periodicidade": cls._periodicidade_alertas_operacao(dados.get("alertas_operacao_periodicidade")),
+            "alertas_operacao_horario": cls._horario_alertas_operacao(dados.get("alertas_operacao_horario")),
         }
+
+    @classmethod
+    def _periodicidade_alertas_operacao(cls, valor):
+        periodicidade = (cls._texto(valor) or "DIARIA").upper()
+        return periodicidade if periodicidade in ("DIARIA", "SEMANAL") else "DIARIA"
+
+    @classmethod
+    def _horario_alertas_operacao(cls, valor):
+        texto = cls._texto(valor) or "08:00"
+        partes = texto.split(":")
+        try:
+            hora = max(0, min(int(partes[0]), 23))
+            minuto = max(0, min(int(partes[1]) if len(partes) > 1 else 0, 59))
+        except (TypeError, ValueError, IndexError):
+            hora, minuto = 8, 0
+        return f"{hora:02d}:{minuto:02d}"
 
     @classmethod
     def _sincronizar_agenda(cls, usuario_id, possui_agenda, usuario_email):
@@ -656,9 +869,95 @@ class AuthConfigService:
             return f"{usuario}@{provedor.get('upn_suffix')}"
         return usuario
 
+
+
+    @classmethod
+    def _corpo_html_2fa(cls, usuario, codigo):
+        nome = escape(usuario.get("nome") or "")
+        return f"""
+        <div style="font-family:Arial,Helvetica,sans-serif;color:#1f2937;line-height:1.5;max-width:560px;margin:0 auto;padding:24px;">
+            <h2 style="margin:0 0 12px;font-size:20px;color:#111827;">Código de segurança</h2>
+            <p style="margin:0 0 16px;">Olá, {nome}.</p>
+            <p style="margin:0 0 12px;">Use o código abaixo para concluir seu acesso ao O3Cloud Manager:</p>
+            <div style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:8px;padding:18px 20px;text-align:center;margin:18px 0;">
+                <div style="font-size:32px;letter-spacing:8px;font-weight:700;color:#0f172a;font-family:Arial,Helvetica,sans-serif;">{codigo}</div>
+            </div>
+            <p style="margin:0 0 16px;color:#4b5563;">Este código expira em <strong>{cls.MFA_CODE_MINUTES} minutos</strong>.</p>
+            <p style="margin:0;color:#6b7280;font-size:13px;">Caso você não tenha tentado acessar o sistema, ignore esta mensagem e avise o administrador.</p>
+        </div>
+        """
+
+    @classmethod
+    def _gerar_totp_secret(cls):
+        return base64.b32encode(secrets.token_bytes(20)).decode("ascii").rstrip("=")
+
+    @classmethod
+    def _normalizar_totp_secret(cls, segredo):
+        segredo = "".join(str(segredo or "").upper().split())
+        if not segredo:
+            raise ValueError("Segredo TOTP inválido.")
+        try:
+            cls._totp_key(segredo)
+        except Exception as erro:
+            raise ValueError("Segredo TOTP inválido.") from erro
+        return segredo
+
+    @staticmethod
+    def _formatar_totp_secret(segredo):
+        segredo = "".join(str(segredo or "").split())
+        return " ".join(segredo[i:i + 4] for i in range(0, len(segredo), 4))
+
+    @classmethod
+    def _totp_uri(cls, usuario, segredo):
+        identificador = usuario.get("email") or usuario.get("login") or str(usuario.get("id"))
+        label = f"{cls.TOTP_ISSUER}:{identificador}"
+        return (
+            "otpauth://totp/"
+            f"{quote(label)}?secret={segredo}&issuer={quote(cls.TOTP_ISSUER)}"
+            f"&algorithm=SHA1&digits={cls.TOTP_DIGITS}&period={cls.TOTP_INTERVAL_SECONDS}"
+        )
+
+    @classmethod
+    def _encrypt_totp_secret(cls, segredo):
+        return CofreSenhaService._encrypt(segredo)
+
+    @classmethod
+    def _decrypt_totp_secret(cls, valor):
+        return CofreSenhaService._decrypt(valor)
+
+    @classmethod
+    def _validar_totp(cls, segredo, codigo, momento=None):
+        codigo = str(codigo or "").strip().replace(" ", "")
+        if not codigo.isdigit() or len(codigo) != cls.TOTP_DIGITS:
+            return False
+        contador = int((momento if momento is not None else time.time()) // cls.TOTP_INTERVAL_SECONDS)
+        for deslocamento in range(-cls.TOTP_WINDOW, cls.TOTP_WINDOW + 1):
+            esperado = cls._totp_codigo(segredo, contador + deslocamento)
+            if hmac.compare_digest(esperado, codigo):
+                return True
+        return False
+
+    @classmethod
+    def _totp_codigo(cls, segredo, contador):
+        chave = cls._totp_key(segredo)
+        mensagem = struct.pack(">Q", int(contador))
+        digest = hmac.new(chave, mensagem, hashlib.sha1).digest()
+        offset = digest[-1] & 0x0F
+        inteiro = struct.unpack(">I", digest[offset:offset + 4])[0] & 0x7FFFFFFF
+        return str(inteiro % (10 ** cls.TOTP_DIGITS)).zfill(cls.TOTP_DIGITS)
+
+    @staticmethod
+    def _totp_key(segredo):
+        padding = "=" * ((8 - len(segredo) % 8) % 8)
+        return base64.b32decode((segredo + padding).encode("ascii"), casefold=True)
+
     @staticmethod
     def _hash_token(token):
         return hashlib.sha256((token or "").encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _hash_codigo_2fa(usuario_id, codigo):
+        return hashlib.sha256(f"{usuario_id}:{str(codigo or '').strip()}".encode("utf-8")).hexdigest()
 
     @staticmethod
     def _mensagem_segura(erro):

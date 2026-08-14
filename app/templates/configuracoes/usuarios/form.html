@@ -57,9 +57,44 @@
                     <div class="col-md-3 d-flex align-items-center">
                         <div class="form-check mt-3"><input class="form-check-input" type="checkbox" name="possui_agenda" value="1" {% if usuario.possui_agenda %}checked{% endif %}><label class="form-check-label">Possui Agenda</label></div>
                     </div>
+                    {% if session.get("usuario_perfil") == "ADMIN" %}
+                    <div class="col-md-3 d-flex align-items-center">
+                        <div class="form-check mt-3"><input class="form-check-input" type="checkbox" name="exigir_2fa" value="1" {% if usuario.exigir_2fa %}checked{% endif %}><label class="form-check-label">Exigir duplo fator</label></div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Método 2FA</label>
+                        <select class="form-select" name="two_factor_metodo">
+                            <option value="EMAIL" {% if (usuario.two_factor_metodo or 'EMAIL') == 'EMAIL' %}selected{% endif %}>E-mail</option>
+                            <option value="TOTP" {% if usuario.two_factor_metodo == 'TOTP' %}selected{% endif %}>TOTP</option>
+                        </select>
+                        <div class="form-text">TOTP exige configuração pelo usuário em Minha Conta.</div>
+                    </div>
+                    {% endif %}
                     <div class="col-md-3">
                         <label class="form-label">ID Externo</label>
                         <input class="form-control" name="externo_id" value="{{ usuario.externo_id or '' }}" placeholder="uid, dn ou objectGUID">
+                    </div>
+                    <div class="col-12"><hr class="my-2"></div>
+                    <div class="col-md-4 d-flex align-items-center">
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" name="receber_alertas_operacao" value="1" {% if usuario.receber_alertas_operacao %}checked{% endif %}>
+                            <label class="form-check-label">Receber alertas de operação por e-mail</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Periodicidade</label>
+                        <select class="form-select" name="alertas_operacao_periodicidade">
+                            <option value="DIARIA" {% if (usuario.alertas_operacao_periodicidade or 'DIARIA') == 'DIARIA' %}selected{% endif %}>Diária</option>
+                            <option value="SEMANAL" {% if usuario.alertas_operacao_periodicidade == 'SEMANAL' %}selected{% endif %}>Semanal</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Horário</label>
+                        <input class="form-control" type="time" name="alertas_operacao_horario" value="{{ usuario.alertas_operacao_horario_form or '08:00' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Último envio</label>
+                        <input class="form-control" value="{{ usuario.alertas_operacao_ultimo_envio_em|datetime_br if usuario.alertas_operacao_ultimo_envio_em else '-' }}" readonly>
                     </div>
                     <div class="col-12 text-end">
                         <a class="btn btn-secondary" href="{{ url_for('configuracoes.usuarios_index') }}">Cancelar</a>

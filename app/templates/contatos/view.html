@@ -7,9 +7,11 @@
     {% set page_title = contato.nome %}
     {% set page_description = "Detalhes do contato comercial" %}
     {% set page_icon = "bi-person-lines-fill" %}
+    {% if pode_editar("contatos") %}
     {% set page_button_url = url_for("contatos.editar", contato_id=contato.id) %}
     {% set page_button_icon = "bi-pencil" %}
     {% set page_button_text = "Editar" %}
+    {% endif %}
 
     {% include "components/page_header.html" %}
 

@@ -24,6 +24,7 @@
 
         <div>
 
+            {% if pode_editar("clientes") %}
             <a href="{{ url_for('clientes.editar', id=cliente.id) }}" 
 	    
                class="btn btn-primary">
@@ -33,6 +34,7 @@
                 Editar
 
             </a>
+            {% endif %}
 
             <a href="{{ url_for('clientes.index') }}"
                class="btn btn-secondary" onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }">

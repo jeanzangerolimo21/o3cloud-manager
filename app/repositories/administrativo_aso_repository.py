@@ -82,6 +82,20 @@ class AdministrativoAsoRepository(BaseRepository):
         """, (colaborador_id,))
 
     @classmethod
+    def buscar_colaborador_por_cpf(cls, cpf, ignorar_id=None):
+        params = [cpf]
+        filtro_ignorar = ""
+        if ignorar_id:
+            filtro_ignorar = " AND id<>%s"
+            params.append(ignorar_id)
+        return cls.fetch_one(f"""
+            SELECT id, nome_completo, cpf
+            FROM administrativo_aso_colaboradores
+            WHERE cpf=%s{filtro_ignorar}
+            LIMIT 1
+        """, tuple(params))
+
+    @classmethod
     def inserir_colaborador(cls, dados):
         return cls.execute_insert("""
             INSERT INTO administrativo_aso_colaboradores
@@ -105,6 +119,10 @@ class AdministrativoAsoRepository(BaseRepository):
             dados.get("data_nascimento"), dados.get("data_admissao"), dados.get("status"), dados.get("updated_by"),
             colaborador_id,
         ))
+
+    @classmethod
+    def excluir_colaborador(cls, colaborador_id):
+        return cls.execute("DELETE FROM administrativo_aso_colaboradores WHERE id=%s", (colaborador_id,))
 
     @classmethod
     def inserir_exame(cls, colaborador_id, dados):

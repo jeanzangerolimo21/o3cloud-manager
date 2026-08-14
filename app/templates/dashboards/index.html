@@ -24,13 +24,6 @@
         </div>
     </div>
 
-    <div class="alert alert-success d-flex align-items-start gap-2" role="alert">
-        <i class="bi bi-check-circle-fill mt-1"></i>
-        <div>
-            <strong>Sprint 20 concluida tecnicamente em 10/08/2026.</strong>
-            Relatorios Customizaveis, exportacoes, jobs, retencao de cache e sincronismos agendados foram entregues. O Sprint Final fica reservado para homologacao da Beta, evidencias de aceite, usuarios, perfis, SMTP e validacao com dados reais controlados.
-        </div>
-    </div>
 
     <div class="row g-3 mb-4">
         <div class="col-md-6 col-xl-3"><a class="text-decoration-none" href="{{ url_for('financeiro.dashboard_executivo') }}"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Receita mensal ativa</small><h3 class="mb-1 text-body">{{ resumo.receita_mensal_ativa|moeda }}</h3><small class="text-muted">{{ resumo.contratos_ativos or 0 }} contrato(s) ativo(s)</small></div></div></a></div>
