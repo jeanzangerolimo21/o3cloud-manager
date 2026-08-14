@@ -149,17 +149,20 @@ class ReajusteContratoService:
             "idade_label": "-",
             "tempo_sem_alteracao_meses": None,
             "tempo_sem_alteracao_label": "-",
+            "sem_base_investigar": False,
+            "situacao_label": cls.STATUS_LABELS["SEM_DATA_VIGENCIA"],
+            "situacao_class": cls.STATUS_CLASSES["SEM_DATA_VIGENCIA"],
             "proximo_aniversario": None,
             "aniversario_anterior": None,
             "dias_para_reajuste": None,
             "situacao": "SEM_DATA_VIGENCIA",
         })
         if not inicio:
-            return item
+            return cls._aplicar_status_visual(item)
         if contrato.get("status") in ("CANCELADO", "ENCERRADO", "SUSPENSO"):
             item.update({"situacao": "IGNORADO", "idade_meses": cls.calcular_idade_meses(inicio, hoje)})
             item["idade_label"] = cls.idade_label(item["idade_meses"])
-            return item
+            return cls._aplicar_status_visual(item)
         proximo = cls.calcular_proximo_aniversario(inicio, hoje)
         anterior = cls._add_years(proximo, -1)
         idade_meses = cls.calcular_idade_meses(inicio, hoje)
@@ -188,7 +191,8 @@ class ReajusteContratoService:
         if item["situacao"] == "SEM_BASE_COMPARACAO":
             item["tempo_sem_alteracao_meses"] = idade_meses
             item["tempo_sem_alteracao_label"] = cls.idade_label(idade_meses)
-        return item
+            item["sem_base_investigar"] = idade_meses >= 12
+        return cls._aplicar_status_visual(item)
 
     @classmethod
     def antecedencia_alerta(cls, item, config=None):
@@ -220,7 +224,18 @@ class ReajusteContratoService:
             "vencidos": len([i for i in itens if i.get("situacao") == "REAJUSTE_VENCIDO"]),
             "reajustados": len([i for i in itens if i.get("situacao") == "REAJUSTADO"]),
             "sem_base": len([i for i in itens if i.get("situacao") == "SEM_BASE_COMPARACAO"]),
+            "sem_base_investigar": len([i for i in itens if i.get("sem_base_investigar")]),
         }
+
+    @classmethod
+    def _aplicar_status_visual(cls, item):
+        if item.get("sem_base_investigar"):
+            item["situacao_label"] = "Sem base - investigar"
+            item["situacao_class"] = "danger"
+        else:
+            item["situacao_label"] = cls.STATUS_LABELS.get(item.get("situacao"), item.get("situacao"))
+            item["situacao_class"] = cls.STATUS_CLASSES.get(item.get("situacao"), "secondary")
+        return item
 
     @staticmethod
     def calcular_proximo_aniversario(inicio, hoje=None):

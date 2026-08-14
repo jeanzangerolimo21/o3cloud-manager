@@ -152,6 +152,9 @@ def test_sem_base_informa_tempo_sem_alteracao_detectada_desde_vigencia():
     assert item["situacao"] == "SEM_BASE_COMPARACAO"
     assert item["tempo_sem_alteracao_meses"] == 77
     assert item["tempo_sem_alteracao_label"] == "6 ano(s) e 5 mes(es)"
+    assert item["sem_base_investigar"] is True
+    assert item["situacao_label"] == "Sem base - investigar"
+    assert item["situacao_class"] == "danger"
 
 
 def test_historico_com_aumento_detecta_reajustado():
