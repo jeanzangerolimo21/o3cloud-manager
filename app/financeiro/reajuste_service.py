@@ -147,6 +147,8 @@ class ReajusteContratoService:
             "percentual_variacao": None,
             "idade_meses": None,
             "idade_label": "-",
+            "tempo_sem_alteracao_meses": None,
+            "tempo_sem_alteracao_label": "-",
             "proximo_aniversario": None,
             "aniversario_anterior": None,
             "dias_para_reajuste": None,
@@ -183,6 +185,9 @@ class ReajusteContratoService:
             item["situacao"] = "REAJUSTE_PROXIMO"
         else:
             item["situacao"] = "A_VENCER"
+        if item["situacao"] == "SEM_BASE_COMPARACAO":
+            item["tempo_sem_alteracao_meses"] = idade_meses
+            item["tempo_sem_alteracao_label"] = cls.idade_label(idade_meses)
         return item
 
     @classmethod

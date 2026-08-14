@@ -9,7 +9,7 @@
 - Detalhe do contrato passou a exibir secao `Reajuste Contratual` com status, valores e historico.
 - Adicionado comando CLI `flask reajustes-processar-alertas` e cron diario para execucao preventiva.
 - Adicionada permissao/menu `reajustes_contratuais` para perfis financeiros autorizados.
-- Testes automatizados ampliados para `42 passed`, cobrindo janelas de alerta, vencimento, historico insuficiente, alteracao de valor e deduplicacao.
+- Testes automatizados ampliados para `44 passed`, cobrindo janelas de alerta, vencimento, historico insuficiente, alteracao de valor e deduplicacao.
 
 ## 2026-08-14 - Fechamento Tecnico Sprint 17
 

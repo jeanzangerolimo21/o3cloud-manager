@@ -146,6 +146,14 @@ def test_contrato_sem_valor_positivo_fica_sem_base_comparacao():
     assert item["situacao"] == "SEM_BASE_COMPARACAO"
 
 
+def test_sem_base_informa_tempo_sem_alteracao_detectada_desde_vigencia():
+    item = ReajusteContratoService.analisar_contrato(_contrato(inicio_vigencia=date(2020, 3, 1)), hoje=date(2026, 8, 14))
+
+    assert item["situacao"] == "SEM_BASE_COMPARACAO"
+    assert item["tempo_sem_alteracao_meses"] == 77
+    assert item["tempo_sem_alteracao_label"] == "6 ano(s) e 5 mes(es)"
+
+
 def test_historico_com_aumento_detecta_reajustado():
     RepoReajustesFake.historicos = {
         1: [
