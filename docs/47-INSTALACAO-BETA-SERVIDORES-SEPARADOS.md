@@ -40,12 +40,13 @@ Separar a versao Beta do O3Cloud Manager em dois servidores:
 Executar como `root` no servidor de banco:
 
 ```bash
-export DB_NAME=o3cloud_manager
-export DB_USER=o3manager
-export DB_PASSWORD='trocar-por-senha-forte'
-export APP_SERVER_CIDR='IP_DO_APP01'
-export MYSQL_INNODB_BUFFER_POOL_SIZE=2G
-deployment/install-db-server.sh
+sudo env \
+  DB_NAME=o3cloud_manager \
+  DB_USER=o3manager \
+  DB_PASSWORD='trocar-por-senha-forte' \
+  APP_SERVER_CIDR='IP_DO_APP01' \
+  MYSQL_INNODB_BUFFER_POOL_SIZE=2G \
+  bash deployment/install-db-server.sh
 ```
 
 O script salva as credenciais em:
@@ -61,18 +62,21 @@ Usar o `DB_HOST` exibido/salvo para configurar o servidor de aplicacao.
 Executar como `root` no servidor da aplicacao:
 
 ```bash
-export DB_HOST='IP_DO_DB01'
-export DB_PORT=3306
-export DB_NAME=o3cloud_manager
-export DB_USER=o3manager
-export DB_PASSWORD='mesma-senha-configurada-no-db01'
-export PUBLIC_BASE_URL='https://beta.seudominio.com.br'
-export BRANCH=beta
-export APPLY_MIGRATIONS=1
-deployment/install-app-server.sh
+sudo env \
+  DB_HOST='IP_DO_DB01' \
+  DB_PORT=3306 \
+  DB_NAME=o3cloud_manager \
+  DB_USER=o3manager \
+  DB_PASSWORD='mesma-senha-configurada-no-db01' \
+  PUBLIC_BASE_URL='https://beta.seudominio.com.br' \
+  BRANCH=beta \
+  APPLY_MIGRATIONS=1 \
+  bash deployment/install-app-server.sh
 ```
 
 Se o banco for restaurado de backup ja atualizado, `APPLY_MIGRATIONS=1` pode continuar habilitado: o runner ignora migrations ja registradas.
+
+Observação: executar os scripts com `bash`, não com `sh`. O `sh` do Ubuntu/Debian não suporta `set -o pipefail`.
 
 ## Validacao apos instalacao
 
