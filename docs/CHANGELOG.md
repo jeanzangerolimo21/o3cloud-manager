@@ -11,6 +11,7 @@
 - Adicionada permissao/menu `reajustes_contratuais` para perfis financeiros autorizados.
 - Destacados contratos `Sem base de comparacao` com 12 meses ou mais de vigencia como `Sem base - investigar`, incluindo tempo sem alteracao detectada.
 - Comparacao de reajuste passou a priorizar o primeiro faturamento sincronizado do contrato contra o valor atual, identificando contratos sem reajuste detectado.
+- Validados os totais atuais da tela: 204 contratos monitorados, 177 com base por primeiro faturamento, 56 com alteracao detectada, 70 sem reajuste detectado e 2 sem base.
 - Testes automatizados ampliados para `48 passed`, cobrindo janelas de alerta, vencimento, historico insuficiente, alteracao de valor e deduplicacao.
 
 ## 2026-08-14 - Fechamento Tecnico Sprint 17

@@ -2,7 +2,7 @@
 
 # ROADMAP
 
-Versão: 3.0 Alpha
+Versão: 3.0 Beta
 
 Última atualização: 14/08/2026
 
@@ -530,7 +530,7 @@ Todo desenvolvimento deverá seguir obrigatoriamente:
 
 Versão:
 
-3.0 Alpha
+3.0 Beta
 
 Última sprint encerrada:
 
@@ -546,7 +546,7 @@ Status Geral:
 
 Próxima Entrega:
 
-Publicação da Beta para equipe com monitoramento de reajustes contratuais, commit/tag/release e plano de rollback.
+Publicação da Beta para equipe com monitoramento de reajustes contratuais validado por primeiro faturamento sincronizado, tag/release e plano de rollback.
 
 
 

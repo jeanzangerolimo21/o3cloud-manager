@@ -75,7 +75,7 @@ Entregas consolidadas recentes:
 - `Financeiro > Receitas por Servidor` cruza nodes Proxmox sincronizados, ambientes e contratos ativos para apresentar receita recorrente mensal por servidor.
 - 2FA por e-mail, TOTP e dispositivo confiavel por 30 dias para usuarios locais.
 - Alertas operacionais por e-mail para Zabbix critico, PBS fora do prazo e TrueNAS sem modificacao ha mais de 5 dias.
-- Monitoramento de reajustes contratuais com aniversario por `inicio_vigencia`, historico de valores e alertas 30/15/7 dias.
+- Monitoramento de reajustes contratuais com aniversario por `inicio_vigencia`, comparacao entre primeiro faturamento sincronizado e valor atual, historico de valores e alertas 30/15/7 dias.
 
 ---
 

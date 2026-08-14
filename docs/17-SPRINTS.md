@@ -2,7 +2,7 @@
 
 # 17 - SPRINTS
 
-Versão: 3.0 Alpha
+Versão: 3.0 Beta
 
 Última atualização: 14/08/2026
 
@@ -4651,12 +4651,21 @@ Implementacao entregue:
 * Tela `Financeiro > Reajustes Contratuais` com filtros, cards e situacao por contrato.
 * Calculo de idade contratual, proximo aniversario e dias para reajuste usando `contratos.inicio_vigencia`.
 * Historico `contratos_valores_historico` para preservar alteracoes de valores.
-* Configuracao de alertas 30/15/7 dias e usuarios destinatarios.
+* Comparacao prioritaria entre primeiro faturamento sincronizado em `financeiro_recebimentos` e valor atual do contrato.
+* Configuracao de alertas 30/15/7 dias e usuarios destinatarios selecionados.
 * Controle de duplicidade em `contratos_reajustes_alertas`.
 * Botao `Verificar agora`, comando CLI `reajustes-processar-alertas` e cron diario.
 * Secao `Reajuste Contratual` no detalhe do contrato.
 * Permissao `reajustes_contratuais` no grupo Financeiro.
 * Testes automatizados finais do projeto: `48 passed`.
+
+Retrato operacional validado em 14/08/2026:
+
+* 204 contratos monitorados.
+* 177 contratos com base pelo primeiro faturamento sincronizado.
+* 56 contratos com alteracao detectada entre base inicial e valor atual.
+* 70 contratos sem reajuste detectado.
+* 2 contratos ainda sem base de comparacao.
 
 ## 1. Objetivo
 
@@ -4773,17 +4782,23 @@ Contrato atingiu ou ultrapassou a data de aniversário sem evidência de reajust
 
 ### REAJUSTADO
 
-Sistema encontrou aumento de valor após o aniversário contratual.
+Sistema encontrou alteracao entre o primeiro faturamento sincronizado do contrato e o valor atual. A variacao pode ser positiva ou negativa e deve ser conferida pelo Financeiro.
+
+### SEM_REAJUSTE_DETECTADO
+
+Contrato possui primeiro faturamento sincronizado, ja tem 12 meses ou mais de vigencia e o valor atual permanece igual ao valor base. Deve ser investigado pelo Financeiro para confirmar se o reajuste deveria ter ocorrido.
 
 ### SEM_BASE_COMPARACAO
 
-Não existem dados históricos suficientes para confirmar se houve reajuste.
+Nao existe primeiro faturamento sincronizado nem historico suficiente para confirmar se houve reajuste.
 
 ---
 
 ## 6. Histórico de Valores do Contrato
 
-Para verificar se houve reajuste, não basta utilizar apenas o valor atual.
+Para verificar se houve reajuste, nao basta utilizar apenas o valor atual.
+
+A regra operacional final usa, quando disponivel, o primeiro faturamento sincronizado em `financeiro_recebimentos` como valor fechado inicial do contrato e compara esse valor com o valor atual do contrato. O historico proprio continua existindo para auditar alteracoes detectadas depois da implantacao do monitoramento.
 
 O sistema deverá preservar histórico dos valores sincronizados.
 
@@ -5279,27 +5294,19 @@ Exibir:
 
 ### Contrato antigo recém-importado
 
-Registrar valor atual como primeira base histórica.
+Se existir primeiro faturamento sincronizado recorrente, usar esse faturamento como base inicial contra o valor atual.
 
-Não afirmar que houve ou não reajuste anterior sem evidência histórica.
+Se nao existir faturamento inicial nem historico suficiente, manter `SEM_BASE_COMPARACAO` e nao afirmar que houve ou nao reajuste anterior sem evidencia.
 
 ---
 
 ## 25. Cuidado com Histórico Anterior ao Sistema
 
-Se o O3Cloud Manager começou a registrar valores em 2026 e o contrato existe desde 2022, o sistema não possui automaticamente os valores de 2022–2025.
+Se o O3Cloud Manager comecou a registrar historico proprio em 2026 e o contrato existe desde 2022, o sistema nao possui automaticamente todos os valores de 2022-2025.
 
-Portanto:
+Quando houver primeiro faturamento sincronizado, o sistema pode comparar esse valor com o valor atual e exibir `Sem reajuste detectado` se ambos forem iguais. Essa situacao deve ser investigada pelo Financeiro, pois indica ausencia de alteracao detectada na base disponivel, nao aprovacao automatica.
 
-Não exibir:
-
-`Nunca foi reajustado`
-
-sem possuir dados para comprovar.
-
-Exibir:
-
-`Histórico insuficiente para validar reajustes anteriores.`
+Quando nao houver primeiro faturamento sincronizado nem historico suficiente, exibir `Sem base de comparacao`.
 
 Essa regra é obrigatória.
 

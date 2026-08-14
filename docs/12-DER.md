@@ -299,6 +299,7 @@ Regra:
 Novas entidades:
 
 - `contratos_valores_historico`: historico auditavel de valores recorrentes e valores comerciais sincronizados por contrato.
+- `financeiro_recebimentos`: fonte operacional do primeiro faturamento recorrente usado como valor base de comparacao quando disponivel.
 - `contratos_reajustes_alertas`: controle de alertas por contrato, aniversario e antecedencia, evitando duplicidade.
 - `reajustes_configuracoes`: configuracao central das janelas 30/15/7 dias e envio por e-mail.
 - `reajustes_configuracoes_usuarios`: usuarios destinatarios de notificacoes/e-mails de reajuste.
@@ -306,6 +307,7 @@ Novas entidades:
 Relacionamentos principais:
 
 - `contratos_valores_historico.contrato_id -> contratos.id`
+- `financeiro_recebimentos.contrato_id -> contratos.id`
 - `contratos_reajustes_alertas.contrato_id -> contratos.id`
 - `reajustes_configuracoes_usuarios.configuracao_id -> reajustes_configuracoes.id`
 - `reajustes_configuracoes_usuarios.usuario_id -> auth_usuarios.id`

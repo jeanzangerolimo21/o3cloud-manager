@@ -2,7 +2,7 @@
 
 # 05 - SPRINT ATUAL
 
-Versao: 3.0 Alpha
+Versao: 3.0 Beta
 
 Ultima atualizacao: 14/08/2026
 
@@ -175,7 +175,11 @@ Entregas realizadas:
 - Historico de valores de contratos para auditoria de alteracoes.
 - Alertas preventivos de 30, 15 e 7 dias, com e-mail opcional para usuarios selecionados.
 - Botao de verificacao manual, comando CLI e cron diario.
-- Secao de reajuste no detalhe do contrato.
+- Secao de reajuste no detalhe do contrato com valor base, valor atual, variacao e origem da base.
+- Comparacao pelo primeiro faturamento sincronizado contra o valor atual do contrato.
+- Status `Sem reajuste detectado` para contratos com base inicial igual ao valor atual e mais de 12 meses.
+- Destaque `Sem base - investigar` para contratos antigos sem base suficiente.
+- Retrato validado no banco: 204 contratos monitorados, 177 com base por faturamento inicial, 56 com alteracao detectada, 70 sem reajuste detectado e 2 sem base de comparacao.
 
 ---
 
@@ -194,11 +198,11 @@ Entregas realizadas:
 
 Versao:
 
-3.0 Alpha
+3.0 Beta
 
 Sprint Atual:
 
-17
+22 - concluido tecnicamente
 
 Situacao:
 
@@ -225,4 +229,4 @@ Conferencias operacionais para liberacao Beta:
 - Migrations `096`, `097`, `098` e `099` aplicadas/conferidas e registradas em `schema_migrations` em 14/08/2026.
 - Confirmada ausencia de CPFs duplicados antes da constraint da migration `096`.
 - Migration `100_create_reajustes_contratuais.sql` aplicada/conferida em 14/08/2026.
-- Pendente apenas consolidar commit/tag e atualizar GitHub.
+- GitHub atualizado com os ajustes finais do Sprint 22; pendente apenas tag/release Beta quando aprovado.
