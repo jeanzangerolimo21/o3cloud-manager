@@ -296,6 +296,17 @@ def backups_executar():
     return redirect(url_for("configuracoes.backups_index"))
 
 
+@configuracoes_bp.route("/backups/restaurar", methods=["POST"])
+def backups_restaurar():
+    try:
+        resultado = BackupSistemaService.restaurar_upload(request.files.get("arquivo_backup"), request.form, _email_usuario_logado())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash(resultado, "success")
+    return redirect(url_for("configuracoes.backups_index"))
+
+
 @configuracoes_bp.route("/backups/<int:execucao_id>/download")
 def backups_download(execucao_id):
     try:

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-14 - Restauracao pela Tela de Backups
+
+- Adicionada secao `Restauracao de backup` em `Configuracoes > Backups do Sistema`, com upload de artefato `.tar.gz`, `.tgz`, `.sql` ou `.sql.gz`, confirmacao textual `RESTAURAR` e selecao de banco/storage.
+- Backend reutiliza `deployment/restore-db.sh` com `--yes --skip-service` para restauracao acionada pela interface e restaura `storage.tar.gz` de artefatos completos com validacao contra path traversal.
+
 ## 2026-08-14 - Instalacao Beta em Servidores Separados
 
 - Criados scripts `deployment/install-db-server.sh`, `deployment/install-app-server.sh` e `deployment/apply-migrations.sh` para separar banco de dados e servidor de aplicacao/storage.

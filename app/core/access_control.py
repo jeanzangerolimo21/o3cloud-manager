@@ -245,6 +245,7 @@ ENDPOINT_PERMISSOES = {
     "configuracoes.backups_index": "backups_sistema",
     "configuracoes.backups_salvar": "backups_sistema",
     "configuracoes.backups_executar": "backups_sistema",
+    "configuracoes.backups_restaurar": "backups_sistema",
     "configuracoes.backups_download": "backups_sistema",
     "configuracoes.atualizacoes_index": "atualizacoes_sistema",
     "configuracoes.atualizacoes_verificar": "atualizacoes_sistema",

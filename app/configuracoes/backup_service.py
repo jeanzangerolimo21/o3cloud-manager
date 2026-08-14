@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
+from werkzeug.utils import secure_filename
 from datetime import datetime
 from pathlib import Path
 
@@ -33,6 +34,8 @@ class BackupSistemaService:
     )
     RETENCOES = (3, 7, 15, 30, 60, 90)
     BACKUP_DIR = Config.STORAGE_PATH / "backups" / "sistema"
+    RESTORE_UPLOAD_DIR = Config.STORAGE_PATH / "backups" / "restores"
+    PRE_RESTORE_DIR = Config.STORAGE_PATH / "backups" / "pre-restore"
 
     @classmethod
     def contexto(cls):
@@ -111,6 +114,117 @@ class BackupSistemaService:
     @classmethod
     def buscar_execucao(cls, execucao_id):
         return cls.repository.fetch_one("SELECT * FROM config_backups_execucoes WHERE id=%s", (execucao_id,))
+
+    @classmethod
+    def restaurar_upload(cls, arquivo, dados, usuario_email):
+        if not arquivo or not getattr(arquivo, "filename", None):
+            raise ValueError("Selecione o arquivo de backup para restauracao.")
+        confirmacao = (dados.get("confirmacao") or "").strip()
+        if confirmacao != "RESTAURAR":
+            raise ValueError("Digite RESTAURAR para confirmar a operacao.")
+
+        restaurar_banco = bool(dados.get("restaurar_banco"))
+        restaurar_storage = bool(dados.get("restaurar_storage"))
+        if not restaurar_banco and not restaurar_storage:
+            raise ValueError("Selecione pelo menos Banco de dados ou Storage para restaurar.")
+
+        caminho = cls._salvar_upload_restore(arquivo)
+        resultados = []
+        if restaurar_storage:
+            resultados.append(cls._restaurar_storage(caminho))
+        if restaurar_banco:
+            resultados.append(cls._restaurar_banco(caminho))
+        return "RESTORE: OK - " + " | ".join(resultados)
+
+    @classmethod
+    def _salvar_upload_restore(cls, arquivo):
+        nome = secure_filename(arquivo.filename or "")
+        if not cls._arquivo_restore_permitido(nome):
+            raise ValueError("Formato invalido. Use .sql, .sql.gz, .tar.gz ou .tgz gerado pelo backup do sistema.")
+        cls.RESTORE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+        destino = cls.RESTORE_UPLOAD_DIR / (datetime.now().strftime("restore-%Y%m%d-%H%M%S-") + nome)
+        arquivo.save(destino)
+        return destino
+
+    @staticmethod
+    def _arquivo_restore_permitido(nome):
+        nome = (nome or "").lower()
+        return nome.endswith((".sql", ".sql.gz", ".tar.gz", ".tgz"))
+
+    @classmethod
+    def _restaurar_banco(cls, caminho):
+        script = Path("deployment/restore-db.sh").resolve()
+        if not script.exists():
+            raise ValueError("Script deployment/restore-db.sh nao encontrado.")
+        db_name = os.getenv("DB_NAME")
+        if not db_name:
+            raise ValueError("DB_NAME ausente para restauracao do banco.")
+        env = {**os.environ, "RESTORE_CONFIRM": db_name}
+        comando = [str(script), str(caminho), "--yes", "--skip-service"]
+        resultado = subprocess.run(comando, cwd=str(Path.cwd()), env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=1800)
+        if resultado.returncode != 0:
+            detalhe = ((resultado.stderr or "") + "\n" + (resultado.stdout or "")).strip()[:800]
+            raise ValueError("Falha ao restaurar banco: " + detalhe)
+        return "banco restaurado"
+
+    @classmethod
+    def _restaurar_storage(cls, caminho):
+        with tempfile.TemporaryDirectory(prefix="o3restore-storage-") as tmp:
+            tmpdir = Path(tmp)
+            storage_tar = cls._extrair_storage_tar(caminho, tmpdir)
+            if not storage_tar:
+                raise ValueError("Artefato nao contem storage.tar.gz para restaurar storage.")
+            cls._backup_storage_pre_restore()
+            storage = Config.STORAGE_PATH
+            storage.mkdir(parents=True, exist_ok=True)
+            for item in storage.iterdir():
+                if item.name == "backups":
+                    continue
+                if item.is_dir():
+                    shutil.rmtree(item)
+                else:
+                    item.unlink()
+            cls._extrair_tar_seguro(storage_tar, storage)
+        return "storage restaurado"
+
+    @classmethod
+    def _extrair_storage_tar(cls, caminho, tmpdir):
+        nome = str(caminho).lower()
+        if nome.endswith((".tar.gz", ".tgz")):
+            with tarfile.open(caminho, "r:gz") as tar:
+                membro = next((m for m in tar.getmembers() if m.name == "storage.tar.gz"), None)
+                if not membro:
+                    return None
+                cls._validar_membro_tar(membro)
+                tar.extract(membro, path=tmpdir)
+                return tmpdir / "storage.tar.gz"
+        return None
+
+    @classmethod
+    def _backup_storage_pre_restore(cls):
+        cls.PRE_RESTORE_DIR.mkdir(parents=True, exist_ok=True)
+        destino = cls.PRE_RESTORE_DIR / f"storage-pre-restore-{datetime.now().strftime('%Y%m%d-%H%M%S')}.tar.gz"
+        storage = Config.STORAGE_PATH
+        with tarfile.open(destino, "w:gz") as tar:
+            if storage.exists():
+                for item in storage.iterdir():
+                    if item.name == "backups":
+                        continue
+                    tar.add(item, arcname=item.name)
+        return destino
+
+    @classmethod
+    def _extrair_tar_seguro(cls, caminho_tar, destino):
+        with tarfile.open(caminho_tar, "r:gz") as tar:
+            for membro in tar.getmembers():
+                cls._validar_membro_tar(membro)
+            tar.extractall(destino)
+
+    @staticmethod
+    def _validar_membro_tar(membro):
+        path = Path(membro.name)
+        if path.is_absolute() or ".." in path.parts:
+            raise ValueError("Backup contem caminho invalido no storage.")
 
     @classmethod
     def caminho_download(cls, execucao_id):
