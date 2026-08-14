@@ -54,6 +54,7 @@ class ReajusteContratoService:
         return {
             "itens": itens,
             "resumo": cls.resumo(itens),
+            "total_monitorados": cls.repository.total_contratos_monitoramento(),
             "config": config,
             "usuarios": cls.repository.usuarios_disponiveis(),
             "usuarios_configurados": {u["id"] for u in cls.repository.usuarios_notificacao(config.get("id"))},

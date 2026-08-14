@@ -32,6 +32,10 @@ class RepoReajustesFake:
         return cls.contratos[:limit]
 
     @classmethod
+    def total_contratos_monitoramento(cls):
+        return len(cls.contratos)
+
+    @classmethod
     def historico_contrato(cls, contrato_id):
         return cls.historicos.get(contrato_id, [])
 
@@ -62,6 +66,10 @@ class RepoReajustesFake:
 
     @classmethod
     def usuarios_notificacao(cls, config_id=None):
+        return cls.usuarios
+
+    @classmethod
+    def usuarios_disponiveis(cls):
         return cls.usuarios
 
     @classmethod
@@ -192,6 +200,18 @@ def test_salvar_configuracao_grava_somente_usuarios_selecionados():
     ReajusteContratoService.salvar_configuracao(dados, "financeiro@example.com")
 
     assert RepoReajustesFake.usuarios_configurados == [3, 7]
+
+
+def test_contexto_expoe_total_monitorado_independente_do_filtro_de_situacao():
+    RepoReajustesFake.contratos = [
+        _contrato(id=1, inicio_vigencia=date(2020, 3, 1)),
+        _contrato(id=2, inicio_vigencia=date(2026, 12, 1)),
+    ]
+
+    contexto = ReajusteContratoService.contexto({"situacao": "SEM_BASE_COMPARACAO"}, hoje=date(2026, 8, 14))
+
+    assert contexto["total_monitorados"] == 2
+    assert len(contexto["itens"]) == 1
 
 
 def test_processar_alertas_nao_duplica_mesmo_aniversario():

@@ -91,6 +91,17 @@ class ReajusteContratoRepository(BaseRepository):
         )
 
     @classmethod
+    def total_contratos_monitoramento(cls):
+        return cls.scalar(
+            """
+            SELECT COUNT(*)
+            FROM contratos c
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            WHERE c.ativo=1
+            """
+        ) or 0
+
+    @classmethod
     def listar_contratos_monitoramento(cls, filtros=None, limit=500):
         filtros = filtros or {}
         where = ["c.ativo=1"]

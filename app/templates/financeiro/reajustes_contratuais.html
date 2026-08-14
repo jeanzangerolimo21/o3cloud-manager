@@ -37,7 +37,7 @@
     </form>
 
     <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>Contratos monitorados</strong><span class="badge text-bg-light border">{{ itens|length }} contrato(s)</span></div>
+        <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2"><strong>Contratos monitorados</strong><div class="d-flex gap-2"><span class="badge text-bg-light border">{{ total_monitorados }} monitorado(s)</span><span class="badge text-bg-primary">{{ itens|length }} exibido(s)</span></div></div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light"><tr><th>Contrato</th><th>Cliente</th><th>Vendedor</th><th>Inicio</th><th>Idade</th><th>Tempo sem alteração detectada</th><th class="text-end">Valor atual</th><th>Proximo reajuste</th><th>Dias</th><th>Situação</th><th>Status</th></tr></thead>

@@ -4656,7 +4656,7 @@ Implementacao entregue:
 * Botao `Verificar agora`, comando CLI `reajustes-processar-alertas` e cron diario.
 * Secao `Reajuste Contratual` no detalhe do contrato.
 * Permissao `reajustes_contratuais` no grupo Financeiro.
-* Testes automatizados finais do projeto: `44 passed`.
+* Testes automatizados finais do projeto: `45 passed`.
 
 ## 1. Objetivo
 

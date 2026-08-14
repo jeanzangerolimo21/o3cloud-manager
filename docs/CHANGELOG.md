@@ -10,7 +10,7 @@
 - Adicionado comando CLI `flask reajustes-processar-alertas` e cron diario para execucao preventiva.
 - Adicionada permissao/menu `reajustes_contratuais` para perfis financeiros autorizados.
 - Destacados contratos `Sem base de comparacao` com 12 meses ou mais de vigencia como `Sem base - investigar`, incluindo tempo sem alteracao detectada.
-- Testes automatizados ampliados para `44 passed`, cobrindo janelas de alerta, vencimento, historico insuficiente, alteracao de valor e deduplicacao.
+- Testes automatizados ampliados para `45 passed`, cobrindo janelas de alerta, vencimento, historico insuficiente, alteracao de valor e deduplicacao.
 
 ## 2026-08-14 - Fechamento Tecnico Sprint 17
 
