@@ -1,6 +1,8 @@
 from datetime import date, datetime
 from decimal import Decimal
 
+from werkzeug.datastructures import MultiDict
+
 from app.financeiro.reajuste_service import ReajusteContratoService
 
 
@@ -11,6 +13,7 @@ class RepoReajustesFake:
     alertas = {}
     inseridos = []
     usuarios = []
+    usuarios_configurados = []
     config = {
         "id": 1,
         "ativo": 1,
@@ -62,6 +65,16 @@ class RepoReajustesFake:
         return cls.usuarios
 
     @classmethod
+    def salvar_configuracao(cls, dados):
+        cls.config = {**cls.config, **dados}
+        return cls.config.get("id")
+
+    @classmethod
+    def substituir_usuarios_configuracao(cls, config_id, usuario_ids):
+        cls.usuarios_configurados = usuario_ids
+
+
+    @classmethod
     def marcar_email_alerta(cls, contrato_id, aniversario, antecedencia):
         cls.alertas[(contrato_id, aniversario, antecedencia)]["email_enviado_em"] = datetime.now()
         return True
@@ -91,6 +104,7 @@ def setup_function():
     RepoReajustesFake.alertas = {}
     RepoReajustesFake.inseridos = []
     RepoReajustesFake.usuarios = []
+    RepoReajustesFake.usuarios_configurados = []
     RepoReajustesFake.config = {
         "id": 1,
         "ativo": 1,
@@ -151,6 +165,22 @@ def test_registra_historico_somente_quando_valor_muda():
 
     assert ReajusteContratoService.registrar_historico_valor_se_necessario(1, _contrato(), origem="OMIE") is None
     assert ReajusteContratoService.registrar_historico_valor_se_necessario(1, _contrato(valor_mensal=Decimal("1100.00")), origem="OMIE") == 1
+
+
+def test_salvar_configuracao_grava_somente_usuarios_selecionados():
+    dados = MultiDict([
+        ("ativo", "1"),
+        ("alerta_30_dias", "1"),
+        ("alerta_15_dias", "1"),
+        ("alerta_7_dias", "1"),
+        ("enviar_email", "1"),
+        ("usuario_ids", "3"),
+        ("usuario_ids", "7"),
+    ])
+
+    ReajusteContratoService.salvar_configuracao(dados, "financeiro@example.com")
+
+    assert RepoReajustesFake.usuarios_configurados == [3, 7]
 
 
 def test_processar_alertas_nao_duplica_mesmo_aniversario():
