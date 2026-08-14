@@ -22,9 +22,23 @@ INSTALL_NGINX="${INSTALL_NGINX:-1}"
 log() { printf '[app-install] %s\n' "$*"; }
 fail() { printf '[app-install] ERRO: %s\n' "$*" >&2; exit 1; }
 
+prompt_required() {
+  local var_name="$1" label="$2" secret="${3:-0}" value="${!1:-}"
+  [ -n "$value" ] && return 0
+  [ -t 0 ] || fail "Defina $var_name ou execute em um terminal interativo."
+  if [ "$secret" = "1" ]; then
+    read -r -s -p "$label: " value
+    printf '\n'
+  else
+    read -r -p "$label: " value
+  fi
+  [ -n "$value" ] || fail "$var_name e obrigatorio."
+  printf -v "$var_name" '%s' "$value"
+}
+
 [ "$(id -u)" = "0" ] || fail "Execute como root."
-[ -n "$DB_HOST" ] || fail "Defina DB_HOST com o IP/hostname do servidor de banco."
-[ -n "$DB_PASSWORD" ] || fail "Defina DB_PASSWORD com a senha do usuario do banco."
+prompt_required DB_HOST "IP/hostname do servidor de banco"
+prompt_required DB_PASSWORD "Senha do usuario do banco" 1
 if [ -z "$SECRET_KEY" ]; then
   SECRET_KEY="$(openssl rand -hex 32)"
 fi

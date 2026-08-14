@@ -15,9 +15,23 @@ MYSQL_INNODB_BUFFER_POOL_SIZE="${MYSQL_INNODB_BUFFER_POOL_SIZE:-2G}"
 log() { printf '[db-install] %s\n' "$*"; }
 fail() { printf '[db-install] ERRO: %s\n' "$*" >&2; exit 1; }
 
+prompt_required() {
+  local var_name="$1" label="$2" secret="${3:-0}" value="${!1:-}"
+  [ -n "$value" ] && return 0
+  [ -t 0 ] || fail "Defina $var_name ou execute em um terminal interativo."
+  if [ "$secret" = "1" ]; then
+    read -r -s -p "$label: " value
+    printf '\n'
+  else
+    read -r -p "$label: " value
+  fi
+  [ -n "$value" ] || fail "$var_name e obrigatorio."
+  printf -v "$var_name" '%s' "$value"
+}
+
 [ "$(id -u)" = "0" ] || fail "Execute como root."
-[ -n "$DB_PASSWORD" ] || fail "Defina DB_PASSWORD. Exemplo: DB_PASSWORD='senha-forte' APP_SERVER_CIDR='10.0.0.20' $0"
-[ -n "$APP_SERVER_CIDR" ] || fail "Defina APP_SERVER_CIDR com o IP/CIDR do servidor de aplicacao. Exemplo: 10.0.0.20 ou 10.0.0.%"
+prompt_required DB_PASSWORD "Senha do usuario do banco" 1
+prompt_required APP_SERVER_CIDR "IP/CIDR do servidor de aplicacao. Exemplo: 10.0.0.20 ou 10.0.0.%"
 [[ "$DB_NAME" =~ ^[A-Za-z0-9_]+$ ]] || fail "DB_NAME deve conter apenas letras, numeros e underscore."
 [[ "$DB_USER" =~ ^[A-Za-z0-9_]+$ ]] || fail "DB_USER deve conter apenas letras, numeros e underscore."
 case "$DB_PASSWORD$APP_SERVER_CIDR" in *"'"*) fail "DB_PASSWORD e APP_SERVER_CIDR nao podem conter aspas simples." ;; esac

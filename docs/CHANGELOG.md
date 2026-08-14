@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-08-14 - Instaladores Beta Interativos
+- Scripts `deployment/install-db-server.sh` e `deployment/install-app-server.sh` passaram a solicitar em modo interativo os campos obrigatorios ausentes, mantendo suporte a execucao automatizada por variaveis de ambiente.
+
 ## 2026-08-14 - Restauracao pela Tela de Backups
 
 - Adicionada secao `Restauracao de backup` em `Configuracoes > Backups do Sistema`, com upload de artefato `.tar.gz`, `.tgz`, `.sql` ou `.sql.gz`, confirmacao textual `RESTAURAR` e selecao de banco/storage.

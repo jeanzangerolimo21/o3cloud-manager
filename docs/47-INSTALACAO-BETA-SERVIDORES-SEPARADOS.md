@@ -37,7 +37,15 @@ Separar a versao Beta do O3Cloud Manager em dois servidores:
 
 ### 1. Servidor db01
 
-Executar como `root` no servidor de banco:
+Executar como `root` no servidor de banco em modo interativo:
+
+```bash
+sudo bash deployment/install-db-server.sh
+```
+
+O script perguntara os campos obrigatorios que nao forem informados, como senha do banco e IP/CIDR do servidor de aplicacao.
+
+Para execucao automatizada:
 
 ```bash
 sudo env \
@@ -59,7 +67,15 @@ Usar o `DB_HOST` exibido/salvo para configurar o servidor de aplicacao.
 
 ### 2. Servidor app01
 
-Executar como `root` no servidor da aplicacao:
+Executar como `root` no servidor da aplicacao em modo interativo:
+
+```bash
+sudo bash deployment/install-app-server.sh
+```
+
+O script perguntara os campos obrigatorios que nao forem informados, como IP/hostname do banco e senha do usuario do banco.
+
+Para execucao automatizada:
 
 ```bash
 sudo env \
