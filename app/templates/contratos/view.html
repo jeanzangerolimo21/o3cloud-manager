@@ -75,9 +75,9 @@
                 <div class="col-md-3"><strong>Proximo Aniversario</strong><br>{{ reajuste.proximo_aniversario|date_br if reajuste.proximo_aniversario else '-' }}</div>
                 <div class="col-md-3"><strong>Dias Restantes</strong><br>{{ reajuste.dias_para_reajuste if reajuste.dias_para_reajuste is not none else '-' }}</div>
                 <div class="col-md-3"><strong>Valor Atual</strong><br>{{ reajuste.valor_atual|moeda if reajuste.valor_atual is not none else '-' }}</div>
-                <div class="col-md-3"><strong>Valor Base Historico</strong><br>{{ reajuste.valor_referencia|moeda if reajuste.valor_referencia is not none else '-' }}</div>
+                <div class="col-md-3"><strong>Valor Base</strong><br>{{ reajuste.valor_referencia|moeda if reajuste.valor_referencia is not none else '-' }}{% if reajuste.valor_referencia_origem == 'FATURAMENTO_INICIAL' %}<br><small class="text-muted">Faturamento inicial{% if reajuste.valor_referencia_data %} em {{ reajuste.valor_referencia_data|date_br }}{% endif %}</small>{% endif %}</div>
                 <div class="col-md-3"><strong>Variacao</strong><br>{% if reajuste.percentual_variacao is not none %}{{ reajuste.percentual_variacao }}%{% else %}-{% endif %}</div>
-                <div class="col-md-3"><strong>Status</strong><br><span class="badge text-bg-{{ reajuste_status_classes.get(reajuste.situacao, 'secondary') }}">{{ reajuste_status_labels.get(reajuste.situacao, reajuste.situacao) }}</span></div>
+                <div class="col-md-3"><strong>Status</strong><br><span class="badge text-bg-{{ reajuste.situacao_class or reajuste_status_classes.get(reajuste.situacao, 'secondary') }}">{{ reajuste.situacao_label or reajuste_status_labels.get(reajuste.situacao, reajuste.situacao) }}</span></div>
                 <div class="col-12"><small class="text-muted">O monitoramento detecta alteracoes e alerta para analise humana; nao aplica reajustes automaticamente.</small></div>
             </div>
             {% if reajuste.historico %}

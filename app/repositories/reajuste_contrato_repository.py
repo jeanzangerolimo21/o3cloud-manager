@@ -132,6 +132,21 @@ class ReajusteContratoRepository(BaseRepository):
         return cls.fetch_all(sql, tuple(params))
 
     @classmethod
+    def primeiro_faturamento_contrato(cls, contrato_id):
+        return cls.fetch_one(
+            """
+            SELECT id, valor_original, valor_recebido, data_recebimento, data_vencimento, data_emissao, categoria_nome, origem
+            FROM financeiro_recebimentos
+            WHERE contrato_id=%s
+              AND COALESCE(categoria_excluida, 0)=0
+              AND COALESCE(valor_original, valor_recebido, 0) > 0
+            ORDER BY COALESCE(data_recebimento, data_vencimento, data_emissao, created_at) ASC, id ASC
+            LIMIT 1
+            """,
+            (contrato_id,),
+        )
+
+    @classmethod
     def historico_contrato(cls, contrato_id):
         return cls.fetch_all(
             """

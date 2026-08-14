@@ -9,6 +9,7 @@ from app.financeiro.reajuste_service import ReajusteContratoService
 class RepoReajustesFake:
     contratos = []
     historicos = {}
+    faturamentos = {}
     ultimo = {}
     alertas = {}
     inseridos = []
@@ -34,6 +35,10 @@ class RepoReajustesFake:
     @classmethod
     def total_contratos_monitoramento(cls):
         return len(cls.contratos)
+
+    @classmethod
+    def primeiro_faturamento_contrato(cls, contrato_id):
+        return cls.faturamentos.get(contrato_id)
 
     @classmethod
     def historico_contrato(cls, contrato_id):
@@ -108,6 +113,7 @@ def setup_function():
     ReajusteContratoService.repository = RepoReajustesFake
     RepoReajustesFake.contratos = []
     RepoReajustesFake.historicos = {}
+    RepoReajustesFake.faturamentos = {}
     RepoReajustesFake.ultimo = {}
     RepoReajustesFake.alertas = {}
     RepoReajustesFake.inseridos = []
@@ -163,6 +169,41 @@ def test_sem_base_informa_tempo_sem_alteracao_detectada_desde_vigencia():
     assert item["sem_base_investigar"] is True
     assert item["situacao_label"] == "Sem base - investigar"
     assert item["situacao_class"] == "danger"
+
+
+def test_faturamento_inicial_igual_ao_atual_detecta_sem_reajuste():
+    RepoReajustesFake.faturamentos = {
+        1: {"valor_original": Decimal("541.94"), "data_recebimento": date(2020, 3, 1)}
+    }
+
+    item = ReajusteContratoService.analisar_contrato(_contrato(inicio_vigencia=date(2020, 3, 1), valor_mensal=Decimal("541.94")), hoje=date(2026, 8, 14))
+
+    assert item["situacao"] == "SEM_REAJUSTE_DETECTADO"
+    assert item["valor_referencia"] == Decimal("541.94")
+    assert item["valor_referencia_origem"] == "FATURAMENTO_INICIAL"
+    assert item["percentual_variacao"] == Decimal("0.00")
+
+
+def test_faturamento_inicial_menor_que_atual_detecta_reajuste():
+    RepoReajustesFake.faturamentos = {
+        1: {"valor_original": Decimal("1000.00"), "data_recebimento": date(2020, 3, 1)}
+    }
+
+    item = ReajusteContratoService.analisar_contrato(_contrato(inicio_vigencia=date(2020, 3, 1), valor_mensal=Decimal("1100.00")), hoje=date(2026, 8, 14))
+
+    assert item["situacao"] == "REAJUSTADO"
+    assert item["percentual_variacao"] == Decimal("10.00")
+
+
+def test_faturamento_inicial_maior_que_atual_tambem_detecta_alteracao():
+    RepoReajustesFake.faturamentos = {
+        1: {"valor_original": Decimal("1000.00"), "data_recebimento": date(2020, 3, 1)}
+    }
+
+    item = ReajusteContratoService.analisar_contrato(_contrato(inicio_vigencia=date(2020, 3, 1), valor_mensal=Decimal("900.00")), hoje=date(2026, 8, 14))
+
+    assert item["situacao"] == "REAJUSTADO"
+    assert item["percentual_variacao"] == Decimal("-10.00")
 
 
 def test_historico_com_aumento_detecta_reajustado():

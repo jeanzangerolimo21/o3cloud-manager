@@ -14,6 +14,7 @@ class ReajusteContratoService:
         "REAJUSTE_PROXIMO": "Reajuste proximo",
         "REAJUSTE_VENCIDO": "Reajuste vencido",
         "REAJUSTADO": "Alteracao detectada",
+        "SEM_REAJUSTE_DETECTADO": "Sem reajuste detectado",
         "SEM_BASE_COMPARACAO": "Sem base de comparacao",
         "SEM_DATA_VIGENCIA": "Sem data de vigencia",
         "IGNORADO": "Ignorado",
@@ -23,6 +24,7 @@ class ReajusteContratoService:
         "REAJUSTE_PROXIMO": "warning",
         "REAJUSTE_VENCIDO": "danger",
         "REAJUSTADO": "success",
+        "SEM_REAJUSTE_DETECTADO": "danger",
         "SEM_BASE_COMPARACAO": "info",
         "SEM_DATA_VIGENCIA": "secondary",
         "IGNORADO": "secondary",
@@ -137,12 +139,15 @@ class ReajusteContratoService:
         inicio = cls._data(contrato.get("inicio_vigencia"))
         valor_atual = cls._valor_referencia(contrato)
         historico = cls.repository.historico_contrato(contrato.get("id")) if contrato.get("id") else []
+        primeiro_faturamento = cls.repository.primeiro_faturamento_contrato(contrato.get("id")) if contrato.get("id") else None
         item = dict(contrato)
         item.update({
             "contrato_id": contrato.get("id"),
             "contrato_numero": contrato.get("numero"),
             "valor_atual": valor_atual,
             "valor_referencia": None,
+            "valor_referencia_origem": None,
+            "valor_referencia_data": None,
             "valor_pos_aniversario": None,
             "diferenca_valor": None,
             "percentual_variacao": None,
@@ -175,13 +180,15 @@ class ReajusteContratoService:
             "aniversario_anterior": anterior if idade_meses >= 12 else None,
             "dias_para_reajuste": dias,
         })
-        comparacao = cls._comparar_historico(historico, anterior)
+        comparacao = cls._comparar_faturamento_inicial(primeiro_faturamento, valor_atual) or cls._comparar_historico(historico, anterior)
         item.update(comparacao)
         if valor_atual is None or valor_atual <= 0:
             item["situacao"] = "SEM_BASE_COMPARACAO"
-        elif comparacao.get("percentual_variacao") and comparacao["percentual_variacao"] > 0:
+        elif comparacao.get("percentual_variacao") is not None and comparacao.get("diferenca_valor") != 0:
             item["situacao"] = "REAJUSTADO"
-        elif idade_meses >= 12 and (not historico or not comparacao.get("valor_referencia") or not comparacao.get("valor_pos_aniversario")):
+        elif idade_meses >= 12 and comparacao.get("valor_referencia") and comparacao.get("valor_pos_aniversario") and comparacao.get("diferenca_valor") == 0:
+            item["situacao"] = "SEM_REAJUSTE_DETECTADO"
+        elif idade_meses >= 12 and (not historico and not primeiro_faturamento or not comparacao.get("valor_referencia") or not comparacao.get("valor_pos_aniversario")):
             item["situacao"] = "SEM_BASE_COMPARACAO"
         elif dias <= 0:
             item["situacao"] = "REAJUSTE_VENCIDO"
@@ -289,6 +296,25 @@ class ReajusteContratoService:
             "alerta_7_dias": bool(config.get("alerta_7_dias", True)),
             "enviar_email": bool(config.get("enviar_email")),
             "ativo": bool(config.get("ativo", True)),
+        }
+
+    @classmethod
+    def _comparar_faturamento_inicial(cls, faturamento, valor_atual):
+        if not faturamento or valor_atual is None:
+            return None
+        valor_base = cls._decimal(faturamento.get("valor_original")) or cls._decimal(faturamento.get("valor_recebido"))
+        if valor_base is None or valor_base <= 0:
+            return None
+        diferenca = valor_atual - valor_base
+        percentual = (diferenca / valor_base * Decimal("100")).quantize(Decimal("0.01"))
+        data_base = cls._data(faturamento.get("data_recebimento")) or cls._data(faturamento.get("data_vencimento")) or cls._data(faturamento.get("data_emissao"))
+        return {
+            "valor_referencia": valor_base,
+            "valor_referencia_origem": "FATURAMENTO_INICIAL",
+            "valor_referencia_data": data_base,
+            "valor_pos_aniversario": valor_atual,
+            "diferenca_valor": diferenca,
+            "percentual_variacao": percentual,
         }
 
     @classmethod

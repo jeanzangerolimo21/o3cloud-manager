@@ -50,7 +50,7 @@
                         <td>{{ item.inicio_vigencia|date_br if item.inicio_vigencia else '-' }}</td>
                         <td>{{ item.idade_label }}</td>
                         <td>{% if item.situacao == 'SEM_BASE_COMPARACAO' %}{{ item.tempo_sem_alteracao_label }}{% else %}-{% endif %}</td>
-                        <td class="text-end">{{ item.valor_atual|moeda if item.valor_atual is not none else '-' }}</td>
+                        <td class="text-end">{{ item.valor_atual|moeda if item.valor_atual is not none else '-' }}{% if item.valor_referencia_origem == 'FATURAMENTO_INICIAL' %}<br><small class="text-muted">Base {{ item.valor_referencia|moeda }}{% if item.valor_referencia_data %} em {{ item.valor_referencia_data|date_br }}{% endif %}</small>{% endif %}</td>
                         <td>{{ item.proximo_aniversario|date_br if item.proximo_aniversario else '-' }}</td>
                         <td>{{ item.dias_para_reajuste if item.dias_para_reajuste is not none else '-' }}</td>
                         <td><span class="badge text-bg-{{ item.situacao_class }}">{{ item.situacao_label }}</span>{% if item.percentual_variacao is not none %}<br><small class="text-muted">{{ item.percentual_variacao }}%</small>{% endif %}</td>
