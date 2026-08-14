@@ -25,9 +25,9 @@ Transformar dados operacionais, financeiros e de infraestrutura em informações
 
 # Status Atual do Desenvolvimento
 
-Ultima sprint encerrada: Sprint 17 - Comissoes, Premiacoes, ASO, Receita por Servidor e Seguranca de Autenticacao.
+Ultima sprint encerrada: Sprint 22 - Monitoramento de Reajustes Contratuais.
 
-Proxima etapa: Sprint Final - Homologacao Beta e fechamento da versao.
+Proxima etapa: Liberacao da versao Beta para a equipe.
 
 Data de fechamento tecnico da Sprint 21: 12/08/2026.
 
@@ -44,7 +44,8 @@ Status atual:
 - Sprint 17 concluida tecnicamente em 14/08/2026 com Comissoes/Premiacoes, recebimentos OMIE, ASO, Receita por Servidor, 2FA por e-mail, TOTP e alertas operacionais por e-mail.
 - Validacao funcional assistida das 8 etapas do Sprint 17 concluida pelo usuario em 14/08/2026.
 - Visao Geral operacional atualizada em 10/08/2026 com indices consolidados de contratos, propostas, inadimplencia, administrativo, ClickSign, Zabbix, Proxmox, PBS, TrueNAS e Kanban de Implantacao.
-- Sprint Final passa a ser a proxima etapa, focada em homologacao Beta, evidencias, commit/tag/release e rollback; migrations pendentes do Sprint 17 foram aplicadas/conferidas em 14/08/2026.
+- Sprint 22 concluida tecnicamente em 14/08/2026 com monitoramento de reajustes contratuais, historico de valores, alertas configuraveis e rotina preventiva.
+- Versao Beta liberavel para a equipe apos commit/tag/release e comunicacao operacional.
 
 Documentos de referencia:
 
@@ -74,6 +75,7 @@ Entregas consolidadas recentes:
 - `Financeiro > Receitas por Servidor` cruza nodes Proxmox sincronizados, ambientes e contratos ativos para apresentar receita recorrente mensal por servidor.
 - 2FA por e-mail, TOTP e dispositivo confiavel por 30 dias para usuarios locais.
 - Alertas operacionais por e-mail para Zabbix critico, PBS fora do prazo e TrueNAS sem modificacao ha mais de 5 dias.
+- Monitoramento de reajustes contratuais com aniversario por `inicio_vigencia`, historico de valores e alertas 30/15/7 dias.
 
 ---
 

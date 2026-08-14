@@ -359,8 +359,10 @@ class ContratoRepository(BaseRepository):
                 dados.get("valor_servicos_liquido"),
             ),
         )
+        contrato_id = cursor.lastrowid
         conn.commit()
         cls.close(conn, cursor)
+        return contrato_id
 
     @classmethod
     def atualizar_quantidade_usuarios(cls, contrato_id, quantidade_usuarios):

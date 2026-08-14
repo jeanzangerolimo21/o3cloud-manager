@@ -292,3 +292,20 @@ Regra:
 * PBS considera recursos ativos sem backup dentro da politica configurada.
 * TrueNAS considera diretorios sem modificacao ha mais de 5 dias.
 * O usuario recebe somente se estiver habilitado, ativo, com e-mail e no horario/periodicidade configurados.
+
+
+## Sprint 22 - Monitoramento de Reajustes Contratuais
+
+Novas entidades:
+
+- `contratos_valores_historico`: historico auditavel de valores recorrentes e valores comerciais sincronizados por contrato.
+- `contratos_reajustes_alertas`: controle de alertas por contrato, aniversario e antecedencia, evitando duplicidade.
+- `reajustes_configuracoes`: configuracao central das janelas 30/15/7 dias e envio por e-mail.
+- `reajustes_configuracoes_usuarios`: usuarios destinatarios de notificacoes/e-mails de reajuste.
+
+Relacionamentos principais:
+
+- `contratos_valores_historico.contrato_id -> contratos.id`
+- `contratos_reajustes_alertas.contrato_id -> contratos.id`
+- `reajustes_configuracoes_usuarios.configuracao_id -> reajustes_configuracoes.id`
+- `reajustes_configuracoes_usuarios.usuario_id -> auth_usuarios.id`

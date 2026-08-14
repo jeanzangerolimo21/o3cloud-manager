@@ -13,6 +13,7 @@ from flask import url_for
 
 from app.configuracoes.sincronismos_service import SincronismosAgendadosService
 from app.financeiro.inadimplencias_service import InadimplenciaService
+from app.financeiro.reajuste_service import ReajusteContratoService
 from app.financeiro.service import FinanceiroService
 
 financeiro_bp = Blueprint(
@@ -101,6 +102,46 @@ def receitas_servidor():
         dashboard=dashboard,
         filtros=filtros,
     )
+
+
+
+
+@financeiro_bp.route("/financeiro/reajustes-contratuais")
+def reajustes_contratuais():
+
+    filtros = ReajusteContratoService.filtros(request.args)
+    contexto = ReajusteContratoService.contexto(filtros)
+
+    return render_template(
+        "financeiro/reajustes_contratuais.html",
+        filtros=filtros,
+        **contexto,
+    )
+
+
+@financeiro_bp.route("/financeiro/reajustes-contratuais/configuracao", methods=["POST"])
+def reajustes_contratuais_configuracao():
+
+    try:
+        ReajusteContratoService.salvar_configuracao(request.form, _email_usuario_logado())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Configuracao de reajustes contratuais atualizada.", "success")
+    return redirect(url_for("financeiro.reajustes_contratuais"))
+
+
+@financeiro_bp.route("/financeiro/reajustes-contratuais/verificar", methods=["POST"])
+def reajustes_contratuais_verificar():
+
+    resultado = ReajusteContratoService.processar_alertas(_email_usuario_logado())
+    flash(
+        "Verificacao concluida: {} alerta(s) registrado(s), {} e-mail(s) enviado(s).".format(
+            resultado.get("criados", 0), resultado.get("emails", 0)
+        ),
+        "success",
+    )
+    return redirect(url_for("financeiro.reajustes_contratuais"))
 
 
 @financeiro_bp.route("/financeiro/faturamentos")

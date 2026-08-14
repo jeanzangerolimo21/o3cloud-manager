@@ -534,19 +534,19 @@ Versão:
 
 Última sprint encerrada:
 
-Sprint 17 - Comissões, Premiações, ASO, Receita por Servidor e Segurança de Autenticação, concluída tecnicamente em 14/08/2026.
+Sprint 22 - Monitoramento de Reajustes Contratuais, concluída tecnicamente em 14/08/2026.
 
 Sprint atual:
 
-Sprint Final - Homologação Beta e fechamento da versão.
+Liberação da versão Beta para a equipe.
 
 Status Geral:
 
-✅ Sprint 17 concluído tecnicamente; Sprint Final em preparação
+✅ Sprint 22 concluído tecnicamente; Beta liberável
 
 Próxima Entrega:
 
-Homologação Beta com escopo funcional congelado, evidências assistidas, commit/tag/release e plano de rollback; migrations pendentes do Sprint 17 já aplicadas/conferidas em 14/08/2026.
+Publicação da Beta para equipe com monitoramento de reajustes contratuais, commit/tag/release e plano de rollback.
 
 
 

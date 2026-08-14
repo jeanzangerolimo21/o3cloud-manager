@@ -4642,6 +4642,813 @@ O módulo de Relatórios deve se integrar à arquitetura atual, e não exigir re
 
 ___________________________________________________________________________________________________
 
+# Sprint 22 - Monitoramento de Reajustes Contratuais
+
+Status: Concluido tecnicamente em 14/08/2026 para liberacao da versao Beta.
+
+Implementacao entregue:
+
+* Tela `Financeiro > Reajustes Contratuais` com filtros, cards e situacao por contrato.
+* Calculo de idade contratual, proximo aniversario e dias para reajuste usando `contratos.inicio_vigencia`.
+* Historico `contratos_valores_historico` para preservar alteracoes de valores.
+* Configuracao de alertas 30/15/7 dias e usuarios destinatarios.
+* Controle de duplicidade em `contratos_reajustes_alertas`.
+* Botao `Verificar agora`, comando CLI `reajustes-processar-alertas` e cron diario.
+* Secao `Reajuste Contratual` no detalhe do contrato.
+* Permissao `reajustes_contratuais` no grupo Financeiro.
+* Testes automatizados finais do projeto: `42 passed`.
+
+## 1. Objetivo
+
+Criar no O3Cloud Manager um recurso para acompanhar automaticamente a data inicial dos contratos sincronizados do OMIE, identificar contratos com mais de 12 meses de vigência e verificar se houve reajuste de valor.
+
+Também deverá existir uma rotina preventiva para contratos que ainda não completaram 12 meses, permitindo configurar alertas com antecedência de:
+
+* 7 dias;
+* 15 dias;
+* 30 dias.
+
+Os alertas deverão ser exibidos no sistema e poderão, opcionalmente, ser enviados por e-mail para usuários selecionados.
+
+---
+
+## 2. Fonte dos Dados
+
+Utilizar os contratos já sincronizados do OMIE.
+
+Campo principal:
+
+`inicio_vigencia`
+
+O cálculo de aniversário contratual deverá partir desse campo.
+
+Não criar outra data manual quando a informação já existir no contrato sincronizado.
+
+---
+
+## 3. Conceito de Aniversário Contratual
+
+Para cada contrato:
+
+`data_proximo_reajuste = inicio_vigencia + N anos`
+
+Onde N representa o próximo aniversário ainda não ultrapassado.
+
+Exemplo:
+
+Início:
+
+`15/09/2025`
+
+Primeiro aniversário:
+
+`15/09/2026`
+
+Segundo aniversário:
+
+`15/09/2027`
+
+O cálculo não deve se limitar apenas ao primeiro período de 12 meses.
+
+Contratos com vários anos de existência deverão continuar sendo monitorados a cada aniversário.
+
+---
+
+## 4. Tela Financeiro → Reajustes Contratuais
+
+Adicionar nova opção no módulo Financeiro:
+
+`Reajustes Contratuais`
+
+A tela deverá apresentar inicialmente:
+
+* número do contrato;
+* cliente;
+* vendedor, quando disponível;
+* data inicial;
+* idade do contrato;
+* último valor conhecido;
+* valor atual;
+* percentual de variação;
+* próximo aniversário;
+* dias restantes;
+* situação do reajuste;
+* status do contrato.
+
+Filtros:
+
+* cliente;
+* contrato;
+* vendedor;
+* status;
+* ano de aniversário;
+* situação do reajuste;
+* contratos vencidos para reajuste;
+* contratos próximos do reajuste.
+
+---
+
+## 5. Situações do Reajuste
+
+Sugestão:
+
+* `A_VENCER`
+* `REAJUSTE_PROXIMO`
+* `REAJUSTE_VENCIDO`
+* `REAJUSTADO`
+* `SEM_BASE_COMPARACAO`
+* `IGNORADO`
+
+### A_VENCER
+
+Contrato ainda fora das janelas configuradas.
+
+### REAJUSTE_PROXIMO
+
+Contrato dentro de 7, 15 ou 30 dias do próximo aniversário.
+
+### REAJUSTE_VENCIDO
+
+Contrato atingiu ou ultrapassou a data de aniversário sem evidência de reajuste.
+
+### REAJUSTADO
+
+Sistema encontrou aumento de valor após o aniversário contratual.
+
+### SEM_BASE_COMPARACAO
+
+Não existem dados históricos suficientes para confirmar se houve reajuste.
+
+---
+
+## 6. Histórico de Valores do Contrato
+
+Para verificar se houve reajuste, não basta utilizar apenas o valor atual.
+
+O sistema deverá preservar histórico dos valores sincronizados.
+
+Criar tabela conceitual:
+
+`contratos_valores_historico`
+
+Campos sugeridos:
+
+* id;
+* uuid;
+* contrato_id;
+* valor_mensal;
+* valor_servicos_bruto;
+* valor_descontos;
+* valor_servicos_liquido;
+* vigencia_referencia;
+* detectado_em;
+* origem;
+* created_at.
+
+Sempre que a sincronização detectar alteração relevante no valor do contrato:
+
+1. comparar com o último valor conhecido;
+2. registrar um novo histórico;
+3. não sobrescrever o histórico anterior.
+
+Não criar registros duplicados se os valores não mudaram.
+
+---
+
+## 7. Identificação de Reajuste
+
+Para contratos que já completaram 12 meses ou mais:
+
+1. localizar o aniversário contratual correspondente;
+2. consultar histórico de valores anterior ao aniversário;
+3. consultar valor após o aniversário;
+4. comparar.
+
+Exemplo:
+
+Valor antes do aniversário:
+
+`R$ 1.000,00`
+
+Valor após:
+
+`R$ 1.050,00`
+
+Variação:
+
+`5%`
+
+Resultado:
+
+`REAJUSTADO`
+
+Fórmula:
+
+`percentual = ((valor_novo - valor_anterior) / valor_anterior) * 100`
+
+Utilizar Decimal.
+
+Nunca utilizar float para cálculos monetários.
+
+---
+
+## 8. O que é considerado valor para comparação
+
+A arquitetura deverá permitir definir qual campo é a referência principal.
+
+Sugestão inicial:
+
+`valor_mensal`
+
+Se o módulo de contratos possuir valores mais específicos, como:
+
+* valor_servicos_bruto;
+* valor_descontos;
+* valor_servicos_liquido;
+
+eles também poderão ser exibidos para auditoria.
+
+O sistema não deve presumir que todo aumento de valor seja necessariamente um reajuste contratual.
+
+Ele deve indicar:
+
+`Alteração de valor detectada`
+
+e permitir auditoria.
+
+---
+
+## 9. Contratos com mais de 12 meses
+
+Criar visão específica:
+
+`Contratos com reajuste a validar`
+
+Critério:
+
+* contrato ATIVO;
+* idade >= 12 meses.
+
+Para cada contrato indicar:
+
+* aniversário anterior;
+* valor antes;
+* valor depois;
+* diferença;
+* percentual;
+* situação.
+
+---
+
+## 10. Contratos ainda não vencidos
+
+Para contratos que ainda não chegaram ao próximo aniversário:
+
+Calcular:
+
+`dias_para_reajuste`
+
+Exemplo:
+
+Próximo reajuste:
+
+`30/09/2026`
+
+Hoje:
+
+`31/08/2026`
+
+Resultado:
+
+`30 dias`
+
+---
+
+## 11. Configuração dos Alertas
+
+Permitir configurar quais antecedências serão utilizadas.
+
+Valores inicialmente suportados:
+
+* 7 dias;
+* 15 dias;
+* 30 dias.
+
+Tela sugerida:
+
+`Financeiro → Reajustes → Configurações`
+
+Configurações:
+
+* alerta de 30 dias: ativo/inativo;
+* alerta de 15 dias: ativo/inativo;
+* alerta de 7 dias: ativo/inativo;
+* envio por e-mail: ativo/inativo.
+
+Não deixar os dias espalhados em código.
+
+Preferencialmente armazenar em configuração.
+
+---
+
+## 12. Destinatários dos Alertas
+
+Permitir selecionar usuários do O3Cloud Manager que receberão os e-mails.
+
+Exemplo:
+
+`Usuários notificados`
+
+* Financeiro Gestor;
+* Diretoria;
+* Executivo responsável;
+* outros usuários selecionados.
+
+Não utilizar uma lista fixa no código.
+
+Criar relação entre configuração de alerta e usuários.
+
+---
+
+## 13. Notificação em Tela
+
+Quando um contrato entrar em uma janela de alerta, exibir notificação no sistema.
+
+Exemplo:
+
+`Contrato 2026/00150 – Cliente ABC`
+
+`Reajuste contratual em 15 dias.`
+
+Informações:
+
+* cliente;
+* contrato;
+* data inicial;
+* próximo aniversário;
+* dias restantes;
+* valor atual;
+* vendedor.
+
+---
+
+## 14. Cores dos Alertas
+
+Sugestão visual:
+
+30 dias:
+
+`azul`
+
+15 dias:
+
+`amarelo`
+
+7 dias:
+
+`laranja`
+
+vencido:
+
+`vermelho`
+
+reajustado:
+
+`verde`
+
+Seguir o padrão visual atual do O3Cloud Manager.
+
+---
+
+## 15. E-mails
+
+Quando configurado, enviar e-mail para os usuários selecionados.
+
+Assunto sugerido:
+
+`[O3Cloud Manager] Reajuste contratual em {dias} dias – {cliente}`
+
+Conteúdo:
+
+* cliente;
+* contrato;
+* início da vigência;
+* próximo aniversário;
+* dias restantes;
+* valor atual;
+* vendedor;
+* link interno para abrir o contrato.
+
+Não enviar um e-mail novo toda vez que a rotina rodar.
+
+---
+
+## 16. Controle de Duplicidade dos Alertas
+
+Registrar cada alerta enviado.
+
+Criar tabela:
+
+`contratos_reajustes_alertas`
+
+Campos sugeridos:
+
+* id;
+* uuid;
+* contrato_id;
+* aniversario_referencia;
+* antecedencia_dias;
+* tipo;
+* exibido_em;
+* email_enviado_em;
+* created_at.
+
+Criar unicidade conceitual:
+
+`contrato_id + aniversario_referencia + antecedencia_dias`
+
+Isso evita:
+
+* vários e-mails de 30 dias;
+* vários alertas de 15 dias;
+* vários alertas de 7 dias.
+
+No próximo aniversário, novos alertas poderão ser gerados normalmente.
+
+---
+
+## 17. Configuração de Usuários
+
+Criar tabela conceitual:
+
+`reajustes_configuracoes_usuarios`
+
+ou adaptar ao mecanismo de configurações existente.
+
+Relacionar:
+
+* configuração;
+* usuário;
+* receber_email;
+* receber_notificacao.
+
+---
+
+## 18. Rotina de Verificação
+
+Criar Service específico:
+
+`ReajusteContratoService`
+
+Métodos conceituais:
+
+* `calcular_proximo_aniversario()`
+* `calcular_idade_contrato()`
+* `calcular_dias_para_reajuste()`
+* `verificar_reajuste()`
+* `identificar_alerta()`
+* `processar_alertas()`
+* `registrar_historico_valor()`
+
+Repository não deve conter regra de aniversário ou cálculo de percentual.
+
+---
+
+## 19. Execução Automática
+
+A arquitetura deverá permitir execução diária.
+
+Pode ser acionada futuramente por:
+
+* cron;
+* scheduler;
+* n8n;
+* job interno.
+
+A primeira versão poderá possuir também botão:
+
+`Verificar Reajustes Agora`
+
+para homologação e execução manual.
+
+Não prender a regra de negócio ao mecanismo de agendamento.
+
+---
+
+## 20. Integração com a Sincronização OMIE
+
+Após sincronizar contratos:
+
+1. atualizar contrato;
+2. verificar alteração de valores;
+3. registrar histórico se necessário.
+
+Separar:
+
+`sincronização OMIE`
+
+de:
+
+`análise de reajuste`
+
+O sync não deve enviar e-mails diretamente.
+
+---
+
+## 21. Modelagem Sugerida
+
+### contratos_valores_historico
+
+* id;
+* uuid;
+* contrato_id;
+* valor_mensal;
+* valor_servicos_bruto;
+* valor_descontos;
+* valor_servicos_liquido;
+* detectado_em;
+* created_at.
+
+### contratos_reajustes_alertas
+
+* id;
+* uuid;
+* contrato_id;
+* aniversario_referencia;
+* antecedencia_dias;
+* status;
+* exibido_em;
+* email_enviado_em;
+* created_at.
+
+### reajustes_configuracoes
+
+* id;
+* alerta_30_dias;
+* alerta_15_dias;
+* alerta_7_dias;
+* enviar_email;
+* ativo;
+* updated_at.
+
+### reajustes_configuracoes_usuarios
+
+* id;
+* configuracao_id;
+* usuario_id;
+* receber_notificacao;
+* receber_email.
+
+Adaptar nomes e FKs à arquitetura real.
+
+---
+
+## 22. Tela de Detalhe do Contrato
+
+Adicionar nova seção:
+
+`Reajuste Contratual`
+
+Exibir:
+
+* início da vigência;
+* idade;
+* próximo aniversário;
+* dias restantes;
+* valor de referência;
+* valor atual;
+* último reajuste detectado;
+* percentual;
+* status.
+
+Exemplo:
+
+`Início: 15/09/2025`
+
+`Próximo reajuste: 15/09/2026`
+
+`Faltam: 32 dias`
+
+`Valor atual: R$ 1.500,00`
+
+`Status: Aguardando reajuste`
+
+---
+
+## 23. Histórico Visual
+
+No detalhe:
+
+`Histórico de Valores`
+
+Exemplo:
+
+`15/09/2025 – R$ 1.000,00`
+
+`15/09/2026 – R$ 1.050,00 (+5%)`
+
+`15/09/2027 – R$ 1.108,50 (+5,57%)`
+
+Não recalcular o passado com valores atuais.
+
+---
+
+## 24. Tratamento de Casos Especiais
+
+### Contrato sem início de vigência
+
+Status:
+
+`SEM_DATA_VIGENCIA`
+
+Não gerar alerta.
+
+### Contrato cancelado
+
+Não gerar novos alertas.
+
+### Contrato suspenso
+
+Definir inicialmente como não elegível para novos alertas, salvo decisão posterior.
+
+### Contrato com valor zero/null
+
+Exibir:
+
+`SEM_BASE_COMPARACAO`
+
+### Contrato antigo recém-importado
+
+Registrar valor atual como primeira base histórica.
+
+Não afirmar que houve ou não reajuste anterior sem evidência histórica.
+
+---
+
+## 25. Cuidado com Histórico Anterior ao Sistema
+
+Se o O3Cloud Manager começou a registrar valores em 2026 e o contrato existe desde 2022, o sistema não possui automaticamente os valores de 2022–2025.
+
+Portanto:
+
+Não exibir:
+
+`Nunca foi reajustado`
+
+sem possuir dados para comprovar.
+
+Exibir:
+
+`Histórico insuficiente para validar reajustes anteriores.`
+
+Essa regra é obrigatória.
+
+---
+
+## 26. Permissões
+
+Criar permissões equivalentes:
+
+* `REAJUSTES_VISUALIZAR`
+* `REAJUSTES_CONFIGURAR`
+* `REAJUSTES_NOTIFICAR`
+
+A tela e as rotas devem respeitar o sistema atual de perfis/permissões.
+
+---
+
+## 27. Filtros úteis
+
+Na tela principal:
+
+* próximos 7 dias;
+* próximos 15 dias;
+* próximos 30 dias;
+* vencidos;
+* reajustados;
+* sem reajuste identificado;
+* sem base de comparação.
+
+Também:
+
+* cliente;
+* vendedor;
+* contrato;
+* projeto;
+* período.
+
+---
+
+## 28. Cards
+
+Cards simples:
+
+* Reajustes nos próximos 30 dias;
+* Reajustes nos próximos 15 dias;
+* Reajustes nos próximos 7 dias;
+* Reajustes vencidos;
+* Reajustes detectados no mês.
+
+---
+
+## 29. Testes Obrigatórios
+
+Testar:
+
+1. contrato com 2 meses;
+2. contrato com 11 meses;
+3. exatamente 30 dias para aniversário;
+4. exatamente 15;
+5. exatamente 7;
+6. exatamente na data do aniversário;
+7. 1 dia vencido;
+8. 12 meses;
+9. 24 meses;
+10. vários anos;
+11. contrato sem data;
+12. contrato cancelado;
+13. contrato suspenso;
+14. valor sem alteração;
+15. valor aumentado;
+16. valor reduzido;
+17. valor NULL;
+18. histórico vazio;
+19. alertas repetidos;
+20. novo aniversário;
+21. múltiplos usuários;
+22. e-mail desabilitado;
+23. e-mail habilitado;
+24. falha de e-mail;
+25. execução manual repetida;
+26. sync OMIE repetido;
+27. alteração real do valor.
+
+---
+
+## 30. Critérios de Aceite
+
+Sprint concluído quando:
+
+* data inicial dos contratos estiver sendo utilizada;
+* idade contratual estiver correta;
+* próximo aniversário for calculado;
+* contratos com mais de 12 meses forem identificados;
+* histórico de valores existir;
+* alterações de valor forem detectadas;
+* percentual puder ser calculado;
+* ausência de histórico for tratada corretamente;
+* alertas de 7/15/30 dias forem configuráveis;
+* usuários destinatários puderem ser selecionados;
+* notificações aparecerem em tela;
+* e-mails opcionais funcionarem;
+* alertas não forem duplicados;
+* contratos cancelados não gerarem alertas;
+* detalhe do contrato mostrar situação de reajuste;
+* permissões forem respeitadas;
+* testes existentes continuarem passando;
+* documentação e CHANGELOG forem atualizados.
+
+---
+
+## 31. Fora do Escopo
+
+Não implementar neste Sprint:
+
+* alteração automática do preço no OMIE;
+* aplicação automática de índice;
+* emissão automática de aditivo;
+* reajuste automático sem aprovação humana;
+* alteração automática do contrato;
+* cobrança automática ao cliente.
+
+O sistema deverá:
+
+`detectar → alertar → permitir análise humana`
+
+e não aplicar reajustes automaticamente.
+
+---
+
+## 32. Regra de Desenvolvimento para o Codex
+
+Antes de programar:
+
+1. revisar `contratos.inicio_vigencia`;
+2. revisar campos atuais de valores;
+3. revisar sincronização OMIE;
+4. verificar sistema de usuários/permissões;
+5. verificar serviço atual de e-mail;
+6. revisar tabela de configurações;
+7. propor migrations;
+8. só então implementar.
+
+Seguir:
+
+Repository → Service → Routes → Templates → Testes.
+
+Não alterar o significado de campos atuais e não realizar refatorações fora do Sprint.
+___________________________________________________________________________________________
+
 # Sprint Final Planejada
 
 ## Integracao Receita Federal para Cadastro de Clientes

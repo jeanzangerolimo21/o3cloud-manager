@@ -36,6 +36,7 @@ def init_cli(app):
     app.cli.add_command(backups_processar_agendados_command)
     app.cli.add_command(aso_processar_lembretes_command)
     app.cli.add_command(operacao_alertas_enviar_command)
+    app.cli.add_command(reajustes_processar_alertas_command)
 
 
 @click.command("relatorios-processar-jobs")
@@ -108,3 +109,19 @@ def operacao_alertas_enviar_command(limite, forcar):
     resultados = AlertasOperacaoService.processar_pendentes(limite=limite, forcar=forcar)
     for resultado in resultados:
         click.echo(resultado)
+
+
+@click.command("reajustes-processar-alertas")
+@with_appcontext
+def reajustes_processar_alertas_command():
+    """Processa alertas de reajustes contratuais."""
+    from app.financeiro.reajuste_service import ReajusteContratoService
+
+    resultado = ReajusteContratoService.processar_alertas("cron")
+    click.echo(
+        "Verificacao de reajustes: {} alerta(s), {} e-mail(s).".format(
+            resultado.get("criados", 0), resultado.get("emails", 0)
+        )
+    )
+    for mensagem in resultado.get("mensagens", [])[:50]:
+        click.echo(mensagem)

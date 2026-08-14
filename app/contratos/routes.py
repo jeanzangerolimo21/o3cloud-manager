@@ -6,6 +6,7 @@ from app.core.auditoria import registrar_evento
 from app.contratos.service import ContratoService
 from app.propostas.service import PropostaService
 from app.implantacao.service import ImplantacaoService
+from app.financeiro.reajuste_service import ReajusteContratoService
 from app.integracoes.omie.sync import OmieSync
 from app.repositories.contrato_item_repository import ContratoItemRepository
 from app.repositories.contrato_repository import ContratoRepository
@@ -251,5 +252,8 @@ def view(contrato_id):
         itens=itens,
         rastreabilidade=ImplantacaoService.rastreabilidade_por_contrato(contrato_id),
         diagnostico_pre_beta=ContratoService.diagnostico_pre_beta(contrato, implantacao),
+        reajuste=ReajusteContratoService.detalhe_contrato(contrato),
+        reajuste_status_labels=ReajusteContratoService.STATUS_LABELS,
+        reajuste_status_classes=ReajusteContratoService.STATUS_CLASSES,
         status_options=ContratoService.STATUS_OPTIONS,
     )

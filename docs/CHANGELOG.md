@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-14 - Sprint 22 Monitoramento de Reajustes Contratuais
+
+- Criada tela `Financeiro > Reajustes Contratuais` para monitorar aniversarios contratuais calculados a partir de `contratos.inicio_vigencia`.
+- Adicionadas tabelas `contratos_valores_historico`, `contratos_reajustes_alertas`, `reajustes_configuracoes` e `reajustes_configuracoes_usuarios` pela migration `100_create_reajustes_contratuais.sql`.
+- Implementado `ReajusteContratoService` com calculo de idade, proximo aniversario, dias restantes, situacao, historico de valores e deduplicacao de alertas.
+- Sincronizacao/cadastro/edicao de contratos passaram a registrar historico de valores quando houver alteracao relevante, sem alterar automaticamente valores no OMIE ou no contrato.
+- Detalhe do contrato passou a exibir secao `Reajuste Contratual` com status, valores e historico.
+- Adicionado comando CLI `flask reajustes-processar-alertas` e cron diario para execucao preventiva.
+- Adicionada permissao/menu `reajustes_contratuais` para perfis financeiros autorizados.
+- Testes automatizados ampliados para `42 passed`, cobrindo janelas de alerta, vencimento, historico insuficiente, alteracao de valor e deduplicacao.
+
 ## 2026-08-14 - Fechamento Tecnico Sprint 17
 
 - Sprint 17 marcado como concluido tecnicamente apos validacao funcional assistida das 8 etapas solicitadas.

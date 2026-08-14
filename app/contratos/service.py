@@ -60,9 +60,13 @@ class ContratoService:
 
         if contrato:
             ContratoRepository.atualizar_sync(contrato["id"], dados)
+            from app.financeiro.reajuste_service import ReajusteContratoService
+            ReajusteContratoService.registrar_historico_valor_se_necessario(contrato["id"], dados, origem="OMIE")
             return {"status": "UPDATE", "numero": dados["numero"]}
 
-        ContratoRepository.inserir(dados)
+        contrato_id = ContratoRepository.inserir(dados)
+        from app.financeiro.reajuste_service import ReajusteContratoService
+        ReajusteContratoService.registrar_historico_valor_se_necessario(contrato_id, dados, origem="OMIE")
         return {"status": "INSERT", "numero": dados["numero"]}
 
     @classmethod
@@ -244,7 +248,10 @@ class ContratoService:
         dados = cls._normalizar(dados)
         cls._validar(dados, arquivo_preparado=arquivo_preparado, exigir_pdf=False)
         cls._aplicar_arquivo_preparado(dados, arquivo_preparado)
-        return ContratoRepository.inserir_manual(dados)
+        contrato_id = ContratoRepository.inserir_manual(dados)
+        from app.financeiro.reajuste_service import ReajusteContratoService
+        ReajusteContratoService.registrar_historico_valor_se_necessario(contrato_id, dados, origem="MANUAL")
+        return contrato_id
 
     @classmethod
     def atualizar(cls, contrato_id, dados, arquivo_preparado=None):
@@ -258,6 +265,8 @@ class ContratoService:
         cls._validar(dados, arquivo_preparado=arquivo_preparado, exigir_pdf=False)
         cls._aplicar_arquivo_preparado(dados, arquivo_preparado)
         ContratoRepository.atualizar(contrato_id, dados)
+        from app.financeiro.reajuste_service import ReajusteContratoService
+        ReajusteContratoService.registrar_historico_valor_se_necessario(contrato_id, dados, origem="MANUAL")
 
     @classmethod
     def atualizar_vinculos_comerciais(cls, contrato_id, dados):

@@ -66,6 +66,30 @@
                 <div class="col-12"><strong>Observações do Contrato OMIE</strong><br><span class="text-muted">{{ contrato.observacao_contrato or 'Sem observações do contrato.' }}</span></div>
             </div>
 
+
+            <hr>
+            <h5>Reajuste Contratual</h5>
+            <div class="row g-4">
+                <div class="col-md-3"><strong>Inicio da Vigencia</strong><br>{{ contrato.inicio_vigencia|date_br if contrato.inicio_vigencia else '-' }}</div>
+                <div class="col-md-3"><strong>Idade</strong><br>{{ reajuste.idade_label or '-' }}</div>
+                <div class="col-md-3"><strong>Proximo Aniversario</strong><br>{{ reajuste.proximo_aniversario|date_br if reajuste.proximo_aniversario else '-' }}</div>
+                <div class="col-md-3"><strong>Dias Restantes</strong><br>{{ reajuste.dias_para_reajuste if reajuste.dias_para_reajuste is not none else '-' }}</div>
+                <div class="col-md-3"><strong>Valor Atual</strong><br>{{ reajuste.valor_atual|moeda if reajuste.valor_atual is not none else '-' }}</div>
+                <div class="col-md-3"><strong>Valor Base Historico</strong><br>{{ reajuste.valor_referencia|moeda if reajuste.valor_referencia is not none else '-' }}</div>
+                <div class="col-md-3"><strong>Variacao</strong><br>{% if reajuste.percentual_variacao is not none %}{{ reajuste.percentual_variacao }}%{% else %}-{% endif %}</div>
+                <div class="col-md-3"><strong>Status</strong><br><span class="badge text-bg-{{ reajuste_status_classes.get(reajuste.situacao, 'secondary') }}">{{ reajuste_status_labels.get(reajuste.situacao, reajuste.situacao) }}</span></div>
+                <div class="col-12"><small class="text-muted">O monitoramento detecta alteracoes e alerta para analise humana; nao aplica reajustes automaticamente.</small></div>
+            </div>
+            {% if reajuste.historico %}
+            <div class="table-responsive mt-3">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Detectado em</th><th>Origem</th><th class="text-end">Valor mensal</th><th class="text-end">Valor liquido</th><th class="text-end">Variacao</th></tr></thead>
+                    <tbody>{% for hist in reajuste.historico %}<tr><td>{{ hist.detectado_em|datetime_br if hist.detectado_em else '-' }}</td><td>{{ hist.origem }}</td><td class="text-end">{{ hist.valor_mensal|moeda if hist.valor_mensal is not none else '-' }}</td><td class="text-end">{{ hist.valor_servicos_liquido|moeda if hist.valor_servicos_liquido is not none else '-' }}</td><td class="text-end">{% if hist.percentual_variacao is not none %}{{ hist.percentual_variacao }}%{% else %}-{% endif %}</td></tr>{% endfor %}</tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mt-3 mb-0">Historico insuficiente para validar reajustes anteriores.</p>
+            {% endif %}
             <hr>
             <div class="row g-4">
                 <div class="col-md-6">
