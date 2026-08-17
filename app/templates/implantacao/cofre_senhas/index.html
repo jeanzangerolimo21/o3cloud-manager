@@ -1,6 +1,33 @@
 {% extends "layout/base.html" %}
 
 {% block content %}
+<style>
+    .cofre-credenciais-table {
+        min-width: 1380px;
+        table-layout: fixed;
+    }
+    .cofre-credenciais-table th:nth-child(1),
+    .cofre-credenciais-table td:nth-child(1) { width: 210px; }
+    .cofre-credenciais-table th:nth-child(2),
+    .cofre-credenciais-table td:nth-child(2) { width: 130px; }
+    .cofre-credenciais-table th:nth-child(3),
+    .cofre-credenciais-table td:nth-child(3) { width: 240px; }
+    .cofre-credenciais-table th:nth-child(4),
+    .cofre-credenciais-table td:nth-child(4) { width: 360px; }
+    .cofre-credenciais-table th:nth-child(5),
+    .cofre-credenciais-table td:nth-child(5) { width: 230px; }
+    .cofre-credenciais-table th:nth-child(6),
+    .cofre-credenciais-table td:nth-child(6) { width: 270px; }
+    .cofre-credenciais-table th:nth-child(7),
+    .cofre-credenciais-table td:nth-child(7) { width: 130px; }
+    .cofre-access-label { min-width: 78px; }
+    .cofre-readonly-field { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .cofre-notes-row td { border-top: 0; padding-top: 0; }
+    .cofre-notes-box {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+</style>
 <div class="container-fluid">
     {% include "components/page_header.html" %}
 
@@ -185,32 +212,32 @@
 
                 <div class="mb-3"><small class="text-muted">{{ total }} credencial(is) encontrada(s)</small></div>
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
+                    <table class="table table-hover align-middle cofre-credenciais-table">
                         <thead><tr><th>Cliente</th><th>Categoria</th><th>Credencial</th><th>Acesso</th><th>Senha</th><th>Vínculos</th><th width="130">Ações</th></tr></thead>
                         <tbody>
                         {% for item in senhas %}
                             <tr>
                                 <td><strong>{{ item.cliente_nome }}</strong><br><small class="text-muted">{{ item.cliente_cnpj|cnpj_br if item.cliente_cnpj else 'CNPJ não vinculado' }}</small></td>
                                 <td><span class="badge bg-secondary">{{ categoria_options.get(item.categoria, item.categoria) }}</span></td>
-                                <td><strong>{{ item.titulo }}</strong>{% if item.pasta_nome %}<br><small class="text-muted"><i class="bi bi-folder"></i> {{ item.pasta_nome }}</small>{% endif %}<br><small class="text-muted">{{ item.observacoes or '-' }}</small></td>
+                                <td><strong>{{ item.titulo }}</strong>{% if item.pasta_nome %}<br><small class="text-muted"><i class="bi bi-folder"></i> {{ item.pasta_nome }}</small>{% endif %}</td>
                                 <td>
                                     <div class="d-flex flex-column gap-1">
                                         <div class="input-group input-group-sm">
-                                            <span class="input-group-text">Usuário</span>
-                                            <input class="form-control" value="{{ item.usuario }}" readonly>
+                                            <span class="input-group-text cofre-access-label">Usuário</span>
+                                            <input class="form-control cofre-readonly-field" value="{{ item.usuario }}" readonly title="{{ item.usuario }}">
                                             <button class="btn btn-outline-secondary cofre-copy-value" type="button" data-copy-value="{{ item.usuario }}" title="Copiar usuário"><i class="bi bi-clipboard"></i></button>
                                         </div>
                                         {% if item.host %}
                                             <div class="input-group input-group-sm">
-                                                <span class="input-group-text">Host/IP</span>
-                                                <input class="form-control" value="{{ item.host }}{% if item.porta %}:{{ item.porta }}{% endif %}" readonly>
+                                                <span class="input-group-text cofre-access-label">Host/IP</span>
+                                                <input class="form-control cofre-readonly-field" value="{{ item.host }}{% if item.porta %}:{{ item.porta }}{% endif %}" readonly title="{{ item.host }}{% if item.porta %}:{{ item.porta }}{% endif %}">
                                                 <button class="btn btn-outline-secondary cofre-copy-value" type="button" data-copy-value="{{ item.host }}" title="Copiar Host/IP"><i class="bi bi-clipboard"></i></button>
                                             </div>
                                         {% endif %}
                                         {% if item.url %}
                                             <div class="input-group input-group-sm">
-                                                <span class="input-group-text">URL</span>
-                                                <input class="form-control" value="{{ item.url }}" readonly>
+                                                <span class="input-group-text cofre-access-label">URL</span>
+                                                <input class="form-control cofre-readonly-field" value="{{ item.url }}" readonly title="{{ item.url }}">
                                                 <a class="btn btn-outline-secondary" href="{{ item.url }}" target="_blank" title="Abrir URL"><i class="bi bi-box-arrow-up-right"></i></a>
                                                 <button class="btn btn-outline-secondary cofre-copy-value" type="button" data-copy-value="{{ item.url }}" title="Copiar URL"><i class="bi bi-clipboard"></i></button>
                                             </div>
@@ -233,6 +260,14 @@
                                     </div>
                                 </td>
                             </tr>
+                            {% if item.observacoes %}
+                            <tr class="cofre-notes-row">
+                                <td></td>
+                                <td colspan="6">
+                                    <div class="cofre-notes-box small text-muted bg-light border rounded px-3 py-2"><strong>Observações:</strong> {{ item.observacoes }}</div>
+                                </td>
+                            </tr>
+                            {% endif %}
                         {% else %}
                             {% set colspan = 7 %}
                             {% set empty_message = "Nenhuma credencial encontrada nesta pasta." %}

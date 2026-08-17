@@ -7,6 +7,7 @@ from flask import render_template
 from flask import request
 from flask import session
 from flask import url_for
+from urllib.parse import urljoin
 
 from app.core.auditoria import registrar_evento
 from app.implantacao.service import ImplantacaoService
@@ -344,6 +345,13 @@ def revelar_senha_cofre(senha_id):
     return jsonify({"ok": True, "senha": senha})
 
 
+def _url_publica(caminho):
+    base_url = (current_app.config.get("PUBLIC_BASE_URL") or "").strip().rstrip("/")
+    if base_url:
+        return urljoin(f"{base_url}/", caminho.lstrip("/"))
+    return urljoin(request.url_root, caminho.lstrip("/"))
+
+
 @implantacao_bp.route("/cofre-senhas/<int:senha_id>/compartilhar", methods=["POST"])
 def compartilhar_senha_cofre(senha_id):
     try:
@@ -353,10 +361,7 @@ def compartilhar_senha_cofre(senha_id):
     except ValueError as erro:
         return jsonify({"ok": False, "erro": str(erro)}), 400
     caminho = url_for("implantacao.acessar_compartilhamento_senha", token=token)
-    base_url = current_app.config.get("PUBLIC_BASE_URL")
-    link = f"{base_url}{caminho}" if base_url else url_for(
-        "implantacao.acessar_compartilhamento_senha", token=token, _external=True
-    )
+    link = _url_publica(caminho)
     return jsonify({"ok": True, "link": link})
 
 

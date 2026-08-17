@@ -247,6 +247,8 @@ class CofreSenhaService:
         titulo = cls._texto(dados.get("titulo"))
         usuario = cls._texto(dados.get("usuario"))
         senha = dados.get("senha") or ""
+        if not exigir_senha and senha == "********":
+            senha = ""
         if not titulo:
             raise ValueError("Título é obrigatório.")
         if not usuario:

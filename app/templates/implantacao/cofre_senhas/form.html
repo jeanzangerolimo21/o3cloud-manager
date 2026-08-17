@@ -101,7 +101,7 @@
                             <div class="col-md-6">
                                 <label class="form-label">Senha {% if modo == 'novo' %}*{% endif %}</label>
                                 <div class="input-group">
-                                    <input class="form-control" type="password" name="senha" id="senha" {% if modo == 'novo' %}required{% endif %} autocomplete="new-password">
+                                    <input class="form-control" type="password" name="senha" id="senha" value="{{ '********' if modo == 'editar' else '' }}" {% if modo == 'novo' %}required{% endif %} autocomplete="new-password" data-reveal-url="{{ url_for('implantacao.revelar_senha_cofre', senha_id=senha.id) if modo == 'editar' else '' }}" data-masked-value="********">
                                     <button class="btn btn-outline-secondary" type="button" id="toggle_senha" title="Mostrar senha"><i class="bi bi-eye"></i></button>
                                     <button class="btn btn-outline-primary" type="button" id="gerar_senha" title="Gerar senha complexa"><i class="bi bi-magic"></i></button>
                                     <button class="btn btn-outline-secondary" type="button" id="copiar_senha_form" title="Copiar senha"><i class="bi bi-clipboard"></i></button>
@@ -303,10 +303,38 @@
     }
     atualizarVinculosInfraestrutura();
 
+    function senhaEstaMascarada() {
+        return senhaInput && senhaInput.value === (senhaInput.dataset.maskedValue || '********');
+    }
+
+    function revelarSenhaSalva() {
+        if (!senhaInput || !senhaInput.dataset.revealUrl || !senhaEstaMascarada()) {
+            return Promise.resolve(senhaInput ? senhaInput.value : '');
+        }
+        return fetch(senhaInput.dataset.revealUrl, {method: 'POST', credentials: 'same-origin'})
+            .then(function (response) { return response.json().then(function (payload) { return {response: response, payload: payload}; }); })
+            .then(function (result) {
+                if (!result.response.ok || !result.payload.ok) {
+                    throw new Error(result.payload.erro || 'Não foi possível revelar a senha.');
+                }
+                senhaInput.value = result.payload.senha;
+                return result.payload.senha;
+            });
+    }
+
     if (toggleButton && senhaInput) {
         toggleButton.addEventListener('click', function () {
-            senhaInput.type = senhaInput.type === 'password' ? 'text' : 'password';
-            toggleButton.innerHTML = senhaInput.type === 'password' ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+            if (senhaInput.type === 'password') {
+                revelarSenhaSalva()
+                    .then(function () {
+                        senhaInput.type = 'text';
+                        toggleButton.innerHTML = '<i class="bi bi-eye-slash"></i>';
+                    })
+                    .catch(function (erro) { alert(erro.message); });
+                return;
+            }
+            senhaInput.type = 'password';
+            toggleButton.innerHTML = '<i class="bi bi-eye"></i>';
         });
     }
     if (gerarButton && senhaInput) {
@@ -320,11 +348,14 @@
     }
     if (copiarButton && senhaInput) {
         copiarButton.addEventListener('click', function () {
-            copiarTexto(senhaInput.value).then(function (ok) {
-                if (ok) {
-                    marcarCopiado(copiarButton);
-                }
-            });
+            revelarSenhaSalva()
+                .then(function (senha) { return copiarTexto(senha); })
+                .then(function (ok) {
+                    if (ok) {
+                        marcarCopiado(copiarButton);
+                    }
+                })
+                .catch(function (erro) { alert(erro.message); });
         });
     }
     copyFieldButtons.forEach(function (button) {
