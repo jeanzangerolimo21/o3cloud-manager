@@ -64,18 +64,17 @@
                         <td style="min-width: 190px;">
                             {% set nvme = (item.storages_detalhes or [])|first %}
                             {% if nvme %}
+                            <strong>{{ nvme.usado_gb or 0 }} GB usados</strong><br>
                             {% if nvme.total_gb %}
-                            <strong>{{ nvme.usado_gb or 0 }} / {{ nvme.total_gb }} GB</strong><br>
-                            <small class="text-muted">nvme · disponível {{ nvme.disponivel_gb or 0 }} GB · {{ item.disco_usado_percent or 0 }}%</small>
+                            <small class="text-muted">nvme · total {{ nvme.total_gb }} GB · livre {{ nvme.disponivel_gb or 0 }} GB · {{ item.disco_usado_percent or 0 }}%</small>
                             {{ barra(item.disco_usado_percent, 'success' if (item.disco_usado_percent or 0) < 75 else 'warning') }}
                             {% else %}
-                            <strong>{{ nvme.usado_gb or 0 }} GB</strong><br>
-                            <small class="text-muted">nvme usado · total indisponível por timeout</small>
+                            <small class="text-muted">nvme · total/livre indisponível por timeout</small>
                             {% endif %}
                             {% else %}
-                            <strong>{{ item.disco_usado_gb or 0 }} / {{ item.disco_total_gb or 0 }} GB</strong><br>
-                            <small class="text-muted">nvme indisponível. Sincronize o Proxmox.</small>
-                            {{ barra(item.disco_usado_percent, 'secondary') }}
+                            <strong>Sem leitura do nvme</strong><br>
+                            <small class="text-muted">Sincronize o Proxmox ou verifique timeout/permissão.</small>
+                            {{ barra(0, 'secondary') }}
                             {% endif %}
                         </td>
                         <td style="min-width: 170px;">
