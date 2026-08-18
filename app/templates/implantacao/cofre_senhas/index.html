@@ -3,7 +3,7 @@
 {% block content %}
 <style>
     .cofre-credenciais-table {
-        min-width: 1380px;
+        min-width: 1460px;
         table-layout: fixed;
     }
     .cofre-credenciais-table th:nth-child(1),
@@ -227,6 +227,13 @@
                                             <input class="form-control cofre-readonly-field" value="{{ item.usuario }}" readonly title="{{ item.usuario }}">
                                             <button class="btn btn-outline-secondary cofre-copy-value" type="button" data-copy-value="{{ item.usuario }}" title="Copiar usuário"><i class="bi bi-clipboard"></i></button>
                                         </div>
+                                        {% if item.usuario_2 %}
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text cofre-access-label">Usuário 2</span>
+                                            <input class="form-control cofre-readonly-field" value="{{ item.usuario_2 }}" readonly title="{{ item.usuario_2 }}">
+                                            <button class="btn btn-outline-secondary cofre-copy-value" type="button" data-copy-value="{{ item.usuario_2 }}" title="Copiar usuário secundário"><i class="bi bi-clipboard"></i></button>
+                                        </div>
+                                        {% endif %}
                                         {% if item.host %}
                                             <div class="input-group input-group-sm">
                                                 <span class="input-group-text cofre-access-label">Host/IP</span>
@@ -245,11 +252,23 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <div class="input-group input-group-sm cofre-reveal-group" data-reveal-url="{{ url_for('implantacao.revelar_senha_cofre', senha_id=item.id) }}">
-                                        <input class="form-control" type="password" value="********" readonly>
-                                        <button class="btn btn-outline-secondary cofre-reveal-button" type="button" title="Revelar senha"><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-outline-secondary cofre-copy-password" type="button" title="Copiar senha"><i class="bi bi-clipboard"></i></button>
-                                        <button class="btn btn-outline-warning cofre-share-password" type="button" data-share-url="{{ url_for('implantacao.compartilhar_senha_cofre', senha_id=item.id) }}" title="Gerar link de uso unico"><i class="bi bi-link-45deg"></i></button>
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="input-group input-group-sm cofre-reveal-group" data-reveal-url="{{ url_for('implantacao.revelar_senha_cofre', senha_id=item.id) }}">
+                                            <span class="input-group-text cofre-access-label">Senha</span>
+                                            <input class="form-control" type="password" value="********" readonly>
+                                            <button class="btn btn-outline-secondary cofre-reveal-button" type="button" title="Revelar senha"><i class="bi bi-eye"></i></button>
+                                            <button class="btn btn-outline-secondary cofre-copy-password" type="button" title="Copiar senha"><i class="bi bi-clipboard"></i></button>
+                                            <button class="btn btn-outline-warning cofre-share-password" type="button" data-share-url="{{ url_for('implantacao.compartilhar_senha_cofre', senha_id=item.id) }}" title="Gerar link de uso unico"><i class="bi bi-link-45deg"></i></button>
+                                        </div>
+                                        {% if item.usuario_2 %}
+                                        <div class="input-group input-group-sm cofre-reveal-group" data-reveal-url="{{ url_for('implantacao.revelar_senha_cofre', senha_id=item.id, credencial='secundaria') }}">
+                                            <span class="input-group-text cofre-access-label">Senha 2</span>
+                                            <input class="form-control" type="password" value="********" readonly>
+                                            <button class="btn btn-outline-secondary cofre-reveal-button" type="button" title="Revelar senha secundária"><i class="bi bi-eye"></i></button>
+                                            <button class="btn btn-outline-secondary cofre-copy-password" type="button" title="Copiar senha secundária"><i class="bi bi-clipboard"></i></button>
+                                            <button class="btn btn-outline-warning cofre-share-password" type="button" data-share-url="{{ url_for('implantacao.compartilhar_senha_cofre', senha_id=item.id, credencial='secundaria') }}" title="Gerar link de uso unico para senha secundária"><i class="bi bi-link-45deg"></i></button>
+                                        </div>
+                                        {% endif %}
                                     </div>
                                 </td>
                                 <td>{% if item.ambiente_nome %}<small class="text-muted">Ambiente</small><br>{{ item.ambiente_nome }}{% if item.prefixo_proxmox %}<br><small class="text-muted">{{ item.prefixo_proxmox }}</small>{% endif %}<br>{% endif %}{% if item.implantador_nome %}<small class="text-muted">Implantador</small><br>{{ item.implantador_nome }}{% if item.implantador_email %}<br><small class="text-muted">{{ item.implantador_email }}</small>{% endif %}<br>{% endif %}<small class="text-muted">Rede</small><br>{{ item.faixa_rede or 'Sem faixa vinculada' }}{% if item.licenca_o3web_id %}<br><small class="text-muted">O3Web {{ item.licenca_o3web_codigo or item.licenca_o3web_id }}</small>{% endif %}</td>

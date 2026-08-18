@@ -108,6 +108,23 @@
                                 </div>
                                 <small class="text-muted">{% if modo == 'editar' %}Preencha apenas se quiser trocar a senha. {% endif %}Padrão atual: {{ senha_policy.tamanho }} caracteres.</small>
                             </div>
+                            <div class="col-md-5">
+                                <label class="form-label">Usuário secundário</label>
+                                <div class="input-group">
+                                    <input class="form-control" name="usuario_2" id="usuario_2" value="{{ senha.usuario_2 or '' }}">
+                                    <button class="btn btn-outline-secondary cofre-copy-field" type="button" data-copy-target="usuario_2" title="Copiar usuário secundário"><i class="bi bi-clipboard"></i></button>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Senha secundária</label>
+                                <div class="input-group">
+                                    <input class="form-control" type="password" name="senha_2" id="senha_2" value="{{ '********' if modo == 'editar' and senha.usuario_2 else '' }}" autocomplete="new-password" data-reveal-url="{{ url_for('implantacao.revelar_senha_cofre', senha_id=senha.id, credencial='secundaria') if modo == 'editar' and senha.usuario_2 else '' }}" data-masked-value="********">
+                                    <button class="btn btn-outline-secondary" type="button" id="toggle_senha_2" title="Mostrar senha secundária"><i class="bi bi-eye"></i></button>
+                                    <button class="btn btn-outline-primary" type="button" id="gerar_senha_2" title="Gerar senha secundária"><i class="bi bi-magic"></i></button>
+                                    <button class="btn btn-outline-secondary" type="button" id="copiar_senha_2_form" title="Copiar senha secundária"><i class="bi bi-clipboard"></i></button>
+                                </div>
+                                <small class="text-muted">Opcional. Preencha usuário e senha quando o servidor tiver uma segunda credencial.</small>
+                            </div>
                             <div class="col-md-6"><label class="form-label">Observações</label><textarea class="form-control" rows="3" name="observacoes">{{ senha.observacoes or '' }}</textarea></div>
                             <div class="col-md-6">
                                 <label class="form-label">Proxmox Node</label>
@@ -158,11 +175,15 @@
     const licencaSelect = document.getElementById('licenca_o3web_id');
     const urlInput = document.getElementById('url');
     const senhaInput = document.getElementById('senha');
+    const senha2Input = document.getElementById('senha_2');
     const ambienteSelect = document.getElementById('ambiente_id');
     const implantadorSelect = document.getElementById('implantador_id');
     const toggleButton = document.getElementById('toggle_senha');
     const gerarButton = document.getElementById('gerar_senha');
     const copiarButton = document.getElementById('copiar_senha_form');
+    const toggle2Button = document.getElementById('toggle_senha_2');
+    const gerar2Button = document.getElementById('gerar_senha_2');
+    const copiar2Button = document.getElementById('copiar_senha_2_form');
     const copyFieldButtons = document.querySelectorAll('.cofre-copy-field');
     const policy = {
         tamanho: {{ senha_policy.tamanho or 20 }},
@@ -303,21 +324,21 @@
     }
     atualizarVinculosInfraestrutura();
 
-    function senhaEstaMascarada() {
-        return senhaInput && senhaInput.value === (senhaInput.dataset.maskedValue || '********');
+    function senhaEstaMascarada(input) {
+        return input && input.value === (input.dataset.maskedValue || '********');
     }
 
-    function revelarSenhaSalva() {
-        if (!senhaInput || !senhaInput.dataset.revealUrl || !senhaEstaMascarada()) {
-            return Promise.resolve(senhaInput ? senhaInput.value : '');
+    function revelarSenhaSalva(input) {
+        if (!input || !input.dataset.revealUrl || !senhaEstaMascarada(input)) {
+            return Promise.resolve(input ? input.value : '');
         }
-        return fetch(senhaInput.dataset.revealUrl, {method: 'POST', credentials: 'same-origin'})
+        return fetch(input.dataset.revealUrl, {method: 'POST', credentials: 'same-origin'})
             .then(function (response) { return response.json().then(function (payload) { return {response: response, payload: payload}; }); })
             .then(function (result) {
                 if (!result.response.ok || !result.payload.ok) {
                     throw new Error(result.payload.erro || 'Não foi possível revelar a senha.');
                 }
-                senhaInput.value = result.payload.senha;
+                input.value = result.payload.senha;
                 return result.payload.senha;
             });
     }
@@ -325,7 +346,7 @@
     if (toggleButton && senhaInput) {
         toggleButton.addEventListener('click', function () {
             if (senhaInput.type === 'password') {
-                revelarSenhaSalva()
+                revelarSenhaSalva(senhaInput)
                     .then(function () {
                         senhaInput.type = 'text';
                         toggleButton.innerHTML = '<i class="bi bi-eye-slash"></i>';
@@ -348,11 +369,47 @@
     }
     if (copiarButton && senhaInput) {
         copiarButton.addEventListener('click', function () {
-            revelarSenhaSalva()
+            revelarSenhaSalva(senhaInput)
                 .then(function (senha) { return copiarTexto(senha); })
                 .then(function (ok) {
                     if (ok) {
                         marcarCopiado(copiarButton);
+                    }
+                })
+                .catch(function (erro) { alert(erro.message); });
+        });
+    }
+    if (toggle2Button && senha2Input) {
+        toggle2Button.addEventListener('click', function () {
+            if (senha2Input.type === 'password') {
+                revelarSenhaSalva(senha2Input)
+                    .then(function () {
+                        senha2Input.type = 'text';
+                        toggle2Button.innerHTML = '<i class="bi bi-eye-slash"></i>';
+                    })
+                    .catch(function (erro) { alert(erro.message); });
+                return;
+            }
+            senha2Input.type = 'password';
+            toggle2Button.innerHTML = '<i class="bi bi-eye"></i>';
+        });
+    }
+    if (gerar2Button && senha2Input) {
+        gerar2Button.addEventListener('click', function () {
+            senha2Input.value = gerarSenha();
+            senha2Input.type = 'text';
+            if (toggle2Button) {
+                toggle2Button.innerHTML = '<i class="bi bi-eye-slash"></i>';
+            }
+        });
+    }
+    if (copiar2Button && senha2Input) {
+        copiar2Button.addEventListener('click', function () {
+            revelarSenhaSalva(senha2Input)
+                .then(function (senha) { return copiarTexto(senha); })
+                .then(function (ok) {
+                    if (ok) {
+                        marcarCopiado(copiar2Button);
                     }
                 })
                 .catch(function (erro) { alert(erro.message); });

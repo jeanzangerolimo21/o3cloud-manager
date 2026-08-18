@@ -12,7 +12,7 @@ class CofreSenhaRepository(BaseRepository):
                    cs.faixa_rede_id, fr.rede AS faixa_rede,
                    cp.owner_email AS pasta_owner_email, cp.compartilhada AS pasta_compartilhada, cp.compartilhada_com AS pasta_compartilhada_com,
                    cs.licenca_o3web_id, o3.id_licenca AS licenca_o3web_codigo,
-                   cs.categoria, cs.titulo, cs.host, cs.porta, cs.url, cs.usuario,
+                   cs.categoria, cs.titulo, cs.host, cs.porta, cs.url, cs.usuario, cs.usuario_2,
                    cs.observacoes, cs.proxmox_node_id, cs.proxmox_vm_id,
                    cs.pbs_server_id, cs.zabbix_host_id, cs.ativo,
                    cs.created_by, cs.updated_by, cs.created_at, cs.updated_at
@@ -85,11 +85,11 @@ class CofreSenhaRepository(BaseRepository):
             """
             INSERT INTO implantacao_cofre_senhas (
                 uuid, pasta_id, cliente_id, cliente_nome, cliente_cnpj, ambiente_id, implantador_id, faixa_rede_id, licenca_o3web_id,
-                categoria, titulo, host, porta, url, usuario, senha_encrypted, observacoes,
+                categoria, titulo, host, porta, url, usuario, senha_encrypted, usuario_2, senha_2_encrypted, observacoes,
                 proxmox_node_id, proxmox_vm_id, pbs_server_id, zabbix_host_id,
                 proxmox_node_inventory_id, proxmox_inventory_id, pbs_backup_snapshot_id,
                 zabbix_host_inventory_id, ativo, created_by, updated_by
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (cls.generate_uuid(),) + cls._params(dados, incluir_senha=True),
         )
@@ -98,9 +98,12 @@ class CofreSenhaRepository(BaseRepository):
     def atualizar(cls, senha_id, dados):
         campos_senha = ""
         params = cls._params(dados, incluir_senha=False)
-        if dados.get("senha_encrypted"):
-            campos_senha = ", senha_encrypted=%s"
+        if "senha_encrypted" in dados:
+            campos_senha += ", senha_encrypted=%s"
             params = params[:-1] + (dados.get("senha_encrypted"),) + params[-1:]
+        if "senha_2_encrypted" in dados:
+            campos_senha += ", senha_2_encrypted=%s"
+            params = params[:-1] + (dados.get("senha_2_encrypted"),) + params[-1:]
         return cls.execute(
             f"""
             UPDATE implantacao_cofre_senhas
@@ -118,6 +121,7 @@ class CofreSenhaRepository(BaseRepository):
                 porta=%s,
                 url=%s,
                 usuario=%s,
+                usuario_2=%s,
                 observacoes=%s,
                 proxmox_node_id=%s,
                 proxmox_vm_id=%s,
@@ -170,12 +174,12 @@ class CofreSenhaRepository(BaseRepository):
         return cls.execute_insert(
             """
             INSERT INTO implantacao_cofre_compartilhamentos (
-                uuid, cofre_senha_id, token_hash, expires_at, created_by, created_ip
-            ) VALUES (%s, %s, %s, DATE_ADD(NOW(), INTERVAL %s MINUTE), %s, %s)
+                uuid, cofre_senha_id, credencial, token_hash, expires_at, created_by, created_ip
+            ) VALUES (%s, %s, %s, %s, DATE_ADD(NOW(), INTERVAL %s MINUTE), %s, %s)
             """,
             (
-                cls.generate_uuid(), dados.get("cofre_senha_id"), dados.get("token_hash"),
-                dados.get("ttl_minutos", 5), dados.get("created_by") or "sistema",
+                cls.generate_uuid(), dados.get("cofre_senha_id"), dados.get("credencial") or "principal",
+                dados.get("token_hash"), dados.get("ttl_minutos", 5), dados.get("created_by") or "sistema",
                 dados.get("created_ip"),
             ),
         )
@@ -199,7 +203,7 @@ class CofreSenhaRepository(BaseRepository):
                 return None
             cursor.execute(
                 """
-                SELECT cc.cofre_senha_id, cs.titulo, cs.senha_encrypted, cc.expires_at
+                SELECT cc.cofre_senha_id, cc.credencial, cs.titulo, cs.senha_encrypted, cs.senha_2_encrypted, cc.expires_at
                 FROM implantacao_cofre_compartilhamentos cc
                 JOIN implantacao_cofre_senhas cs ON cs.id = cc.cofre_senha_id
                 WHERE cc.token_hash = %s AND cs.ativo = 1
@@ -300,7 +304,9 @@ class CofreSenhaRepository(BaseRepository):
             dados.get("usuario"),
         )
         if incluir_senha:
-            params += (dados.get("senha_encrypted"),)
+            params += (dados.get("senha_encrypted"), dados.get("usuario_2"), dados.get("senha_2_encrypted"))
+        else:
+            params += (dados.get("usuario_2"),)
         params += (
             dados.get("observacoes"),
             dados.get("proxmox_node_id"),
@@ -334,6 +340,7 @@ class CofreSenhaRepository(BaseRepository):
                     OR REGEXP_REPLACE(COALESCE(cs.cliente_cnpj, ''), '[^0-9A-Za-z]', '') LIKE %s
                     OR cs.titulo LIKE %s
                     OR cs.usuario LIKE %s
+                    OR COALESCE(cs.usuario_2, '') LIKE %s
                     OR COALESCE(cs.host, '') LIKE %s
                     OR COALESCE(cs.url, '') LIKE %s
                     OR COALESCE(amb.nome, '') LIKE %s
@@ -345,7 +352,7 @@ class CofreSenhaRepository(BaseRepository):
                 )
                 """
             )
-            params.extend([termo, termo, termo_cnpj, termo, termo, termo, termo, termo, termo, termo, termo, termo, termo])
+            params.extend([termo, termo, termo_cnpj, termo, termo, termo, termo, termo, termo, termo, termo, termo, termo, termo])
         if apenas_clientes:
             where.append("cp.tipo = %s")
             params.append("cliente")

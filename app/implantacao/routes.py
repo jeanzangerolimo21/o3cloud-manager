@@ -339,7 +339,9 @@ def editar_senha_cofre(senha_id):
 @implantacao_bp.route("/cofre-senhas/<int:senha_id>/revelar", methods=["POST"])
 def revelar_senha_cofre(senha_id):
     try:
-        senha = CofreSenhaService.revelar_senha(senha_id, _email_usuario_logado(), request.remote_addr)
+        senha = CofreSenhaService.revelar_senha(
+            senha_id, _email_usuario_logado(), request.remote_addr, request.args.get("credencial")
+        )
     except ValueError as erro:
         return jsonify({"ok": False, "erro": str(erro)}), 400
     return jsonify({"ok": True, "senha": senha})
@@ -356,7 +358,7 @@ def _url_publica(caminho):
 def compartilhar_senha_cofre(senha_id):
     try:
         token = CofreSenhaService.criar_compartilhamento(
-            senha_id, _email_usuario_logado(), request.remote_addr
+            senha_id, _email_usuario_logado(), request.remote_addr, request.args.get("credencial")
         )
     except ValueError as erro:
         return jsonify({"ok": False, "erro": str(erro)}), 400
@@ -949,6 +951,8 @@ def _cofre_senha_form_data():
         "url": request.form.get("url"),
         "usuario": request.form.get("usuario"),
         "senha": request.form.get("senha"),
+        "usuario_2": request.form.get("usuario_2"),
+        "senha_2": request.form.get("senha_2"),
         "observacoes": request.form.get("observacoes"),
         "proxmox_node_id": request.form.get("proxmox_node_id"),
         "proxmox_vm_id": request.form.get("proxmox_vm_id"),

@@ -91,6 +91,8 @@ class CofreSenhaService:
     def criar(cls, dados, usuario_email="sistema", ip_origem=None):
         payload = cls._normalizar(dados, exigir_senha=True, usuario_email=usuario_email)
         payload["senha_encrypted"] = cls._encrypt(payload.pop("senha"))
+        senha_2 = payload.pop("senha_2", None)
+        payload["senha_2_encrypted"] = cls._encrypt(senha_2) if senha_2 else None
         payload["created_by"] = usuario_email or "sistema"
         payload["updated_by"] = usuario_email or "sistema"
         senha_id = cls.repository.inserir(payload)
@@ -102,12 +104,17 @@ class CofreSenhaService:
         existente = cls.buscar_por_id(senha_id, usuario_email)
         if not existente:
             raise ValueError("Credencial não encontrada.")
-        payload = cls._normalizar(dados, exigir_senha=False, usuario_email=usuario_email)
+        payload = cls._normalizar({**existente, **dados}, exigir_senha=False, usuario_email=usuario_email)
         if payload.pop("senha", None):
             payload["senha_encrypted"] = cls._encrypt(dados.get("senha"))
+        senha_2 = payload.pop("senha_2", None)
+        if senha_2:
+            payload["senha_2_encrypted"] = cls._encrypt(senha_2)
+        elif not payload.get("usuario_2"):
+            payload["senha_2_encrypted"] = None
         payload["updated_by"] = usuario_email or "sistema"
         cls.repository.atualizar(senha_id, payload)
-        registrar_evento("COFRE_CREDENCIAL_ATUALIZADA", "cofre_senhas", senha_id, {"cliente_id": payload.get("cliente_id"), "categoria": payload.get("categoria"), "titulo": payload.get("titulo"), "senha_alterada": bool(dados.get("senha"))}, usuario_email)
+        registrar_evento("COFRE_CREDENCIAL_ATUALIZADA", "cofre_senhas", senha_id, {"cliente_id": payload.get("cliente_id"), "categoria": payload.get("categoria"), "titulo": payload.get("titulo"), "senha_alterada": bool(dados.get("senha")), "senha_2_alterada": bool(senha_2)}, usuario_email)
 
     @classmethod
     def excluir(cls, senha_id, usuario_email="sistema", ip_origem=None):
@@ -117,32 +124,39 @@ class CofreSenhaService:
         registrar_evento("COFRE_CREDENCIAL_INATIVADA", "cofre_senhas", senha_id, None, usuario_email)
 
     @classmethod
-    def revelar_senha(cls, senha_id, usuario_email="sistema", ip_origem=None):
+    def revelar_senha(cls, senha_id, usuario_email="sistema", ip_origem=None, credencial=None):
         senha = cls.buscar_por_id(senha_id, usuario_email)
         if not senha or not senha.get("ativo"):
             raise ValueError("Credencial não encontrada ou inativa.")
+        credencial = cls._normalizar_credencial(credencial)
+        campo = "senha_2_encrypted" if credencial == "secundaria" else "senha_encrypted"
+        if credencial == "secundaria" and (not senha.get("usuario_2") or not senha.get("senha_2_encrypted")):
+            raise ValueError("Credencial secundaria não cadastrada.")
         try:
-            valor = cls._decrypt(senha.get("senha_encrypted"))
+            valor = cls._decrypt(senha.get(campo))
         except ValueError as erro:
             raise ValueError("Não foi possível descriptografar a senha. Verifique a chave do cofre.") from erro
-        registrar_evento("COFRE_CREDENCIAL_REVELADA", "cofre_senhas", senha_id, {"titulo": senha.get("titulo"), "cliente_id": senha.get("cliente_id")}, usuario_email)
+        registrar_evento("COFRE_CREDENCIAL_REVELADA", "cofre_senhas", senha_id, {"titulo": senha.get("titulo"), "cliente_id": senha.get("cliente_id"), "credencial": credencial}, usuario_email)
         return valor
 
     @classmethod
-    def criar_compartilhamento(cls, senha_id, usuario_email="sistema", ip_origem=None):
+    def criar_compartilhamento(cls, senha_id, usuario_email="sistema", ip_origem=None, credencial=None):
         senha = cls.buscar_por_id(senha_id, usuario_email)
         if not senha or not senha.get("ativo"):
             raise ValueError("Credencial nao encontrada ou sem acesso.")
+        credencial = cls._normalizar_credencial(credencial)
+        if credencial == "secundaria" and (not senha.get("usuario_2") or not senha.get("senha_2_encrypted")):
+            raise ValueError("Credencial secundaria não cadastrada.")
         token = secrets.token_urlsafe(32)
         token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
         ttl = current_app.config.get("COFRE_COMPARTILHAMENTO_TTL_MINUTOS", 5)
         cls.repository.criar_compartilhamento({
-            "cofre_senha_id": senha_id, "token_hash": token_hash,
+            "cofre_senha_id": senha_id, "credencial": credencial, "token_hash": token_hash,
             "ttl_minutos": ttl, "created_by": usuario_email, "created_ip": ip_origem,
         })
         registrar_evento(
             "COFRE_COMPARTILHAMENTO_GERADO", "cofre_senhas", senha_id,
-            {"titulo": senha.get("titulo"), "expira_em_minutos": ttl}, usuario_email,
+            {"titulo": senha.get("titulo"), "expira_em_minutos": ttl, "credencial": credencial}, usuario_email,
         )
         return token
 
@@ -154,14 +168,15 @@ class CofreSenhaService:
         compartilhamento = cls.repository.consumir_compartilhamento(token_hash, ip_origem)
         if not compartilhamento:
             return None
+        campo = "senha_2_encrypted" if compartilhamento.get("credencial") == "secundaria" else "senha_encrypted"
         try:
-            valor = cls._decrypt(compartilhamento.get("senha_encrypted"))
+            valor = cls._decrypt(compartilhamento.get(campo))
         except ValueError:
             return None
         registrar_evento(
             "COFRE_COMPARTILHAMENTO_ACESSADO", "cofre_senhas",
             compartilhamento.get("cofre_senha_id"),
-            {"titulo": compartilhamento.get("titulo")}, "link-publico",
+            {"titulo": compartilhamento.get("titulo"), "credencial": compartilhamento.get("credencial") or "principal"}, "link-publico",
         )
         return {
             "titulo": compartilhamento.get("titulo"),
@@ -247,14 +262,24 @@ class CofreSenhaService:
         titulo = cls._texto(dados.get("titulo"))
         usuario = cls._texto(dados.get("usuario"))
         senha = dados.get("senha") or ""
+        usuario_2 = cls._texto(dados.get("usuario_2"))
+        senha_2 = dados.get("senha_2") or ""
         if not exigir_senha and senha == "********":
             senha = ""
+        if not exigir_senha and senha_2 == "********":
+            senha_2 = ""
         if not titulo:
             raise ValueError("Título é obrigatório.")
         if not usuario:
             raise ValueError("Usuário é obrigatório.")
         if exigir_senha and not senha:
             raise ValueError("Senha é obrigatória.")
+        if usuario_2 and exigir_senha and not senha_2:
+            raise ValueError("Senha da credencial secundaria é obrigatória quando o usuário secundário é informado.")
+        if usuario_2 and not senha_2 and not dados.get("senha_2_encrypted"):
+            raise ValueError("Senha da credencial secundaria é obrigatória quando o usuário secundário é informado.")
+        if senha_2 and not usuario_2:
+            raise ValueError("Usuário secundário é obrigatório quando a senha secundaria é informada.")
 
         return {
             "pasta_id": pasta_id,
@@ -272,6 +297,8 @@ class CofreSenhaService:
             "url": cls._texto(dados.get("url")),
             "usuario": usuario,
             "senha": senha,
+            "usuario_2": usuario_2,
+            "senha_2": senha_2,
             "observacoes": cls._texto_longo(dados.get("observacoes")),
             "proxmox_node_id": cls._texto(dados.get("proxmox_node_id")),
             "proxmox_vm_id": cls._texto(dados.get("proxmox_vm_id")),
@@ -325,6 +352,11 @@ class CofreSenhaService:
             resultado.extend(bloco)
             contador += 1
         return bytes(valor ^ chave for valor, chave in zip(payload, resultado))
+
+
+    @staticmethod
+    def _normalizar_credencial(valor):
+        return "secundaria" if str(valor or "").strip().lower() in ("2", "secundaria", "usuario_2") else "principal"
 
     @staticmethod
     def _normalizar_ativo(valor):
