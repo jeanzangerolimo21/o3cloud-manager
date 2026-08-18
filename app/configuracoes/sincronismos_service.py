@@ -1,3 +1,5 @@
+from datetime import datetime, time, timedelta
+
 from app.repositories.base_repository import BaseRepository
 
 
@@ -81,21 +83,19 @@ class SincronismosAgendadosService:
         frequencia = int(dados.get("frequencia_minutos") or 1440)
         if frequencia not in {item[0] for item in cls.OPCOES_FREQUENCIA}:
             raise ValueError("Frequencia de sincronismo invalida.")
+        horario = cls._normalizar_horario(dados.get("horario_execucao"))
         ativo = 1 if dados.get("ativo") else 0
         cls.repository.execute(
             """
             UPDATE config_sincronismos_agendados
                SET ativo=%s,
                    frequencia_minutos=%s,
-                   proxima_execucao_em=CASE
-                       WHEN %s = 0 THEN NULL
-                       WHEN proxima_execucao_em IS NULL THEN DATE_ADD(NOW(), INTERVAL %s MINUTE)
-                       ELSE proxima_execucao_em
-                   END,
+                   horario_execucao=%s,
+                   proxima_execucao_em=%s,
                    updated_by=%s
              WHERE tipo=%s
             """,
-            (ativo, frequencia, ativo, frequencia, usuario_email, tipo),
+            (ativo, frequencia, horario, cls._proxima_execucao(ativo, frequencia, horario), usuario_email, tipo),
         )
 
     @classmethod
@@ -142,6 +142,7 @@ class SincronismosAgendadosService:
                 "icone": definicao["icone"],
                 "ativo": bool(item.get("ativo")),
                 "frequencia_minutos": int(item.get("frequencia_minutos") or 1440),
+                "horario_execucao": cls._formatar_horario(item.get("horario_execucao")),
             })
         return agendamentos
 
@@ -181,18 +182,74 @@ class SincronismosAgendadosService:
             """
             UPDATE config_sincronismos_agendados
                SET ultima_execucao_em=NOW(),
-                   proxima_execucao_em=CASE
-                       WHEN ativo = 1 THEN DATE_ADD(NOW(), INTERVAL frequencia_minutos MINUTE)
-                       ELSE NULL
-                   END,
+                   proxima_execucao_em=%s,
                    ultimo_status=%s,
                    ultimo_mensagem=%s,
                    updated_by=%s
              WHERE id=%s
             """,
-            (status, mensagem, usuario_email, agendamento["id"]),
+            (
+                cls._proxima_execucao(
+                    agendamento.get("ativo"),
+                    agendamento.get("frequencia_minutos"),
+                    cls._horario_obj(agendamento.get("horario_execucao")),
+                ),
+                status,
+                mensagem,
+                usuario_email,
+                agendamento["id"],
+            ),
         )
         return f"{agendamento['tipo']}: {status} - {mensagem}"
+
+    @staticmethod
+    def _normalizar_horario(valor):
+        texto = str(valor or "").strip()
+        if not texto:
+            return None
+        try:
+            partes = texto.split(":")
+            if len(partes) not in (2, 3):
+                raise ValueError
+            hora = int(partes[0])
+            minuto = int(partes[1])
+            segundo = int(partes[2]) if len(partes) == 3 else 0
+            return time(hora, minuto, segundo)
+        except (TypeError, ValueError):
+            raise ValueError("Horario invalido. Use o formato HH:MM.")
+
+    @staticmethod
+    def _horario_obj(valor):
+        if isinstance(valor, time):
+            return valor
+        if isinstance(valor, timedelta):
+            total = int(valor.total_seconds()) % 86400
+            return time(total // 3600, (total % 3600) // 60, total % 60)
+        if valor:
+            return SincronismosAgendadosService._normalizar_horario(valor)
+        return None
+
+    @classmethod
+    def _formatar_horario(cls, valor):
+        horario = cls._horario_obj(valor)
+        return horario.strftime("%H:%M") if horario else ""
+
+    @staticmethod
+    def _proxima_execucao(ativo, frequencia, horario):
+        if not ativo:
+            return None
+        agora = datetime.now()
+        if horario:
+            proxima = agora.replace(
+                hour=horario.hour,
+                minute=horario.minute,
+                second=horario.second,
+                microsecond=0,
+            )
+            if proxima <= agora:
+                proxima += timedelta(days=1)
+            return proxima
+        return agora + timedelta(minutes=int(frequencia or 1440))
 
     @classmethod
     def _handler(cls, tipo):

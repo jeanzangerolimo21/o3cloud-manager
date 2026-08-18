@@ -17,6 +17,7 @@
             <th>Integração</th>
             <th>Status</th>
             <th>Frequência</th>
+            <th>Horario</th>
             <th>Próxima execução</th>
             <th>Última execução</th>
             <th class="text-end">Ações</th>
@@ -56,6 +57,7 @@
                 </select>
               </form>
             </td>
+            <td><input class="form-control form-control-sm" type="time" name="horario_execucao" form="form-sync-{{ item.tipo }}" value="{{ item.horario_execucao or '' }}" title="Horario diario opcional"></td>
             <td>{{ item.proxima_execucao_em|datetime_br if item.proxima_execucao_em else '-' }}</td>
             <td>{{ item.ultima_execucao_em|datetime_br if item.ultima_execucao_em else '-' }}</td>
             <td class="text-end">
@@ -68,7 +70,7 @@
             </td>
           </tr>
           {% else %}
-          <tr><td colspan="6" class="text-center text-muted py-4">Nenhum sincronismo configurado.</td></tr>
+          <tr><td colspan="7" class="text-center text-muted py-4">Nenhum sincronismo configurado.</td></tr>
           {% endfor %}
         </tbody>
       </table>
