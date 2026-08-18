@@ -1013,8 +1013,10 @@ class PropostaService:
         cls._herdar_relacionamentos(dados)
         resumo = cls._calcular_totais(dados["licencas_items"], dados["servidores_items"])
         dados["total_mensal"] = resumo["total_mensal"]
-        dados["parametrizacao_sistema"] = resumo["total_mensal"]
-        dados["setup_ambiente_cloud"] = resumo["total_mensal"]
+        parametrizacao = cls._decimal(dados.get("parametrizacao_sistema"))
+        setup_cloud = cls._decimal(dados.get("setup_ambiente_cloud"))
+        dados["parametrizacao_sistema"] = parametrizacao if parametrizacao is not None else resumo["total_mensal"]
+        dados["setup_ambiente_cloud"] = setup_cloud if setup_cloud is not None else resumo["total_mensal"]
         dados["total_setup"] = dados["parametrizacao_sistema"] + dados["setup_ambiente_cloud"]
         dados["total_instalacao"] = resumo["instalacao_servidores"] + dados["parametrizacao_sistema"] + dados["setup_ambiente_cloud"]
         dados["valor_total"] = dados["total_mensal"] + dados["total_instalacao"]
@@ -1095,9 +1097,10 @@ class PropostaService:
         proposta["servidores_items"] = cls._carregar_lista_json(proposta.get("servidores_snapshot"))
         resumo = cls._calcular_totais(proposta["licencas_items"], proposta["servidores_items"])
         proposta["total_mensal"] = cls._decimal(proposta.get("total_mensal")) or resumo["total_mensal"]
-        proposta["parametrizacao_sistema"] = cls._decimal(proposta.get("parametrizacao_sistema")) or resumo["parametrizacao_padrao"]
-        proposta["setup_ambiente_cloud"] = proposta["total_mensal"]
-        proposta["parametrizacao_sistema"] = proposta["total_mensal"]
+        parametrizacao = cls._decimal(proposta.get("parametrizacao_sistema"))
+        setup_cloud = cls._decimal(proposta.get("setup_ambiente_cloud"))
+        proposta["parametrizacao_sistema"] = parametrizacao if parametrizacao is not None else resumo["parametrizacao_padrao"]
+        proposta["setup_ambiente_cloud"] = setup_cloud if setup_cloud is not None else resumo["setup_cloud_padrao"]
         proposta["total_setup"] = proposta["parametrizacao_sistema"] + proposta["setup_ambiente_cloud"]
         proposta["total_instalacao"] = cls._decimal(proposta.get("total_instalacao")) or (resumo["instalacao_servidores"] + proposta["parametrizacao_sistema"] + proposta["setup_ambiente_cloud"])
         proposta["valor_total"] = cls._decimal(proposta.get("valor_total")) or (proposta["total_mensal"] + proposta["total_instalacao"])
