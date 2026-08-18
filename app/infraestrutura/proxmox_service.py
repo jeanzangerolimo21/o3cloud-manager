@@ -12,7 +12,7 @@ from app.repositories.proxmox_inventory_repository import ProxmoxInventoryReposi
 
 class ProxmoxInventoryService:
     repository = ProxmoxInventoryRepository
-    STORAGES_VM_CT_CONTABILIZADOS = {"nvme", "storage2"}
+    STORAGES_VM_CT_CONTABILIZADOS = {"nvme"}
 
     @classmethod
     def listar(cls, tipo=None, status=None, node=None, pesquisa=None):
@@ -332,19 +332,19 @@ class ProxmoxInventoryService:
         detalhes = []
         for storage in storages:
             nome = storage.get("storage")
-            contabilizado = ProxmoxInventoryService._storage_vm_ct_contabilizado(nome)
+            if not ProxmoxInventoryService._storage_vm_ct_contabilizado(nome):
+                continue
             usado = storage.get("used") or 0
-            if contabilizado and nome in conteudos:
+            if nome in conteudos:
                 usado = ProxmoxInventoryService._bytes_storage_conteudo({nome: conteudos.get(nome)})
             detalhes.append({
                 "nome": nome or "-",
-                "contabilizado": contabilizado,
                 "total_gb": ProxmoxInventoryService._bytes_para_gb(storage.get("total") or 0),
                 "usado_gb": ProxmoxInventoryService._bytes_para_gb(usado),
                 "disponivel_gb": ProxmoxInventoryService._bytes_para_gb(storage.get("avail") or 0),
                 "conteudo": storage.get("content") or "-",
             })
-        contabilizados = [storage for storage in detalhes if storage.get("contabilizado")]
+        contabilizados = detalhes
         if contabilizados:
             total = sum(float(storage.get("total_gb") or 0) for storage in contabilizados)
             usado = sum(float(storage.get("usado_gb") or 0) for storage in contabilizados)
