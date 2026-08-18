@@ -371,11 +371,39 @@ class BackupSistemaService:
             required["DB_NAME"],
         ]
         env = {**os.environ, "MYSQL_PWD": required["DB_PASSWORD"]}
-        with gzip.open(destino, "wb") as gz:
-            resultado = subprocess.run(comando, stdout=gz, stderr=subprocess.PIPE, env=env, timeout=1800)
-        if resultado.returncode != 0:
-            detalhe = (resultado.stderr or b"").decode("utf-8", errors="ignore")[:300]
-            raise ValueError("Falha ao executar mysqldump: " + detalhe)
+        destino = Path(destino)
+        destino.parent.mkdir(parents=True, exist_ok=True)
+        raw_tmp = None
+        gz_tmp = None
+        try:
+            with tempfile.NamedTemporaryFile(prefix="database-", suffix=".sql", dir=destino.parent, delete=False) as raw:
+                raw_tmp = Path(raw.name)
+                resultado = subprocess.run(comando, stdout=raw, stderr=subprocess.PIPE, env=env, timeout=1800)
+            if resultado.returncode != 0:
+                detalhe = (resultado.stderr or b"").decode("utf-8", errors="ignore")[:300]
+                raise ValueError("Falha ao executar mysqldump: " + detalhe)
+            if raw_tmp.stat().st_size == 0:
+                raise ValueError("mysqldump gerou arquivo vazio.")
+
+            gz_tmp = destino.with_name(destino.name + ".tmp")
+            with open(raw_tmp, "rb") as origem, gzip.open(gz_tmp, "wb") as gz:
+                shutil.copyfileobj(origem, gz)
+            BackupSistemaService._validar_dump_gzip(gz_tmp)
+            gz_tmp.replace(destino)
+        finally:
+            for temporario in (raw_tmp, gz_tmp):
+                if temporario and temporario.exists():
+                    temporario.unlink()
+
+    @staticmethod
+    def _validar_dump_gzip(caminho):
+        try:
+            with gzip.open(caminho, "rb") as gz:
+                amostra = gz.read(4096)
+        except OSError as erro:
+            raise ValueError("Dump do banco nao foi gerado em gzip valido.") from erro
+        if not amostra:
+            raise ValueError("Dump do banco gerado esta vazio.")
 
     @staticmethod
     def _localizar_mysqldump():

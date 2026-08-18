@@ -1,3 +1,5 @@
+import gzip
+
 from app.configuracoes.backup_service import BackupSistemaService
 
 
@@ -40,6 +42,35 @@ class ArquivoUploadFake:
     def save(self, destino):
         self.destino = destino
         destino.write_text("backup", encoding="utf-8")
+
+
+def test_dump_database_gera_gzip_valido(monkeypatch, tmp_path):
+    monkeypatch.setenv("DB_HOST", "127.0.0.1")
+    monkeypatch.setenv("DB_PORT", "3306")
+    monkeypatch.setenv("DB_USER", "root")
+    monkeypatch.setenv("DB_PASSWORD", "senha")
+    monkeypatch.setenv("DB_NAME", "o3cloud_manager")
+    monkeypatch.setattr(BackupSistemaService, "_localizar_mysqldump", lambda: "/usr/bin/mysqldump")
+
+    def fake_run(comando, stdout, stderr, env, timeout):
+        stdout.write(b"-- MariaDB dump\nCREATE TABLE teste (id int);\n")
+
+        class Resultado:
+            returncode = 0
+            stderr = b""
+
+        return Resultado()
+
+    monkeypatch.setattr("app.configuracoes.backup_service.subprocess.run", fake_run)
+
+    destino = tmp_path / "database.sql.gz"
+    BackupSistemaService._dump_database(destino)
+
+    with gzip.open(destino, "rb") as arquivo:
+        conteudo = arquivo.read()
+
+    assert conteudo.startswith(b"-- MariaDB dump")
+    assert b"CREATE TABLE teste" in conteudo
 
 
 def test_restaurar_upload_exige_confirmacao():

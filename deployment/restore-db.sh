@@ -168,10 +168,10 @@ if [ "$SKIP_SERVICE" -ne 1 ]; then
 fi
 
 log "Restaurando dump $SQL_FILE."
-if [ "${SQL_FILE%.gz}" != "$SQL_FILE" ]; then
+if gzip -t "$SQL_FILE" >/dev/null 2>&1; then
   gzip -dc "$SQL_FILE" | "$MYSQL_BIN" --host "$DB_HOST" --port "$DB_PORT" --user "$DB_USER" --database "$DB_NAME"
 else
-  "$MYSQL_BIN" --host "$DB_HOST" --port "$DB_PORT" --user "$DB_USER" --database "$DB_NAME" < "$SQL_FILE"
+  "$MYSQL_BIN" --binary-mode --host "$DB_HOST" --port "$DB_PORT" --user "$DB_USER" --database "$DB_NAME" < "$SQL_FILE"
 fi
 
 if [ "$SKIP_SERVICE" -ne 1 ]; then
@@ -181,7 +181,16 @@ fi
 
 if [ -x "$APP_DIR/deployment/healthcheck.sh" ]; then
   log "Executando healthcheck."
-  "$APP_DIR/deployment/healthcheck.sh"
+  healthcheck_ok=0
+  for tentativa in 1 2 3 4 5; do
+    if "$APP_DIR/deployment/healthcheck.sh"; then
+      healthcheck_ok=1
+      break
+    fi
+    log "Healthcheck ainda nao respondeu; nova tentativa em 3s ($tentativa/5)."
+    sleep 3
+  done
+  [ "$healthcheck_ok" -eq 1 ] || fail "Healthcheck falhou apos iniciar o servico."
 else
   log "Healthcheck nao encontrado; restore SQL concluido."
 fi

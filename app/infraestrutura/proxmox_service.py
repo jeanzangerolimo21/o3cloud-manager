@@ -11,6 +11,7 @@ from app.repositories.proxmox_inventory_repository import ProxmoxInventoryReposi
 
 class ProxmoxInventoryService:
     repository = ProxmoxInventoryRepository
+    STORAGES_VM_CT_CONTABILIZADOS = {"nvme", "storage2"}
 
     @classmethod
     def listar(cls, tipo=None, status=None, node=None, pesquisa=None):
@@ -138,17 +139,30 @@ class ProxmoxInventoryService:
         nodes_base = cliente.listar_nodes()
 
         def coletar(node):
+            node_nome = node.get("node")
             status_node = {}
             storages_node = []
+            conteudos_storage = {}
+            falha_conteudo_storage = False
             try:
-                status_node = cliente.obter_status_node(node.get("node"))
+                status_node = cliente.obter_status_node(node_nome)
             except requests.exceptions.RequestException:
                 status_node = {}
             try:
-                storages_node = cliente.listar_storage_node(node.get("node"))
+                storages_node = cliente.listar_storage_node(node_nome)
             except requests.exceptions.RequestException:
                 storages_node = []
-            return cls._normalizar_node(node, status_node, storages_node)
+            for storage in storages_node:
+                storage_nome = storage.get("storage")
+                if not cls._storage_vm_ct_contabilizado(storage_nome):
+                    continue
+                try:
+                    conteudos_storage[storage_nome] = cliente.listar_conteudo_storage(node_nome, storage_nome)
+                except requests.exceptions.RequestException:
+                    falha_conteudo_storage = True
+            if falha_conteudo_storage:
+                conteudos_storage = {}
+            return cls._normalizar_node(node, status_node, storages_node, conteudos_storage)
 
         with ThreadPoolExecutor(max_workers=min(6, max(1, len(nodes_base)))) as executor:
             futures = [executor.submit(coletar, node) for node in nodes_base]
@@ -204,20 +218,28 @@ class ProxmoxInventoryService:
         return len([chave for chave in config if chave.startswith("net")])
 
     @staticmethod
-    def _normalizar_node(node, status=None, storages=None):
+    def _normalizar_node(node, status=None, storages=None, conteudos_storage=None):
         status = status or {}
         storages = storages or []
+        conteudos_storage = conteudos_storage or {}
         memoria = status.get("memory") or {}
         storage_util = ProxmoxInventoryService._storage_util_vm(storages)
+        storage_contabilizado = [
+            item for item in storage_util
+            if ProxmoxInventoryService._storage_vm_ct_contabilizado(item.get("storage"))
+        ]
         cpu_total = node.get("maxcpu") or (status.get("cpuinfo") or {}).get("cpus")
         cpu_percent = round(float(node.get("cpu") or status.get("cpu") or 0) * 100, 2)
         memoria_total = memoria.get("total") or node.get("maxmem")
         memoria_usada = memoria.get("used") or node.get("mem")
         memoria_disponivel = memoria.get("available") or memoria.get("free")
         rootfs = status.get("rootfs") or {}
-        disco_total = sum(item.get("total") or 0 for item in storage_util)
-        disco_usado = sum(item.get("used") or 0 for item in storage_util)
-        disco_disponivel = sum(item.get("avail") or 0 for item in storage_util)
+        disco_total = sum(item.get("total") or 0 for item in storage_contabilizado)
+        if conteudos_storage:
+            disco_usado = ProxmoxInventoryService._bytes_storage_conteudo(conteudos_storage)
+        else:
+            disco_usado = sum(item.get("used") or 0 for item in storage_contabilizado)
+        disco_disponivel = max(disco_total - disco_usado, 0) if disco_total else 0
         if not disco_total:
             disco_total = rootfs.get("total") or node.get("maxdisk")
             disco_usado = rootfs.get("used") or node.get("disk")
@@ -233,11 +255,23 @@ class ProxmoxInventoryService:
             "disco_total_gb": ProxmoxInventoryService._bytes_para_gb(disco_total),
             "disco_usado_gb": ProxmoxInventoryService._bytes_para_gb(disco_usado),
             "disco_disponivel_gb": ProxmoxInventoryService._bytes_para_gb(disco_disponivel),
-            "storages_qtd": len(storage_util),
+            "storages_qtd": len(storage_contabilizado),
             "uptime_seconds": status.get("uptime") or node.get("uptime"),
             "pve_version": status.get("pveversion"),
-            "raw_payload": {"node": node, "status": status, "storages": storages},
+            "raw_payload": {"node": node, "status": status, "storages": storages, "conteudos_storage": conteudos_storage},
         }
+
+    @staticmethod
+    def _storage_vm_ct_contabilizado(storage_nome):
+        return (storage_nome or "").strip().lower() in ProxmoxInventoryService.STORAGES_VM_CT_CONTABILIZADOS
+
+    @staticmethod
+    def _bytes_storage_conteudo(conteudos_storage):
+        total = 0
+        for volumes in (conteudos_storage or {}).values():
+            for volume in volumes or []:
+                total += int(volume.get("size") or 0)
+        return total
 
     @staticmethod
     def _storage_util_vm(storages):

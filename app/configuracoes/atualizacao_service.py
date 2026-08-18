@@ -12,6 +12,10 @@ from app.repositories.base_repository import BaseRepository
 class AtualizacaoSistemaService:
     REPO_DIR = Path(__file__).resolve().parents[2]
     repository = BaseRepository
+    CANAIS = {
+        "beta": {"label": "Beta", "branch": "beta", "prerelease": True},
+        "production": {"label": "Production", "branch": "main", "prerelease": False},
+    }
 
     @classmethod
     def contexto(cls):
@@ -28,7 +32,44 @@ class AtualizacaoSistemaService:
 
 
     @classmethod
-    def verificar_atualizacoes(cls, usuario_email):
+    def executar_atualizacao(cls, usuario_email, confirmacao, canal="beta"):
+        if (confirmacao or "").strip() != "ATUALIZAR":
+            raise ValueError("Digite ATUALIZAR para confirmar a atualização do sistema.")
+        estado = cls.estado_instalado()
+        if not estado.get("worktree_limpa"):
+            raise ValueError("Worktree com alterações locais. Faça commit/stash antes de atualizar.")
+        canal = cls._normalizar_canal(canal)
+        branch = cls.CANAIS[canal]["branch"]
+        runner = Path(os.getenv("UPDATE_RUNNER_PATH") or "/usr/local/sbin/o3cloud-update-beta")
+        if not runner.exists():
+            runner = cls.REPO_DIR / "deployment" / "update-beta.sh"
+        if not runner.exists():
+            raise ValueError("Runner de atualização não encontrado.")
+        comando = ["sudo", "-n", str(runner)]
+        env = {
+            **os.environ,
+            "APP_DIR": str(cls.REPO_DIR),
+            "UPDATE_BRANCH": branch,
+            "UPDATE_CHANNEL": canal,
+        }
+        try:
+            subprocess.Popen(
+                comando,
+                cwd=str(cls.REPO_DIR),
+                env=env,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except FileNotFoundError as erro:
+            raise ValueError("sudo não encontrado no servidor.") from erro
+        except OSError as erro:
+            raise ValueError(f"Falha ao iniciar runner de atualização: {erro}") from erro
+        return f"ATUALIZAÇÃO: iniciada em segundo plano para {cls.CANAIS[canal]['label']} ({branch}). Acompanhe em logs/update-beta-*.log e aguarde o healthcheck após o restart."
+
+    @classmethod
+    def verificar_atualizacoes(cls, usuario_email, canal="beta"):
+        canal = cls._normalizar_canal(canal)
         estado = cls.estado_instalado()
         execucao_id = cls.repository.execute_insert(
             """
@@ -49,13 +90,25 @@ class AtualizacaoSistemaService:
             tags_remotas = cls._tags_remotas(estado.get("remoto"))
             github_repo = cls._github_repo_from_remote(estado.get("remoto"))
             github_releases = cls._github_releases(github_repo) if github_repo else []
-            release_recomendada = cls._release_recomendada(tags_remotas, estado)
-            github_release_recomendada = cls._github_release_recomendada(github_releases, estado)
+            releases_por_canal = {
+                nome: cls._filtrar_releases_canal(github_releases, nome)
+                for nome in cls.CANAIS
+            }
+            release_recomendada = cls._release_recomendada(
+                cls._filtrar_tags_canal(tags_remotas, canal),
+                estado,
+            )
+            github_release_recomendada = cls._github_release_recomendada(github_releases, estado, canal)
             payload = {
+                "canal": canal,
+                "canal_label": cls.CANAIS[canal]["label"],
+                "branch_alvo": cls.CANAIS[canal]["branch"],
                 "tags_remotas": tags_remotas[:30],
+                "tags_canal": cls._filtrar_tags_canal(tags_remotas, canal)[:20],
                 "release_recomendada": release_recomendada,
                 "github_repo": github_repo,
                 "github_releases": github_releases[:20],
+                "github_releases_por_canal": {k: v[:8] for k, v in releases_por_canal.items()},
                 "github_release_recomendada": github_release_recomendada,
                 "estado": {
                     "branch": estado.get("branch"),
@@ -66,11 +119,14 @@ class AtualizacaoSistemaService:
                 },
             }
             status = "OK"
-            mensagem = "Verificação concluída."
+            alvo = github_release_recomendada or release_recomendada
+            mensagem = f"Verificação concluída para {cls.CANAIS[canal]['label']}."
+            if alvo:
+                mensagem += f" Atualização disponível: {alvo}."
             releases_total = len(tags_remotas)
             github_releases_total = len(github_releases)
         except Exception as erro:
-            payload = {"erro": str(erro)[:500]}
+            payload = {"canal": canal, "erro": str(erro)[:500]}
             status = "ERRO"
             mensagem = str(erro)[:500]
             release_recomendada = None
@@ -213,11 +269,36 @@ class AtualizacaoSistemaService:
         return releases
 
     @classmethod
-    def _github_release_recomendada(cls, releases, estado):
+    def _normalizar_canal(cls, canal):
+        canal = (canal or "beta").strip().lower()
+        aliases = {"main": "production", "prod": "production", "producao": "production", "produção": "production"}
+        canal = aliases.get(canal, canal)
+        if canal not in cls.CANAIS:
+            raise ValueError("Canal de atualização não permitido.")
+        return canal
+
+    @classmethod
+    def _filtrar_releases_canal(cls, releases, canal):
+        canal = cls._normalizar_canal(canal)
+        prerelease = cls.CANAIS[canal]["prerelease"]
+        return [
+            release for release in releases
+            if not release.get("draft") and bool(release.get("prerelease")) == prerelease
+        ]
+
+    @classmethod
+    def _filtrar_tags_canal(cls, tags, canal):
+        canal = cls._normalizar_canal(canal)
+        if canal == "beta":
+            return [tag for tag in tags if "beta" in tag.lower()]
+        return [tag for tag in tags if not re.search(r"(alpha|beta|rc)", tag, re.IGNORECASE)]
+
+    @classmethod
+    def _github_release_recomendada(cls, releases, estado, canal="beta"):
         atual = estado.get("tag_atual") or estado.get("ultima_tag")
-        for release in releases:
+        for release in cls._filtrar_releases_canal(releases, canal):
             tag = release.get("tag")
-            if tag and tag != atual and not release.get("draft"):
+            if tag and tag != atual:
                 return tag
         return None
 

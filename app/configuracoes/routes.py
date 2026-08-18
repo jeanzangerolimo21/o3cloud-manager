@@ -1,4 +1,5 @@
 from flask import Blueprint
+from flask import current_app
 from flask import abort
 from flask import flash
 from flask import redirect
@@ -302,6 +303,9 @@ def backups_restaurar():
         resultado = BackupSistemaService.restaurar_upload(request.files.get("arquivo_backup"), request.form, _email_usuario_logado())
     except ValueError as erro:
         flash(str(erro), "danger")
+    except Exception as erro:
+        current_app.logger.exception("Falha inesperada ao restaurar backup")
+        flash(f"Falha inesperada ao restaurar backup: {str(erro)[:300]}", "danger")
     else:
         flash(resultado, "success")
     return redirect(url_for("configuracoes.backups_index"))
@@ -402,11 +406,27 @@ def atualizacoes_index():
 def atualizacoes_verificar():
     _exigir_admin()
     try:
-        resultado = AtualizacaoSistemaService.verificar_atualizacoes(_email_usuario_logado())
+        resultado = AtualizacaoSistemaService.verificar_atualizacoes(_email_usuario_logado(), request.form.get("canal") or "beta")
     except ValueError as erro:
         flash(str(erro), "danger")
     else:
         flash(resultado, "success")
+    return redirect(url_for("configuracoes.atualizacoes_index"))
+
+
+@configuracoes_bp.route("/atualizacoes/executar", methods=["POST"])
+def atualizacoes_executar():
+    _exigir_admin()
+    try:
+        resultado = AtualizacaoSistemaService.executar_atualizacao(
+            _email_usuario_logado(),
+            request.form.get("confirmacao"),
+            request.form.get("canal") or request.form.get("branch") or "beta",
+        )
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash(resultado, "warning")
     return redirect(url_for("configuracoes.atualizacoes_index"))
 
 

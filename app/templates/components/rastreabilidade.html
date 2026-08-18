@@ -46,7 +46,9 @@
                     {% if rastreabilidade.contrato %}
                     <div class="small text-muted mb-2">Origem: {{ rastreabilidade.contrato.origem or "-" }}{% if rastreabilidade.contrato.codigo_externo %} | Omie: {{ rastreabilidade.contrato.codigo_externo }}{% endif %}</div>
                     <div class="small text-muted mb-2">Fechamento: {{ rastreabilidade.contrato.data_fechamento|date_br if rastreabilidade.contrato.data_fechamento else "-" }}</div>
+                    {% if pode_acessar('contratos') %}
                     <a class="btn btn-sm btn-outline-primary" href="{{ url_for('contratos.view', contrato_id=rastreabilidade.contrato.id) }}"><i class="bi bi-file-earmark-check"></i> Abrir Contrato</a>
+                    {% endif %}
                     {% else %}
                     <div class="text-muted small">A proposta ainda não possui contrato ativo vinculado.</div>
                     {% endif %}

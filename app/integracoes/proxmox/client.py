@@ -32,6 +32,12 @@ class ProxmoxClient:
     def listar_storage_node(self, node):
         return self._get(f"/api2/json/nodes/{node}/storage", timeout=min(self.timeout, 12))
 
+    def listar_conteudo_storage(self, node, storage):
+        return self._get(
+            f"/api2/json/nodes/{node}/storage/{storage}/content",
+            timeout=min(self.timeout, 12),
+        )
+
     def listar_vms_containers(self):
         recursos = self._get("/api2/json/cluster/resources", params={"type": "vm"})
         return [item for item in recursos if item.get("type") in ("qemu", "lxc")]
