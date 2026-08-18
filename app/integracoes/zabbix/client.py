@@ -48,6 +48,25 @@ class ZabbixClient:
         }
         return self._post(payload)
 
+    def problemas_ativos(self, limite=1000):
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "problem.get",
+            "params": {
+                "output": "extend",
+                "selectHosts": ["hostid", "host", "name"],
+                "selectRelatedObject": ["triggerid", "description", "priority", "status"],
+                "source": 0,
+                "object": 0,
+                "sortfield": ["eventid"],
+                "sortorder": "DESC",
+                "limit": max(1, min(int(limite or 1000), 1000)),
+            },
+            "auth": self.token,
+            "id": 3,
+        }
+        return self._post(payload)
+
     def _post(self, payload):
         response = requests.post(
             self._api_url(),

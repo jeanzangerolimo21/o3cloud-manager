@@ -90,8 +90,21 @@ class ZabbixMonitoramentoService:
             hosts = [cls._normalizar_host(item) for item in cliente.listar_hosts()]
             hosts_atualizados = cls.host_repository.salvar(integracao.get("id"), hosts)
             eventos = cliente.eventos_recentes(limite=limite)
+            problemas_ativos = {
+                str(item.get("eventid")): item
+                for item in cliente.problemas_ativos(limite=1000)
+                if item.get("eventid")
+            }
             alarmes = sorted(
-                [cls._normalizar_evento(evento, integracao) for evento in eventos],
+                [
+                    cls._normalizar_evento(
+                        evento,
+                        integracao,
+                        problema_ativo=problemas_ativos.get(str(evento.get("eventid"))),
+                        ativo_no_zabbix=str(evento.get("eventid")) in problemas_ativos,
+                    )
+                    for evento in eventos
+                ],
                 key=lambda item: (0 if item.get("aberto") else 1, -item.get("severidade", 0), -int(item.get("clock") or 0)),
             )
             atualizados = cls.repository.salvar(integracao.get("id"), alarmes)
@@ -165,12 +178,19 @@ class ZabbixMonitoramentoService:
         }
 
     @classmethod
-    def _normalizar_evento(cls, evento, integracao):
-        relacionado = evento.get("relatedObject") or {}
-        hosts = evento.get("hosts") or []
-        severidade = cls._inteiro(evento.get("severity"), cls._inteiro(relacionado.get("priority"), 0))
+    def _normalizar_evento(cls, evento, integracao, problema_ativo=None, ativo_no_zabbix=None):
+        problema_ativo = problema_ativo or {}
+        relacionado = problema_ativo.get("relatedObject") or evento.get("relatedObject") or {}
+        hosts = problema_ativo.get("hosts") or evento.get("hosts") or []
+        severidade = cls._inteiro(
+            relacionado.get("priority"),
+            cls._inteiro(problema_ativo.get("severity"), cls._inteiro(evento.get("severity"), 0)),
+        )
         severidade_info = SEVERIDADES.get(severidade, SEVERIDADES[0])
-        aberto = str(evento.get("value")) == "1"
+        recuperado = cls._tem_valor(evento.get("r_eventid")) or cls._tem_valor(evento.get("r_clock"))
+        aberto = str(evento.get("value")) == "1" and not recuperado
+        if ativo_no_zabbix is not None:
+            aberto = aberto and bool(ativo_no_zabbix)
         clock = cls._inteiro(evento.get("clock"), 0)
         return {
             "eventid": evento.get("eventid"),
@@ -186,7 +206,7 @@ class ZabbixMonitoramentoService:
             "nome": evento.get("name") or relacionado.get("description") or "Alarme Zabbix",
             "host": cls._host_label(hosts),
             "integracao_nome": integracao.get("nome"),
-            "acknowledged": str(evento.get("acknowledged")) == "1",
+            "acknowledged": str(problema_ativo.get("acknowledged", evento.get("acknowledged"))) == "1",
             "raw_payload": json.dumps(evento, ensure_ascii=False),
         }
 
@@ -217,3 +237,7 @@ class ZabbixMonitoramentoService:
             return int(valor)
         except (TypeError, ValueError):
             return padrao
+
+    @staticmethod
+    def _tem_valor(valor):
+        return str(valor or "").strip() not in ("", "0")
