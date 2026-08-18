@@ -160,10 +160,12 @@ class ProxmoxInventoryService:
             try:
                 storages_node = cliente.listar_storage_node(node_nome)
             except requests.exceptions.RequestException:
-                storages_node = []
+                storages_node = cls._storages_contabilizados_por_conteudo(cliente, node_nome, conteudos_storage)
             for storage in storages_node:
                 storage_nome = storage.get("storage")
                 if not cls._storage_vm_ct_contabilizado(storage_nome):
+                    continue
+                if storage_nome in conteudos_storage:
                     continue
                 try:
                     conteudos_storage[storage_nome] = cliente.listar_conteudo_storage(node_nome, storage_nome)
@@ -176,6 +178,28 @@ class ProxmoxInventoryService:
         with ThreadPoolExecutor(max_workers=min(6, max(1, len(nodes_base)))) as executor:
             futures = [executor.submit(coletar, node) for node in nodes_base]
             return [future.result() for future in as_completed(futures)]
+
+    @classmethod
+    def _storages_contabilizados_por_conteudo(cls, cliente, node_nome, conteudos_storage):
+        storages = []
+        for storage_nome in cls.STORAGES_VM_CT_CONTABILIZADOS:
+            try:
+                conteudo = cliente.listar_conteudo_storage(node_nome, storage_nome)
+            except requests.exceptions.RequestException:
+                continue
+            conteudos_storage[storage_nome] = conteudo
+            storages.append({
+                "storage": storage_nome,
+                "active": 1,
+                "enabled": 1,
+                "content": "images,rootdir",
+                "type": "dir",
+                "total": 0,
+                "used": cls._bytes_storage_conteudo({storage_nome: conteudo}),
+                "avail": 0,
+                "fallback_conteudo": True,
+            })
+        return storages
 
     @classmethod
     def sincronizar_integracao(cls, integracao_id, usuario_email="sistema", detalhado=False):
@@ -249,7 +273,7 @@ class ProxmoxInventoryService:
         else:
             disco_usado = sum(item.get("used") or 0 for item in storage_contabilizado)
         disco_disponivel = max(disco_total - disco_usado, 0) if disco_total else 0
-        if not disco_total:
+        if not storage_contabilizado:
             disco_total = rootfs.get("total") or node.get("maxdisk")
             disco_usado = rootfs.get("used") or node.get("disk")
             disco_disponivel = rootfs.get("avail") or rootfs.get("free")
