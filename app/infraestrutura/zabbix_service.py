@@ -95,12 +95,21 @@ class ZabbixMonitoramentoService:
                 for item in cliente.problemas_ativos(limite=1000)
                 if item.get("eventid")
             }
+            triggerids_ativos = {item.get("objectid") for item in problemas_ativos.values() if item.get("objectid")}
+            triggers_ativos = {
+                str(item.get("triggerid")): item
+                for item in cliente.triggers_por_ids(triggerids_ativos)
+                if item.get("triggerid")
+            }
             alarmes = sorted(
                 [
                     cls._normalizar_evento(
                         evento,
                         integracao,
                         problema_ativo=problemas_ativos.get(str(evento.get("eventid"))),
+                        trigger_atual=triggers_ativos.get(
+                            str((problemas_ativos.get(str(evento.get("eventid"))) or {}).get("objectid"))
+                        ),
                         ativo_no_zabbix=str(evento.get("eventid")) in problemas_ativos,
                     )
                     for evento in eventos
@@ -178,10 +187,11 @@ class ZabbixMonitoramentoService:
         }
 
     @classmethod
-    def _normalizar_evento(cls, evento, integracao, problema_ativo=None, ativo_no_zabbix=None):
+    def _normalizar_evento(cls, evento, integracao, problema_ativo=None, trigger_atual=None, ativo_no_zabbix=None):
         problema_ativo = problema_ativo or {}
-        relacionado = problema_ativo.get("relatedObject") or evento.get("relatedObject") or {}
-        hosts = problema_ativo.get("hosts") or evento.get("hosts") or []
+        trigger_atual = trigger_atual or {}
+        relacionado = trigger_atual or problema_ativo.get("relatedObject") or evento.get("relatedObject") or {}
+        hosts = trigger_atual.get("hosts") or problema_ativo.get("hosts") or evento.get("hosts") or []
         severidade = cls._inteiro(
             relacionado.get("priority"),
             cls._inteiro(problema_ativo.get("severity"), cls._inteiro(evento.get("severity"), 0)),
@@ -203,7 +213,7 @@ class ZabbixMonitoramentoService:
             "severidade": severidade,
             "severidade_label": severidade_info["label"],
             "severidade_classe": severidade_info["classe"],
-            "nome": evento.get("name") or relacionado.get("description") or "Alarme Zabbix",
+            "nome": problema_ativo.get("name") or evento.get("name") or relacionado.get("description") or "Alarme Zabbix",
             "host": cls._host_label(hosts),
             "integracao_nome": integracao.get("nome"),
             "acknowledged": str(problema_ativo.get("acknowledged", evento.get("acknowledged"))) == "1",

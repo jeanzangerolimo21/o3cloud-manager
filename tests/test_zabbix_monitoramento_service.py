@@ -54,16 +54,23 @@ def test_normalizar_evento_ativo_usa_estado_atual_do_zabbix():
     }
     problema_ativo = {
         "eventid": "75574243",
-        "severity": "2",
+        "objectid": "9988",
+        "severity": "4",
         "acknowledged": "1",
+        "name": "CPU media",
+    }
+    trigger_atual = {
+        "triggerid": "9988",
+        "priority": "2",
+        "description": "CPU media",
         "hosts": [{"name": "host-atual"}],
-        "relatedObject": {"priority": "2", "description": "CPU media"},
     }
 
     alarme = ZabbixMonitoramentoService._normalizar_evento(
         evento,
         {"nome": "Zabbix - O3Cloud"},
         problema_ativo=problema_ativo,
+        trigger_atual=trigger_atual,
         ativo_no_zabbix=True,
     )
 
@@ -72,3 +79,20 @@ def test_normalizar_evento_ativo_usa_estado_atual_do_zabbix():
     assert alarme["severidade_label"] == "Média"
     assert alarme["acknowledged"] is True
     assert alarme["host"] == "host-atual"
+
+
+def test_problem_get_nao_usa_parametros_rejeitados_pelo_zabbix(monkeypatch):
+    payloads = []
+
+    def fake_post(self, payload):
+        payloads.append(payload)
+        return []
+
+    from app.integracoes.zabbix.client import ZabbixClient
+
+    monkeypatch.setattr(ZabbixClient, "_post", fake_post)
+    ZabbixClient("https://zabbix.example.com", "token").problemas_ativos()
+
+    params = payloads[0]["params"]
+    assert "selectHosts" not in params
+    assert "selectRelatedObject" not in params

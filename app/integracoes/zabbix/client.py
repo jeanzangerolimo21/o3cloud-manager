@@ -54,8 +54,6 @@ class ZabbixClient:
             "method": "problem.get",
             "params": {
                 "output": "extend",
-                "selectHosts": ["hostid", "host", "name"],
-                "selectRelatedObject": ["triggerid", "description", "priority", "status"],
                 "source": 0,
                 "object": 0,
                 "sortfield": ["eventid"],
@@ -64,6 +62,23 @@ class ZabbixClient:
             },
             "auth": self.token,
             "id": 3,
+        }
+        return self._post(payload)
+
+    def triggers_por_ids(self, triggerids):
+        ids = [str(item) for item in (triggerids or []) if item]
+        if not ids:
+            return []
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "trigger.get",
+            "params": {
+                "output": ["triggerid", "description", "priority", "status"],
+                "triggerids": ids,
+                "selectHosts": ["hostid", "host", "name"],
+            },
+            "auth": self.token,
+            "id": 4,
         }
         return self._post(payload)
 
