@@ -144,12 +144,16 @@ class TrueNASBackupService:
     @classmethod
     def _analisar_pasta(cls, cliente, pasta, ambiente, mountpoint, corte):
         arquivos = cls._listar_arquivos_monitorados(cliente, pasta.get("path"), corte)
+        subdiretorios = cls._listar_subdiretorios_monitorados(cliente, pasta.get("path"), corte)
         arquivos.sort(key=lambda item: item.get("mtime") or 0, reverse=True)
+        subdiretorios.sort(key=lambda item: item.get("mtime") or 0, reverse=True)
         recentes = [item for item in arquivos if item.get("recente")]
-        ultimo = arquivos[0] if arquivos else {}
+        recentes_subdiretorios = [item for item in subdiretorios if item.get("recente")]
+        itens_ordenados = sorted(arquivos + subdiretorios, key=lambda item: item.get("mtime") or 0, reverse=True)
+        ultimo = itens_ordenados[0] if itens_ordenados else {}
         detalhes = [
-            {"nome": item["nome"], "size": item["size"], "mtime": item["mtime_label"], "is_backup": item["is_backup"]}
-            for item in recentes[:10]
+            {"nome": item["nome"], "size": item.get("size", 0), "mtime": item["mtime_label"], "is_backup": item.get("is_backup", False)}
+            for item in sorted(recentes + recentes_subdiretorios, key=lambda item: item.get("mtime") or 0, reverse=True)[:10]
         ]
         return {
             "ambiente_id": ambiente.get("ambiente_id"),
@@ -157,7 +161,7 @@ class TrueNASBackupService:
             "cliente_nome": ambiente.get("cliente_nome"),
             "mountpoint": mountpoint,
             "pasta_path": pasta.get("path"),
-            "status": "OK" if recentes else "ALERTA",
+            "status": "OK" if recentes or recentes_subdiretorios else "ALERTA",
             "arquivos_recentes": len(recentes),
             "arquivos_total": len(arquivos),
             "ultimo_arquivo": ultimo.get("nome"),
@@ -166,7 +170,34 @@ class TrueNASBackupService:
         }
 
     @classmethod
-    def _listar_arquivos_monitorados(cls, cliente, raiz, corte, max_depth=3, max_files=300):
+    def _listar_subdiretorios_monitorados(cls, cliente, raiz, corte):
+        try:
+            itens = cliente.listar_diretorio(raiz)
+        except requests.exceptions.RequestException:
+            return []
+        subdiretorios = []
+        for item in itens:
+            nome = item.get("name") or ""
+            if item.get("type") != "DIRECTORY" or not cls._diretorio_monitorado(nome):
+                continue
+            try:
+                stat = cliente.stat(item.get("path"))
+            except requests.exceptions.RequestException:
+                continue
+            mtime = float(stat.get("mtime") or 0)
+            subdiretorios.append({
+                "nome": f"[DIR] {nome}",
+                "path": item.get("path"),
+                "size": 0,
+                "mtime": mtime,
+                "mtime_label": datetime.fromtimestamp(mtime).strftime("%d/%m/%Y %H:%M") if mtime else None,
+                "recente": mtime >= corte,
+                "is_backup": False,
+            })
+        return subdiretorios
+
+    @classmethod
+    def _listar_arquivos_monitorados(cls, cliente, raiz, corte, max_depth=0, max_files=300):
         arquivos = []
         pendentes = [(raiz, 0)]
         while pendentes and len(arquivos) < max_files:
