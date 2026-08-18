@@ -16,7 +16,13 @@ class TrueNASClient:
     def listar_diretorio(self, path):
         response = self.session.post(
             f"{self.base_url}/api/v2.0/filesystem/listdir",
-            json={"path": path},
+            json={
+                "path": path,
+                "query-options": {
+                    "relationships": False,
+                    "select": ["name", "path", "type", "size"],
+                },
+            },
             timeout=self.timeout,
             verify=self.verify_ssl,
         )

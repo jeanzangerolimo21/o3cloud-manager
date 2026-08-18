@@ -183,10 +183,12 @@ class TrueNASBackupService:
                     continue
                 if item.get("type") != "FILE" or not cls._arquivo_monitorado(nome):
                     continue
-                try:
-                    stat = cliente.stat(item.get("path"))
-                except requests.exceptions.RequestException:
-                    continue
+                stat = item
+                if not stat.get("mtime"):
+                    try:
+                        stat = cliente.stat(item.get("path"))
+                    except requests.exceptions.RequestException:
+                        continue
                 mtime = float(stat.get("mtime") or 0)
                 arquivos.append({
                     "nome": nome,
