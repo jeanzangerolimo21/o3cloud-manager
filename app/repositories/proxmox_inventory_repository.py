@@ -246,7 +246,7 @@ class ProxmoxInventoryRepository(BaseRepository):
             SELECT n.id, n.node, i.base_url, n.status, n.cpu_total, n.cpu_usado_percent,
                    n.memoria_total_mb, n.memoria_usada_mb, n.memoria_disponivel_mb,
                    n.disco_total_gb, n.disco_usado_gb, n.disco_disponivel_gb, n.storages_qtd,
-                   n.uptime_seconds, n.pve_version,
+                   n.uptime_seconds, n.pve_version, n.raw_payload,
                    n.ultimo_sync_em,
                    COUNT(v.id) AS recursos_total,
                    SUM(CASE WHEN v.tipo = 'qemu' THEN 1 ELSE 0 END) AS qemu_total,
@@ -270,7 +270,7 @@ class ProxmoxInventoryRepository(BaseRepository):
             GROUP BY n.id, n.node, i.base_url, n.status, n.cpu_total, n.cpu_usado_percent,
                      n.memoria_total_mb, n.memoria_usada_mb, n.memoria_disponivel_mb,
                      n.disco_total_gb, n.disco_usado_gb, n.disco_disponivel_gb, n.storages_qtd,
-                     n.uptime_seconds, n.pve_version,
+                     n.uptime_seconds, n.pve_version, n.raw_payload,
                      n.ultimo_sync_em
             ORDER BY n.node ASC
             """

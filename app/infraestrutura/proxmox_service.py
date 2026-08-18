@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlparse
+import json
 
 import requests
 
@@ -80,13 +81,21 @@ class ProxmoxInventoryService:
 
     @classmethod
     def dashboard_nodes(cls):
-        dashboard = cls.repository.dashboard_nodes() or {}
-        total_memoria = float(dashboard.get("memoria_total_mb") or 0)
-        usada_memoria = float(dashboard.get("memoria_usada_mb") or 0)
-        total_disco = float(dashboard.get("disco_total_gb") or 0)
-        usado_disco = float(dashboard.get("disco_usado_gb") or 0)
-        dashboard["memoria_usada_percent"] = cls._percentual(usada_memoria, total_memoria)
-        dashboard["disco_usado_percent"] = cls._percentual(usado_disco, total_disco)
+        nodes = cls.listar_nodes_dashboard()
+        dashboard = {
+            "nodes_total": len(nodes),
+            "online_total": sum(1 for item in nodes if item.get("status") == "online"),
+            "cpu_total": sum(float(item.get("cpu_total") or 0) for item in nodes),
+            "memoria_total_mb": sum(float(item.get("memoria_total_mb") or 0) for item in nodes),
+            "memoria_usada_mb": sum(float(item.get("memoria_usada_mb") or 0) for item in nodes),
+            "memoria_disponivel_mb": sum(float(item.get("memoria_disponivel_mb") or 0) for item in nodes),
+            "disco_total_gb": sum(float(item.get("disco_total_gb") or 0) for item in nodes),
+            "disco_usado_gb": sum(float(item.get("disco_usado_gb") or 0) for item in nodes),
+            "disco_disponivel_gb": sum(float(item.get("disco_disponivel_gb") or 0) for item in nodes),
+            "storages_qtd": sum(int(item.get("storages_qtd") or 0) for item in nodes),
+        }
+        dashboard["memoria_usada_percent"] = cls._percentual(dashboard["memoria_usada_mb"], dashboard["memoria_total_mb"])
+        dashboard["disco_usado_percent"] = cls._percentual(dashboard["disco_usado_gb"], dashboard["disco_total_gb"])
         return dashboard
 
     @classmethod
@@ -316,9 +325,51 @@ class ProxmoxInventoryService:
         return item
 
     @staticmethod
+    def _aplicar_storages_node(item):
+        payload = ProxmoxInventoryService._parse_raw_payload(item.get("raw_payload"))
+        storages = (payload.get("storages") or []) if isinstance(payload, dict) else []
+        conteudos = (payload.get("conteudos_storage") or {}) if isinstance(payload, dict) else {}
+        detalhes = []
+        for storage in storages:
+            nome = storage.get("storage")
+            contabilizado = ProxmoxInventoryService._storage_vm_ct_contabilizado(nome)
+            usado = storage.get("used") or 0
+            if contabilizado and nome in conteudos:
+                usado = ProxmoxInventoryService._bytes_storage_conteudo({nome: conteudos.get(nome)})
+            detalhes.append({
+                "nome": nome or "-",
+                "contabilizado": contabilizado,
+                "total_gb": ProxmoxInventoryService._bytes_para_gb(storage.get("total") or 0),
+                "usado_gb": ProxmoxInventoryService._bytes_para_gb(usado),
+                "disponivel_gb": ProxmoxInventoryService._bytes_para_gb(storage.get("avail") or 0),
+                "conteudo": storage.get("content") or "-",
+            })
+        contabilizados = [storage for storage in detalhes if storage.get("contabilizado")]
+        if contabilizados:
+            total = sum(float(storage.get("total_gb") or 0) for storage in contabilizados)
+            usado = sum(float(storage.get("usado_gb") or 0) for storage in contabilizados)
+            item["disco_total_gb"] = round(total, 2)
+            item["disco_usado_gb"] = round(usado, 2)
+            item["disco_disponivel_gb"] = round(max(total - usado, 0), 2)
+            item["storages_qtd"] = len(contabilizados)
+        item["storages_detalhes"] = detalhes
+
+    @staticmethod
+    def _parse_raw_payload(raw_payload):
+        if not raw_payload:
+            return {}
+        if isinstance(raw_payload, dict):
+            return raw_payload
+        try:
+            return json.loads(raw_payload)
+        except (TypeError, ValueError):
+            return {}
+
+    @staticmethod
     def _com_percentuais_node(node):
         item = dict(node)
         item["web_gui_url"] = ProxmoxInventoryService._web_gui_url(item.get("base_url"))
+        ProxmoxInventoryService._aplicar_storages_node(item)
         item["memoria_usada_percent"] = ProxmoxInventoryService._percentual(
             item.get("memoria_usada_mb"), item.get("memoria_total_mb")
         )

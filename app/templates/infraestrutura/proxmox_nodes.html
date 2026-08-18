@@ -61,10 +61,23 @@
                             <small class="text-muted">Disponível {{ ((item.memoria_disponivel_mb or 0) / 1024) | round(1) }} GB · {{ item.memoria_usada_percent or 0 }}%</small>
                             {{ barra(item.memoria_usada_percent, 'success' if (item.memoria_usada_percent or 0) < 75 else 'warning') }}
                         </td>
-                        <td style="min-width: 150px;">
+                        <td style="min-width: 230px;">
                             <strong>{{ item.disco_usado_gb or 0 }} / {{ item.disco_total_gb or 0 }} GB</strong><br>
-                            <small class="text-muted">Disponível {{ item.disco_disponivel_gb or 0 }} GB · {{ item.storages_qtd or 0 }} storages</small>
+                            <small class="text-muted">Somente nvme e Storage2 · {{ item.disco_usado_percent or 0 }}%</small>
                             {{ barra(item.disco_usado_percent, 'success' if (item.disco_usado_percent or 0) < 75 else 'warning') }}
+                            <div class="mt-2 small">
+                                {% for storage in item.storages_detalhes or [] %}
+                                <div class="d-flex justify-content-between gap-2 border-top py-1">
+                                    <span>
+                                        <span class="badge text-bg-{{ 'success' if storage.contabilizado else 'light' }} border text-{{ 'white' if storage.contabilizado else 'muted' }}">{{ storage.nome }}</span>
+                                        {% if not storage.contabilizado %}<span class="text-muted">ignorado</span>{% endif %}
+                                    </span>
+                                    <span class="text-end">{{ storage.usado_gb }} / {{ storage.total_gb }} GB</span>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">Detalhe por storage indisponível. Sincronize o Proxmox.</span>
+                                {% endfor %}
+                            </div>
                         </td>
                         <td style="min-width: 170px;">
                             <small class="text-muted">CPU alocada</small> {{ item.cpu_alocada or 0 }} ({{ item.cpu_alocada_percent or 0 }}%)<br>
