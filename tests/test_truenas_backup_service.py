@@ -38,3 +38,16 @@ def test_varredura_consulta_data_dos_subdiretorios_sem_entrar_neles():
     assert subdiretorios[0]["nome"] == "[DIR] integraw"
     assert subdiretorios[0]["recente"] is True
     assert cliente.listagens == ["/mnt/BKP1/AJFlores"]
+
+
+def test_storage_valido_e_normalizado():
+    assert TrueNASBackupService._normalizar_storage("/mnt/bkp1") == "/mnt/BKP1"
+
+
+def test_storage_invalido_e_rejeitado():
+    try:
+        TrueNASBackupService._normalizar_storage("/mnt/OUTRO")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("storage invalido deveria ser rejeitado")

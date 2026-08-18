@@ -54,11 +54,18 @@ class TrueNASBackupRepository(BaseRepository):
         return cls.fetch_one(sql, tuple(params))
 
     @classmethod
-    def salvar_cache(cls, integracao_id, registros):
+    def salvar_cache(cls, integracao_id, registros, mountpoints=None):
         conn = cls.connection()
         cursor = conn.cursor()
         try:
-            cursor.execute("DELETE FROM truenas_backup_cache WHERE integracao_id = %s", (integracao_id,))
+            if mountpoints:
+                placeholders = ", ".join(["%s"] * len(mountpoints))
+                cursor.execute(
+                    f"DELETE FROM truenas_backup_cache WHERE integracao_id = %s AND mountpoint IN ({placeholders})",
+                    (integracao_id, *mountpoints),
+                )
+            else:
+                cursor.execute("DELETE FROM truenas_backup_cache WHERE integracao_id = %s", (integracao_id,))
             for item in registros:
                 cursor.execute(
                     """

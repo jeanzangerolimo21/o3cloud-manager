@@ -329,12 +329,13 @@ def _filtrar_zabbix_status(alarmes, filtro_status):
 def sincronizar_backup_nas():
     integracao_id = request.form.get("integracao_id", type=int)
     periodo_horas = request.form.get("periodo_horas", default=24, type=int)
+    storage = request.form.get("storage") or None
     pesquisa = request.form.get("q") or ""
     aba = request.form.get("aba") if request.form.get("aba") in {"alertas", "ok"} else "alertas"
-    resultado = TrueNASBackupService.sincronizar(integracao_id=integracao_id, periodo_horas=periodo_horas)
+    resultado = TrueNASBackupService.sincronizar(integracao_id=integracao_id, periodo_horas=periodo_horas, storage=storage)
     categoria = "success" if resultado.get("status") == "OK" else "danger"
     flash(resultado.get("mensagem"), categoria)
-    return redirect(url_for("infraestrutura.backup_nas", integracao_id=integracao_id, periodo_horas=periodo_horas, q=pesquisa, aba=aba))
+    return redirect(url_for("infraestrutura.backup_nas", integracao_id=integracao_id, periodo_horas=periodo_horas, storage=storage or "", q=pesquisa, aba=aba))
 
 
 @infraestrutura_bp.route("/backup-nas")
@@ -342,10 +343,11 @@ def backup_nas():
     integracao_id = request.args.get("integracao_id", type=int)
     periodo_horas = request.args.get("periodo_horas", default=24, type=int)
     pesquisa = (request.args.get("q") or "").strip()
+    storage = request.args.get("storage") if request.args.get("storage") in TrueNASBackupService.MOUNTPOINTS else ""
     aba = request.args.get("aba") if request.args.get("aba") in {"alertas", "ok"} else "alertas"
     resultado = TrueNASBackupService.listar(integracao_id=integracao_id)
     registros_cache = resultado.get("registros") or []
-    registros = _filtrar_truenas_cache(registros_cache, pesquisa)
+    registros = _filtrar_truenas_cache(registros_cache, pesquisa, storage)
     return render_template(
         "infraestrutura/truenas_backups.html",
         registros=registros,
@@ -362,14 +364,17 @@ def backup_nas():
         aba=aba,
         integracoes_url=url_for("implantacao.integracoes_tecnicas"),
         novo_truenas_url=url_for("implantacao.nova_integracao_config", grupo="tecnicas", tipo="truenas"),
+        storages=TrueNASBackupService.MOUNTPOINTS,
+        selected_storage=storage,
     )
 
 
-def _filtrar_truenas_cache(registros, pesquisa):
+def _filtrar_truenas_cache(registros, pesquisa, storage=None):
     termo = (pesquisa or "").strip().lower()
+    filtrados = [item for item in registros if not storage or item.get("mountpoint") == storage]
     if not termo:
-        return registros
-    filtrados = []
+        return filtrados
+    resultado = []
     for item in registros:
         campos = [
             item.get("prefixo_proxmox"),
@@ -379,8 +384,8 @@ def _filtrar_truenas_cache(registros, pesquisa):
         ]
         campos.extend(detalhe.get("nome") for detalhe in item.get("detalhes_lista") or [])
         if any(termo in str(valor or "").lower() for valor in campos):
-            filtrados.append(item)
-    return filtrados
+            resultado.append(item)
+    return resultado
 
 
 def _render_consulta(chave):

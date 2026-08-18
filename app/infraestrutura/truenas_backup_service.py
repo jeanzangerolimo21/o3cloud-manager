@@ -33,6 +33,7 @@ ARQUIVOS_IGNORADOS = {"sendemail", "sendemailpl"}
 
 class TrueNASBackupService:
     repository = TrueNASBackupRepository
+    MOUNTPOINTS = tuple(MOUNTPOINTS_PADRAO)
 
     @classmethod
     def integracoes_truenas(cls):
@@ -62,12 +63,13 @@ class TrueNASBackupService:
         }
 
     @classmethod
-    def sincronizar(cls, integracao_id=None, periodo_horas=24):
+    def sincronizar(cls, integracao_id=None, periodo_horas=24, storage=None):
         integracao = cls._integracao_truenas_ativa(integracao_id)
         if not integracao:
             raise ValueError("Cadastre uma integração TrueNAS ativa para sincronizar backups NAS.")
         if not integracao.get("possui_segredo"):
             raise ValueError("A integração TrueNAS está ativa, mas ainda não possui token/segredo cadastrado.")
+        storage = cls._normalizar_storage(storage)
         try:
             token = IntegracaoConfigService.revelar_segredo_config(integracao.get("id"))
             cliente = TrueNASClient(
@@ -76,8 +78,9 @@ class TrueNASBackupService:
                 timeout=integracao.get("timeout_seconds"),
                 verify_ssl=integracao.get("verify_ssl"),
             )
-            registros = cls._coletar_registros(cliente, periodo_horas=periodo_horas)
-            atualizados = cls.repository.salvar_cache(integracao.get("id"), registros)
+            mountpoints = [storage] if storage else MOUNTPOINTS_PADRAO
+            registros = cls._coletar_registros(cliente, periodo_horas=periodo_horas, mountpoints=mountpoints)
+            atualizados = cls.repository.salvar_cache(integracao.get("id"), registros, mountpoints=mountpoints)
             alertas = len([item for item in registros if item.get("status") == "ALERTA"])
             return {
                 "status": "OK",
@@ -95,13 +98,13 @@ class TrueNASBackupService:
         return {"status": "ERRO", "mensagem": mensagem, "registros": []}
 
     @classmethod
-    def _coletar_registros(cls, cliente, periodo_horas=24):
+    def _coletar_registros(cls, cliente, periodo_horas=24, mountpoints=None):
         ambientes = cls.repository.listar_prefixos_ambientes()
         mapa_prefixos = cls._mapa_prefixos(ambientes)
         corte = time.time() - (max(1, int(periodo_horas or 24)) * 3600)
         registros = []
         vistos = set()
-        for mountpoint in MOUNTPOINTS_PADRAO:
+        for mountpoint in mountpoints or MOUNTPOINTS_PADRAO:
             bases = [mountpoint] + cls._bases_backup_bd(cliente, mountpoint)
             for base_path in bases:
                 for pasta in cls._listar_pastas_cliente(cliente, base_path):
@@ -119,6 +122,16 @@ class TrueNASBackupService:
                     }
                     registros.append(cls._analisar_pasta(cliente, pasta, ambiente, mountpoint, corte))
         return registros
+
+    @staticmethod
+    def _normalizar_storage(storage):
+        texto = str(storage or "").strip()
+        valor = "/mnt/" + texto.rsplit("/", 1)[-1].upper() if texto else ""
+        if not valor:
+            return None
+        if valor not in MOUNTPOINTS_PADRAO:
+            raise ValueError("Storage TrueNAS invalido. Escolha /mnt/BKP1 ate /mnt/BKP7.")
+        return valor
 
     @classmethod
     def _bases_backup_bd(cls, cliente, mountpoint):

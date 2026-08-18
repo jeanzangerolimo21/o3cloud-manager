@@ -45,6 +45,7 @@
                     </select>
                 </div>
                 <div class="col-md-2"><label class="form-label">Período</label><input class="form-control" type="number" name="periodo_horas" min="1" max="168" value="{{ periodo_horas }}"></div>
+                <div class="col-md-2"><label class="form-label">Storage</label><select class="form-select" name="storage"><option value="">Todos</option>{% for storage in storages %}<option value="{{ storage }}" {% if selected_storage == storage %}selected{% endif %}>{{ storage }}</option>{% endfor %}</select></div>
                 <div class="col-md-3"><label class="form-label">Pasta ou arquivo</label><input class="form-control" type="search" name="q" value="{{ pesquisa }}" placeholder="cliente, pasta ou arquivo"></div>
                 <input type="hidden" name="aba" value="{{ aba }}">
                 <div class="col-md-3"><button class="btn btn-primary w-100"><i class="bi bi-search"></i> Filtrar cache</button></div>
@@ -54,6 +55,7 @@
                 <form method="POST" action="{{ url_for('infraestrutura.sincronizar_backup_nas') }}">
                     <input type="hidden" name="integracao_id" value="{{ selected_integracao_id or '' }}">
                     <input type="hidden" name="periodo_horas" value="{{ periodo_horas }}">
+                    <input type="hidden" name="storage" value="{{ selected_storage }}">
                     <input type="hidden" name="q" value="{{ pesquisa }}">
                     <input type="hidden" name="aba" value="{{ aba }}">
                     <button class="btn btn-success" type="submit"><i class="bi bi-arrow-repeat"></i> Sincronizar TrueNAS</button>
@@ -61,8 +63,8 @@
             </div>
 
             <ul class="nav nav-tabs mb-3">
-                <li class="nav-item"><a class="nav-link {% if aba == 'alertas' %}active{% endif %}" href="{{ url_for('infraestrutura.backup_nas', integracao_id=selected_integracao_id, periodo_horas=periodo_horas, q=pesquisa, aba='alertas') }}">Alertas <span class="badge text-bg-warning">{{ registros_alerta|length }}</span></a></li>
-                <li class="nav-item"><a class="nav-link {% if aba == 'ok' %}active{% endif %}" href="{{ url_for('infraestrutura.backup_nas', integracao_id=selected_integracao_id, periodo_horas=periodo_horas, q=pesquisa, aba='ok') }}">Backups OK <span class="badge text-bg-success">{{ registros_ok|length }}</span></a></li>
+                <li class="nav-item"><a class="nav-link {% if aba == 'alertas' %}active{% endif %}" href="{{ url_for('infraestrutura.backup_nas', integracao_id=selected_integracao_id, periodo_horas=periodo_horas, storage=selected_storage, q=pesquisa, aba='alertas') }}">Alertas <span class="badge text-bg-warning">{{ registros_alerta|length }}</span></a></li>
+                <li class="nav-item"><a class="nav-link {% if aba == 'ok' %}active{% endif %}" href="{{ url_for('infraestrutura.backup_nas', integracao_id=selected_integracao_id, periodo_horas=periodo_horas, storage=selected_storage, q=pesquisa, aba='ok') }}">Backups OK <span class="badge text-bg-success">{{ registros_ok|length }}</span></a></li>
             </ul>
 
             <div class="tab-content">

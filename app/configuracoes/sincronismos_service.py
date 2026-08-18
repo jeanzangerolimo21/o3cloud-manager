@@ -50,6 +50,13 @@ class SincronismosAgendadosService:
         },
     }
 
+    for _storage in ("BKP1", "BKP2", "BKP3", "BKP4", "BKP5", "BKP6", "BKP7"):
+        TIPOS[f"TRUENAS_{_storage}"] = {
+            "nome": f"TrueNAS {_storage}",
+            "descricao": f"Cache de backups NAS somente do storage {_storage}.",
+            "icone": "bi-device-hdd",
+        }
+
     @classmethod
     def contexto(cls):
         agendamentos = cls._agendamentos_com_definicao()
@@ -189,6 +196,10 @@ class SincronismosAgendadosService:
 
     @classmethod
     def _handler(cls, tipo):
+        tipo = cls._normalizar_tipo(tipo)
+        if tipo.startswith("TRUENAS_BKP"):
+            storage = "/" + tipo.replace("TRUENAS_", "").replace("BKP", "mnt/BKP", 1)
+            return lambda usuario_email: cls._sincronizar_truenas(usuario_email, storage=storage)
         handlers = {
             "OMIE": cls._sincronizar_omie,
             "OMIE_RECEBIMENTOS": cls._sincronizar_omie_recebimentos,
@@ -198,7 +209,7 @@ class SincronismosAgendadosService:
             "PBS": cls._sincronizar_pbs,
             "TRUENAS": cls._sincronizar_truenas,
         }
-        return handlers[cls._normalizar_tipo(tipo)]
+        return handlers[tipo]
 
     @classmethod
     def _normalizar_tipo(cls, tipo):
@@ -267,7 +278,7 @@ class SincronismosAgendadosService:
         return PBSBackupService.sincronizar_todos(usuario_email=usuario_email)
 
     @staticmethod
-    def _sincronizar_truenas(usuario_email):
+    def _sincronizar_truenas(usuario_email, storage=None):
         from app.infraestrutura.truenas_backup_service import TrueNASBackupService
 
-        return TrueNASBackupService.sincronizar(periodo_horas=24)
+        return TrueNASBackupService.sincronizar(periodo_horas=24, storage=storage)
