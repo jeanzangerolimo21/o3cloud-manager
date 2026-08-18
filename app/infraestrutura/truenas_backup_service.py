@@ -166,7 +166,7 @@ class TrueNASBackupService:
         }
 
     @classmethod
-    def _listar_arquivos_monitorados(cls, cliente, raiz, corte, max_depth=0, max_files=300):
+    def _listar_arquivos_monitorados(cls, cliente, raiz, corte, max_depth=None, max_files=300):
         arquivos = []
         pendentes = [(raiz, 0)]
         while pendentes and len(arquivos) < max_files:
@@ -178,7 +178,7 @@ class TrueNASBackupService:
             for item in itens:
                 nome = item.get("name") or ""
                 if item.get("type") == "DIRECTORY":
-                    if depth < max_depth and cls._diretorio_monitorado(nome):
+                    if (max_depth is None or depth < max_depth) and cls._diretorio_monitorado(nome):
                         pendentes.append((item.get("path"), depth + 1))
                     continue
                 if item.get("type") != "FILE" or not cls._arquivo_monitorado(nome):
