@@ -230,12 +230,17 @@ def excluir_comentario(demanda_id, comentario_id):
 def agenda():
     gestor = _agenda_corporativa()
     usuario_id = request.args.get("usuario_id", type=int) if gestor else _usuario_id()
-    visao = request.args.get("visao", "hoje")
+    preferencias = session.get("agenda_preferencias", {})
+    preferencia = preferencias.get(str(_usuario_id()), {}) if isinstance(preferencias, dict) else {}
+    visao = request.args.get("visao") or preferencia.get("visao", "semana")
     if visao not in ("hoje", "semana", "mes", "lista"):
-        visao = "hoje"
-    formato = request.args.get("formato", "lista")
+        visao = "semana"
+    formato = request.args.get("formato") or preferencia.get("formato", "calendario")
     if formato not in ("lista", "calendario"):
-        formato = "lista"
+        formato = "calendario"
+    if "visao" in request.args or "formato" in request.args:
+        preferencias[str(_usuario_id())] = {"visao": visao, "formato": formato}
+        session["agenda_preferencias"] = preferencias
     referencia = _data_query(request.args.get("data")) or date.today()
     inicio, fim = _intervalo_agenda(visao, referencia)
     if visao == "semana" and inicio:
