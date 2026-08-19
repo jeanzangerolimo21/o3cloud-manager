@@ -4,8 +4,8 @@
 <style>
 .main, .content { min-width: 0; }
 .content { overflow-x: hidden; }
-.content:has(.kanban-page) { overflow: hidden; }
-.kanban-page { display: flex; flex-direction: column; height: 100%; min-height: 0; min-width: 0; overflow: hidden; width: 100%; }
+.content:has(.kanban-page) { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.kanban-page { display: flex; flex: 1 1 auto; flex-direction: column; height: auto; min-height: 0; min-width: 0; overflow: hidden; width: 100%; }
 .kanban-toolbar { flex-shrink: 0; }
 .kanban-shell { border-bottom: 1px solid #d8dde6; display: block; flex: 1 1 auto; height: auto; max-width: 100%; min-height: 0; overflow-x: scroll; overflow-y: hidden; padding-bottom: 1rem; scrollbar-color: #8d99aa #edf0f4; scrollbar-gutter: stable both-edges; scrollbar-width: auto; width: 100%; }
 .kanban-board { align-items: stretch; display: grid; gap: 1rem; grid-auto-columns: minmax(380px, 440px); grid-auto-flow: column; height: calc(100% - 16px); min-width: max-content; padding-bottom: 0.25rem; width: max-content; }
