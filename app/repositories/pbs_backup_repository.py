@@ -100,7 +100,11 @@ class PBSBackupRepository(BaseRepository):
                     WHERE apr.proxmox_inventory_id = p.id
                 ) AS cliente_nomes
             FROM proxmox_vm_inventory p
-            LEFT JOIN pbs_backup_politicas pol ON pol.proxmox_inventory_id = p.id
+            LEFT JOIN (
+                SELECT proxmox_inventory_id, MAX(frequencia_horas) AS frequencia_horas
+                FROM pbs_backup_politicas
+                GROUP BY proxmox_inventory_id
+            ) pol ON pol.proxmox_inventory_id = p.id
             LEFT JOIN (
                 SELECT s.proxmox_inventory_id, COUNT(*) AS backups_total, MAX(s.backup_time) AS ultimo_backup_em,
                        SUBSTRING_INDEX(GROUP_CONCAT(s.datastore ORDER BY s.backup_time DESC), ',', 1) AS datastore,
@@ -142,7 +146,11 @@ class PBSBackupRepository(BaseRepository):
                    SUM(CASE WHEN COALESCE(pol.frequencia_horas, 24) >= 168 THEN 1 ELSE 0 END) AS semanais_total,
                    COALESCE(SUM(ult.backups_total), 0) AS backups_total
             FROM proxmox_vm_inventory p
-            LEFT JOIN pbs_backup_politicas pol ON pol.proxmox_inventory_id = p.id
+            LEFT JOIN (
+                SELECT proxmox_inventory_id, MAX(frequencia_horas) AS frequencia_horas
+                FROM pbs_backup_politicas
+                GROUP BY proxmox_inventory_id
+            ) pol ON pol.proxmox_inventory_id = p.id
             LEFT JOIN (
                 SELECT proxmox_inventory_id, COUNT(*) AS backups_total, MAX(backup_time) AS ultimo_backup_em
                 FROM pbs_backup_snapshots
@@ -181,13 +189,17 @@ class PBSBackupRepository(BaseRepository):
         return mapa
 
     @classmethod
-    def atualizar_politicas(cls, recurso_ids_semanais):
+    def atualizar_politicas(cls, recurso_ids_semanais, recurso_ids_visiveis=None):
         recurso_ids_semanais = {int(item) for item in recurso_ids_semanais or [] if str(item).isdigit()}
+        recurso_ids_visiveis = {int(item) for item in recurso_ids_visiveis or [] if str(item).isdigit()}
         conn = cls.connection()
         cursor = conn.cursor()
         try:
-            cursor.execute("SELECT id FROM proxmox_vm_inventory WHERE ativo = 1")
-            todos = [row[0] for row in cursor.fetchall()]
+            if recurso_ids_visiveis:
+                todos = sorted(recurso_ids_visiveis)
+            else:
+                cursor.execute("SELECT id FROM proxmox_vm_inventory WHERE ativo = 1")
+                todos = [row[0] for row in cursor.fetchall()]
             for recurso_id in todos:
                 frequencia = 168 if recurso_id in recurso_ids_semanais else 24
                 cursor.execute(

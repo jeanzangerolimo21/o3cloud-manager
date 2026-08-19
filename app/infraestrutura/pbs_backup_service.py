@@ -75,8 +75,8 @@ class PBSBackupService:
         return cls.repository.inativar_escopo(escopo_id)
 
     @classmethod
-    def atualizar_politicas(cls, recurso_ids_semanais):
-        return cls.repository.atualizar_politicas(recurso_ids_semanais)
+    def atualizar_politicas(cls, recurso_ids_semanais, recurso_ids_visiveis=None):
+        return cls.repository.atualizar_politicas(recurso_ids_semanais, recurso_ids_visiveis=recurso_ids_visiveis)
 
     @classmethod
     def sincronizar_todos(cls, usuario_email="sistema"):

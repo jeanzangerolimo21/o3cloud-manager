@@ -248,7 +248,10 @@ def sincronizar_todos_pbs():
 
 @infraestrutura_bp.route("/pbs/politicas", methods=["POST"])
 def atualizar_politicas_pbs():
-    PBSBackupService.atualizar_politicas(request.form.getlist("recurso_ids_semanais"))
+    PBSBackupService.atualizar_politicas(
+        request.form.getlist("recurso_ids_semanais"),
+        recurso_ids_visiveis=request.form.getlist("recurso_ids_visiveis"),
+    )
     flash("Políticas de backup PBS atualizadas.", "success")
     escopo_id = request.form.get("escopo_id", type=int)
     return redirect(request.referrer or url_for("infraestrutura.backups_pbs", escopo_id=escopo_id))

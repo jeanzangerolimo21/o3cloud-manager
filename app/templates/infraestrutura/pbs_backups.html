@@ -90,7 +90,7 @@
                         <tbody>
                         {% for item in recursos %}
                             <tr class="{% if not item.backup_ok %}table-danger{% endif %}">
-                                <td><strong>{{ item.vmid }}</strong><br><span class="badge bg-secondary">{{ 'VM' if item.tipo == 'qemu' else 'CT' }}</span></td>
+                                <td><input type="hidden" name="recurso_ids_visiveis" value="{{ item.id }}"><strong>{{ item.vmid }}</strong><br><span class="badge bg-secondary">{{ 'VM' if item.tipo == 'qemu' else 'CT' }}</span></td>
                                 <td>{{ item.nome or '-' }}<br><small class="text-muted">{{ item.vm_status or '-' }}</small></td>
                                 <td><small>{{ item.cliente_nomes or '-' }}</small>{% if item.ambiente_nomes %}<br><small class="text-muted">{{ item.ambiente_nomes }}</small>{% endif %}</td>
                                 <td>{{ item.node }}<br><small class="text-muted">{{ item.namespace or item.node }}</small></td>
