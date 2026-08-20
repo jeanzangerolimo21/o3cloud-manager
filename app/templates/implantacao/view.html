@@ -52,7 +52,14 @@
                 <div class="col-md-4"><strong>Cliente</strong><br>{{ implantacao.cliente_nome }}<br><small class="text-muted">{{ implantacao.cliente_cnpj|cnpj_br }}</small></div>
                 <div class="col-md-4"><strong>Contrato</strong><br>{{ implantacao.contrato_numero or implantacao.contrato_id }}<br><small class="text-muted">{{ implantacao.contrato_status }}</small><div class="mt-2"><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('implantacao.visualizar_contrato_operacional', contrato_id=implantacao.contrato_id) }}" target="_blank"><i class="bi bi-eye"></i> Visualizar Contrato</a></div></div>
                 <div class="col-md-4"><strong>Comercial</strong><br>{{ implantacao.executivo_nome or '-' }}<br><small class="text-muted">{{ implantacao.parceiro_nome or 'Sem parceiro' }}</small></div>
-                <div class="col-md-4"><strong>Etapa</strong><br>{{ kanban_labels.get(implantacao.etapa_kanban, implantacao.etapa_kanban or '-') }}</div>
+                <div class="col-md-4">
+                    <strong>Etapa</strong><br>{{ kanban_labels.get(implantacao.etapa_kanban, implantacao.etapa_kanban or '-') }}
+                    {% if implantacao.etapa_kanban == 'FINALIZADO' %}
+                    <form method="POST" action="{{ url_for('implantacao.notificar_financeiro', implantacao_id=implantacao.id) }}" class="mt-2" onsubmit="return confirm('Enviar notificação financeira para contas@o3cloud.com.br?');">
+                        <button class="btn btn-sm btn-outline-primary"><i class="bi bi-envelope-paper"></i> Notificar financeiro</button>
+                    </form>
+                    {% endif %}
+                </div>
                 <div class="col-md-4"><strong>Prioridade</strong><br>{{ prioridade_options.get(implantacao.prioridade, implantacao.prioridade) }}</div>
                 <div class="col-md-4"><strong>Implantador</strong><br>{{ implantacao.implantador_nome or '-' }}<br><small class="text-muted">{{ implantacao.implantador_email or 'Sem e-mail' }}</small></div>
                 <div class="col-md-4"><strong>Provisionamento</strong><br>{{ provisionamento_options.get(implantacao.provisionamento_status, implantacao.provisionamento_status) }}</div>

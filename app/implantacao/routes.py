@@ -813,6 +813,29 @@ def editar(implantacao_id):
     )
 
 
+@implantacao_bp.route("/<int:implantacao_id>/notificar-financeiro", methods=["POST"])
+def notificar_financeiro(implantacao_id):
+    try:
+        resultado = ImplantacaoService.reenviar_notificacao_financeiro(implantacao_id, _email_usuario_logado())
+        registrar_evento(
+            "IMPLANTACAO_EMAIL_FINANCEIRO_REENVIADO",
+            "implantacoes",
+            implantacao_id,
+            {"enviado": bool(resultado.get("enviado")), "motivo": resultado.get("motivo")},
+        )
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    except Exception as erro:
+        flash(f"Falha ao enviar notificação financeira: {erro}", "danger")
+    else:
+        if resultado.get("enviado"):
+            flash("Notificação financeira enviada para contas@o3cloud.com.br.", "success")
+        else:
+            motivo = resultado.get("motivo") or "falha_envio"
+            flash(f"Notificação financeira não enviada: {motivo}.", "warning")
+    return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
+
+
 @implantacao_bp.route("/<int:implantacao_id>/comentarios", methods=["POST"])
 def adicionar_comentario(implantacao_id):
     try:

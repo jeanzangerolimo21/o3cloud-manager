@@ -3,6 +3,7 @@ from datetime import date
 from datetime import timedelta
 
 from app.core.email import EmailService
+from app.core.logging_config import get_logger
 from app.core.storage import StorageService
 from app.ambientes.implantador_service import ImplantadorService
 from app.parceiros.executivo_service import ParceiroExecutivoService
@@ -11,6 +12,8 @@ from app.repositories.contrato_repository import ContratoRepository
 from app.financeiro.inadimplencias_service import InadimplenciaService
 from app.repositories.implantacao_workflow_repository import ImplantacaoWorkflowRepository
 
+
+application_logger = get_logger("application")
 
 STATUS_IMPLANTACAO = {
     "AGUARDANDO_INICIO": "Aguardando início",
@@ -229,7 +232,9 @@ class ImplantacaoService:
         cls.repository.atualizar_etapa_kanban(implantacao_id, etapa_kanban)
         atualizada = cls.buscar_por_id(implantacao_id)
         email = cls._notificar_movimento_kanban(atualizada, etapa_anterior, etapa_kanban)
-        email_financeiro = cls._notificar_financeiro_implantacao_finalizada(atualizada) if etapa_kanban == "FINALIZADO" else None
+        email_financeiro = cls._notificar_financeiro_implantacao_finalizada_segura(atualizada) if etapa_kanban == "FINALIZADO" else None
+        if email_financeiro:
+            cls._log_envio_financeiro(implantacao_id, email_financeiro, origem="kanban_finalizado")
         comentario = f"Etapa alterada de {labels.get(etapa_anterior, etapa_anterior)} para {labels.get(etapa_kanban, etapa_kanban)}."
         if email_financeiro:
             comentario += " Financeiro notificado para faturamento."
@@ -242,6 +247,33 @@ class ImplantacaoService:
             email={"enviado": bool((email or {}).get("enviado") or (email_financeiro or {}).get("enviado")), "movimento": email, "financeiro": email_financeiro},
         )
         return {"alterado": True, "email": email, "email_financeiro": email_financeiro}
+
+    @classmethod
+    def reenviar_notificacao_financeiro(cls, implantacao_id, autor=None):
+        implantacao = cls.buscar_por_id(implantacao_id)
+        if not implantacao:
+            raise ValueError("Implantação não encontrada.")
+        if implantacao.get("etapa_kanban") != "FINALIZADO":
+            raise ValueError("A notificação financeira só pode ser reenviada para implantações finalizadas.")
+
+        resultado = cls._notificar_financeiro_implantacao_finalizada_segura(implantacao)
+        cls._log_envio_financeiro(implantacao_id, resultado, origem="reenvio_manual")
+        comentario = "Notificação financeira reenviada manualmente para contas@o3cloud.com.br."
+        if not resultado.get("enviado"):
+            motivo = resultado.get("motivo") or "falha_envio"
+            comentario = f"{comentario} Resultado: não enviado ({motivo})."
+        cls._registrar_historico(
+            implantacao_id,
+            tipo="EMAIL_FINANCEIRO",
+            comentario=comentario,
+            autor=autor,
+            email={
+                "enviado": bool(resultado.get("enviado")),
+                "financeiro": resultado,
+                "forcado": True,
+            },
+        )
+        return resultado
 
     @classmethod
     def dashboard(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo="1"):
@@ -716,6 +748,33 @@ class ImplantacaoService:
             implantador,
         ])
         return EmailService.enviar(assunto, corpo, ["contas@o3cloud.com.br"])
+
+    @classmethod
+    def _notificar_financeiro_implantacao_finalizada_segura(cls, implantacao):
+        try:
+            return cls._notificar_financeiro_implantacao_finalizada(implantacao)
+        except Exception as erro:
+            application_logger.exception(
+                "Falha ao enviar notificacao financeira de implantacao %s para contas@o3cloud.com.br",
+                implantacao.get("id"),
+                extra={"operation": "IMPLANTACAO_EMAIL_FINANCEIRO"},
+            )
+            return {
+                "enviado": False,
+                "motivo": str(erro)[:500],
+                "destinatarios": ["contas@o3cloud.com.br"],
+            }
+
+    @staticmethod
+    def _log_envio_financeiro(implantacao_id, resultado, origem):
+        application_logger.info(
+            "Notificacao financeira de implantacao %s para contas@o3cloud.com.br: enviado=%s motivo=%s origem=%s",
+            implantacao_id,
+            bool(resultado.get("enviado")),
+            resultado.get("motivo") or "-",
+            origem,
+            extra={"operation": "IMPLANTACAO_EMAIL_FINANCEIRO"},
+        )
 
     @classmethod
     def _registrar_historico(cls, implantacao_id, tipo, comentario, etapa_anterior=None, etapa_nova=None, autor=None, email=None):
