@@ -639,11 +639,11 @@ class ContratoRepository(BaseRepository):
             parametros.append(origem)
 
         if data_de:
-            condicoes.append("c.data_fechamento >= %s")
+            condicoes.append("COALESCE(c.inicio_vigencia, c.data_fechamento) >= %s")
             parametros.append(data_de)
 
         if data_ate:
-            condicoes.append("c.data_fechamento <= %s")
+            condicoes.append("COALESCE(c.inicio_vigencia, c.data_fechamento) <= %s")
             parametros.append(data_ate)
 
         return condicoes, parametros

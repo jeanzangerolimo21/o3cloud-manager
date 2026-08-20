@@ -939,6 +939,8 @@ class PropostaService:
     @classmethod
     def preparar_form_payload(cls, dados=None, codigo_sugerido=None):
         dados = dict(dados or {})
+        licencas_items = cls._preparar_licencas_form(dados.get("licencas_snapshot"), dados.get("licencas_items"))
+        servidores_items = cls._preparar_servidores_form(dados.get("servidores_snapshot"), dados.get("servidores_items"))
         return {
             "id": dados.get("id"),
             "oportunidade_id": dados.get("oportunidade_id"),
@@ -986,8 +988,8 @@ class PropostaService:
             "clicksign_completed_at": cls._string_datetime(dados.get("clicksign_completed_at")),
             "clicksign_last_sync_at": cls._string_datetime(dados.get("clicksign_last_sync_at")),
             "clicksign_eventos": cls._carregar_lista_json(dados.get("clicksign_eventos"), dados.get("clicksign_eventos_items")),
-            "licencas_items": cls._carregar_lista_json(dados.get("licencas_snapshot"), dados.get("licencas_items")),
-            "servidores_items": cls._carregar_lista_json(dados.get("servidores_snapshot"), dados.get("servidores_items")),
+            "licencas_items": licencas_items,
+            "servidores_items": servidores_items,
             "ativo": str(dados.get("ativo", "1")) in ("1", "true", "True", "on") or dados.get("ativo") is True,
         }
 
@@ -1400,6 +1402,59 @@ class PropostaService:
     def _docx_document(cls, linhas):
         corpo = ''.join(f'<w:p><w:r><w:t xml:space="preserve">{escape(linha or "")}</w:t></w:r></w:p>' for linha in linhas)
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" mc:Ignorable="w14 wp14"><w:body>' + corpo + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"/></w:sectPr></w:body></w:document>'
+
+
+    @classmethod
+    def _preparar_licencas_form(cls, bruto=None, fallback=None):
+        itens = cls._carregar_lista_json(bruto, fallback)
+        resposta = []
+        for item in itens:
+            item = dict(item or {})
+            quantidade = cls._normalizar_inteiro(item.get("quantidade"), 1) or 1
+            valor_unitario = cls._decimal_form(item.get("valor_unitario"))
+            valor_tabela = cls._decimal_form(item.get("valor_tabela"), valor_unitario)
+            valor_minimo = cls._decimal_form(item.get("valor_minimo"), cls._decimal_form(item.get("valor_setup"), Decimal("0.00")))
+            total_mensal = cls._decimal_form(item.get("total_mensal"), (valor_unitario * quantidade).quantize(Decimal("0.01")))
+            item.update({
+                "quantidade": quantidade,
+                "valor_unitario": cls._string_decimal(valor_unitario, "0.00"),
+                "valor_tabela": cls._string_decimal(valor_tabela, "0.00"),
+                "valor_minimo": cls._string_decimal(valor_minimo, "0.00"),
+                "valor_setup": cls._string_decimal(cls._decimal_form(item.get("valor_setup"), Decimal("0.00")), "0.00"),
+                "total_mensal": cls._string_decimal(total_mensal, "0.00"),
+            })
+            resposta.append(item)
+        return resposta
+
+    @classmethod
+    def _preparar_servidores_form(cls, bruto=None, fallback=None):
+        itens = cls._carregar_lista_json(bruto, fallback)
+        resposta = []
+        for item in itens:
+            item = dict(item or {})
+            quantidade = cls._normalizar_inteiro(item.get("quantidade"), 1) or 1
+            valor_mensal = cls._decimal_form(item.get("valor_mensal"))
+            valor_instalacao = cls._decimal_form(item.get("valor_instalacao"))
+            total_mensal = cls._decimal_form(item.get("total_mensal"), (valor_mensal * quantidade).quantize(Decimal("0.01")))
+            total_instalacao = cls._decimal_form(item.get("total_instalacao"), (valor_instalacao * quantidade).quantize(Decimal("0.01")))
+            item.update({
+                "quantidade": quantidade,
+                "valor_mensal": cls._string_decimal(valor_mensal, "0.00"),
+                "valor_instalacao": cls._string_decimal(valor_instalacao, "0.00"),
+                "total_mensal": cls._string_decimal(total_mensal, "0.00"),
+                "total_instalacao": cls._string_decimal(total_instalacao, "0.00"),
+            })
+            resposta.append(item)
+        return resposta
+
+    @classmethod
+    def _decimal_form(cls, valor, default=None):
+        if valor in (None, ""):
+            return default or Decimal("0.00")
+        try:
+            return cls._decimal(valor) or default or Decimal("0.00")
+        except ValueError:
+            return default or Decimal("0.00")
 
     @staticmethod
     def _carregar_lista_json(bruto=None, fallback=None):

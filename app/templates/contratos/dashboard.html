@@ -33,7 +33,7 @@
             <div class="row g-2 align-items-end">
                 <div class="col-lg-4"><label class="form-label">Buscar</label><input class="form-control" name="q" value="{{ filtros.pesquisa or '' }}" placeholder="Buscar por empresa, CNPJ, executivo, parceiro..."></div>
                 <div class="col-lg-2"><label class="form-label">Status</label><select class="form-select" name="status"><option value="">Todos os status</option>{% for valor, label in status_options.items() %}<option value="{{ valor }}" {% if filtros.status == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-                <div class="col-lg-2"><label class="form-label">Fechamento</label><input class="form-control" type="date" name="data_de" value="{{ filtros.data_de or '' }}"></div>
+                <div class="col-lg-2"><label class="form-label">Inicio da Vigencia</label><input class="form-control" type="date" name="data_de" value="{{ filtros.data_de or '' }}"></div>
                 <div class="col-lg-2"><label class="form-label">Ate</label><input class="form-control" type="date" name="data_ate" value="{{ filtros.data_ate or '' }}"></div>
                 <div class="col-lg-2"><button class="btn btn-primary w-100"><i class="bi bi-search"></i> Filtrar</button></div>
             </div>
