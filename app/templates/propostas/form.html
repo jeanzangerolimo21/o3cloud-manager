@@ -45,14 +45,21 @@
                             <div class="input-group">
                                 <a href="{{ url_for('clientes.novo') }}" class="btn btn-outline-secondary" target="_blank" title="Cadastrar novo cliente"><i class="bi bi-plus-lg"></i></a>
                                 <div class="position-relative flex-grow-1" id="proposta-cliente-picker">
-                                    <input class="form-control" type="search" id="cliente_busca" autocomplete="off" placeholder="Digite nome, razao social ou CNPJ...">
+                                    <input class="form-control" type="search" id="cliente_busca" autocomplete="off" value="{{ proposta.cliente_nome_fantasia or proposta.cliente_razao_social or proposta.cliente_nome or '' }}" placeholder="Digite nome, razao social ou CNPJ...">
                                     <div class="list-group position-absolute start-0 end-0 shadow-sm d-none" id="cliente_resultados" style="z-index: 1040; max-height: 260px; overflow-y: auto;"></div>
-                                    <select class="d-none" id="cliente_id" name="cliente_id" required>
+                                    <select class="d-none" id="cliente_id" name="cliente_id">
                                         <option value="">Selecionar Cliente</option>
+                                        {% set cliente_ns = namespace(encontrado=false) %}
                                         {% for cliente in clientes %}
                                         {% set nome_cliente = cliente.nome_fantasia or cliente.razao_social or cliente.id %}
-                                        <option value="{{ cliente.id }}" data-label="{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj|cnpj_br }}{% endif %}" data-search="{{ nome_cliente }} {{ cliente.razao_social or "" }} {{ cliente.cnpj or "" }} {{ cliente.cnpj|cnpj_br if cliente.cnpj else "" }}" {% if proposta.cliente_id and proposta.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj|cnpj_br }}{% endif %}</option>
+                                        {% set cliente_selecionado = proposta.cliente_id and proposta.cliente_id|string == cliente.id|string %}
+                                        {% if cliente_selecionado %}{% set cliente_ns.encontrado = true %}{% endif %}
+                                        <option value="{{ cliente.id }}" data-label="{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj|cnpj_br }}{% endif %}" data-search="{{ nome_cliente }} {{ cliente.razao_social or "" }} {{ cliente.cnpj or "" }} {{ cliente.cnpj|cnpj_br if cliente.cnpj else "" }}" {% if cliente_selecionado %}selected{% endif %}>{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj|cnpj_br }}{% endif %}</option>
                                         {% endfor %}
+                                        {% if proposta.cliente_id and not cliente_ns.encontrado %}
+                                        {% set cliente_atual = proposta.cliente_nome_fantasia or proposta.cliente_razao_social or proposta.cliente_nome or ('Cliente #' ~ proposta.cliente_id) %}
+                                        <option value="{{ proposta.cliente_id }}" data-label="{{ cliente_atual }}{% if proposta.cliente_cnpj %} - {{ proposta.cliente_cnpj|cnpj_br }}{% endif %}" data-search="{{ cliente_atual }} {{ proposta.cliente_razao_social or "" }} {{ proposta.cliente_cnpj or "" }} {{ proposta.cliente_cnpj|cnpj_br if proposta.cliente_cnpj else "" }}" selected>{{ cliente_atual }}{% if proposta.cliente_cnpj %} - {{ proposta.cliente_cnpj|cnpj_br }}{% endif %}</option>
+                                        {% endif %}
                                     </select>
                                 </div>
                             </div>
@@ -61,18 +68,30 @@
                             <label class="form-label">Da Oportunidade</label>
                             <select class="form-select" id="oportunidade_id" name="oportunidade_id">
                                 <option value="">Selecionar Oportunidade</option>
+                                {% set oportunidade_ns = namespace(encontrada=false) %}
                                 {% for oportunidade in oportunidades %}
-                                <option value="{{ oportunidade.id }}" {% if proposta.oportunidade_id and proposta.oportunidade_id|string == oportunidade.id|string %}selected{% endif %}>{{ oportunidade.titulo }}{% if oportunidade.empresa %} • {{ oportunidade.empresa }}{% endif %}</option>
+                                {% set oportunidade_selecionada = proposta.oportunidade_id and proposta.oportunidade_id|string == oportunidade.id|string %}
+                                {% if oportunidade_selecionada %}{% set oportunidade_ns.encontrada = true %}{% endif %}
+                                <option value="{{ oportunidade.id }}" {% if oportunidade_selecionada %}selected{% endif %}>{{ oportunidade.titulo }}{% if oportunidade.empresa %} • {{ oportunidade.empresa }}{% endif %}</option>
                                 {% endfor %}
+                                {% if proposta.oportunidade_id and not oportunidade_ns.encontrada %}
+                                <option value="{{ proposta.oportunidade_id }}" selected>{{ proposta.oportunidade_titulo or ('Oportunidade #' ~ proposta.oportunidade_id) }}{% if proposta.oportunidade_empresa %} • {{ proposta.oportunidade_empresa }}{% endif %}</option>
+                                {% endif %}
                             </select>
                         </div>
                         <div class="col-md-8">
                             <label class="form-label">Solução *</label>
                             <select class="form-select" name="titulo" id="titulo" required>
                                 <option value="">Selecionar Produto Fechado</option>
+                                {% set produto_ns = namespace(encontrado=false) %}
                                 {% for produto in produtos_fechados %}
-                                <option value="{{ produto.nome }}" {% if proposta.titulo and proposta.titulo == produto.nome %}selected{% endif %}>{{ produto.nome }}{% if produto.parceiro %} • {{ produto.parceiro }}{% endif %}</option>
+                                {% set produto_selecionado = proposta.titulo and proposta.titulo == produto.nome %}
+                                {% if produto_selecionado %}{% set produto_ns.encontrado = true %}{% endif %}
+                                <option value="{{ produto.nome }}" {% if produto_selecionado %}selected{% endif %}>{{ produto.nome }}{% if produto.parceiro %} • {{ produto.parceiro }}{% endif %}</option>
                                 {% endfor %}
+                                {% if proposta.titulo and not produto_ns.encontrado %}
+                                <option value="{{ proposta.titulo }}" selected>{{ proposta.titulo }}</option>
+                                {% endif %}
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -88,9 +107,15 @@
                             <label class="form-label">Executivo</label>
                             <select class="form-select" name="executivo_responsavel_id" id="executivo_responsavel_id">
                                 <option value="">Selecionar Executivo</option>
+                                {% set executivo_ns = namespace(encontrado=false) %}
                                 {% for executivo in executivos %}
-                                <option value="{{ executivo.id }}" {% if proposta.executivo_responsavel_id and proposta.executivo_responsavel_id|string == executivo.id|string %}selected{% elif not proposta.executivo_responsavel_id and executivo_padrao_id and executivo_padrao_id|string == executivo.id|string %}selected{% endif %}>{{ executivo.nome }}{% if executivo.parceiro %} • {{ executivo.parceiro }}{% endif %}</option>
+                                {% set executivo_selecionado = proposta.executivo_responsavel_id and proposta.executivo_responsavel_id|string == executivo.id|string %}
+                                {% if executivo_selecionado %}{% set executivo_ns.encontrado = true %}{% endif %}
+                                <option value="{{ executivo.id }}" {% if executivo_selecionado %}selected{% elif not proposta.executivo_responsavel_id and executivo_padrao_id and executivo_padrao_id|string == executivo.id|string %}selected{% endif %}>{{ executivo.nome }}{% if executivo.parceiro %} • {{ executivo.parceiro }}{% endif %}</option>
                                 {% endfor %}
+                                {% if proposta.executivo_responsavel_id and not executivo_ns.encontrado %}
+                                <option value="{{ proposta.executivo_responsavel_id }}" selected>{{ proposta.executivo_nome or ('Executivo #' ~ proposta.executivo_responsavel_id) }}</option>
+                                {% endif %}
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -98,9 +123,15 @@
                             <div class="input-group">
                                 <select class="form-select" name="contato_id" id="contato_id">
                                     <option value="">Selecionar Contato</option>
+                                    {% set contato_ns = namespace(encontrado=false) %}
                                     {% for contato in contatos %}
-                                    <option value="{{ contato.id }}" {% if proposta.contato_id and proposta.contato_id|string == contato.id|string %}selected{% endif %}>{{ contato.nome }}{% if contato.empresa %} • {{ contato.empresa }}{% endif %}</option>
+                                    {% set contato_selecionado = proposta.contato_id and proposta.contato_id|string == contato.id|string %}
+                                    {% if contato_selecionado %}{% set contato_ns.encontrado = true %}{% endif %}
+                                    <option value="{{ contato.id }}" {% if contato_selecionado %}selected{% endif %}>{{ contato.nome }}{% if contato.empresa %} • {{ contato.empresa }}{% endif %}</option>
                                     {% endfor %}
+                                    {% if proposta.contato_id and not contato_ns.encontrado %}
+                                    <option value="{{ proposta.contato_id }}" selected>{{ proposta.contato_nome or ('Contato #' ~ proposta.contato_id) }}</option>
+                                    {% endif %}
                                 </select>
                                 <a href="{{ url_for('contatos.novo') }}" class="btn btn-outline-secondary" target="_blank" title="Cadastrar contato comercial"><i class="bi bi-plus-lg"></i></a>
                             </div>
@@ -110,9 +141,15 @@
                             <div class="input-group">
                                 <select class="form-select" name="representante_legal_id" id="representante_legal_id">
                                     <option value="">Selecionar Representante Legal</option>
+                                    {% set representante_ns = namespace(encontrado=false) %}
                                     {% for representante in representantes_legais %}
-                                    <option value="{{ representante.id }}" {% if proposta.representante_legal_id and proposta.representante_legal_id|string == representante.id|string %}selected{% endif %}>{{ representante.nome }}{% if representante.empresa %} • {{ representante.empresa }}{% endif %}</option>
+                                    {% set representante_selecionado = proposta.representante_legal_id and proposta.representante_legal_id|string == representante.id|string %}
+                                    {% if representante_selecionado %}{% set representante_ns.encontrado = true %}{% endif %}
+                                    <option value="{{ representante.id }}" {% if representante_selecionado %}selected{% endif %}>{{ representante.nome }}{% if representante.empresa %} • {{ representante.empresa }}{% endif %}</option>
                                     {% endfor %}
+                                    {% if proposta.representante_legal_id and not representante_ns.encontrado %}
+                                    <option value="{{ proposta.representante_legal_id }}" selected>{{ proposta.representante_legal_nome or ('Representante #' ~ proposta.representante_legal_id) }}</option>
+                                    {% endif %}
                                 </select>
                                 <a href="{{ url_for('contatos.novo', tipo_contato='REPRESENTANTE_LEGAL') }}" class="btn btn-outline-secondary" target="_blank" title="Cadastrar representante legal"><i class="bi bi-plus-lg"></i></a>
                             </div>
