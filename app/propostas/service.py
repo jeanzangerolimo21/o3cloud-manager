@@ -854,6 +854,8 @@ class PropostaService:
             itens.append(f"{nome} ({item.get('quantidade') or 1})")
         for item in proposta.get("servidores_items") or []:
             nome = re.sub(r"\s+", " ", item.get("nome") or item.get("descricao") or "Servidor").strip()
+            if item.get("servidor_nome"):
+                nome = f"{item.get('servidor_nome')} - {nome}"
             itens.append(f"{nome} ({item.get('quantidade') or 1})")
         if not itens:
             return "Não informado"
@@ -1291,6 +1293,7 @@ class PropostaService:
             valor_mensal = cls._decimal(item.get("valor_mensal")) or Decimal("0.00")
             valor_instalacao = cls._decimal(item.get("valor_instalacao")) or Decimal("0.00")
             resposta.append({
+                "servidor_nome": (item.get("servidor_nome") or "").strip(),
                 "recurso_id": cls._normalizar_inteiro(item.get("recurso_id")),
                 "codigo": (item.get("codigo") or "").strip(),
                 "categoria": (item.get("categoria") or "").strip(),
@@ -1334,7 +1337,8 @@ class PropostaService:
         if servidores:
             linhas.append("Recursos de Servidor")
             for item in servidores:
-                linhas.append(f"- {item.get('nome')}: {item.get('quantidade')} x R$ {item.get('valor_mensal')} = R$ {item.get('total_mensal')}")
+                nome = f"{item.get('servidor_nome')} - {item.get('nome')}" if item.get('servidor_nome') else item.get('nome')
+                linhas.append(f"- {nome}: {item.get('quantidade')} x R$ {item.get('valor_mensal')} = R$ {item.get('total_mensal')}")
         return "\n".join(linhas)
 
     @classmethod
@@ -1364,7 +1368,8 @@ class PropostaService:
         for item in proposta.get("licencas_items", []):
             linhas.append(f"{item.get('software')} | {item.get('quantidade')} | R$ {item.get('valor_unitario')} | R$ {item.get('total_mensal')}")
         for item in proposta.get("servidores_items", []):
-            linhas.append(f"{item.get('nome')} | {item.get('quantidade')} | R$ {item.get('valor_mensal')} | R$ {item.get('total_mensal')}")
+            nome = f"{item.get('servidor_nome')} - {item.get('nome')}" if item.get("servidor_nome") else item.get("nome")
+            linhas.append(f"{nome} | {item.get('quantidade')} | R$ {item.get('valor_mensal')} | R$ {item.get('total_mensal')}")
         linhas.extend([
             f"TOTAL MENSAL	R$ {cls._string_decimal(proposta.get('total_mensal'))}",
             f"Setup: {proposta.get('setup_dias')} dias após a entrega do ambiente.",
