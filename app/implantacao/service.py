@@ -117,16 +117,18 @@ class ImplantacaoService:
         }
 
     @classmethod
-    def listar(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo="1", pagina=1):
+    def listar(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo="1", agrupamento="principais", pagina=1):
         limit = 50
         offset = (pagina - 1) * limit
         ativo_normalizado = cls._normalizar_ativo(ativo)
+        agrupamento = cls._normalizar_agrupamento(agrupamento)
         implantacoes = cls.repository.listar(
             pesquisa=pesquisa,
             status=status,
             responsavel=responsavel,
             prazo=prazo,
             ativo=ativo_normalizado,
+            agrupamento=agrupamento,
             limit=limit,
             offset=offset,
         )
@@ -140,6 +142,7 @@ class ImplantacaoService:
             responsavel=responsavel,
             prazo=prazo,
             ativo=ativo_normalizado,
+            agrupamento=agrupamento,
         )
         return implantacoes, total
 
@@ -276,14 +279,59 @@ class ImplantacaoService:
         return resultado
 
     @classmethod
-    def dashboard(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo="1"):
+    def dashboard(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo="1", agrupamento="principais"):
         return cls.repository.dashboard(
             pesquisa=pesquisa,
             status=status,
             responsavel=responsavel,
             prazo=prazo,
             ativo=cls._normalizar_ativo(ativo),
+            agrupamento=cls._normalizar_agrupamento(agrupamento),
         )
+
+    @classmethod
+    def listar_principais_para_vinculo(cls):
+        return cls.repository.listar_principais_para_vinculo()
+
+    @classmethod
+    def vincular_card(cls, implantacao_id, implantacao_principal_id, autor=None):
+        implantacao_id = cls._inteiro(implantacao_id)
+        implantacao_principal_id = cls._inteiro(implantacao_principal_id)
+        if not implantacao_id or not implantacao_principal_id:
+            raise ValueError("Selecione o card de implantação principal.")
+        if implantacao_id == implantacao_principal_id:
+            raise ValueError("O card não pode ser vinculado a ele mesmo.")
+        implantacao = cls.repository.buscar_por_id(implantacao_id)
+        principal = cls.repository.buscar_por_id(implantacao_principal_id)
+        if not implantacao or not principal:
+            raise ValueError("Implantação não encontrada.")
+        if principal.get("implantacao_principal_id"):
+            raise ValueError("Selecione um card principal, não um card já vinculado a outro.")
+        if implantacao.get("implantacao_principal_id") == implantacao_principal_id:
+            return principal
+        cls.repository.vincular_card(implantacao_id, implantacao_principal_id)
+        comentario = f"Card vinculado à implantação principal #{implantacao_principal_id} - {principal.get('titulo')}."
+        cls._registrar_historico(implantacao_id, tipo="VINCULO", comentario=comentario, autor=autor)
+        cls._registrar_historico(
+            implantacao_principal_id,
+            tipo="VINCULO",
+            comentario=f"Card #{implantacao_id} - {implantacao.get('titulo')} vinculado a esta implantação principal.",
+            autor=autor,
+        )
+        return principal
+
+    @classmethod
+    def desvincular_card(cls, implantacao_id, autor=None):
+        implantacao = cls.repository.buscar_por_id(implantacao_id)
+        if not implantacao:
+            raise ValueError("Implantação não encontrada.")
+        implantacao_principal_id = implantacao.get("implantacao_principal_id")
+        if not implantacao_principal_id:
+            raise ValueError("Este card não está vinculado a outro card.")
+        cls.repository.desvincular_card(implantacao_id)
+        cls._registrar_historico(implantacao_id, tipo="VINCULO", comentario=f"Card desvinculado da implantação principal #{implantacao_principal_id}.", autor=autor)
+        cls._registrar_historico(implantacao_principal_id, tipo="VINCULO", comentario=f"Card #{implantacao_id} - {implantacao.get('titulo')} desvinculado desta implantação principal.", autor=autor)
+        return implantacao_principal_id
 
 
     @classmethod
@@ -305,6 +353,7 @@ class ImplantacaoService:
             return None
         implantacao["checklist"] = cls.repository.listar_checklist(implantacao_id)
         implantacao["historico"] = cls._historico_com_anexos(implantacao_id)
+        implantacao["vinculadas"] = cls.repository.listar_vinculadas(implantacao_id)
         implantacao["emails_adicionais_lista"] = cls._parse_emails(implantacao.get("emails_adicionais"))
         return implantacao
 
@@ -550,6 +599,10 @@ class ImplantacaoService:
         })
         cls.repository.atualizar_percentual(item.get("implantacao_id"))
         return item.get("implantacao_id")
+
+    @staticmethod
+    def _normalizar_agrupamento(agrupamento):
+        return agrupamento if agrupamento in ("principais", "vinculadas", "todos") else "principais"
 
     @classmethod
     def _normalizar(cls, dados, contrato=None, implantacao=None):

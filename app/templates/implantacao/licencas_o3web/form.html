@@ -28,14 +28,14 @@
                     <div class="col-md-3"><label class="form-label">CNPJ</label><input class="form-control" name="cliente_cnpj" id="cliente_cnpj" value="{{ licenca.cliente_cnpj|cnpj_br if licenca.cliente_cnpj else '' }}" readonly></div>
                     <div class="col-md-3"><label class="form-label">Chave de Ativação</label><input class="form-control" name="chave_ativacao" value="{{ licenca.chave_ativacao or '' }}"></div>
                     <div class="col-md-2"><label class="form-label">ID Licença</label><input class="form-control" name="id_licenca" value="{{ licenca.id_licenca or '' }}"></div>
-                    <div class="col-md-2"><label class="form-label">Tipo</label><select class="form-select" name="tipo"><option value="">Selecionar</option>{% for valor, label in tipo_options.items() %}<option value="{{ valor }}" {% if licenca.tipo == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                    <div class="col-md-2"><label class="form-label">Tipo</label><select class="form-select" name="tipo" id="tipo"><option value="">Selecionar</option>{% for valor, label in tipo_options.items() %}<option value="{{ valor }}" {% if licenca.tipo == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
                     <div class="col-md-2"><label class="form-label">Usuários</label><input class="form-control" type="number" name="usuarios" value="{{ licenca.usuarios or '' }}"></div>
-                    <div class="col-md-2"><label class="form-label">Dias</label><input class="form-control" type="number" name="dias" value="{{ licenca.dias or '' }}"></div>
+                    <div class="col-md-2"><label class="form-label">Dias</label><input class="form-control" type="number" name="dias" id="dias" value="{{ licenca.dias or '' }}"></div>
                     <div class="col-md-3"><label class="form-label">Edição</label><input class="form-control" name="edicao" value="{{ licenca.edicao or '' }}"></div>
                     <div class="col-md-2"><label class="form-label">Bkp</label><select class="form-select" name="bkp"><option value="1" {% if licenca.bkp %}selected{% endif %}>Sim</option><option value="0" {% if licenca and not licenca.bkp %}selected{% endif %}>Não</option></select></div>
                     <div class="col-md-3"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if licenca.ativo is not defined or licenca.ativo %}selected{% endif %}>Ativa</option><option value="0" {% if licenca.ativo is defined and not licenca.ativo %}selected{% endif %}>Inativa</option></select></div>
-                    <div class="col-md-3"><label class="form-label">Data ativação</label><input class="form-control" name="data_ativacao" value="{{ licenca.data_ativacao_raw or licenca.data_ativacao or '' }}" placeholder="dd/mm/aaaa ou aaaa-mm-dd"></div>
-                    <div class="col-md-3"><label class="form-label">Data expiração</label><input class="form-control" name="data_expiracao" value="{{ licenca.data_expiracao_raw or licenca.data_expiracao or '' }}" placeholder="- para permanente"></div>
+                    <div class="col-md-3"><label class="form-label">Data ativação</label><input class="form-control" name="data_ativacao" id="data_ativacao" value="{{ licenca.data_ativacao_raw or licenca.data_ativacao or '' }}" placeholder="dd/mm/aaaa ou aaaa-mm-dd"></div>
+                    <div class="col-md-3"><label class="form-label">Data expiração</label><input class="form-control" name="data_expiracao" id="data_expiracao" value="{{ licenca.data_expiracao_raw or licenca.data_expiracao or '' }}" placeholder="- para permanente"></div>
                     <div class="col-md-6"><label class="form-label">URL principal</label><input class="form-control" name="url_principal" value="{{ licenca.url_principal or '' }}"></div>
                     <div class="col-md-6"><label class="form-label">URL secundária</label><input class="form-control" name="url_secundaria" value="{{ licenca.url_secundaria or '' }}"></div>
                     <div class="col-md-6"><label class="form-label">Comments</label><textarea class="form-control" rows="4" name="comments">{{ licenca.comments or '' }}</textarea></div>
@@ -62,6 +62,51 @@
     }
     select.addEventListener('change', atualizarCliente);
     atualizarCliente();
+})();
+(function () {
+    const tipo = document.getElementById('tipo');
+    const dias = document.getElementById('dias');
+    const ativacao = document.getElementById('data_ativacao');
+    const expiracao = document.getElementById('data_expiracao');
+    if (!tipo || !dias || !ativacao || !expiracao) return;
+
+    function parseData(valor) {
+        const texto = String(valor || '').trim();
+        let partes = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (partes) return new Date(Number(partes[3]), Number(partes[2]) - 1, Number(partes[1]));
+        partes = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (partes) return new Date(Number(partes[1]), Number(partes[2]) - 1, Number(partes[3]));
+        return null;
+    }
+
+    function formatData(data) {
+        const dia = String(data.getDate()).padStart(2, '0');
+        const mes = String(data.getMonth() + 1).padStart(2, '0');
+        return `${dia}/${mes}/${data.getFullYear()}`;
+    }
+
+    function podeAtualizarExpiracao() {
+        return !expiracao.dataset.manual || !expiracao.value || expiracao.value === expiracao.dataset.autoValue;
+    }
+
+    function calcularExpiracao() {
+        if (tipo.value !== 'trial' || !podeAtualizarExpiracao()) return;
+        const dataAtivacao = parseData(ativacao.value);
+        const totalDias = Number(dias.value || 0);
+        if (!dataAtivacao || !totalDias) return;
+        dataAtivacao.setDate(dataAtivacao.getDate() + totalDias);
+        const calculada = formatData(dataAtivacao);
+        expiracao.value = calculada;
+        expiracao.dataset.autoValue = calculada;
+    }
+
+    expiracao.addEventListener('input', function () {
+        expiracao.dataset.manual = expiracao.value === expiracao.dataset.autoValue ? '' : '1';
+    });
+    tipo.addEventListener('change', calcularExpiracao);
+    dias.addEventListener('input', calcularExpiracao);
+    ativacao.addEventListener('input', calcularExpiracao);
+    calcularExpiracao();
 })();
 </script>
 {% endblock %}

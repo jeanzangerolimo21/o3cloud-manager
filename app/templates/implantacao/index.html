@@ -59,11 +59,12 @@
         <div class="card-body">
             <form method="GET" class="mb-4">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-3"><label class="form-label">Pesquisar</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Buscar por cliente, CNPJ, contrato, responsável ou parceiro..."></div>
+                    <div class="col-md-2"><label class="form-label">Pesquisar</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Buscar por cliente, CNPJ, contrato, responsável ou parceiro..."></div>
                     <div class="col-md-2"><label class="form-label">Status</label><select class="form-select" name="status"><option value="">Todos</option>{% for valor, descricao in status_options.items() %}<option value="{{ valor }}" {% if selected_status == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}</select></div>
                     <div class="col-md-2"><label class="form-label">Responsável</label><input class="form-control" name="responsavel" value="{{ responsavel or '' }}" placeholder="Nome"></div>
                     <div class="col-md-2"><label class="form-label">Prazo</label><select class="form-select" name="prazo"><option value="">Todos</option>{% for valor, descricao in prazo_options.items() %}<option value="{{ valor }}" {% if selected_prazo == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}</select></div>
-                    <div class="col-md-2 col-xl-1"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativas</option><option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativas</option><option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todas</option></select></div>
+                    <div class="col-md-2"><label class="form-label">Cards</label><select class="form-select" name="agrupamento">{% for valor, descricao in agrupamento_options.items() %}<option value="{{ valor }}" {% if selected_agrupamento == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}</select></div>
+                    <div class="col-md-1"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if selected_ativo == '1' %}selected{% endif %}>Ativas</option><option value="0" {% if selected_ativo == '0' %}selected{% endif %}>Inativas</option><option value="todos" {% if selected_ativo == 'todos' %}selected{% endif %}>Todas</option></select></div>
                     <div class="col-md-1"><button class="btn btn-primary w-100"><i class="bi bi-search"></i></button></div>
                     <div class="col-md-1"><a href="{{ request.path }}" class="btn btn-outline-secondary w-100">Limpar</a></div>
                 </div>
@@ -73,11 +74,19 @@
 
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
-                    <thead><tr><th>Implantação</th><th>Cliente</th><th>Status</th><th>Responsável</th><th>Prazo</th><th>Checklist</th><th>Provisionamento</th><th width="120">Ações</th></tr></thead>
+                    <thead><tr><th>Implantação</th><th>Cliente</th><th>Status</th><th>Responsável</th><th>Prazo</th><th>Checklist</th><th>Provisionamento</th><th width="300">Agrupamento</th><th width="120">Ações</th></tr></thead>
                     <tbody>
                         {% for implantacao in implantacoes %}
                         <tr>
-                            <td><strong>{{ implantacao.titulo }}</strong><br><small class="text-muted">Contrato {{ implantacao.contrato_numero or implantacao.contrato_id }}</small></td>
+                            <td>
+                                <strong>{{ implantacao.titulo }}</strong><br>
+                                <small class="text-muted">Contrato {{ implantacao.contrato_numero or implantacao.contrato_id }}</small>
+                                {% if implantacao.implantacao_principal_id %}
+                                    <br><span class="badge bg-info text-dark"><i class="bi bi-link-45deg"></i> Vinculada ao card #{{ implantacao.implantacao_principal_id }}</span>
+                                {% elif implantacao.total_vinculadas %}
+                                    <br><span class="badge bg-light text-dark border"><i class="bi bi-diagram-3"></i> {{ implantacao.total_vinculadas }} card(s) vinculado(s)</span>
+                                {% endif %}
+                            </td>
                             <td><strong>{{ implantacao.cliente_nome or '-' }}</strong><br><small class="text-muted">{{ implantacao.cliente_cnpj|cnpj_br if implantacao.cliente_cnpj else 'CNPJ não vinculado' }}</small>{% if implantacao.pendencia_financeira %}<br><span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> Pendência Financeira</span>{% endif %}<br><small class="text-muted">{{ implantacao.executivo_nome or implantacao.parceiro_nome or '-' }}</small></td>
                             <td><span class="badge bg-secondary">{{ status_options.get(implantacao.status, implantacao.status) }}</span></td>
                             <td>{{ implantacao.responsavel or implantacao.implantador_nome or '-' }}</td>
@@ -90,10 +99,33 @@
                             </td>
                             <td>{{ implantacao.total_concluidos or 0 }}/{{ implantacao.total_itens or 0 }}<br><small class="text-muted">{{ implantacao.percentual_conclusao or 0 }}%</small></td>
                             <td><span class="badge bg-light text-dark border">{{ implantacao.provisionamento_status or 'NAO_PLANEJADO' }}</span></td>
+                            <td>
+                                {% if implantacao.implantacao_principal_id %}
+                                    <div class="mb-2">
+                                        <span class="badge bg-info text-dark">Principal #{{ implantacao.implantacao_principal_id }}</span><br>
+                                        <small class="text-muted">{{ implantacao.implantacao_principal_titulo or 'Card principal' }}</small>
+                                    </div>
+                                    <form method="POST" action="{{ url_for('implantacao.desvincular_card', implantacao_id=implantacao.id) }}" onsubmit="return confirm('Desvincular este card da implantação principal?');">
+                                        <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-link-45deg"></i> Desvincular</button>
+                                    </form>
+                                {% else %}
+                                    <form method="POST" action="{{ url_for('implantacao.vincular_card', implantacao_id=implantacao.id) }}" class="d-flex gap-2">
+                                        <select class="form-select form-select-sm" name="implantacao_principal_id" required>
+                                            <option value="">Vincular a outro card...</option>
+                                            {% for principal in implantacoes_principais %}
+                                                {% if principal.id != implantacao.id %}
+                                                    <option value="{{ principal.id }}">#{{ principal.id }} - {{ principal.cliente_nome }} / Contrato {{ principal.contrato_numero or principal.id }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                        <button class="btn btn-sm btn-outline-primary" title="Vincular card"><i class="bi bi-link-45deg"></i></button>
+                                    </form>
+                                {% endif %}
+                            </td>
                             <td><div class="btn-group btn-group-sm"><a class="btn btn-outline-secondary" href="{{ url_for('implantacao.visualizar', implantacao_id=implantacao.id) }}"><i class="bi bi-eye"></i></a><a class="btn btn-outline-primary" href="{{ url_for('implantacao.editar', implantacao_id=implantacao.id) }}"><i class="bi bi-pencil"></i></a></div></td>
                         </tr>
                         {% else %}
-                            {% set colspan = 8 %}
+                            {% set colspan = 9 %}
                             {% set empty_message = "Nenhuma implantação encontrada." %}
                             {% include "components/empty_state.html" %}
                         {% endfor %}

@@ -1,0 +1,50 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include "components/page_header.html" %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Contratos ativos</small><h4>{{ dashboard.total_contratos or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Curva A</small><h4>{{ dashboard.curva_a or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Curva B</small><h4>{{ dashboard.curva_b or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Curva C</small><h4>{{ dashboard.curva_c or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><a class="text-decoration-none" href="{{ url_for('sucesso_cliente.index', status_relacionamento='CRITICO') }}"><div class="card border-0 shadow-sm h-100 {% if dashboard.criticos %}border-start border-danger border-4{% endif %}"><div class="card-body"><small class="text-muted">Críticos</small><h4 class="{% if dashboard.criticos %}text-danger{% endif %}">{{ dashboard.criticos or 0 }}</h4></div></div></a></div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4"><div class="card-body">
+        <form class="row g-2 align-items-end">
+            <div class="col-md-5"><label class="form-label">Busca</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Razão social, fantasia, CNPJ, contrato, vendedor ou projeto"></div>
+            <div class="col-md-2"><label class="form-label">Curva</label><select class="form-select" name="curva"><option value="">Todas</option>{% for curva in ['A','B','C'] %}<option value="{{ curva }}" {% if selected_curva == curva %}selected{% endif %}>Curva {{ curva }}</option>{% endfor %}</select></div>
+            <div class="col-md-3"><label class="form-label">Relacionamento</label><select class="form-select" name="status_relacionamento"><option value="">Todos</option>{% for valor, label in status_options.items() %}<option value="{{ valor }}" {% if selected_status == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="col-md-1"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i></button></div>
+            <div class="col-md-1"><a class="btn btn-outline-secondary w-100" href="{{ url_for('sucesso_cliente.index') }}"><i class="bi bi-arrow-counterclockwise"></i></a></div>
+        </form>
+    </div></div>
+
+    <div class="card border-0 shadow-sm"><div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead><tr><th>Cliente</th><th>CNPJ</th><th>Usuários</th><th>Comercial OMIE</th><th>Valor Bruto</th><th>Curva</th><th>Relacionamento</th><th>Contato CRM</th><th width="130"></th></tr></thead>
+            <tbody>
+                {% for contrato in contratos %}
+                <tr class="{% if contrato.status_relacionamento == 'CRITICO' %}table-danger{% endif %}">
+                    <td><strong>{{ contrato.cliente_razao_social or '-' }}</strong><br><small class="text-muted">{{ contrato.cliente_nome_fantasia or '-' }}</small><br><small class="text-muted">Contrato {{ contrato.numero or contrato.id }}</small></td>
+                    <td>{{ contrato.cliente_cnpj|cnpj_br if contrato.cliente_cnpj else '-' }}</td>
+                    <td>{{ contrato.quantidade_usuarios or 0 }}</td>
+                    <td>{{ contrato.vendedor_nome or '-' }}<br><small class="text-muted">{{ contrato.projeto_nome or '-' }}</small></td>
+                    <td><strong>{{ contrato.valor_bruto_cs|moeda }}</strong></td>
+                    <td><span class="badge text-bg-{% if contrato.curva == 'A' %}warning text-dark{% elif contrato.curva == 'B' %}secondary{% else %}primary{% endif %}">Curva {{ contrato.curva }}</span></td>
+                    <td><span class="badge text-bg-{% if contrato.status_relacionamento == 'CRITICO' %}danger{% elif contrato.status_relacionamento == 'REGULAR' %}warning{% elif contrato.status_relacionamento == 'BOM' %}primary{% elif contrato.status_relacionamento == 'OTIMO' %}success{% else %}light text-dark border{% endif %}">{{ contrato.status_relacionamento_label }}</span>{% if contrato.ultimo_relacionamento_em %}<br><small class="text-muted">{{ contrato.ultimo_relacionamento_em|datetime_br }}</small>{% endif %}</td>
+                    <td>{% if contrato.contato_nome %}<strong>{{ contrato.contato_nome }}</strong><br><small class="text-muted">{{ contrato.contato_email or contrato.contato_whatsapp or contrato.contato_telefone or '-' }}</small>{% else %}<span class="text-muted">Não vinculado</span>{% endif %}</td>
+                    <td class="text-end"><div class="btn-group btn-group-sm">{% if contrato.status_relacionamento != 'CRITICO' %}<form method="POST" action="{{ url_for('sucesso_cliente.atualizar_critico', contrato_id=contrato.id) }}" onsubmit="return confirm('Marcar este contrato como crítico?');"><button class="btn btn-outline-danger" title="Marcar como crítico"><i class="bi bi-flag-fill"></i></button></form>{% endif %}<a class="btn btn-outline-primary" href="{{ url_for('sucesso_cliente.visualizar', contrato_id=contrato.id) }}" title="Abrir CS"><i class="bi bi-chat-left-text"></i></a></div></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="text-center text-muted py-4">Nenhum contrato ativo encontrado.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div></div>
+
+    {% include "components/pagination.html" %}
+</div>
+{% endblock %}

@@ -5,7 +5,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
     TABLE = "implantacoes"
 
     @classmethod
-    def total(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo=1):
+    def total(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo=1, agrupamento="principais"):
         sql = """
             SELECT COUNT(*)
             FROM implantacoes i
@@ -15,18 +15,19 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             LEFT JOIN parceiros p ON p.id = i.parceiro_id
             WHERE 1 = 1
         """
-        where, params = cls._filtros(pesquisa, status, responsavel, prazo, ativo)
+        where, params = cls._filtros(pesquisa, status, responsavel, prazo, ativo, agrupamento=agrupamento)
         sql += where
         return cls.scalar(sql, tuple(params)) or 0
 
     @classmethod
-    def listar(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo=1, limit=50, offset=0):
+    def listar(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo=1, agrupamento="principais", limit=50, offset=0):
         sql = """
             SELECT
                 i.id,
                 i.uuid,
                 i.contrato_id,
                 i.cliente_id,
+                i.implantacao_principal_id,
                 i.titulo,
                 i.status,
                 i.etapa_kanban,
@@ -58,6 +59,10 @@ class ImplantacaoWorkflowRepository(BaseRepository):
                 cli.cnpj AS cliente_cnpj,
                 exec.nome AS executivo_nome,
                 p.nome AS parceiro_nome,
+                principal.titulo AS implantacao_principal_titulo,
+                principal.status AS implantacao_principal_status,
+                pc.numero AS implantacao_principal_contrato_numero,
+                vinculadas.total_vinculadas,
                 checklist.total_itens,
                 checklist.total_concluidos
             FROM implantacoes i
@@ -65,6 +70,14 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             INNER JOIN contratos c ON c.id = i.contrato_id
             LEFT JOIN parceiros_executivos exec ON exec.id = i.executivo_id
             LEFT JOIN parceiros p ON p.id = i.parceiro_id
+            LEFT JOIN implantacoes principal ON principal.id = i.implantacao_principal_id
+            LEFT JOIN contratos pc ON pc.id = principal.contrato_id
+            LEFT JOIN (
+                SELECT implantacao_principal_id, COUNT(*) AS total_vinculadas
+                FROM implantacoes
+                WHERE ativo = 1 AND implantacao_principal_id IS NOT NULL
+                GROUP BY implantacao_principal_id
+            ) vinculadas ON vinculadas.implantacao_principal_id = i.id
             LEFT JOIN (
                 SELECT implantacao_id,
                        COUNT(*) AS total_itens,
@@ -74,7 +87,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             ) checklist ON checklist.implantacao_id = i.id
             WHERE 1 = 1
         """
-        where, params = cls._filtros(pesquisa, status, responsavel, prazo, ativo)
+        where, params = cls._filtros(pesquisa, status, responsavel, prazo, ativo, agrupamento=agrupamento)
         sql += where
         sql += """
             ORDER BY FIELD(i.status, 'AGUARDANDO_INICIO', 'EM_PLANEJAMENTO', 'EM_EXECUCAO', 'EM_VALIDACAO', 'PAUSADA', 'ENTREGUE', 'CANCELADA'),
@@ -91,6 +104,9 @@ class ImplantacaoWorkflowRepository(BaseRepository):
         sql = """
             SELECT
                 i.*,
+                principal.titulo AS implantacao_principal_titulo,
+                principal.status AS implantacao_principal_status,
+                pc.numero AS implantacao_principal_contrato_numero,
                 c.numero AS contrato_numero,
                 c.status AS contrato_status,
                 c.descricao AS contrato_descricao,
@@ -111,6 +127,8 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             LEFT JOIN crm_propostas prop ON prop.id = i.proposta_id
             LEFT JOIN parceiros_executivos exec ON exec.id = i.executivo_id
             LEFT JOIN parceiros p ON p.id = i.parceiro_id
+            LEFT JOIN implantacoes principal ON principal.id = i.implantacao_principal_id
+            LEFT JOIN contratos pc ON pc.id = principal.contrato_id
             WHERE i.id = %s AND i.ativo = 1
         """
         return cls.fetch_one(sql, (implantacao_id,))
@@ -347,7 +365,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
         )
 
     @classmethod
-    def dashboard(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo=1):
+    def dashboard(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo=1, agrupamento="principais"):
         joins = """
             FROM implantacoes i
             INNER JOIN clientes cli ON cli.id = i.cliente_id
@@ -356,7 +374,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             LEFT JOIN parceiros p ON p.id = i.parceiro_id
             WHERE 1 = 1
         """
-        where, params = cls._filtros(pesquisa, status, responsavel, prazo, ativo)
+        where, params = cls._filtros(pesquisa, status, responsavel, prazo, ativo, agrupamento=agrupamento)
         resumo = cls.fetch_one(
             """
             SELECT
@@ -557,7 +575,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             LEFT JOIN (
                 SELECT etapa_kanban, COUNT(*) AS total_cards
                 FROM implantacoes
-                WHERE ativo = 1
+                WHERE ativo = 1 AND implantacao_principal_id IS NULL
                 GROUP BY etapa_kanban
             ) uso ON uso.etapa_kanban = col.codigo
             WHERE 1 = 1
@@ -631,7 +649,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             """
             SELECT COUNT(*)
             FROM implantacoes
-            WHERE ativo = 1 AND etapa_kanban = %s
+            WHERE ativo = 1 AND implantacao_principal_id IS NULL AND etapa_kanban = %s
             """,
             (codigo,),
         ) or 0
@@ -643,6 +661,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             SELECT
                 i.id,
                 i.contrato_id,
+                i.implantacao_principal_id,
                 i.titulo,
                 i.etapa_kanban,
                 i.responsavel,
@@ -666,9 +685,72 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             INNER JOIN clientes cli ON cli.id = i.cliente_id
             LEFT JOIN parceiros_executivos exec ON exec.id = i.executivo_id
             LEFT JOIN parceiros p ON p.id = i.parceiro_id
-            WHERE i.ativo = 1
+            WHERE i.ativo = 1 AND i.implantacao_principal_id IS NULL
             ORDER BY COALESCE(i.data_prevista_entrega, '2999-12-31') ASC, i.updated_at DESC, i.id DESC
             """
+        )
+
+    @classmethod
+    def listar_principais_para_vinculo(cls):
+        return cls.fetch_all(
+            """
+            SELECT
+                i.id,
+                i.titulo,
+                i.cliente_id,
+                c.numero AS contrato_numero,
+                COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome
+            FROM implantacoes i
+            INNER JOIN contratos c ON c.id = i.contrato_id
+            INNER JOIN clientes cli ON cli.id = i.cliente_id
+            WHERE i.ativo = 1 AND i.implantacao_principal_id IS NULL
+            ORDER BY COALESCE(cli.nome_fantasia, cli.razao_social) ASC, i.id DESC
+            LIMIT 500
+            """
+        )
+
+    @classmethod
+    def listar_vinculadas(cls, implantacao_id):
+        return cls.fetch_all(
+            """
+            SELECT
+                i.id,
+                i.titulo,
+                i.status,
+                i.etapa_kanban,
+                i.data_prevista_entrega,
+                c.numero AS contrato_numero,
+                COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
+                cli.cnpj AS cliente_cnpj
+            FROM implantacoes i
+            INNER JOIN contratos c ON c.id = i.contrato_id
+            INNER JOIN clientes cli ON cli.id = i.cliente_id
+            WHERE i.ativo = 1 AND i.implantacao_principal_id = %s
+            ORDER BY i.updated_at DESC, i.id DESC
+            """,
+            (implantacao_id,),
+        )
+
+    @classmethod
+    def vincular_card(cls, implantacao_id, implantacao_principal_id):
+        return cls.execute(
+            """
+            UPDATE implantacoes
+            SET implantacao_principal_id = %s
+            WHERE id = %s AND ativo = 1
+            """,
+            (implantacao_principal_id, implantacao_id),
+        )
+
+    @classmethod
+    def desvincular_card(cls, implantacao_id):
+        return cls.execute(
+            """
+            UPDATE implantacoes
+            SET implantacao_principal_id = NULL
+            WHERE id = %s AND ativo = 1
+            """,
+            (implantacao_id,),
         )
 
     @classmethod
@@ -871,7 +953,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
         return cls.fetch_one("SELECT * FROM implantacao_checklist WHERE id = %s", (item_id,))
 
     @classmethod
-    def _filtros(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo=1):
+    def _filtros(cls, pesquisa=None, status=None, responsavel=None, prazo=None, ativo=1, agrupamento="principais"):
         where = []
         params = []
         if pesquisa:
@@ -905,6 +987,10 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             where.append("i.status NOT IN ('ENTREGUE', 'CANCELADA') AND i.data_prevista_entrega BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)")
         elif prazo == "sem_prazo":
             where.append("i.status NOT IN ('ENTREGUE', 'CANCELADA') AND i.data_prevista_entrega IS NULL")
+        if agrupamento == "principais":
+            where.append("i.implantacao_principal_id IS NULL")
+        elif agrupamento == "vinculadas":
+            where.append("i.implantacao_principal_id IS NOT NULL")
         if ativo in (0, 1):
             where.append("i.ativo = %s")
             params.append(ativo)

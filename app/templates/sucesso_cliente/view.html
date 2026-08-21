@@ -1,0 +1,67 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = contrato.cliente_nome_fantasia or contrato.cliente_razao_social or 'Sucesso do Cliente' %}
+    {% set page_description = 'Contrato ' ~ (contrato.numero or contrato.id) ~ ' - Curva ' ~ contrato.curva %}
+    {% set page_icon = 'bi-heart-pulse-fill' %}
+    {% set page_button_url = url_for('sucesso_cliente.index') %}
+    {% set page_button_icon = 'bi-arrow-left' %}
+    {% set page_button_text = 'Voltar' %}
+    {% include "components/page_header.html" %}
+
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <div class="card border-0 shadow-sm mb-4 {% if contrato.status_relacionamento == 'CRITICO' %}border-start border-danger border-4{% endif %}"><div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                    <div><h5 class="mb-1">Dados do Contrato</h5><p class="text-muted mb-0">Informações comerciais e OMIE para acompanhamento CS.</p></div>
+                    <div class="d-flex gap-2"><span class="badge text-bg-{% if contrato.curva == 'A' %}warning text-dark{% elif contrato.curva == 'B' %}secondary{% else %}primary{% endif %}">Curva {{ contrato.curva }}</span><span class="badge text-bg-{% if contrato.status_relacionamento == 'CRITICO' %}danger{% elif contrato.status_relacionamento == 'REGULAR' %}warning{% elif contrato.status_relacionamento == 'BOM' %}primary{% elif contrato.status_relacionamento == 'OTIMO' %}success{% else %}light text-dark border{% endif %}">{{ contrato.status_relacionamento_label }}</span></div>
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6"><strong>Razão Social</strong><br>{{ contrato.cliente_razao_social or '-' }}</div>
+                    <div class="col-md-6"><strong>Nome Fantasia</strong><br>{{ contrato.cliente_nome_fantasia or '-' }}</div>
+                    <div class="col-md-4"><strong>CNPJ</strong><br>{{ contrato.cliente_cnpj|cnpj_br if contrato.cliente_cnpj else '-' }}</div>
+                    <div class="col-md-2"><strong>Usuários</strong><br>{{ contrato.quantidade_usuarios or 0 }}</div>
+                    <div class="col-md-3"><strong>Valor Bruto</strong><br>{{ contrato.valor_bruto_cs|moeda }}</div>
+                    <div class="col-md-3"><strong>Contrato</strong><br>{{ contrato.numero or contrato.id }}</div>
+                    <div class="col-md-6"><strong>Vendedor OMIE</strong><br>{{ contrato.vendedor_nome or '-' }}</div>
+                    <div class="col-md-6"><strong>Projeto OMIE</strong><br>{{ contrato.projeto_nome or '-' }}</div>
+                    <div class="col-12"><strong>Observações do Contrato OMIE</strong><div class="text-muted mt-2" style="white-space: pre-line;">{{ contrato.observacao_contrato or contrato.observacoes or 'Nenhuma observação cadastrada.' }}</div></div>
+                </div>
+            </div></div>
+
+            <div class="card border-0 shadow-sm"><div class="card-header bg-white"><strong>Histórico de Relacionamento</strong></div><div class="card-body">
+                <form method="POST" action="{{ url_for('sucesso_cliente.registrar_relacionamento', contrato_id=contrato.id) }}" enctype="multipart/form-data" class="mb-4">
+                    <div class="row g-3">
+                        <div class="col-md-4"><label class="form-label">Status</label><select class="form-select" name="status_relacionamento" required>{% for valor, label in status_options.items() %}<option value="{{ valor }}" {% if contrato.status_relacionamento == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                        <div class="col-md-8"><label class="form-label">Contato CRM</label><select class="form-select" name="contato_id"><option value="">Sem contato vinculado</option>{% for contato in contrato.contatos_cliente %}<option value="{{ contato.id }}" {% if contrato.contato_id|string == contato.id|string %}selected{% endif %}>{{ contato.nome }}{% if contato.email %} - {{ contato.email }}{% endif %}</option>{% endfor %}</select></div>
+                        <div class="col-12"><label class="form-label">Comentário</label><textarea class="form-control" name="comentario" rows="4" required placeholder="Registre ligação, reunião, risco, oportunidade ou próximo passo..."></textarea></div>
+                        <div class="col-md-8"><label class="form-label">Anexos</label><input class="form-control" type="file" name="anexos" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.zip,.dwg,.png,.jpg,.jpeg,.svg"><small class="text-muted">Arquivos permitidos: PDF, Office, CSV, ZIP, DWG e imagens. Limite de 20 MB por arquivo.</small></div>
+                        <div class="col-md-4 d-flex align-items-end justify-content-end"><button class="btn btn-primary"><i class="bi bi-chat-left-text"></i> Registrar Relacionamento</button></div>
+                    </div>
+                </form>
+
+                <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th width="180">Data/Hora</th><th>Registro</th><th width="180">Status</th></tr></thead><tbody>
+                    {% for item in contrato.historico %}
+                    <tr class="{% if item.status_relacionamento == 'CRITICO' %}table-danger{% endif %}">
+                        <td>{{ item.created_at|datetime_br if item.created_at else '-' }}<br><small class="text-muted">{{ item.autor_email or 'sistema' }}</small></td>
+                        <td><div class="text-muted" style="white-space: pre-line;">{{ item.comentario }}</div>{% if item.contato_nome %}<small class="text-muted d-block mt-2">Contato: {{ item.contato_nome }}</small>{% endif %}{% if item.anexos %}<div class="mt-3 d-flex flex-wrap gap-2">{% for anexo in item.anexos %}<a class="btn btn-sm btn-outline-secondary" href="{{ anexo.url }}" target="_blank" title="{{ anexo.arquivo_original }}"><i class="bi bi-paperclip"></i> {{ anexo.arquivo_original }}</a>{% endfor %}</div>{% endif %}</td>
+                        <td><span class="badge text-bg-{% if item.status_relacionamento == 'CRITICO' %}danger{% elif item.status_relacionamento == 'REGULAR' %}warning{% elif item.status_relacionamento == 'BOM' %}primary{% else %}success{% endif %}">{{ status_options.get(item.status_relacionamento, item.status_relacionamento) }}</span></td>
+                    </tr>
+                    {% else %}<tr><td colspan="3" class="text-center text-muted py-4">Nenhum relacionamento registrado.</td></tr>{% endfor %}
+                </tbody></table></div>
+            </div></div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card border-0 shadow-sm mb-4"><div class="card-header bg-white"><strong>Contato CRM Comercial</strong></div><div class="card-body">
+                <form method="POST" action="{{ url_for('sucesso_cliente.vincular_contato', contrato_id=contrato.id) }}">
+                    <label class="form-label">Contato vinculado</label>
+                    <select class="form-select mb-3" name="contato_id"><option value="">Selecionar contato...</option>{% for contato in contrato.contatos_cliente %}<option value="{{ contato.id }}" {% if contrato.contato_id|string == contato.id|string %}selected{% endif %}>{{ contato.nome }}{% if contato.email %} - {{ contato.email }}{% endif %}</option>{% endfor %}</select>
+                    <div class="d-grid gap-2"><button class="btn btn-outline-primary"><i class="bi bi-link-45deg"></i> Vincular Contato</button><a class="btn btn-outline-secondary" href="{{ url_for('contatos.novo', empresa=contrato.cliente_nome_fantasia or contrato.cliente_razao_social, tipo_contato='COMERCIAL') }}" target="_blank"><i class="bi bi-person-plus"></i> Cadastrar Contato</a></div>
+                </form>
+            </div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

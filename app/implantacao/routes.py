@@ -42,6 +42,7 @@ def index():
     responsavel = request.args.get("responsavel")
     prazo = request.args.get("prazo")
     ativo = request.args.get("ativo", "1")
+    agrupamento = request.args.get("agrupamento", "principais")
     pagina = request.args.get("page", 1, type=int)
     implantacoes, total = ImplantacaoService.listar(
         pesquisa=pesquisa,
@@ -49,6 +50,7 @@ def index():
         responsavel=responsavel,
         prazo=prazo,
         ativo=ativo,
+        agrupamento=agrupamento,
         pagina=pagina,
     )
     total_paginas = (total + 49) // 50
@@ -63,6 +65,13 @@ def index():
         responsavel=responsavel,
         selected_ativo=ativo,
         selected_prazo=prazo,
+        selected_agrupamento=agrupamento,
+        agrupamento_options={
+            "principais": "Cards principais",
+            "vinculadas": "Cards vinculados",
+            "todos": "Todos",
+        },
+        implantacoes_principais=ImplantacaoService.listar_principais_para_vinculo(),
         status_options=STATUS_IMPLANTACAO,
         prazo_options={
             "atrasadas": "Atrasadas",
@@ -76,6 +85,7 @@ def index():
             responsavel=responsavel,
             prazo=prazo,
             ativo=ativo,
+            agrupamento=agrupamento,
         ),
         page_title="Implantação",
         page_description="Workflow técnico pós-contrato encaminhado para projeto.",
@@ -778,6 +788,7 @@ def visualizar(implantacao_id):
         checklist_status_options=STATUS_CHECKLIST,
         checklist_modelos=CHECKLIST_MODELOS,
         kanban_labels=ImplantacaoService.kanban_labels(),
+        implantacoes_principais=ImplantacaoService.listar_principais_para_vinculo(),
     )
 
 
@@ -812,6 +823,44 @@ def editar(implantacao_id):
         **contexto,
     )
 
+
+
+@implantacao_bp.route("/<int:implantacao_id>/vincular-card", methods=["POST"])
+def vincular_card(implantacao_id):
+    try:
+        principal = ImplantacaoService.vincular_card(
+            implantacao_id,
+            request.form.get("implantacao_principal_id"),
+            _email_usuario_logado(),
+        )
+        registrar_evento(
+            "IMPLANTACAO_CARD_VINCULADO",
+            "implantacoes",
+            implantacao_id,
+            {"implantacao_principal_id": principal.get("id")},
+        )
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Card vinculado à implantação principal.", "success")
+    return redirect(request.referrer or url_for("implantacao.index"))
+
+
+@implantacao_bp.route("/<int:implantacao_id>/desvincular-card", methods=["POST"])
+def desvincular_card(implantacao_id):
+    try:
+        implantacao_principal_id = ImplantacaoService.desvincular_card(implantacao_id, _email_usuario_logado())
+        registrar_evento(
+            "IMPLANTACAO_CARD_DESVINCULADO",
+            "implantacoes",
+            implantacao_id,
+            {"implantacao_principal_id": implantacao_principal_id},
+        )
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("Card desvinculado da implantação principal.", "success")
+    return redirect(request.referrer or url_for("implantacao.index"))
 
 @implantacao_bp.route("/<int:implantacao_id>/notificar-financeiro", methods=["POST"])
 def notificar_financeiro(implantacao_id):

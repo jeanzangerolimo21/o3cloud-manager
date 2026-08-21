@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-08-21 - Agrupamento de Cards de Implantacao
+
+- Implantacao passou a permitir vincular um card secundario a um card principal para clientes com multiplas unidades/contratos atendidos pelo mesmo ambiente.
+- Cards vinculados continuam rastreaveis por contrato, mas saem da lista principal e do Kanban operacional por padrao para evitar duplicidade de processo.
+- Tela principal recebeu filtro `Cards principais`, `Cards vinculados` e `Todos`, alem de acao rapida para vincular ou desvincular cards.
+- Detalhe da implantacao mostra os cards vinculados ao principal e registra historico/auditoria para cada vinculo ou desvinculo.
+
+## 2026-08-21 - Sucesso do Cliente no CRM Comercial
+
+- Criada tela `CRM Comercial > Sucesso do Cliente` para acompanhar contratos ativos por Razao Social, Nome Fantasia, CNPJ, usuarios, Vendedor OMIE, Projeto OMIE, valor bruto e observacoes do contrato OMIE.
+- Implementada classificacao automatica de curva por valor bruto: Curva A para contratos a partir de R$ 2.999,99, Curva B de R$ 1.000,00 ate abaixo de R$ 2.999,99 e Curva C abaixo de R$ 1.000,00.
+- Adicionado vinculo de contato do CRM Comercial ao acompanhamento CS, com atalho para cadastrar contato quando ainda nao existir.
+- Criado historico de relacionamento por contrato com status `Otimo`, `Bom`, `Regular` e `Critico`, destacando contratos criticos em vermelho no dashboard/listagem.
+- Comentarios de relacionamento aceitam anexos e registram autor, data e hora, com auditoria de inclusao e vinculo de contato.
+- Badges de curva usam cores operacionais distintas: Curva A amarela, Curva B cinza e Curva C azul.
+- Listagem principal recebeu acao rapida para marcar contrato como `Critico`, registrando historico e auditoria sem exigir abertura da tela de comentario.
+
+## 2026-08-21 - Ajustes Beta em Propostas e Licencas O3Web
+
+- Tela `Nova Proposta` passou a separar servidores em blocos independentes, com selecao explicita do servidor de destino antes de adicionar recursos.
+- Botao de recurso em propostas renomeado para `Adicionar ao Servidor`, reduzindo ambiguidade entre criar servidor e incluir recurso no servidor selecionado.
+- Acao `Novo servidor` cria e seleciona um novo bloco vazio; acao `Servidor basico` cria bloco separado com os recursos padrao quando ja houver servidor cadastrado.
+- Tela `Nova Licenca O3Web` passou a calcular automaticamente `Data expiracao` para licencas `Trial` a partir de `Data ativacao + Dias`.
+- Backend de Licencas O3Web tambem calcula a expiracao ao salvar quando o campo vier vazio, preservando valores preenchidos manualmente e o marcador `-` para licenca permanente.
+
 ## 2026-08-14 - Instaladores Beta Interativos
 - Scripts `deployment/install-db-server.sh` e `deployment/install-app-server.sh` passaram a solicitar em modo interativo os campos obrigatorios ausentes, mantendo suporte a execucao automatizada por variaveis de ambiente.
 

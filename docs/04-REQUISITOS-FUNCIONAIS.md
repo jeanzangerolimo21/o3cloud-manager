@@ -115,13 +115,30 @@ Gerenciar:
 
 # RF009 - Licenciamento O3Web
 
-Cadastrar:
+O sistema devera permitir cadastrar e acompanhar licencas O3Web por cliente.
 
-* Número da licença
-* Quantidade
-* Cliente
-* Contrato
-* Observações
+Campos operacionais:
+
+* Cliente e CNPJ
+* Chave de ativacao
+* ID da licenca
+* Tipo da licenca (`Trial` ou `Permanente`)
+* Usuarios
+* Dias de validade
+* Edicao
+* Backup habilitado
+* Data de ativacao
+* Data de expiracao
+* URLs principal e secundaria
+* Comments e observacao
+
+Regras funcionais:
+
+* Ao selecionar `Trial`, informar `Data ativacao` e `Dias`, calcular automaticamente `Data expiracao` como data de ativacao + quantidade de dias.
+* Manter a data de expiracao editavel para permitir ajuste manual quando necessario.
+* Respeitar `-` em `Data expiracao` como marcador de licenca permanente, sem substituir por calculo automatico.
+* Recalcular a expiracao na interface quando tipo, dias ou data de ativacao forem alterados, desde que o usuario nao tenha sobrescrito manualmente o campo.
+* Reaplicar o calculo no backend ao salvar quando a expiracao vier vazia, garantindo consistencia mesmo sem JavaScript no navegador.
 
 ---
 
@@ -160,6 +177,11 @@ Regras funcionais:
 * Exibir acao de gerar documento para propostas aprovadas.
 * Exibir acao de enviar somente quando o documento ja tiver sido gerado.
 * Bloquear nova geracao de documento quando o fluxo ClickSign ja estiver assinado ou concluido.
+* Agrupar recursos de servidor em blocos separados por servidor dentro da proposta.
+* Permitir criar novo bloco com `Novo servidor`, deixando-o selecionado para receber os proximos recursos.
+* Permitir selecionar explicitamente o servidor de destino antes de adicionar um recurso.
+* Usar a acao `Adicionar ao Servidor` somente para incluir o recurso selecionado no servidor selecionado.
+* Usar `Servidor basico` para incluir o conjunto padrao de recursos em bloco separado quando ja houver servidor cadastrado.
 
 ---
 
@@ -182,4 +204,34 @@ Regras funcionais:
 Documento de detalhamento:
 
 * `docs/28-AUTENTICACAO-USUARIOS-SPRINT-16.md`
+---
+
+# RF014 - Sucesso do Cliente
+
+O sistema devera disponibilizar uma tela de Sucesso do Cliente dentro do CRM Comercial para acompanhamento dos contratos ativos.
+
+Informacoes exibidas por contrato:
+
+* Razao Social
+* Nome Fantasia
+* CNPJ
+* Usuarios
+* Vendedor OMIE
+* Projeto OMIE
+* Valor Bruto
+* Observacoes do Contrato OMIE
+* Contato vinculado do CRM Comercial
+
+Regras funcionais:
+
+* Classificar automaticamente contratos de valor bruto maior ou igual a R$ 2.999,99 como Curva A.
+* Classificar contratos de R$ 1.000,00 ate abaixo de R$ 2.999,99 como Curva B.
+* Classificar contratos abaixo de R$ 1.000,00 como Curva C.
+* Permitir vincular um contato existente do CRM Comercial ao contrato acompanhado.
+* Exibir atalho para cadastro de contato quando nao houver contato cadastrado.
+* Permitir registrar historico de relacionamento com status `Otimo`, `Bom`, `Regular` e `Critico`.
+* Destacar contratos com status `Critico` em vermelho na listagem/dashboard para acionamento rapido.
+* Permitir anexar arquivos a cada comentario de relacionamento.
+* Registrar data, hora e usuario autor de cada comentario.
+* Registrar auditoria operacional para comentarios e vinculos de contato.
 

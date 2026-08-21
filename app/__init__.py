@@ -78,6 +78,10 @@ def create_app():
     from app.propostas.routes import propostas_bp
     app.register_blueprint(propostas_bp)
 
+    # Sucesso do Cliente
+    from app.sucesso_cliente.routes import sucesso_cliente_bp
+    app.register_blueprint(sucesso_cliente_bp)
+
     # Implantação
     from app.implantacao.routes import implantacao_bp
     app.register_blueprint(implantacao_bp)

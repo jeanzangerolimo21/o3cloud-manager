@@ -1,6 +1,6 @@
 import csv
 import io
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.clientes.service import ClienteService
 from app.repositories.o3web_licenca_repository import O3WebLicencaRepository
@@ -98,6 +98,10 @@ class O3WebLicencaService:
     def _normalizar(cls, dados):
         data_ativacao, data_ativacao_raw = cls._normalizar_data(dados.get("data_ativacao") or dados.get("data_ativacao_raw"))
         data_expiracao, data_expiracao_raw = cls._normalizar_data(dados.get("data_expiracao") or dados.get("data_expiracao_raw"))
+        dias = cls._inteiro(dados.get("dias"))
+        tipo = cls._texto(dados.get("tipo"))
+        if not data_expiracao and not data_expiracao_raw and tipo == "trial" and data_ativacao and dias:
+            data_expiracao, data_expiracao_raw = cls._calcular_expiracao_trial(data_ativacao, dias)
         cliente_id = cls._inteiro(dados.get("cliente_id"))
         cliente_cnpj = cls._texto(dados.get("cliente_cnpj") or dados.get("cnpj"))
         cliente_nome = (dados.get("cliente_nome") or dados.get("cliente") or "").strip()
@@ -114,9 +118,9 @@ class O3WebLicencaService:
             "cliente_cnpj": cliente_cnpj,
             "chave_ativacao": cls._texto(dados.get("chave_ativacao")),
             "id_licenca": cls._texto(dados.get("id_licenca")),
-            "tipo": cls._texto(dados.get("tipo")),
+            "tipo": tipo,
             "bkp": cls._bool(dados.get("bkp")),
-            "dias": cls._inteiro(dados.get("dias")),
+            "dias": dias,
             "usuarios": cls._inteiro(dados.get("usuarios")),
             "edicao": cls._texto(dados.get("edicao")),
             "data_ativacao": data_ativacao,
@@ -212,6 +216,11 @@ class O3WebLicencaService:
             if chave in dados:
                 return dados.get(chave)
         return None
+
+    @staticmethod
+    def _calcular_expiracao_trial(data_ativacao, dias):
+        data = datetime.strptime(data_ativacao[:10], "%Y-%m-%d") + timedelta(days=dias)
+        return data.strftime("%Y-%m-%d 00:00:00"), data.strftime("%d/%m/%Y")
 
     @staticmethod
     def _normalizar_data(valor):

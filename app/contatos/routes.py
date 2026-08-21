@@ -79,7 +79,7 @@ def novo():
     return render_template(
         "contatos/form.html",
         modo="novo",
-        contato={"tipo_contato": request.args.get("tipo_contato", "COMERCIAL"), "canal_preferido": "WHATSAPP", "ativo": True},
+        contato={"empresa": request.args.get("empresa", ""), "tipo_contato": request.args.get("tipo_contato", "COMERCIAL"), "canal_preferido": "WHATSAPP", "ativo": True},
         parceiros=parceiros,
         executivos=executivos,
         leads=leads,

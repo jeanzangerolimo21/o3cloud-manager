@@ -19,6 +19,67 @@
 
     {% include "components/rastreabilidade.html" %}
 
+    {% if implantacao.implantacao_principal_id %}
+    <div class="alert alert-info d-flex justify-content-between align-items-center gap-3 flex-wrap">
+        <div>
+            <strong>Card vinculado à implantação principal #{{ implantacao.implantacao_principal_id }}</strong><br>
+            <span>{{ implantacao.implantacao_principal_titulo or 'Implantação principal' }}</span>
+            {% if implantacao.implantacao_principal_contrato_numero %}<small class="text-muted">Contrato {{ implantacao.implantacao_principal_contrato_numero }}</small>{% endif %}
+        </div>
+        <form method="POST" action="{{ url_for('implantacao.desvincular_card', implantacao_id=implantacao.id) }}" onsubmit="return confirm('Desvincular este card da implantação principal?');">
+            <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-link-45deg"></i> Desvincular</button>
+        </form>
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <strong>Agrupamento de Cards</strong><br>
+                <small class="text-muted">Vincule cards de outros contratos/unidades a esta implantação principal para evitar processos duplicados.</small>
+            </div>
+            <form method="POST" action="{{ url_for('implantacao.vincular_card', implantacao_id=implantacao.id) }}" class="d-flex gap-2">
+                <select class="form-select form-select-sm" name="implantacao_principal_id" required>
+                    <option value="">Vincular este card a outro principal...</option>
+                    {% for principal in implantacoes_principais %}
+                        {% if principal.id != implantacao.id %}
+                            <option value="{{ principal.id }}">#{{ principal.id }} - {{ principal.cliente_nome }} / Contrato {{ principal.contrato_numero or principal.id }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-link-45deg"></i> Vincular</button>
+            </form>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Card vinculado</th><th>Cliente</th><th>Status</th><th>Etapa</th><th>Prazo</th><th width="120">Ações</th></tr></thead>
+                <tbody>
+                    {% for vinculada in implantacao.vinculadas %}
+                    <tr>
+                        <td><strong>#{{ vinculada.id }} - {{ vinculada.titulo }}</strong><br><small class="text-muted">Contrato {{ vinculada.contrato_numero or '-' }}</small></td>
+                        <td>{{ vinculada.cliente_nome or '-' }}<br><small class="text-muted">{{ vinculada.cliente_cnpj|cnpj_br if vinculada.cliente_cnpj else 'CNPJ não vinculado' }}</small></td>
+                        <td><span class="badge bg-secondary">{{ status_options.get(vinculada.status, vinculada.status) }}</span></td>
+                        <td>{{ kanban_labels.get(vinculada.etapa_kanban, vinculada.etapa_kanban or '-') }}</td>
+                        <td>{{ vinculada.data_prevista_entrega|date_br }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a class="btn btn-outline-secondary" href="{{ url_for('implantacao.visualizar', implantacao_id=vinculada.id) }}"><i class="bi bi-eye"></i></a>
+                                <form method="POST" action="{{ url_for('implantacao.desvincular_card', implantacao_id=vinculada.id) }}" onsubmit="return confirm('Desvincular este card da implantação principal?');">
+                                    <button class="btn btn-outline-secondary"><i class="bi bi-link-45deg"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                        {% set colspan = 6 %}
+                        {% set empty_message = "Nenhum card vinculado a esta implantação." %}
+                        {% include "components/empty_state.html" %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
             <div>
