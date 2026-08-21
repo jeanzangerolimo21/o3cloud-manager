@@ -235,3 +235,24 @@ Regras funcionais:
 * Registrar data, hora e usuario autor de cada comentario.
 * Registrar auditoria operacional para comentarios e vinculos de contato.
 
+---
+
+# RF015 - Agrupamento de Cards de Implantacao
+
+O sistema devera permitir agrupar cards de implantacao quando multiplos contratos/unidades de negocio utilizarem o mesmo ambiente operacional.
+
+Regras funcionais:
+
+* Permitir vincular um card secundario a um card principal.
+* Impedir que um card seja vinculado a ele mesmo.
+* Impedir que um card ja vinculado seja usado como principal de outro vinculo.
+* Manter o card vinculado ativo para rastreabilidade do contrato original.
+* Ocultar cards vinculados da lista principal de implantacao por padrao.
+* Ocultar cards vinculados do Kanban operacional por padrao.
+* Disponibilizar filtro para visualizar `Cards principais`, `Cards vinculados` ou `Todos`.
+* Exibir no detalhe do card principal todos os cards vinculados a ele.
+* Registrar historico e auditoria para cada vinculo e desvinculo.
+
+Documento de detalhamento:
+
+* `docs/48-MELHORIAS-BETA-2026-08-21.md`

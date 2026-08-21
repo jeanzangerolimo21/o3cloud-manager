@@ -132,6 +132,8 @@ DOMAIN_RULES.md
 
 AI_WORKFLOW.md
 
+48-MELHORIAS-BETA-2026-08-21.md
+
 ---
 
 # Estrutura Oficial

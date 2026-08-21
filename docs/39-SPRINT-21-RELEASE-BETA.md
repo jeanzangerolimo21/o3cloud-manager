@@ -240,3 +240,18 @@ Esses itens podem ser planejados após estabilização da Beta.
 O Sprint 21 foi concluído tecnicamente em 12/08/2026.
 
 As entregas de backup, restore, serviço systemd, versionamento e atualizações controladas ficam encaminhadas para homologação Beta com dados reais. A execução automática de atualização pela interface permanece fora da liberação até validação operacional completa.
+
+---
+
+# Atualizacao Beta - 21/08/2026
+
+A branch `beta` recebeu o commit `1256ee3 Adiciona CS e agrupamento de implantacoes`, contendo melhorias de homologacao assistida para propostas, licencas O3Web, Sucesso do Cliente e agrupamento de cards de implantacao.
+
+Migrations obrigatorias desta atualizacao:
+
+```text
+104_create_sucesso_cliente.sql
+105_vincular_cards_implantacao.sql
+```
+
+Referencia detalhada: `docs/48-MELHORIAS-BETA-2026-08-21.md`

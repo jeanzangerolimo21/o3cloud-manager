@@ -79,6 +79,7 @@ Entregas consolidadas recentes:
 - Restauracao assistida em `Configuracoes > Backups do Sistema`, com upload de backup, confirmacao `RESTAURAR` e restore seletivo de banco de dados e storage para migracao Beta.
 - Ajustes Beta em propostas comerciais e licencas O3Web: servidores separados por bloco, selecao explicita de servidor destino e calculo automatico de expiracao para trials.
 - `CRM Comercial > Sucesso do Cliente` acompanha contratos ativos por curva A/B/C, status de relacionamento, contato CRM vinculado, comentarios historicos e anexos.
+- Implantacao passou a agrupar cards por card principal para clientes com multiplas unidades/contratos no mesmo ambiente, ocultando cards vinculados do fluxo principal e do Kanban por padrao.
 
 ---
 
