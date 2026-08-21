@@ -852,11 +852,8 @@ class PropostaService:
         for item in proposta.get("licencas_items") or []:
             nome = re.sub(r"\s+", " ", item.get("software") or item.get("produto") or item.get("descricao") or "Licença").strip()
             itens.append(f"{nome} ({item.get('quantidade') or 1})")
-        for item in proposta.get("servidores_items") or []:
-            nome = re.sub(r"\s+", " ", item.get("nome") or item.get("descricao") or "Servidor").strip()
-            if item.get("servidor_nome"):
-                nome = f"{item.get('servidor_nome')} - {nome}"
-            itens.append(f"{nome} ({item.get('quantidade') or 1})")
+        for grupo in cls._servidores_resumo(proposta.get("servidores_items") or []):
+            itens.append(grupo.get("resumo"))
         if not itens:
             return "Não informado"
         if len(itens) > 4:
@@ -1099,6 +1096,7 @@ class PropostaService:
         proposta = dict(proposta)
         proposta["licencas_items"] = cls._carregar_lista_json(proposta.get("licencas_snapshot"))
         proposta["servidores_items"] = cls._carregar_lista_json(proposta.get("servidores_snapshot"))
+        proposta["servidores_resumo_items"] = cls._servidores_resumo(proposta["servidores_items"])
         resumo = cls._calcular_totais(proposta["licencas_items"], proposta["servidores_items"])
         proposta["total_mensal"] = cls._decimal(proposta.get("total_mensal")) or resumo["total_mensal"]
         parametrizacao = cls._decimal(proposta.get("parametrizacao_sistema"))
@@ -1307,6 +1305,62 @@ class PropostaService:
             })
         return resposta
 
+
+    @classmethod
+    def _servidores_resumo(cls, servidores):
+        grupos = []
+        por_nome = {}
+        for item in servidores or []:
+            nome = re.sub(r"\s+", " ", item.get("servidor_nome") or "Servidor").strip() or "Servidor"
+            if nome not in por_nome:
+                grupo = {"servidor_nome": nome, "recursos": [], "total_mensal": Decimal("0.00"), "total_instalacao": Decimal("0.00")}
+                por_nome[nome] = grupo
+                grupos.append(grupo)
+            grupo = por_nome[nome]
+            recurso = cls._resumo_recurso_servidor(item)
+            if recurso:
+                grupo["recursos"].append(recurso)
+            grupo["total_mensal"] += cls._decimal(item.get("total_mensal")) or Decimal("0.00")
+            grupo["total_instalacao"] += cls._decimal(item.get("total_instalacao")) or Decimal("0.00")
+        for grupo in grupos:
+            recursos = grupo["recursos"] or ["Recursos não detalhados"]
+            grupo["resumo"] = f"{grupo['servidor_nome']}: " + cls._juntar_lista_pt(recursos)
+            grupo["total_mensal"] = cls._string_decimal(grupo["total_mensal"].quantize(Decimal("0.01")))
+            grupo["total_instalacao"] = cls._string_decimal(grupo["total_instalacao"].quantize(Decimal("0.01")))
+        return grupos
+
+    @classmethod
+    def _resumo_recurso_servidor(cls, item):
+        nome = re.sub(r"\s+", " ", item.get("nome") or item.get("codigo") or item.get("descricao") or "Recurso").strip()
+        quantidade = cls._normalizar_inteiro(item.get("quantidade"), 1) or 1
+        chave = cls._normalizar_chave_recurso(nome or item.get("codigo"))
+        if "SNAPSHOT" in chave:
+            dias = re.search(r"(\d+)\s*DIAS?", chave)
+            return f"Snapshot de {dias.group(1)} dias" if dias else "Snapshot"
+        if "VCPU" in chave or "VCPUS" in chave:
+            return f"vCPUs: {quantidade}"
+        if "RAM" in chave or "MEMORIA" in chave or "MEMORIA" in chave:
+            return f"RAM: {quantidade}Gb"
+        if "NVME" in chave or "SSD" in chave or "DISCO" in chave or "STORAGE" in chave:
+            label = "NVME" if "NVME" in chave else nome
+            return f"{label}: {quantidade}Gb"
+        return f"{nome}: {quantidade}"
+
+    @staticmethod
+    def _normalizar_chave_recurso(valor):
+        texto = str(valor or "").upper()
+        mapa = str.maketrans("ÁÀÃÂÄÉÈÊËÍÌÎÏÓÒÕÔÖÚÙÛÜÇ", "AAAAAEEEEIIIIOOOOOUUUUC")
+        return re.sub(r"[^A-Z0-9]+", " ", texto.translate(mapa)).strip()
+
+    @staticmethod
+    def _juntar_lista_pt(itens):
+        itens = [str(item).strip() for item in itens if str(item or "").strip()]
+        if not itens:
+            return ""
+        if len(itens) == 1:
+            return itens[0]
+        return ", ".join(itens[:-1]) + " e " + itens[-1]
+
     @classmethod
     def _calcular_totais(cls, licencas, servidores):
         total_mensal = Decimal("0.00")
@@ -1336,9 +1390,8 @@ class PropostaService:
                 linhas.append(f"- {item.get('software')}: {item.get('quantidade')} x R$ {item.get('valor_unitario')} = R$ {item.get('total_mensal')}")
         if servidores:
             linhas.append("Recursos de Servidor")
-            for item in servidores:
-                nome = f"{item.get('servidor_nome')} - {item.get('nome')}" if item.get('servidor_nome') else item.get('nome')
-                linhas.append(f"- {nome}: {item.get('quantidade')} x R$ {item.get('valor_mensal')} = R$ {item.get('total_mensal')}")
+            for grupo in cls._servidores_resumo(servidores):
+                linhas.append(f"- {grupo.get('resumo')} = R$ {grupo.get('total_mensal')}")
         return "\n".join(linhas)
 
     @classmethod
@@ -1367,9 +1420,8 @@ class PropostaService:
         ]
         for item in proposta.get("licencas_items", []):
             linhas.append(f"{item.get('software')} | {item.get('quantidade')} | R$ {item.get('valor_unitario')} | R$ {item.get('total_mensal')}")
-        for item in proposta.get("servidores_items", []):
-            nome = f"{item.get('servidor_nome')} - {item.get('nome')}" if item.get("servidor_nome") else item.get("nome")
-            linhas.append(f"{nome} | {item.get('quantidade')} | R$ {item.get('valor_mensal')} | R$ {item.get('total_mensal')}")
+        for grupo in proposta.get("servidores_resumo_items") or cls._servidores_resumo(proposta.get("servidores_items", [])):
+            linhas.append(f"{grupo.get('resumo')} | Servidor | - | R$ {grupo.get('total_mensal')}")
         linhas.extend([
             f"TOTAL MENSAL	R$ {cls._string_decimal(proposta.get('total_mensal'))}",
             f"Setup: {proposta.get('setup_dias')} dias após a entrega do ambiente.",

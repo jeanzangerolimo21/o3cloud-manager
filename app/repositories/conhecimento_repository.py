@@ -41,3 +41,7 @@ class ConhecimentoRepository(BaseRepository):
   return cls.fetch_all("SELECT * FROM kb_arquivos WHERE "+" AND ".join(w)+" ORDER BY nome_original",p)
  @classmethod
  def inserir_arquivo(cls,d): return cls.execute_insert("INSERT INTO kb_arquivos(base_id,pasta_id,conhecimento_id,nome_original,nome_armazenado,caminho_relativo,mime_type,tamanho) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",(d["base_id"],d.get("pasta_id"),d.get("conhecimento_id"),d["nome_original"],d["nome_armazenado"],d["caminho_relativo"],d.get("mime_type"),d.get("tamanho",0)))
+ @classmethod
+ def arquivo(cls,id): return cls.fetch_one("SELECT * FROM kb_arquivos WHERE id=%s",(id,))
+ @classmethod
+ def excluir_arquivo(cls,id): return cls.execute("DELETE FROM kb_arquivos WHERE id=%s",(id,))

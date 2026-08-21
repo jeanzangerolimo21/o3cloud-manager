@@ -99,6 +99,15 @@ def editar(knowledge_id):
   flash("Conhecimento atualizado.","success");return redirect(url_for("conhecimentos.visualizar",knowledge_id=knowledge_id))
  return render_template("conhecimentos/form.html",base=ConhecimentoRepository.base(k["base_id"]),conhecimento=k,pastas=ConhecimentoRepository.todas_pastas(k["base_id"]),modo="editar")
 
+@conhecimentos_bp.route("/arquivo/<int:arquivo_id>/excluir",methods=["POST"])
+def excluir_arquivo(arquivo_id):
+ try:
+  row=ConhecimentoService.excluir_arquivo(arquivo_id)
+ except ValueError as e: flash(str(e),"danger");return redirect(request.referrer or url_for("conhecimentos.index"))
+ else: flash("Arquivo excluído.","success")
+ if row.get("conhecimento_id"): return redirect(url_for("conhecimentos.visualizar",knowledge_id=row["conhecimento_id"]))
+ return redirect(url_for("conhecimentos.base",base_id=row["base_id"],pasta=row.get("pasta_id") or None))
+
 @conhecimentos_bp.route("/arquivo/<int:arquivo_id>")
 def arquivo(arquivo_id):
  row=ConhecimentoRepository.fetch_one("SELECT * FROM kb_arquivos WHERE id=%s",(arquivo_id,))

@@ -73,3 +73,12 @@ class ConhecimentoService:
  def apagar_arquivo(arquivo):
   path=ROOT/arquivo["caminho_relativo"]
   if path.exists():path.unlink()
+
+
+ @classmethod
+ def excluir_arquivo(cls,arquivo_id):
+  arquivo=ConhecimentoRepository.arquivo(arquivo_id)
+  if not arquivo: raise ValueError("Arquivo não encontrado.")
+  cls.apagar_arquivo(arquivo)
+  ConhecimentoRepository.excluir_arquivo(arquivo_id)
+  return arquivo
