@@ -381,13 +381,13 @@ class ContratoRepository(BaseRepository):
         cursor.execute(
             """
             INSERT INTO contratos (
-                uuid, cliente_id, codigo_externo, origem, numero, descricao, status,
+                uuid, cliente_id, executivo_id, parceiro_id, codigo_externo, origem, numero, descricao, status,
                 inicio_vigencia, fim_vigencia, observacoes, ativo, synced_at,
                 valor_mensal, dia_faturamento, tipo_faturamento, codigo_vendedor,
                 vendedor_nome, codigo_projeto, projeto_nome, codigo_cc,
                 observacao_contrato, valor_servicos_bruto, valor_descontos, valor_servicos_liquido
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, NOW(),
                 %s, %s, %s, %s,
                 %s, %s, %s, %s,
@@ -397,6 +397,8 @@ class ContratoRepository(BaseRepository):
             (
                 uuid,
                 dados.get("cliente_id"),
+                dados.get("executivo_id"),
+                dados.get("parceiro_id"),
                 dados.get("codigo_externo"),
                 dados.get("origem"),
                 dados.get("numero"),
@@ -426,6 +428,32 @@ class ContratoRepository(BaseRepository):
         return contrato_id
 
     @classmethod
+    def listar_omie_ativos_para_vinculos_comerciais(cls):
+        return cls.fetch_all(
+            """
+            SELECT id, numero, vendedor_nome, projeto_nome, parceiro_id, executivo_id
+            FROM contratos
+            WHERE origem = %s
+              AND ativo = 1
+            """,
+            (ORIGEM_OMIE,),
+        )
+
+    @classmethod
+    def atualizar_vinculos_comerciais_omie_sync(cls, contrato_id, parceiro_id=None, executivo_id=None):
+        return cls.execute(
+            """
+            UPDATE contratos
+            SET parceiro_id = COALESCE(%s, parceiro_id),
+                executivo_id = COALESCE(%s, executivo_id)
+            WHERE id = %s
+              AND origem = %s
+              AND ativo = 1
+            """,
+            (parceiro_id, executivo_id, contrato_id, ORIGEM_OMIE),
+        )
+
+    @classmethod
     def atualizar_quantidade_usuarios(cls, contrato_id, quantidade_usuarios):
         conn = cls.connection()
         cursor = conn.cursor()
@@ -451,6 +479,8 @@ class ContratoRepository(BaseRepository):
                 cliente_id=%s,
                 codigo_externo=%s,
                 origem=%s,
+                executivo_id=COALESCE(%s, executivo_id),
+                parceiro_id=COALESCE(%s, parceiro_id),
                 numero=%s,
                 descricao=%s,
                 status=%s,
@@ -476,6 +506,8 @@ class ContratoRepository(BaseRepository):
                 dados.get("cliente_id"),
                 dados.get("codigo_externo"),
                 dados.get("origem"),
+                dados.get("executivo_id"),
+                dados.get("parceiro_id"),
                 dados.get("numero"),
                 dados.get("descricao"),
                 dados.get("status"),

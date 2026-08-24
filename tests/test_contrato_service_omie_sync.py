@@ -117,3 +117,53 @@ def test_desativar_contratos_omie_ausentes_repassa_codigos_vistos():
 
     assert total == 2
     assert ContratoRepoFake.ausentes == [{111, 222}]
+
+
+def test_sincronizar_contrato_preenche_vinculos_comerciais_do_omie():
+    chave_vendedor = ContratoService._normalizar_nome_vinculo("VR BH")
+    chave_parceiro = ContratoService._normalizar_nome_vinculo("VR SOFTWARE BELO HORIZONTE")
+    chave_executivo = ContratoService._normalizar_nome_vinculo("Projeto Alpha")
+    vinculos_cache = {
+        "vendedores_omie": {chave_vendedor: "VR SOFTWARE BELO HORIZONTE"},
+        "parceiros": {chave_parceiro: {"id": 7, "nome": "VR SOFTWARE BELO HORIZONTE"}},
+        "executivos": {chave_executivo: {"id": 8, "nome": "Projeto Alpha"}},
+    }
+
+    resultado = ContratoService.sincronizar_contrato(
+        {
+            "cabecalho": {
+                "nCodCtr": 333,
+                "nCodCli": 1001,
+                "cNumCtr": "CTR-333",
+                "cCodSit": "10",
+                "nValTotMes": "150.00",
+            },
+            "infAdic": {"nCodVend": 1, "nCodProj": 2},
+            "observacoes": {},
+            "itensContrato": [],
+        },
+        vendedores_cache={1: "VR BH"},
+        projetos_cache={2: "Projeto Alpha"},
+        vinculos_cache=vinculos_cache,
+    )
+
+    assert resultado["status"] == "INSERT"
+    assert ContratoRepoFake.inseridos[0]["parceiro_id"] == 7
+    assert ContratoRepoFake.inseridos[0]["executivo_id"] == 8
+
+
+def test_resolver_vinculo_vendedor_omie_por_prefixo_da_planilha():
+    cache = {
+        "vendedores_omie": {
+            ContratoService._normalizar_nome_vinculo("JRS SISTEMAS"): "O3 CLOUD"
+        },
+        "parceiros": {
+            ContratoService._normalizar_nome_vinculo("O3 CLOUD"): {"id": 7}
+        },
+        "executivos": {},
+    }
+
+    vinculos = ContratoService._resolver_vinculos_comerciais_omie("JRS", None, cache)
+
+    assert vinculos["parceiro_id"] == 7
+    assert vinculos["executivo_id"] is None

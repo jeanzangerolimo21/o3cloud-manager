@@ -142,6 +142,7 @@ class OmieSync:
         codigos_omie_vistos = set()
         vendedores_cache = ContratoService._indexar_cadastros_omie(self.client.listar_vendedores)
         projetos_cache = ContratoService._indexar_cadastros_omie(self.client.listar_projetos)
+        vinculos_cache = ContratoService._cache_vinculos_comerciais_omie()
 
         try:
 
@@ -166,6 +167,7 @@ class OmieSync:
                         contrato,
                         vendedores_cache,
                         projetos_cache,
+                        vinculos_cache,
                     )
 
                     if resultado.get("status") in ("INSERT", "UPDATE"):

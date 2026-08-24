@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+import unicodedata
 
 from app.contatos.service import ContatoService
 from app.core.pdf_assinatura import extrair_data_assinatura_pdf
@@ -34,9 +35,10 @@ class ContratoService:
     }
 
     @classmethod
-    def sincronizar_contrato(cls, contrato_omie, vendedores_cache=None, projetos_cache=None):
+    def sincronizar_contrato(cls, contrato_omie, vendedores_cache=None, projetos_cache=None, vinculos_cache=None):
         dados = ContratoMapper.from_omie(contrato_omie)
         cls._aplicar_nomes_omie(dados, vendedores_cache, projetos_cache)
+        cls._aplicar_vinculos_comerciais_omie(dados, vinculos_cache)
         cliente = ClienteRepository.buscar_por_codigo_externo(dados["cliente_codigo_externo"])
 
         if not cliente:
@@ -92,10 +94,57 @@ class ContratoService:
         vendedores_cache = cls._indexar_cadastros_omie(omie.listar_vendedores)
         projetos_cache = cls._indexar_cadastros_omie(omie.listar_projetos)
         resposta = omie.listar_contratos()
+        vinculos_cache = cls._cache_vinculos_comerciais_omie()
         return [
-            cls.sincronizar_contrato(contrato, vendedores_cache, projetos_cache)
+            cls.sincronizar_contrato(contrato, vendedores_cache, projetos_cache, vinculos_cache)
             for contrato in resposta.get("contratoCadastro", [])
         ]
+
+    @classmethod
+    def preencher_vinculos_comerciais_omie_existentes(cls):
+        cache = cls._cache_vinculos_comerciais_omie()
+        contratos = ContratoRepository.listar_omie_ativos_para_vinculos_comerciais()
+        atualizados = 0
+        parceiro_match = 0
+        executivo_match = 0
+        sem_parceiro = set()
+        sem_executivo = set()
+
+        for contrato in contratos:
+            vinculos = cls._resolver_vinculos_comerciais_omie(
+                contrato.get("vendedor_nome"),
+                contrato.get("projeto_nome"),
+                cache,
+            )
+            parceiro_id = vinculos.get("parceiro_id")
+            executivo_id = vinculos.get("executivo_id")
+
+            if parceiro_id:
+                parceiro_match += 1
+            elif contrato.get("vendedor_nome"):
+                sem_parceiro.add(contrato.get("vendedor_nome"))
+
+            if executivo_id:
+                executivo_match += 1
+            elif contrato.get("projeto_nome"):
+                sem_executivo.add(contrato.get("projeto_nome"))
+
+            if parceiro_id or executivo_id:
+                ContratoRepository.atualizar_vinculos_comerciais_omie_sync(
+                    contrato.get("id"),
+                    parceiro_id=parceiro_id,
+                    executivo_id=executivo_id,
+                )
+                atualizados += 1
+
+        return {
+            "processados": len(contratos),
+            "atualizados": atualizados,
+            "parceiro_match": parceiro_match,
+            "executivo_match": executivo_match,
+            "sem_parceiro": sorted(sem_parceiro),
+            "sem_executivo": sorted(sem_executivo),
+        }
 
     @classmethod
     def _aplicar_nomes_omie(cls, dados, vendedores_cache=None, projetos_cache=None):
@@ -107,6 +156,105 @@ class ContratoService:
             dados.get("codigo_projeto"),
             projetos_cache,
         )
+
+    @classmethod
+    def _aplicar_vinculos_comerciais_omie(cls, dados, cache=None):
+        cache = cache or cls._cache_vinculos_comerciais_omie()
+
+        dados.update(
+            cls._resolver_vinculos_comerciais_omie(
+                dados.get("vendedor_nome"),
+                dados.get("projeto_nome"),
+                cache,
+            )
+        )
+
+    @classmethod
+    def _resolver_vinculos_comerciais_omie(cls, vendedor_nome, projeto_nome, cache):
+        vendedor_chave = cls._normalizar_nome_vinculo(vendedor_nome)
+        parceiro_nome = cache["vendedores_omie"].get(vendedor_chave)
+        if not parceiro_nome and vendedor_chave:
+            for chave_mapa, nome_mapa in cache["vendedores_omie"].items():
+                if chave_mapa.startswith(f"{vendedor_chave} "):
+                    parceiro_nome = nome_mapa
+                    break
+        parceiro = cache["parceiros"].get(
+            cls._normalizar_nome_vinculo(parceiro_nome or vendedor_nome)
+        )
+        executivo = cache["executivos"].get(
+            cls._normalizar_nome_vinculo(projeto_nome)
+        )
+        return {
+            "parceiro_id": parceiro.get("id") if parceiro else None,
+            "executivo_id": executivo.get("id") if executivo else None,
+        }
+
+    @classmethod
+    def _cache_vinculos_comerciais_omie(cls):
+        return {
+            "vendedores_omie": cls._mapa_vendedores_omie(),
+            "parceiros": cls._indexar_parceiros_por_nome(),
+            "executivos": cls._indexar_executivos_por_nome(),
+        }
+
+    @classmethod
+    def _mapa_vendedores_omie(cls):
+        caminho = Path(__file__).resolve().parents[2] / "storage" / "temporarios" / "VENDEDORES.xlsx"
+        if not caminho.exists():
+            return {}
+
+        try:
+            from openpyxl import load_workbook
+            workbook = load_workbook(caminho, read_only=True, data_only=True)
+        except Exception:
+            return {}
+
+        try:
+            worksheet = workbook.active
+            mapa = {}
+            for linha in worksheet.iter_rows(min_row=2, values_only=True):
+                vendedor_omie = cls._texto_vinculo(linha[0] if len(linha) > 0 else None)
+                parceiro_o3 = cls._texto_vinculo(linha[1] if len(linha) > 1 else None)
+                if vendedor_omie and parceiro_o3:
+                    mapa[cls._normalizar_nome_vinculo(vendedor_omie)] = parceiro_o3
+            return mapa
+        finally:
+            workbook.close()
+
+    @classmethod
+    def _indexar_parceiros_por_nome(cls):
+        indice = {}
+        for parceiro in ParceiroService.listar_todos_ativos():
+            for campo in ("nome_exibicao", "nome", "sigla"):
+                chave = cls._normalizar_nome_vinculo(parceiro.get(campo))
+                if chave and chave not in indice:
+                    indice[chave] = parceiro
+        return indice
+
+    @classmethod
+    def _indexar_executivos_por_nome(cls):
+        indice = {}
+        for executivo in ParceiroExecutivoService.listar_todos_ativos():
+            chave = cls._normalizar_nome_vinculo(executivo.get("nome"))
+            if chave and chave not in indice:
+                indice[chave] = executivo
+        return indice
+
+    @staticmethod
+    def _texto_vinculo(valor):
+        if valor in (None, ""):
+            return ""
+        return str(valor).strip()
+
+    @classmethod
+    def _normalizar_nome_vinculo(cls, valor):
+        texto = cls._texto_vinculo(valor)
+        if not texto:
+            return ""
+        texto = unicodedata.normalize("NFKD", texto)
+        texto = "".join(ch for ch in texto if not unicodedata.combining(ch))
+        texto = " ".join(texto.upper().replace(".", " ").replace("-", " ").split())
+        return texto
 
     @staticmethod
     def _nome_cadastro_omie(codigo, cache):
