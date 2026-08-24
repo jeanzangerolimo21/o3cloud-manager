@@ -162,7 +162,9 @@ class ImplantacaoWorkflowRepository(BaseRepository):
                 FROM implantacao_checklist
                 GROUP BY implantacao_id
             ) checklist ON checklist.implantacao_id = i.id
-            WHERE i.cliente_id = %s AND i.ativo = 1
+            WHERE i.cliente_id = %s
+              AND i.ativo = 1
+              AND c.ativo = 1
             ORDER BY FIELD(i.status, 'EM_EXECUCAO', 'EM_VALIDACAO', 'AGUARDANDO_INICIO', 'EM_PLANEJAMENTO', 'PAUSADA', 'ENTREGUE', 'CANCELADA'),
                      COALESCE(i.data_prevista_entrega, '2999-12-31') ASC,
                      i.updated_at DESC,
@@ -182,6 +184,47 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             LIMIT 1
             """,
             (contrato_id,),
+        )
+
+    @classmethod
+    def desativar_por_contratos_omie_inativos(cls):
+        return cls.execute_delete_count(
+            """
+            UPDATE implantacoes i
+            INNER JOIN contratos c ON c.id = i.contrato_id
+            SET i.ativo = 0,
+                i.status = 'CANCELADA',
+                i.etapa_kanban = 'CANCELADOS'
+            WHERE i.ativo = 1
+              AND c.origem = 'OMIE'
+              AND c.ativo = 0
+            """
+        )
+
+    @classmethod
+    def desativar_duplicadas_por_cliente(cls):
+        return cls.execute_delete_count(
+            """
+            UPDATE implantacoes duplicada
+            INNER JOIN implantacoes manter
+                ON manter.cliente_id = duplicada.cliente_id
+               AND manter.ativo = 1
+               AND duplicada.ativo = 1
+               AND manter.implantacao_principal_id IS NULL
+               AND duplicada.implantacao_principal_id IS NULL
+               AND (
+                    manter.id > duplicada.id
+                    OR (manter.contrato_id = duplicada.contrato_id AND manter.id > duplicada.id)
+               )
+            INNER JOIN contratos contrato_manter
+                ON contrato_manter.id = manter.contrato_id
+               AND contrato_manter.ativo = 1
+            SET duplicada.ativo = 0,
+                duplicada.status = 'CANCELADA',
+                duplicada.etapa_kanban = 'CANCELADOS'
+            WHERE duplicada.status = 'AGUARDANDO_INICIO'
+              AND COALESCE(duplicada.etapa_kanban, 'FILA') = 'FILA'
+            """
         )
 
     @classmethod
@@ -209,8 +252,10 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             LEFT JOIN parceiros_executivos exec ON exec.id = c.executivo_id
             LEFT JOIN parceiros par ON par.id = c.parceiro_id
             LEFT JOIN implantacoes i ON i.contrato_id = c.id AND i.ativo = 1
+            LEFT JOIN implantacoes ic ON ic.cliente_id = c.cliente_id AND ic.ativo = 1
             WHERE c.ativo = 1
               AND i.id IS NULL
+              AND ic.id IS NULL
               AND c.status = 'ENCAMINHADO_PROJETO'
             ORDER BY COALESCE(c.data_fechamento, c.created_at) DESC, c.id DESC
             """
@@ -685,7 +730,9 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             INNER JOIN clientes cli ON cli.id = i.cliente_id
             LEFT JOIN parceiros_executivos exec ON exec.id = i.executivo_id
             LEFT JOIN parceiros p ON p.id = i.parceiro_id
-            WHERE i.ativo = 1 AND i.implantacao_principal_id IS NULL
+            WHERE i.ativo = 1
+              AND c.ativo = 1
+              AND i.implantacao_principal_id IS NULL
             ORDER BY COALESCE(i.data_prevista_entrega, '2999-12-31') ASC, i.updated_at DESC, i.id DESC
             """
         )

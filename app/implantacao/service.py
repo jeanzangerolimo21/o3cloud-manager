@@ -213,9 +213,14 @@ class ImplantacaoService:
 
     @classmethod
     def sincronizar_contratos_encaminhados(cls):
+        cls.repository.desativar_por_contratos_omie_inativos()
+        cls.repository.desativar_duplicadas_por_cliente()
+
         criadas = []
         for contrato in cls.repository.listar_contratos_elegiveis():
             if cls.repository.buscar_por_contrato_id(contrato.get("id")):
+                continue
+            if cls.repository.buscar_por_cliente_id(contrato.get("cliente_id")):
                 continue
             implantacao_id = cls.criar({"contrato_id": contrato.get("id"), "etapa_kanban": "FILA"})
             criadas.append(implantacao_id)
@@ -454,6 +459,8 @@ class ImplantacaoService:
             raise ValueError("A implantação só pode iniciar a partir de contrato com status Encaminhado para Projeto.")
         if cls.repository.buscar_por_contrato_id(contrato_id):
             raise ValueError("Este contrato já possui uma implantação ativa.")
+        if cls.repository.buscar_por_cliente_id(contrato.get("cliente_id")):
+            raise ValueError("Este cliente já possui uma implantação ativa.")
         InadimplenciaService.validar_operacao_cliente(contrato.get("cliente_id"))
 
         payload = cls._normalizar(dados, contrato=contrato)
