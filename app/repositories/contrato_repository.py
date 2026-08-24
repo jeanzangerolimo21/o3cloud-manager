@@ -1,4 +1,5 @@
 from app.core.constants.origens import ORIGEM_MANUAL
+from app.core.constants.origens import ORIGEM_OMIE
 from app.repositories.base_repository import BaseRepository
 
 
@@ -233,6 +234,66 @@ class ContratoRepository(BaseRepository):
         contrato = cursor.fetchone()
         cls.close(conn, cursor)
         return contrato
+
+    @classmethod
+    def buscar_omie_ativo_por_cliente(cls, cliente_id, exceto_id=None):
+        parametros = [cliente_id, ORIGEM_OMIE]
+        filtro_exceto = ""
+        if exceto_id:
+            filtro_exceto = "AND id <> %s"
+            parametros.append(exceto_id)
+
+        return cls.fetch_one(
+            f"""
+            SELECT *
+            FROM contratos
+            WHERE cliente_id=%s
+              AND origem=%s
+              AND ativo=1
+              {filtro_exceto}
+            ORDER BY synced_at DESC, id DESC
+            LIMIT 1
+            """,
+            tuple(parametros),
+        )
+
+    @classmethod
+    def desativar_omie_ativos_por_cliente(cls, cliente_id, manter_id):
+        return cls.execute_delete_count(
+            """
+            UPDATE contratos
+            SET ativo=0,
+                status='CANCELADO',
+                synced_at=NOW()
+            WHERE cliente_id=%s
+              AND origem=%s
+              AND ativo=1
+              AND id<>%s
+            """,
+            (cliente_id, ORIGEM_OMIE, manter_id),
+        )
+
+    @classmethod
+    def desativar_omie_ativos_ausentes(cls, codigos_externos):
+        codigos = [codigo for codigo in codigos_externos if codigo not in (None, "")]
+        if not codigos:
+            return 0
+
+        placeholders = ", ".join(["%s"] * len(codigos))
+        parametros = [ORIGEM_OMIE, *codigos]
+        return cls.execute_delete_count(
+            f"""
+            UPDATE contratos
+            SET ativo=0,
+                status='CANCELADO',
+                synced_at=NOW()
+            WHERE origem=%s
+              AND ativo=1
+              AND codigo_externo IS NOT NULL
+              AND codigo_externo NOT IN ({placeholders})
+            """,
+            tuple(parametros),
+        )
 
     @classmethod
     def buscar_por_proposta_id(cls, proposta_id):

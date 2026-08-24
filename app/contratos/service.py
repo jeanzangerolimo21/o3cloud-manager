@@ -57,17 +57,34 @@ class ContratoService:
             contrato = ContratoRepository.buscar_assinado_sem_codigo_por_cliente_valor(
                 cliente["id"], dados.get("valor_mensal")
             )
+        if not contrato:
+            contrato = ContratoRepository.buscar_omie_ativo_por_cliente(cliente["id"])
 
         if contrato:
             ContratoRepository.atualizar_sync(contrato["id"], dados)
-            from app.financeiro.reajuste_service import ReajusteContratoService
-            ReajusteContratoService.registrar_historico_valor_se_necessario(contrato["id"], dados, origem="OMIE")
-            return {"status": "UPDATE", "numero": dados["numero"]}
+            duplicados = ContratoRepository.desativar_omie_ativos_por_cliente(
+                cliente["id"],
+                contrato["id"],
+            )
+            cls._registrar_historico_valor(contrato["id"], dados)
+            return {
+                "status": "UPDATE",
+                "numero": dados["numero"],
+                "duplicados_desativados": duplicados,
+            }
 
         contrato_id = ContratoRepository.inserir(dados)
+        cls._registrar_historico_valor(contrato_id, dados)
+        return {"status": "INSERT", "numero": dados["numero"]}
+
+    @classmethod
+    def desativar_contratos_omie_ausentes(cls, codigos_externos):
+        return ContratoRepository.desativar_omie_ativos_ausentes(codigos_externos)
+
+    @staticmethod
+    def _registrar_historico_valor(contrato_id, dados):
         from app.financeiro.reajuste_service import ReajusteContratoService
         ReajusteContratoService.registrar_historico_valor_se_necessario(contrato_id, dados, origem="OMIE")
-        return {"status": "INSERT", "numero": dados["numero"]}
 
     @classmethod
     def sincronizar(cls):

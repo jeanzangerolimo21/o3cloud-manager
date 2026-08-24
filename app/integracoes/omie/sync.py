@@ -138,6 +138,8 @@ class OmieSync:
         novos = 0
         atualizados = 0
         ignorados = 0
+        desativados_ausentes = 0
+        codigos_omie_vistos = set()
         vendedores_cache = ContratoService._indexar_cadastros_omie(self.client.listar_vendedores)
         projetos_cache = ContratoService._indexar_cadastros_omie(self.client.listar_projetos)
 
@@ -156,6 +158,9 @@ class OmieSync:
 
                 for contrato in contratos:
 
+                    codigo_contrato = contrato.get("cabecalho", {}).get("nCodCtr")
+                    if codigo_contrato not in (None, ""):
+                        codigos_omie_vistos.add(codigo_contrato)
 
                     resultado = ContratoService.sincronizar_contrato(
                         contrato,
@@ -163,9 +168,10 @@ class OmieSync:
                         projetos_cache,
                     )
 
-                    itens = ContratoItemService.sincronizar_itens(contrato)
-                    if isinstance(itens, list):
-                        _log(f"Itens sincronizados: {len(itens)}")
+                    if resultado.get("status") in ("INSERT", "UPDATE"):
+                        itens = ContratoItemService.sincronizar_itens(contrato)
+                        if isinstance(itens, list):
+                            _log(f"Itens sincronizados: {len(itens)}")
 
                     _log(resultado)
 
@@ -206,6 +212,12 @@ class OmieSync:
 
                 pagina += 1
 
+            desativados_ausentes = ContratoService.desativar_contratos_omie_ausentes(
+                codigos_omie_vistos
+            )
+            if desativados_ausentes:
+                _log(f"Contratos Omie desativados por ausencia na origem: {desativados_ausentes}")
+
             SyncRepository.finalizar(
                 sync_id,
                 "SUCESSO",
@@ -219,7 +231,8 @@ class OmieSync:
                 "processados": processados,
                 "novos": novos,
                 "atualizados": atualizados,
-                "ignorados": ignorados
+                "ignorados": ignorados,
+                "desativados_ausentes": desativados_ausentes,
             }
 
         except Exception as erro:
