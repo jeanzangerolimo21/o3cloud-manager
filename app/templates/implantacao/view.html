@@ -10,6 +10,14 @@
     {% set page_button_text = "Editar" %}
     {% include "components/page_header.html" %}
 
+    {% if pode_excluir() %}
+    <div class="d-flex justify-content-end mb-3">
+        <form method="POST" action="{{ url_for('implantacao.excluir', implantacao_id=implantacao.id) }}" onsubmit="return confirm('Excluir esta implantação? Esta ação remove o card da fila e mantém o histórico inativo.');">
+            <button class="btn btn-outline-danger"><i class="bi bi-trash"></i> Excluir Implantação</button>
+        </form>
+    </div>
+    {% endif %}
+
     <div class="row g-3 mb-4">
         <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Status</small><h5>{{ status_options.get(implantacao.status, implantacao.status) }}</h5></div></div></div>
         <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Conclusão</small><h5>{{ implantacao.percentual_conclusao or 0 }}%</h5></div></div></div>

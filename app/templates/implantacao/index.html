@@ -122,7 +122,17 @@
                                     </form>
                                 {% endif %}
                             </td>
-                            <td><div class="btn-group btn-group-sm"><a class="btn btn-outline-secondary" href="{{ url_for('implantacao.visualizar', implantacao_id=implantacao.id) }}"><i class="bi bi-eye"></i></a><a class="btn btn-outline-primary" href="{{ url_for('implantacao.editar', implantacao_id=implantacao.id) }}"><i class="bi bi-pencil"></i></a></div></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a class="btn btn-outline-secondary" href="{{ url_for('implantacao.visualizar', implantacao_id=implantacao.id) }}" title="Visualizar"><i class="bi bi-eye"></i></a>
+                                    <a class="btn btn-outline-primary" href="{{ url_for('implantacao.editar', implantacao_id=implantacao.id) }}" title="Editar"><i class="bi bi-pencil"></i></a>
+                                    {% if pode_excluir() %}
+                                    <form method="POST" action="{{ url_for('implantacao.excluir', implantacao_id=implantacao.id) }}" onsubmit="return confirm('Excluir esta implantação? Esta ação remove o card da fila e mantém o histórico inativo.');">
+                                        <button class="btn btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
                         </tr>
                         {% else %}
                             {% set colspan = 9 %}

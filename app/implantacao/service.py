@@ -470,6 +470,13 @@ class ImplantacaoService:
         return implantacao_id
 
     @classmethod
+    def excluir(cls, implantacao_id):
+        implantacao = cls.repository.buscar_por_id(implantacao_id)
+        if not implantacao:
+            raise ValueError("Implantação não encontrada.")
+        cls.repository.excluir(implantacao_id)
+
+    @classmethod
     def atualizar(cls, implantacao_id, dados):
         implantacao = cls.repository.buscar_por_id(implantacao_id)
         if not implantacao:

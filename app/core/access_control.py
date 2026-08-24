@@ -160,6 +160,7 @@ ENDPOINT_PERMISSOES = {
     "implantacao.novo": "implantacao",
     "implantacao.visualizar": "implantacao",
     "implantacao.editar": "implantacao",
+    "implantacao.excluir": "implantacao",
     "implantacao.visualizar_contrato_operacional": "implantacao",
     "implantacao.vincular_card": "implantacao",
     "implantacao.desvincular_card": "implantacao",

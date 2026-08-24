@@ -342,6 +342,19 @@ class ImplantacaoWorkflowRepository(BaseRepository):
         )
 
     @classmethod
+    def excluir(cls, implantacao_id):
+        return cls.execute(
+            """
+            UPDATE implantacoes
+            SET ativo = 0,
+                status = 'CANCELADA',
+                etapa_kanban = 'CANCELADOS'
+            WHERE id = %s AND ativo = 1
+            """,
+            (implantacao_id,),
+        )
+
+    @classmethod
     def atualizar(cls, implantacao_id, dados):
         return cls.execute(
             """

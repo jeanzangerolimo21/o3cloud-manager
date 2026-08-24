@@ -10,6 +10,8 @@ class RepoImplantacaoFake:
     criadas = []
     limpou_inativos = 0
     limpou_duplicadas = 0
+    existentes = {}
+    excluidas = []
 
     @classmethod
     def desativar_por_contratos_omie_inativos(cls):
@@ -33,6 +35,15 @@ class RepoImplantacaoFake:
     def buscar_por_cliente_id(cls, cliente_id):
         return cls.por_cliente.get(cliente_id)
 
+    @classmethod
+    def buscar_por_id(cls, implantacao_id):
+        return cls.existentes.get(implantacao_id)
+
+    @classmethod
+    def excluir(cls, implantacao_id):
+        cls.excluidas.append(implantacao_id)
+        return True
+
 
 def setup_function():
     ImplantacaoService.repository = RepoImplantacaoFake
@@ -42,6 +53,8 @@ def setup_function():
     RepoImplantacaoFake.criadas = []
     RepoImplantacaoFake.limpou_inativos = 0
     RepoImplantacaoFake.limpou_duplicadas = 0
+    RepoImplantacaoFake.existentes = {}
+    RepoImplantacaoFake.excluidas = []
 
 
 def test_sincronizar_contratos_encaminhados_limpa_e_nao_duplica_cliente(monkeypatch):
@@ -72,3 +85,16 @@ def test_sincronizar_contratos_encaminhados_nao_duplica_contrato(monkeypatch):
     monkeypatch.setattr(ImplantacaoService, "criar", classmethod(lambda cls, dados: pytest.fail("nao deve criar")))
 
     assert ImplantacaoService.sincronizar_contratos_encaminhados() == []
+
+
+def test_excluir_implantacao_inativa_registro_existente():
+    RepoImplantacaoFake.existentes = {77: {"id": 77, "titulo": "Duplicada"}}
+
+    ImplantacaoService.excluir(77)
+
+    assert RepoImplantacaoFake.excluidas == [77]
+
+
+def test_excluir_implantacao_inexistente_falha():
+    with pytest.raises(ValueError, match="Implantação não encontrada"):
+        ImplantacaoService.excluir(88)

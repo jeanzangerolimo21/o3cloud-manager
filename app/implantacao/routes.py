@@ -792,6 +792,19 @@ def visualizar(implantacao_id):
     )
 
 
+@implantacao_bp.route("/<int:implantacao_id>/excluir", methods=["POST"])
+def excluir(implantacao_id):
+    try:
+        ImplantacaoService.excluir(implantacao_id)
+        registrar_evento("IMPLANTACAO_EXCLUIDA", "implantacoes", implantacao_id, {"origem": "manual"})
+    except ValueError as erro:
+        flash(str(erro), "danger")
+        return redirect(request.referrer or url_for("implantacao.index"))
+    else:
+        flash("Implantação excluída.", "success")
+        return redirect(url_for("implantacao.index"))
+
+
 @implantacao_bp.route("/<int:implantacao_id>/editar", methods=["GET", "POST"])
 def editar(implantacao_id):
     implantacao = ImplantacaoService.buscar_por_id(implantacao_id)
