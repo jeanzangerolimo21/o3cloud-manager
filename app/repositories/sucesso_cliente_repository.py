@@ -53,6 +53,23 @@ class SucessoClienteRepository(BaseRepository):
         )
 
     @classmethod
+    def dashboard_pesquisas(cls):
+        return cls.fetch_one(
+            """
+            SELECT
+                COUNT(*) AS total_pesquisas,
+                SUM(CASE WHEN status = 'ENVIADA' THEN 1 ELSE 0 END) AS enviadas,
+                SUM(CASE WHEN status = 'RESPONDIDA' THEN 1 ELSE 0 END) AS respondidas,
+                SUM(CASE WHEN classificacao_nota = 0 THEN 1 ELSE 0 END) AS muito_insatisfeito,
+                SUM(CASE WHEN classificacao_nota = 5 THEN 1 ELSE 0 END) AS satisfatorio,
+                SUM(CASE WHEN classificacao_nota = 10 THEN 1 ELSE 0 END) AS muito_satisfeito,
+                AVG(media_nota) AS media_geral
+            FROM crm_sucesso_cliente_pesquisas
+            WHERE status IN ('ENVIADA', 'RESPONDIDA')
+            """
+        )
+
+    @classmethod
     def buscar_contrato(cls, contrato_id):
         return cls.fetch_one(cls._select_base() + "\nWHERE c.id = %s AND c.ativo = 1", (contrato_id,))
 
@@ -140,6 +157,147 @@ class SucessoClienteRepository(BaseRepository):
             ORDER BY id ASC
             """,
             (contrato_id,),
+        )
+
+    @classmethod
+    def inserir_pesquisa(cls, dados):
+        return cls.execute_insert(
+            """
+            INSERT INTO crm_sucesso_cliente_pesquisas (
+                uuid, token, lote_uuid, contrato_id, cliente_id, titulo, referencia_data,
+                destinatario_email, perguntas_json, status, created_by
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                cls.generate_uuid(),
+                dados.get("token"),
+                dados.get("lote_uuid"),
+                dados.get("contrato_id"),
+                dados.get("cliente_id"),
+                dados.get("titulo"),
+                dados.get("referencia_data"),
+                dados.get("destinatario_email"),
+                dados.get("perguntas_json"),
+                dados.get("status") or "ENVIADA",
+                dados.get("created_by"),
+            ),
+        )
+
+    @classmethod
+    def atualizar_envio_pesquisa(cls, pesquisa_id, email_enviado, email_resultado):
+        return cls.execute(
+            """
+            UPDATE crm_sucesso_cliente_pesquisas
+            SET email_enviado=%s, email_resultado=%s, enviado_em=NOW(), status='ENVIADA'
+            WHERE id=%s
+            """,
+            (cls.bool_to_int(email_enviado), email_resultado, pesquisa_id),
+        )
+
+    @classmethod
+    def buscar_pesquisa_por_id(cls, pesquisa_id):
+        return cls.fetch_one(
+            """
+            SELECT p.*, c.numero AS contrato_numero, cli.razao_social AS cliente_razao_social,
+                   cli.nome_fantasia AS cliente_nome_fantasia, cli.cnpj AS cliente_cnpj
+            FROM crm_sucesso_cliente_pesquisas p
+            INNER JOIN contratos c ON c.id = p.contrato_id
+            INNER JOIN clientes cli ON cli.id = p.cliente_id
+            WHERE p.id = %s
+            """,
+            (pesquisa_id,),
+        )
+
+    @classmethod
+    def buscar_pesquisa_por_token(cls, token):
+        return cls.fetch_one(
+            """
+            SELECT p.*, c.numero AS contrato_numero, cli.razao_social AS cliente_razao_social,
+                   cli.nome_fantasia AS cliente_nome_fantasia, cli.cnpj AS cliente_cnpj
+            FROM crm_sucesso_cliente_pesquisas p
+            INNER JOIN contratos c ON c.id = p.contrato_id
+            INNER JOIN clientes cli ON cli.id = p.cliente_id
+            WHERE p.token = %s
+            """,
+            (token,),
+        )
+
+    @classmethod
+    def listar_pesquisas_contrato(cls, contrato_id):
+        return cls.fetch_all(
+            """
+            SELECT *
+            FROM crm_sucesso_cliente_pesquisas
+            WHERE contrato_id = %s
+            ORDER BY created_at DESC, id DESC
+            """,
+            (contrato_id,),
+        )
+
+    @classmethod
+    def listar_pesquisas_recentes(cls, limit=10):
+        return cls.fetch_all(
+            """
+            SELECT p.*, c.numero AS contrato_numero, cli.razao_social AS cliente_razao_social,
+                   cli.nome_fantasia AS cliente_nome_fantasia
+            FROM crm_sucesso_cliente_pesquisas p
+            INNER JOIN contratos c ON c.id = p.contrato_id
+            INNER JOIN clientes cli ON cli.id = p.cliente_id
+            WHERE p.status IN ('ENVIADA', 'RESPONDIDA')
+            ORDER BY COALESCE(p.respondido_em, p.enviado_em, p.created_at) DESC, p.id DESC
+            LIMIT %s
+            """,
+            (limit,),
+        )
+
+    @classmethod
+    def listar_lotes_pesquisas_recentes(cls, limit=10):
+        return cls.fetch_all(
+            """
+            SELECT
+                p.lote_uuid,
+                MIN(p.id) AS primeira_pesquisa_id,
+                p.contrato_id,
+                c.numero AS contrato_numero,
+                cli.razao_social AS cliente_razao_social,
+                cli.nome_fantasia AS cliente_nome_fantasia,
+                COALESCE(p.titulo, 'Pesquisa de satisfação da implantação') AS titulo,
+                COALESCE(p.referencia_data, DATE(MIN(p.created_at))) AS referencia_data,
+                COUNT(*) AS total_destinatarios,
+                SUM(CASE WHEN p.status = 'RESPONDIDA' THEN 1 ELSE 0 END) AS total_respondidas,
+                AVG(CASE WHEN p.status = 'RESPONDIDA' THEN p.media_nota ELSE NULL END) AS media_lote,
+                MIN(p.created_at) AS criado_em,
+                MAX(COALESCE(p.respondido_em, p.enviado_em, p.created_at)) AS ultima_interacao_em
+            FROM crm_sucesso_cliente_pesquisas p
+            INNER JOIN contratos c ON c.id = p.contrato_id
+            INNER JOIN clientes cli ON cli.id = p.cliente_id
+            WHERE p.status IN ('ENVIADA', 'RESPONDIDA')
+            GROUP BY p.lote_uuid, p.contrato_id, c.numero, cli.razao_social, cli.nome_fantasia, p.titulo, p.referencia_data
+            ORDER BY COALESCE(p.referencia_data, DATE(MIN(p.created_at))) DESC, ultima_interacao_em DESC
+            LIMIT %s
+            """,
+            (limit,),
+        )
+
+    @classmethod
+    def registrar_resposta_pesquisa(cls, pesquisa_id, dados):
+        return cls.execute(
+            """
+            UPDATE crm_sucesso_cliente_pesquisas
+            SET status='RESPONDIDA', respondido_em=NOW(), resposta_nome=%s, resposta_email=%s,
+                respostas_json=%s, comentario_texto=%s, media_nota=%s, classificacao_nota=%s, arquivo_resposta=%s
+            WHERE id=%s AND status <> 'RESPONDIDA'
+            """,
+            (
+                dados.get("resposta_nome"),
+                dados.get("resposta_email"),
+                dados.get("respostas_json"),
+                dados.get("comentario_texto"),
+                dados.get("media_nota"),
+                dados.get("classificacao_nota"),
+                dados.get("arquivo_resposta"),
+                pesquisa_id,
+            ),
         )
 
     @classmethod

@@ -1,0 +1,58 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = 'Detalhe da Pesquisa de Implantação' %}
+    {% set page_description = (pesquisa.cliente_nome_fantasia or pesquisa.cliente_razao_social or 'Cliente') ~ ' - Contrato ' ~ (pesquisa.contrato_numero or pesquisa.contrato_id) %}
+    {% set page_icon = 'bi-clipboard2-data-fill' %}
+    {% set page_button_url = url_for('sucesso_cliente.visualizar', contrato_id=pesquisa.contrato_id) %}
+    {% set page_button_icon = 'bi-arrow-left' %}
+    {% set page_button_text = 'Voltar' %}
+    {% include "components/page_header.html" %}
+
+    <div class="row g-4">
+        <div class="col-xl-4">
+            <div class="card border-0 shadow-sm mb-4"><div class="card-body">
+                <small class="text-muted">Status</small><h5><span class="badge text-bg-{% if pesquisa.status == 'RESPONDIDA' %}success{% elif pesquisa.email_enviado %}primary{% else %}warning{% endif %}">{{ pesquisa.status }}</span></h5>
+                <hr>
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Título</dt><dd class="col-sm-7">{{ pesquisa.titulo or 'Pesquisa de satisfação da implantação' }}</dd>
+                    <dt class="col-sm-5">Data ref.</dt><dd class="col-sm-7">{{ pesquisa.referencia_data|date_br if pesquisa.referencia_data else '-' }}</dd>
+                    <dt class="col-sm-5">Destinatário</dt><dd class="col-sm-7">{{ pesquisa.destinatario_email }}</dd>
+                    <dt class="col-sm-5">Enviada em</dt><dd class="col-sm-7">{{ pesquisa.enviado_em|datetime_br if pesquisa.enviado_em else '-' }}</dd>
+                    <dt class="col-sm-5">Respondida em</dt><dd class="col-sm-7">{{ pesquisa.respondido_em|datetime_br if pesquisa.respondido_em else '-' }}</dd>
+                    <dt class="col-sm-5">Respondente</dt><dd class="col-sm-7">{{ pesquisa.resposta_nome or '-' }}{% if pesquisa.resposta_email %}<br><small class="text-muted">{{ pesquisa.resposta_email }}</small>{% endif %}</dd>
+                    <dt class="col-sm-5">Média</dt><dd class="col-sm-7">{% if pesquisa.media_nota is not none %}<strong>{{ pesquisa.media_nota }}</strong>{% else %}-{% endif %}</dd>
+                    <dt class="col-sm-5">Classificação</dt><dd class="col-sm-7">{{ pesquisa.classificacao_label }}</dd>
+                </dl>
+            </div></div>
+        </div>
+        <div class="col-xl-8">
+            <div class="card border-0 shadow-sm"><div class="card-header bg-white"><strong>Notas por Pergunta</strong></div><div class="card-body">
+                {% if pesquisa.comentario_texto %}
+                <div class="alert alert-light border mb-4">
+                    <strong>Considerações do cliente</strong>
+                    <div class="mt-2" style="white-space: pre-line;">{{ pesquisa.comentario_texto }}</div>
+                </div>
+                {% endif %}
+                {% if pesquisa.respostas %}
+                <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+                    <thead><tr><th>Pergunta</th><th width="120">Nota</th><th width="180">Leitura</th></tr></thead>
+                    <tbody>
+                    {% for resposta in pesquisa.respostas %}
+                    <tr>
+                        <td>{{ resposta.pergunta }}</td>
+                        <td><strong class="fs-5">{{ resposta.nota }}</strong></td>
+                        <td>{% if resposta.nota <= 3 %}<span class="badge text-bg-danger">Muito insatisfeito</span>{% elif resposta.nota <= 7 %}<span class="badge text-bg-warning">Satisfatório</span>{% else %}<span class="badge text-bg-success">Muito satisfeito</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table></div>
+                {% else %}
+                <div class="text-center text-muted py-4">Pesquisa ainda não respondida.</div>
+                {% endif %}
+            </div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

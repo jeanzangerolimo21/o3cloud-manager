@@ -12,6 +12,38 @@
         <div class="col-md-2"><a class="text-decoration-none" href="{{ url_for('sucesso_cliente.index', status_relacionamento='CRITICO') }}"><div class="card border-0 shadow-sm h-100 {% if dashboard.criticos %}border-start border-danger border-4{% endif %}"><div class="card-body"><small class="text-muted">Críticos</small><h4 class="{% if dashboard.criticos %}text-danger{% endif %}">{{ dashboard.criticos or 0 }}</h4></div></div></a></div>
     </div>
 
+    <div class="row g-3 mb-4">
+        <div class="col-md-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Pesquisas enviadas</small><h4>{{ dashboard_pesquisas.enviadas or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Respondidas</small><h4>{{ dashboard_pesquisas.respondidas or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Média geral</small><h4>{{ '%.1f'|format(dashboard_pesquisas.media_geral or 0) }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm h-100 border-start border-danger border-4"><div class="card-body"><small class="text-muted">0 Muito insatisfeito</small><h4>{{ dashboard_pesquisas.muito_insatisfeito or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm h-100 border-start border-warning border-4"><div class="card-body"><small class="text-muted">5 Satisfatório</small><h4>{{ dashboard_pesquisas.satisfatorio or 0 }}</h4></div></div></div>
+        <div class="col-md-2"><div class="card border-0 shadow-sm h-100 border-start border-success border-4"><div class="card-body"><small class="text-muted">10 Muito satisfeito</small><h4>{{ dashboard_pesquisas.muito_satisfeito or 0 }}</h4></div></div></div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4"><div class="card-header bg-white"><strong>Lotes de Pesquisas de Implantação</strong></div><div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead><tr><th>Data</th><th>Título</th><th>Cliente</th><th>Contrato</th><th>Destinatários</th><th>Respondidas</th><th>Média do lote</th><th>Classificação</th><th width="90"></th></tr></thead>
+            <tbody>
+                {% for lote in dashboard_pesquisas.lotes_recentes %}
+                <tr>
+                    <td>{{ lote.referencia_data|date_br if lote.referencia_data else '-' }}</td>
+                    <td><strong>{{ lote.titulo }}</strong></td>
+                    <td>{{ lote.cliente_nome_fantasia or lote.cliente_razao_social or '-' }}</td>
+                    <td>{{ lote.contrato_numero or lote.contrato_id }}</td>
+                    <td>{{ lote.total_destinatarios or 0 }}</td>
+                    <td>{{ lote.total_respondidas or 0 }}</td>
+                    <td>{% if lote.media_lote is not none %}<strong>{{ '%.1f'|format(lote.media_lote) }}</strong>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                    <td>{{ lote.classificacao_label }}</td>
+                    <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('sucesso_cliente.visualizar', contrato_id=lote.contrato_id) }}" title="Abrir contrato"><i class="bi bi-box-arrow-up-right"></i></a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="text-center text-muted py-4">Nenhum lote de pesquisa enviado ainda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div></div>
+
     <div class="card border-0 shadow-sm mb-4"><div class="card-body">
         <form class="row g-2 align-items-end">
             <div class="col-md-5"><label class="form-label">Busca</label><input class="form-control" name="q" value="{{ pesquisa or '' }}" placeholder="Razão social, fantasia, CNPJ, contrato, vendedor ou projeto"></div>

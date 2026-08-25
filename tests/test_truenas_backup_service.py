@@ -16,7 +16,7 @@ class ClienteTrueNASTeste:
         return {"mtime": datetime.now().timestamp(), "size": 42}
 
 
-def test_varredura_consulta_data_dos_subdiretorios_sem_entrar_neles():
+def test_varredura_busca_arquivos_recursivamente_nos_subdiretorios():
     cliente = ClienteTrueNASTeste(
         {
             "/mnt/BKP1/AJFlores": [
@@ -28,16 +28,19 @@ def test_varredura_consulta_data_dos_subdiretorios_sem_entrar_neles():
         }
     )
 
-    subdiretorios = TrueNASBackupService._listar_subdiretorios_monitorados(
+    arquivos = TrueNASBackupService._listar_arquivos_monitorados(
         cliente,
         "/mnt/BKP1/AJFlores",
         corte=0,
     )
 
-    assert len(subdiretorios) == 1
-    assert subdiretorios[0]["nome"] == "[DIR] integraw"
-    assert subdiretorios[0]["recente"] is True
-    assert cliente.listagens == ["/mnt/BKP1/AJFlores"]
+    assert len(arquivos) == 1
+    assert arquivos[0]["nome"] == "retorno.txt"
+    assert arquivos[0]["recente"] is True
+    assert cliente.listagens == [
+        "/mnt/BKP1/AJFlores",
+        "/mnt/BKP1/AJFlores/integraw",
+    ]
 
 
 def test_storage_valido_e_normalizado():

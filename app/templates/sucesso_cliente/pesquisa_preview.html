@@ -1,0 +1,34 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = 'Prévia da pesquisa' %}
+    {% set page_description = (contrato.cliente_nome_fantasia or contrato.cliente_razao_social or 'Cliente') ~ ' - ' ~ pesquisa.titulo %}
+    {% set page_icon = 'bi-eye-fill' %}
+    {% set page_button_url = url_for('sucesso_cliente.nova_pesquisa_implantacao', contrato_id=contrato.id) %}
+    {% set page_button_icon = 'bi-arrow-left' %}
+    {% set page_button_text = 'Voltar' %}
+    {% include "components/page_header.html" %}
+
+    <div class="row g-4">
+        <div class="col-xl-8"><div class="card border-0 shadow-sm"><div class="card-body">
+            <h5 class="mb-1">{{ pesquisa.titulo }}</h5>
+            <p class="text-muted">Contrato {{ contrato.numero or contrato.id }} · {{ contrato.cliente_nome_fantasia or contrato.cliente_razao_social }} · {{ pesquisa.referencia_data }}</p>
+            {% for pergunta in pesquisa.perguntas %}
+            <div class="border rounded p-3 mb-3"><strong>{{ pergunta }}</strong><div class="d-flex align-items-center gap-2 mt-3 flex-wrap">{% for nota in range(0, 11) %}<span class="badge text-bg-light border text-dark px-3 py-2">{{ nota }}</span>{% endfor %}</div><small class="text-muted">0 = Muito insatisfeito · 5 = Satisfatório · 10 = Muito satisfeito</small></div>
+            {% endfor %}
+        </div></div></div>
+        <div class="col-xl-4"><div class="card border-0 shadow-sm"><div class="card-body">
+            <form method="POST" action="{{ url_for('sucesso_cliente.enviar_pesquisa_implantacao', contrato_id=contrato.id) }}">
+                <input type="hidden" name="titulo" value="{{ pesquisa.titulo }}">
+                <input type="hidden" name="referencia_data" value="{{ pesquisa.referencia_data }}">
+                <input type="hidden" name="destinatario_emails" value="{{ pesquisa.destinatario_emails }}">
+                {% for pergunta in pesquisa.perguntas %}<input type="hidden" name="perguntas" value="{{ pergunta }}">{% endfor %}
+                <p class="text-muted mb-2">Destinatários: <strong>{{ pesquisa.destinatarios|length }}</strong></p>
+                <div class="list-group mb-3">{% for email in pesquisa.destinatarios %}<div class="list-group-item small">{{ email }}</div>{% endfor %}</div>
+                <div class="d-grid gap-2"><button class="btn btn-primary" onclick="return confirm('Enviar pesquisa para {{ pesquisa.destinatarios|length }} destinatário(s)?')"><i class="bi bi-send"></i> Enviar pesquisa</button><button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">Editar perguntas</button></div>
+            </form>
+        </div></div></div>
+    </div>
+</div>
+{% endblock %}

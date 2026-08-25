@@ -257,7 +257,17 @@ ENDPOINT_PERMISSOES = {
     "configuracoes.atualizacoes_executar": "atualizacoes_sistema",
 }
 
-PUBLIC_ENDPOINTS = {"static", "storage", "autenticacao.login", "autenticacao.login_2fa", "autenticacao.reenviar_2fa", "autenticacao.logout", "configuracoes.usuarios_aceitar_convite", "implantacao.acessar_compartilhamento_senha"}
+PUBLIC_ENDPOINTS = {
+    "static",
+    "storage",
+    "autenticacao.login",
+    "autenticacao.login_2fa",
+    "autenticacao.reenviar_2fa",
+    "autenticacao.logout",
+    "configuracoes.usuarios_aceitar_convite",
+    "implantacao.acessar_compartilhamento_senha",
+    "sucesso_cliente.responder_pesquisa",
+}
 
 WRITE_ENDPOINT_MARKERS = (
     "adicionar",

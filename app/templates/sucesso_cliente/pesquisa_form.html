@@ -1,0 +1,34 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = 'Pesquisa de satisfação da implantação' %}
+    {% set page_description = (contrato.cliente_nome_fantasia or contrato.cliente_razao_social or 'Cliente') ~ ' - Contrato ' ~ (contrato.numero or contrato.id) %}
+    {% set page_icon = 'bi-clipboard2-pulse-fill' %}
+    {% set page_button_url = url_for('sucesso_cliente.visualizar', contrato_id=contrato.id) %}
+    {% set page_button_icon = 'bi-arrow-left' %}
+    {% set page_button_text = 'Voltar' %}
+    {% include "components/page_header.html" %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('sucesso_cliente.preview_pesquisa_implantacao', contrato_id=contrato.id) }}">
+                <div class="row g-3">
+                    <div class="col-md-5"><label class="form-label">Título da pesquisa</label><input class="form-control" name="titulo" maxlength="160" required value="{{ pesquisa.titulo or 'Pesquisa de satisfação da implantação' }}"></div>
+                    <div class="col-md-3"><label class="form-label">Data de referência</label><input class="form-control" type="date" name="referencia_data" required value="{{ pesquisa.referencia_data or '' }}"></div>
+                    <div class="col-md-4"><label class="form-label">Contrato</label><input class="form-control" readonly value="{{ contrato.numero or contrato.id }} - {{ contrato.cliente_nome_fantasia or contrato.cliente_razao_social }}"></div>
+                    <div class="col-12"><label class="form-label">Destinatários</label><textarea class="form-control" name="destinatario_emails" rows="3" required placeholder="um e-mail por linha, ou separados por vírgula">{{ pesquisa.destinatario_emails or pesquisa.destinatario_email or '' }}</textarea><small class="text-muted">Cada destinatário recebe um link individual e gera uma resposta separada no mesmo lote/data.</small></div>
+                    <div class="col-12">
+                        <label class="form-label">Perguntas</label>
+                        {% for pergunta in pesquisa.perguntas %}<textarea class="form-control mb-2" name="perguntas" rows="2" required>{{ pergunta }}</textarea>{% endfor %}
+                    </div>
+                    <div class="col-12 d-flex justify-content-end gap-2">
+                        <a class="btn btn-outline-secondary" href="{{ url_for('sucesso_cliente.visualizar', contrato_id=contrato.id) }}">Cancelar</a>
+                        <button class="btn btn-primary"><i class="bi bi-eye"></i> Visualizar formulário</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -210,7 +210,7 @@ class TrueNASBackupService:
         return subdiretorios
 
     @classmethod
-    def _listar_arquivos_monitorados(cls, cliente, raiz, corte, max_depth=0, max_files=300):
+    def _listar_arquivos_monitorados(cls, cliente, raiz, corte, max_depth=None, max_files=300):
         arquivos = []
         pendentes = [(raiz, 0)]
         while pendentes and len(arquivos) < max_files:

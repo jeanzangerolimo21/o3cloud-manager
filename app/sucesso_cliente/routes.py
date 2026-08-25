@@ -22,6 +22,7 @@ def index():
         pagina=pagina,
         total_paginas=total_paginas,
         dashboard=SucessoClienteService.dashboard(),
+        dashboard_pesquisas=SucessoClienteService.dashboard_pesquisas(),
         pesquisa=pesquisa,
         selected_curva=curva,
         selected_status=status_relacionamento,
@@ -39,6 +40,76 @@ def visualizar(contrato_id):
         flash("Contrato não encontrado.", "danger")
         return redirect(url_for("sucesso_cliente.index"))
     return render_template("sucesso_cliente/view.html", contrato=contrato, status_options=STATUS_RELACIONAMENTO)
+
+
+@sucesso_cliente_bp.route("/pesquisa-implantacao/<int:pesquisa_id>")
+def detalhe_pesquisa_implantacao(pesquisa_id):
+    pesquisa = SucessoClienteService.buscar_pesquisa_interna(pesquisa_id)
+    if not pesquisa:
+        flash("Pesquisa não encontrada.", "danger")
+        return redirect(url_for("sucesso_cliente.index"))
+    return render_template("sucesso_cliente/pesquisa_detalhe.html", pesquisa=pesquisa)
+
+
+@sucesso_cliente_bp.route("/<int:contrato_id>/pesquisa-implantacao/nova")
+def nova_pesquisa_implantacao(contrato_id):
+    try:
+        contrato, pesquisa = SucessoClienteService.nova_pesquisa_payload(contrato_id, request.args)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+        return redirect(url_for("sucesso_cliente.index"))
+    return render_template("sucesso_cliente/pesquisa_form.html", contrato=contrato, pesquisa=pesquisa)
+
+
+@sucesso_cliente_bp.route("/<int:contrato_id>/pesquisa-implantacao/preview", methods=["POST"])
+def preview_pesquisa_implantacao(contrato_id):
+    try:
+        contrato, pesquisa = SucessoClienteService.preview_pesquisa(contrato_id, request.form)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+        contrato, pesquisa = SucessoClienteService.nova_pesquisa_payload(contrato_id, request.form)
+        return render_template("sucesso_cliente/pesquisa_form.html", contrato=contrato, pesquisa=pesquisa)
+    return render_template("sucesso_cliente/pesquisa_preview.html", contrato=contrato, pesquisa=pesquisa)
+
+
+@sucesso_cliente_bp.route("/<int:contrato_id>/pesquisa-implantacao/enviar", methods=["POST"])
+def enviar_pesquisa_implantacao(contrato_id):
+    try:
+        pesquisas, resultados, links = SucessoClienteService.enviar_pesquisa(
+            contrato_id,
+            request.form,
+            lambda token: url_for("sucesso_cliente.responder_pesquisa", token=token, _external=True),
+            _email_usuario_logado(),
+        )
+    except ValueError as erro:
+        flash(str(erro), "danger")
+        return redirect(url_for("sucesso_cliente.nova_pesquisa_implantacao", contrato_id=contrato_id))
+    enviados = sum(1 for resultado in resultados if resultado.get("enviado"))
+    registrar_evento("CS_PESQUISA_IMPLANTACAO_ENVIADA", "crm_sucesso_cliente_pesquisas", pesquisas[0]["id"] if pesquisas else None, {"contrato_id": contrato_id, "total_destinatarios": len(resultados), "emails_enviados": enviados})
+    if enviados == len(resultados):
+        flash(f"Pesquisa enviada para {enviados} destinatário(s).", "success")
+    elif enviados:
+        flash(f"Pesquisa criada para {len(resultados)} destinatário(s), com {enviados} e-mail(s) enviados. Links manuais disponíveis no histórico do contrato.", "warning")
+    else:
+        flash(f"Pesquisa criada, mas nenhum e-mail foi enviado. Links manuais disponíveis no histórico do contrato.", "warning")
+    return redirect(url_for("sucesso_cliente.visualizar", contrato_id=contrato_id))
+
+
+@sucesso_cliente_bp.route("/pesquisa/<token>", methods=["GET", "POST"])
+def responder_pesquisa(token):
+    pesquisa = SucessoClienteService.buscar_pesquisa_publica(token)
+    if not pesquisa:
+        return render_template("sucesso_cliente/pesquisa_publica.html", pesquisa=None), 404
+    if request.method == "POST":
+        try:
+            SucessoClienteService.registrar_resposta_pesquisa(token, request.form, request.remote_addr, request.headers.get("User-Agent"))
+        except ValueError as erro:
+            flash(str(erro), "danger")
+        else:
+            flash("Obrigado. Sua avaliação foi registrada.", "success")
+            pesquisa = SucessoClienteService.buscar_pesquisa_publica(token)
+            return render_template("sucesso_cliente/pesquisa_publica.html", pesquisa=pesquisa, respondida=True)
+    return render_template("sucesso_cliente/pesquisa_publica.html", pesquisa=pesquisa)
 
 
 @sucesso_cliente_bp.route("/<int:contrato_id>/relacionamento", methods=["POST"])

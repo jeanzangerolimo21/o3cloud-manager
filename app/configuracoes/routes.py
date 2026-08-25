@@ -474,7 +474,7 @@ def email_novo():
         return redirect(url_for("configuracoes.email_editar", config_id=config_id))
     return render_template(
         "configuracoes/email/form.html",
-        config={"nome": "SMTP Principal", "provedor": "SMTP", "smtp_port": 587, "usar_tls": 1, "ativo": 1, "brevo_api_url": "https://api.brevo.com/v3", "brevo_environment": "production"},
+        config={"nome": "SMTP Principal", "provedor": "SMTP", "finalidade": request.args.get("finalidade") or "GERAL", "smtp_port": 587, "usar_tls": 1, "ativo": 1, "brevo_api_url": "https://api.brevo.com/v3", "brevo_environment": "production"},
         modo="novo",
     )
 

@@ -54,6 +54,14 @@
         </div>
 
         <div class="col-xl-4">
+            <div class="card border-0 shadow-sm mb-4"><div class="card-header bg-white d-flex justify-content-between align-items-center"><strong>Pesquisa de Implantação</strong><a class="btn btn-sm btn-primary" href="{{ url_for('sucesso_cliente.nova_pesquisa_implantacao', contrato_id=contrato.id) }}"><i class="bi bi-send"></i> Enviar</a></div><div class="card-body">
+                <div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Pesquisa</th><th>Destinatário</th><th>Status</th><th>Nota</th><th width="60"></th></tr></thead><tbody>
+                    {% for pesquisa in contrato.pesquisas_implantacao %}
+                    <tr><td><strong>{{ pesquisa.titulo or 'Pesquisa de satisfação da implantação' }}</strong><br><small class="text-muted">{{ pesquisa.referencia_data|date_br if pesquisa.referencia_data else (pesquisa.created_at|date_br if pesquisa.created_at else '-') }}</small></td><td>{{ pesquisa.destinatario_email }}</td><td><span class="badge text-bg-{% if pesquisa.status == 'RESPONDIDA' %}success{% elif pesquisa.email_enviado %}primary{% else %}warning{% endif %}">{{ pesquisa.status }}</span></td><td>{% if pesquisa.media_nota is not none %}<strong>{{ pesquisa.media_nota }}</strong><br><small class="text-muted">{{ pesquisa.classificacao_label }}</small>{% else %}<span class="text-muted">-</span>{% endif %}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('sucesso_cliente.detalhe_pesquisa_implantacao', pesquisa_id=pesquisa.id) }}" title="Ver notas por pergunta"><i class="bi bi-list-check"></i></a></td></tr>
+                    {% else %}<tr><td colspan="5" class="text-muted text-center py-3">Nenhuma pesquisa enviada.</td></tr>{% endfor %}
+                </tbody></table></div>
+            </div></div>
+
             <div class="card border-0 shadow-sm mb-4"><div class="card-header bg-white"><strong>Contato CRM Comercial</strong></div><div class="card-body">
                 <form method="POST" action="{{ url_for('sucesso_cliente.vincular_contato', contrato_id=contrato.id) }}">
                     <label class="form-label">Contato vinculado</label>

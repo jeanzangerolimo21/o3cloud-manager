@@ -9,12 +9,12 @@ logger = logging.getLogger(__name__)
 
 class EmailService:
     @staticmethod
-    def enviar(assunto, corpo, destinatarios, corpo_html=None):
+    def enviar(assunto, corpo, destinatarios, corpo_html=None, finalidade="GERAL"):
         destinatarios = sorted({email.strip().lower() for email in destinatarios if email and email.strip()})
         if not destinatarios:
             return {"enviado": False, "motivo": "sem_destinatarios"}
 
-        config = EmailService._configuracao()
+        config = EmailService._configuracao(finalidade)
         host = config.get("host")
         if not host:
             logger.info("SMTP nao configurado. E-mail nao enviado: %s", assunto)
@@ -47,10 +47,12 @@ class EmailService:
         return {"enviado": True, "destinatarios": destinatarios, "origem_config": config.get("origem")}
 
     @staticmethod
-    def _configuracao():
-        banco = EmailService._configuracao_banco()
+    def _configuracao(finalidade="GERAL"):
+        banco = EmailService._configuracao_banco(finalidade)
         if banco:
             return banco
+        if finalidade != "GERAL":
+            return {"origem": "banco", "host": None}
         return {
             "origem": "env",
             "host": os.getenv("SMTP_HOST"),
@@ -62,11 +64,11 @@ class EmailService:
         }
 
     @staticmethod
-    def _configuracao_banco():
+    def _configuracao_banco(finalidade="GERAL"):
         try:
             from app.configuracoes.email_service import EmailConfigService
 
-            config = EmailConfigService.buscar_ativo(incluir_senha=True)
+            config = EmailConfigService.buscar_ativo(incluir_senha=True, finalidade=finalidade)
         except Exception as erro:
             logger.debug("Configuração SMTP do banco indisponível: %s", erro)
             return None
