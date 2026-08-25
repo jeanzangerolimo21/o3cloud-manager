@@ -258,14 +258,14 @@ class PropostaRepository(BaseRepository):
                 codigo_proposta, cliente_nome, contato_nome, contato_email, contato_telefone,
                 executivo_nome, executivo_email, executivo_telefone, titulo, versao, status, validade,
                 setup_dias, mensalidade_dias, prazo_contratual_meses, detalhes_negociacao,
-                valor_total, total_mensal, parametrizacao_sistema, setup_ambiente_cloud, total_instalacao,
+                valor_total, total_mensal, parametrizacao_sistema, setup_ambiente_cloud, instalacao_servidores, total_instalacao,
                 condicoes_comerciais, observacoes, itens_snapshot, licencas_snapshot, servidores_snapshot,
                 comentarios_comerciais, semaforo_fechamento, arquivo, ativo
             )
             VALUES
             (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
         """
         return cls.execute_insert(sql, (
@@ -273,7 +273,7 @@ class PropostaRepository(BaseRepository):
             dados.get('codigo_proposta'), dados.get('cliente_nome'), dados.get('contato_nome'), dados.get('contato_email'), dados.get('contato_telefone'),
             dados.get('executivo_nome'), dados.get('executivo_email'), dados.get('executivo_telefone'), dados['titulo'], dados['versao'], dados['status'], dados.get('validade'),
             dados.get('setup_dias'), dados.get('mensalidade_dias'), dados.get('prazo_contratual_meses'), dados.get('detalhes_negociacao'),
-            dados.get('valor_total'), dados.get('total_mensal'), dados.get('parametrizacao_sistema'), dados.get('setup_ambiente_cloud'), dados.get('total_instalacao'),
+            dados.get('valor_total'), dados.get('total_mensal'), dados.get('parametrizacao_sistema'), dados.get('setup_ambiente_cloud'), dados.get('instalacao_servidores'), dados.get('total_instalacao'),
             dados.get('condicoes_comerciais'), dados.get('observacoes'), dados.get('itens_snapshot'), dados.get('licencas_snapshot'), dados.get('servidores_snapshot'),
             dados.get('comentarios_comerciais'), dados.get('semaforo_fechamento'), dados.get('arquivo'), cls.bool_to_int(dados.get('ativo', True)),
         ))
@@ -308,6 +308,7 @@ class PropostaRepository(BaseRepository):
                 total_mensal = %s,
                 parametrizacao_sistema = %s,
                 setup_ambiente_cloud = %s,
+                instalacao_servidores = %s,
                 total_instalacao = %s,
                 condicoes_comerciais = %s,
                 observacoes = %s,
@@ -325,7 +326,7 @@ class PropostaRepository(BaseRepository):
             dados.get('codigo_proposta'), dados.get('cliente_nome'), dados.get('contato_nome'), dados.get('contato_email'), dados.get('contato_telefone'),
             dados.get('executivo_nome'), dados.get('executivo_email'), dados.get('executivo_telefone'), dados['titulo'], dados['versao'], dados['status'], dados.get('validade'),
             dados.get('setup_dias'), dados.get('mensalidade_dias'), dados.get('prazo_contratual_meses'), dados.get('detalhes_negociacao'),
-            dados.get('valor_total'), dados.get('total_mensal'), dados.get('parametrizacao_sistema'), dados.get('setup_ambiente_cloud'), dados.get('total_instalacao'),
+            dados.get('valor_total'), dados.get('total_mensal'), dados.get('parametrizacao_sistema'), dados.get('setup_ambiente_cloud'), dados.get('instalacao_servidores'), dados.get('total_instalacao'),
             dados.get('condicoes_comerciais'), dados.get('observacoes'), dados.get('itens_snapshot'), dados.get('licencas_snapshot'), dados.get('servidores_snapshot'),
             dados.get('comentarios_comerciais'), dados.get('semaforo_fechamento'), dados.get('arquivo'), cls.bool_to_int(dados.get('ativo', True)), proposta_id,
         ))

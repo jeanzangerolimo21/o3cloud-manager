@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-25 - Propostas: instalacao de recursos editavel
+
+- Campo `Instalacao de recursos` em propostas comerciais passou a ser editavel na totalizacao geral.
+- O valor continua sendo sugerido pela soma dos recursos do bloco de servidores, mas overrides manuais sao preservados ao salvar e reabrir a proposta.
+- Backend passou a persistir `crm_propostas.instalacao_servidores` e a usar esse valor no total de instalacao, preview, visualizacao, contrato e DOCX.
+- Criada a migration `111_add_instalacao_servidores_propostas.sql`, inicializando propostas antigas pelo total de instalacao ja salvo menos parametrizacao e setup cloud.
+- Procedimento de atualizacao e validacao do Beta documentado em `docs/50-PROPOSTAS-INSTALACAO-RECURSOS-BETA.md`.
+
+
 ## 2026-08-25 - Redefinicao de senha
 
 - Adicionado o link `Esqueci minha senha` na tela de login do O3Cloud Manager.

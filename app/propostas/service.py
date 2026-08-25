@@ -972,6 +972,13 @@ class PropostaService:
             "executivo_telefone": dados.get("executivo_telefone") or "",
             "parametrizacao_sistema": cls._string_decimal(dados.get("parametrizacao_sistema"), "0.00"),
             "setup_ambiente_cloud": cls._string_decimal(dados.get("setup_ambiente_cloud"), "0.00"),
+            "instalacao_servidores": cls._string_decimal(
+                dados.get("instalacao_servidores"),
+                cls._string_decimal(sum(
+                    cls._decimal(item.get("total_instalacao")) or Decimal("0.00")
+                    for item in servidores_items
+                ), "0.00"),
+            ),
             "total_mensal": cls._string_decimal(dados.get("total_mensal"), "0.00"),
             "total_instalacao": cls._string_decimal(dados.get("total_instalacao"), "0.00"),
             "valor_total": cls._string_decimal(dados.get("valor_total"), "0.00"),
@@ -1018,8 +1025,10 @@ class PropostaService:
         setup_cloud = cls._decimal(dados.get("setup_ambiente_cloud"))
         dados["parametrizacao_sistema"] = parametrizacao if parametrizacao is not None else resumo["total_mensal"]
         dados["setup_ambiente_cloud"] = setup_cloud if setup_cloud is not None else resumo["total_mensal"]
+        instalacao_servidores = cls._decimal(dados.get("instalacao_servidores"))
+        dados["instalacao_servidores"] = instalacao_servidores if instalacao_servidores is not None else resumo["instalacao_servidores"]
         dados["total_setup"] = dados["parametrizacao_sistema"] + dados["setup_ambiente_cloud"]
-        dados["total_instalacao"] = resumo["instalacao_servidores"] + dados["parametrizacao_sistema"] + dados["setup_ambiente_cloud"]
+        dados["total_instalacao"] = dados["instalacao_servidores"] + dados["parametrizacao_sistema"] + dados["setup_ambiente_cloud"]
         dados["valor_total"] = dados["total_mensal"] + dados["total_instalacao"]
         dados["itens_snapshot"] = cls._montar_itens_snapshot(dados["licencas_items"], dados["servidores_items"])
         dados["licencas_snapshot"] = json.dumps(dados["licencas_items"], ensure_ascii=False)
@@ -1053,7 +1062,7 @@ class PropostaService:
             raise ValueError("Adicione ao menos uma licença ou um servidor na proposta.")
         if dados["prazo_contratual_meses"] <= 0:
             raise ValueError("Prazo contratual deve ser maior que zero.")
-        for campo in ("total_mensal", "parametrizacao_sistema", "setup_ambiente_cloud", "total_instalacao", "valor_total"):
+        for campo in ("total_mensal", "parametrizacao_sistema", "setup_ambiente_cloud", "instalacao_servidores", "total_instalacao", "valor_total"):
             if dados[campo] is not None and dados[campo] < 0:
                 raise ValueError("Os valores da proposta não podem ser negativos.")
         if oportunidade and not dados.get("cliente_nome"):
@@ -1103,10 +1112,11 @@ class PropostaService:
         setup_cloud = cls._decimal(proposta.get("setup_ambiente_cloud"))
         proposta["parametrizacao_sistema"] = parametrizacao if parametrizacao is not None else resumo["parametrizacao_padrao"]
         proposta["setup_ambiente_cloud"] = setup_cloud if setup_cloud is not None else resumo["setup_cloud_padrao"]
+        instalacao_servidores = cls._decimal(proposta.get("instalacao_servidores"))
+        proposta["instalacao_servidores"] = instalacao_servidores if instalacao_servidores is not None else resumo["instalacao_servidores"]
         proposta["total_setup"] = proposta["parametrizacao_sistema"] + proposta["setup_ambiente_cloud"]
-        proposta["total_instalacao"] = cls._decimal(proposta.get("total_instalacao")) or (resumo["instalacao_servidores"] + proposta["parametrizacao_sistema"] + proposta["setup_ambiente_cloud"])
+        proposta["total_instalacao"] = cls._decimal(proposta.get("total_instalacao")) or (proposta["instalacao_servidores"] + proposta["parametrizacao_sistema"] + proposta["setup_ambiente_cloud"])
         proposta["valor_total"] = cls._decimal(proposta.get("valor_total")) or (proposta["total_mensal"] + proposta["total_instalacao"])
-        proposta["instalacao_servidores"] = resumo["instalacao_servidores"]
         proposta["status_label"] = STATUS_PROPOSTA.get(proposta.get("status"), proposta.get("status"))
         proposta["semaforo_fechamento"] = (proposta.get("semaforo_fechamento") or cls._semaforo_padrao(proposta.get("status"))).upper()
         proposta["semaforo_fechamento_label"] = {"FRIO": "Frio", "MORNO": "Morno", "QUENTE": "Quente"}.get(proposta["semaforo_fechamento"], proposta["semaforo_fechamento"])
