@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-25 - Redefinicao de senha
+
+- Adicionado o link `Esqueci minha senha` na tela de login do O3Cloud Manager.
+- Criado fluxo publico para solicitar redefinicao por e-mail e cadastrar nova senha por token expiravel de 60 minutos.
+- Adicionada auditoria das solicitacoes, ignoradas e conclusoes, com invalidacao do token apos uso.
+- Criada a migration `110_auth_password_resets.sql`.
+- Procedimento de atualizacao e validacao do Beta documentado em `docs/49-RESET-SENHA-BETA.md`.
+
+
 ## 2026-08-21 - Agrupamento de Cards de Implantacao
 
 - Implantacao passou a permitir vincular um card secundario a um card principal para clientes com multiplas unidades/contratos atendidos pelo mesmo ambiente.

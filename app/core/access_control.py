@@ -263,6 +263,8 @@ PUBLIC_ENDPOINTS = {
     "autenticacao.login",
     "autenticacao.login_2fa",
     "autenticacao.reenviar_2fa",
+    "autenticacao.esqueci_senha",
+    "autenticacao.resetar_senha",
     "autenticacao.logout",
     "configuracoes.usuarios_aceitar_convite",
     "implantacao.acessar_compartilhamento_senha",

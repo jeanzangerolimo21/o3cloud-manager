@@ -104,6 +104,48 @@ def login():
     return render_template("autenticacao/login.html", next_url=request.args.get("next") or request.form.get("next") or "")
 
 
+@autenticacao_bp.route("/esqueci-senha", methods=["GET", "POST"])
+def esqueci_senha():
+    if session.get("usuario_email"):
+        endpoint = session.get("usuario_dashboard_principal") or "financeiro.dashboard"
+        return redirect(url_for(endpoint))
+    if request.method == "POST":
+        resultado = AuthConfigService.solicitar_reset_senha(
+            request.form.get("identificador"),
+            _ip_origem(),
+            _user_agent(),
+        )
+        flash(resultado.get("mensagem"), "success")
+        return redirect(url_for("autenticacao.login"))
+    return render_template("autenticacao/esqueci_senha.html")
+
+
+@autenticacao_bp.route("/resetar-senha/<token>", methods=["GET", "POST"])
+def resetar_senha(token):
+    if session.get("usuario_email"):
+        endpoint = session.get("usuario_dashboard_principal") or "financeiro.dashboard"
+        return redirect(url_for(endpoint))
+    reset = AuthConfigService.buscar_reset_senha(token)
+    if not reset or not reset.get("valido"):
+        flash("Link de redefinição inválido ou expirado.", "danger")
+        return redirect(url_for("autenticacao.esqueci_senha"))
+    if request.method == "POST":
+        try:
+            AuthConfigService.redefinir_senha(
+                token,
+                request.form.get("nova_senha"),
+                request.form.get("confirmacao_senha"),
+                _ip_origem(),
+                _user_agent(),
+            )
+        except ValueError as erro:
+            flash(str(erro), "danger")
+        else:
+            flash("Senha redefinida com sucesso. Faça login com a nova senha.", "success")
+            return redirect(url_for("autenticacao.login"))
+    return render_template("autenticacao/resetar_senha.html", token=token, reset=reset)
+
+
 @autenticacao_bp.route("/login/2fa", methods=["GET", "POST"])
 def login_2fa():
     usuario_id = session.get("mfa_usuario_id")

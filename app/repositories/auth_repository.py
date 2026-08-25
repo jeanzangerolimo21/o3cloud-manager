@@ -278,6 +278,53 @@ class AuthRepository(BaseRepository):
             (senha_hash, atualizado_por, usuario_id),
         )
 
+
+    @classmethod
+    def expirar_resets_senha_usuario(cls, usuario_id):
+        return cls.execute(
+            """
+            UPDATE auth_password_resets
+            SET status="EXPIRADO"
+            WHERE usuario_id=%s AND status="PENDENTE"
+            """,
+            (usuario_id,),
+        )
+
+    @classmethod
+    def inserir_reset_senha(cls, dados):
+        return cls.execute_insert(
+            """
+            INSERT INTO auth_password_resets (
+                uuid, usuario_id, token_hash, status, expira_em, ip_origem, user_agent
+            ) VALUES (%s, %s, %s, "PENDENTE", %s, %s, %s)
+            """,
+            (
+                cls.generate_uuid(), dados.get("usuario_id"), dados.get("token_hash"),
+                dados.get("expira_em"), dados.get("ip_origem"), dados.get("user_agent"),
+            ),
+        )
+
+    @classmethod
+    def buscar_reset_senha_por_hash(cls, token_hash):
+        return cls.fetch_one(
+            """
+            SELECT r.*, u.nome AS usuario_nome, u.email AS usuario_email, u.login AS usuario_login,
+                   u.origem AS usuario_origem, u.status AS usuario_status
+            FROM auth_password_resets r
+            INNER JOIN auth_usuarios u ON u.id = r.usuario_id
+            WHERE r.token_hash=%s
+            LIMIT 1
+            """,
+            (token_hash,),
+        )
+
+    @classmethod
+    def marcar_reset_senha_usado(cls, reset_id):
+        return cls.execute(
+            "UPDATE auth_password_resets SET status=\"USADO\", usado_em=NOW() WHERE id=%s",
+            (reset_id,),
+        )
+
     @classmethod
     def definir_senha(cls, usuario_id, senha_hash):
         return cls.execute(

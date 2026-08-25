@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login - O3Cloud Manager</title>
+    <title>Esqueci minha senha - O3Cloud Manager</title>
     <link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet">
@@ -13,26 +13,21 @@
     <main class="login-shell">
         <section class="login-panel shadow-lg">
             <div class="text-center mb-4">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="O3Cloud" class="login-logo">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="O3Cloud Manager" class="login-logo">
                 <h1>O3Cloud Manager</h1>
-                <p class="text-muted mb-0">Acesso administrativo</p>
+                <p class="text-muted mb-0">Recuperação de acesso</p>
             </div>
             {% include "components/alert.html" %}
             <form method="POST" autocomplete="off">
-                <input type="hidden" name="next" value="{{ next_url }}">
-                <div class="mb-3">
+                <div class="mb-4">
                     <label class="form-label">E-mail ou login</label>
                     <input class="form-control form-control-lg" name="identificador" autofocus required>
                 </div>
-                <div class="mb-4">
-                    <label class="form-label">Senha</label>
-                    <input class="form-control form-control-lg" type="password" name="senha" required>
-                </div>
                 <button class="btn btn-primary btn-lg w-100" type="submit">
-                    <i class="bi bi-box-arrow-in-right"></i> Entrar
+                    <i class="bi bi-envelope"></i> Enviar link
                 </button>
                 <div class="text-center mt-3">
-                    <a href="{{ url_for('autenticacao.esqueci_senha') }}">Esqueci minha senha</a>
+                    <a href="{{ url_for('autenticacao.login') }}">Voltar para o login</a>
                 </div>
             </form>
         </section>

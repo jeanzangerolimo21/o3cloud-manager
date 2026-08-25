@@ -287,6 +287,95 @@ class AuthConfigService:
         cls.repository.atualizar_senha_usuario(usuario_id, generate_password_hash(nova_senha), usuario.get("email") or usuario.get("login"))
         cls._auditar(usuario.get("email") or usuario.get("login"), "SENHA_ALTERADA", "auth_usuarios", usuario_id, "Senha alterada pelo usuário")
 
+
+    @classmethod
+    def solicitar_reset_senha(cls, identificador, ip_origem=None, user_agent=None):
+        identificador = (cls._texto(identificador) or "").lower()
+        mensagem = "Se o cadastro existir e puder redefinir senha, enviaremos um link para o e-mail cadastrado."
+        usuario = cls.repository.buscar_usuario_por_email_ou_login(identificador) if identificador else None
+        if not usuario:
+            cls._auditar(identificador or "desconhecido", "RESET_SENHA_SOLICITADO", "auth_usuarios", detalhes="Usuário não encontrado", ip_origem=ip_origem, user_agent=user_agent)
+            return {"mensagem": mensagem, "email_enviado": False}
+        if usuario.get("origem") != "LOCAL" or usuario.get("status") != "ATIVO" or not usuario.get("email"):
+            cls._auditar(usuario.get("email") or usuario.get("login"), "RESET_SENHA_IGNORADO", "auth_usuarios", usuario.get("id"), "Usuário sem reset local disponível", ip_origem, user_agent)
+            return {"mensagem": mensagem, "email_enviado": False}
+
+        token = secrets.token_urlsafe(40)
+        expira_em = datetime.now() + timedelta(minutes=60)
+        cls.repository.expirar_resets_senha_usuario(usuario.get("id"))
+        cls.repository.inserir_reset_senha({
+            "usuario_id": usuario.get("id"),
+            "token_hash": cls._hash_token(token),
+            "expira_em": expira_em,
+            "ip_origem": ip_origem,
+            "user_agent": user_agent,
+        })
+        link = url_for("autenticacao.resetar_senha", token=token, _external=True)
+        assunto = "Redefinição de senha - O3Cloud Manager"
+        corpo = "\n".join([
+            f"Olá, {usuario.get('nome')}.",
+            "",
+            "Recebemos uma solicitação para redefinir sua senha.",
+            f"Acesse o link abaixo para cadastrar uma nova senha. O link expira em {expira_em:%d/%m/%Y %H:%M}.",
+            "",
+            link,
+            "",
+            "Caso você não tenha solicitado esta alteração, ignore esta mensagem.",
+        ])
+        corpo_html = cls._corpo_html_reset_senha(usuario, link, expira_em)
+        try:
+            resultado = EmailService.enviar(assunto, corpo, [usuario.get("email")], corpo_html=corpo_html)
+        except Exception as erro:
+            resultado = {"enviado": False, "motivo": cls._mensagem_segura(erro), "destinatarios": [usuario.get("email")]}
+        cls._auditar(usuario.get("email") or usuario.get("login"), "RESET_SENHA_SOLICITADO", "auth_usuarios", usuario.get("id"), resultado.get("motivo") or "Link enviado", ip_origem, user_agent)
+        return {"mensagem": mensagem, "email_enviado": bool(resultado.get("enviado")), "email_resultado": resultado}
+
+    @classmethod
+    def buscar_reset_senha(cls, token):
+        reset = cls.repository.buscar_reset_senha_por_hash(cls._hash_token(token or ""))
+        if not reset:
+            return None
+        reset["valido"] = (
+            reset.get("status") == "PENDENTE"
+            and reset.get("expira_em")
+            and reset.get("expira_em") >= datetime.now()
+            and reset.get("usuario_status") == "ATIVO"
+            and reset.get("usuario_origem") == "LOCAL"
+        )
+        return reset
+
+    @classmethod
+    def redefinir_senha(cls, token, nova_senha, confirmacao, ip_origem=None, user_agent=None):
+        reset = cls.buscar_reset_senha(token)
+        if not reset or not reset.get("valido"):
+            raise ValueError("Link de redefinição inválido ou expirado.")
+        nova_senha = nova_senha or ""
+        if len(nova_senha) < 8:
+            raise ValueError("A senha deve ter pelo menos 8 caracteres.")
+        if nova_senha != (confirmacao or ""):
+            raise ValueError("A confirmação de senha não confere.")
+        usuario_email = reset.get("usuario_email") or reset.get("usuario_login")
+        cls.repository.atualizar_senha_usuario(reset.get("usuario_id"), generate_password_hash(nova_senha), usuario_email)
+        cls.repository.marcar_reset_senha_usado(reset.get("id"))
+        cls.repository.expirar_codigos_2fa_usuario(reset.get("usuario_id"))
+        cls._auditar(usuario_email, "RESET_SENHA_CONCLUIDO", "auth_usuarios", reset.get("usuario_id"), "Senha redefinida por link", ip_origem, user_agent)
+        return reset
+
+    @classmethod
+    def _corpo_html_reset_senha(cls, usuario, link, expira_em):
+        nome = escape(usuario.get("nome") or "")
+        link_html = escape(link)
+        expira = escape(f"{expira_em:%d/%m/%Y %H:%M}")
+        return f"""
+        <div style=\"font-family:Arial,sans-serif;color:#1f2937;line-height:1.5\">
+            <h2 style=\"margin:0 0 12px\">Redefinição de senha</h2>
+            <p>Olá, {nome}.</p>
+            <p>Recebemos uma solicitação para redefinir sua senha.</p>
+            <p><a href=\"{link_html}\" style=\"display:inline-block;background:#0d6efd;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none\">Cadastrar nova senha</a></p>
+            <p style=\"color:#6b7280\">Este link expira em {expira}. Se você não solicitou esta alteração, ignore esta mensagem.</p>
+        </div>
+        """
+
     @classmethod
     def _salvar_foto_usuario(cls, arquivo):
         validacao = StorageService.validar(arquivo)
