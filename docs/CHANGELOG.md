@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-25 - Pesquisa de satisfacao publica com rolagem
+
+- Tela publica de resposta da pesquisa de satisfacao da implantacao passou a liberar rolagem vertical no `body`.
+- Corrigido cenario em que o botao `Enviar avaliacao` ficava fora da area visivel em telas menores por causa do `overflow: hidden` global.
+- Ajuste foi isolado pela classe `public-survey-page`, preservando o layout interno do sistema.
+- Procedimento de atualizacao e validacao do Beta documentado em `docs/51-PESQUISA-SATISFACAO-ROLAGEM-BETA.md`.
+
 ## 2026-08-25 - Propostas: instalacao de recursos editavel
 
 - Campo `Instalacao de recursos` em propostas comerciais passou a ser editavel na totalizacao geral.
