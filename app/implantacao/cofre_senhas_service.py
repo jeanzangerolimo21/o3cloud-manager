@@ -19,6 +19,10 @@ from app.repositories.faixa_rede_repository import FaixaRedeRepository
 from app.repositories.o3web_licenca_repository import O3WebLicencaRepository
 
 
+COFRE_COMPARTILHAMENTO_TTL_MINUTOS_MIN = 5
+COFRE_COMPARTILHAMENTO_TTL_MINUTOS_MAX = 60 * 60
+
+
 CATEGORIAS_COFRE_SENHAS = {
     "firewall": "Firewall",
     "vpn": "VPN",
@@ -171,7 +175,7 @@ class CofreSenhaService:
         return valor
 
     @classmethod
-    def criar_compartilhamento(cls, senha_id, usuario_email="sistema", ip_origem=None, credencial=None):
+    def criar_compartilhamento(cls, senha_id, usuario_email="sistema", ip_origem=None, credencial=None, ttl_minutos=None):
         senha = cls.buscar_por_id(senha_id, usuario_email)
         if not senha or not senha.get("ativo"):
             raise ValueError("Credencial nao encontrada ou sem acesso.")
@@ -180,7 +184,7 @@ class CofreSenhaService:
             raise ValueError("Credencial secundaria não cadastrada.")
         token = secrets.token_urlsafe(32)
         token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
-        ttl = current_app.config.get("COFRE_COMPARTILHAMENTO_TTL_MINUTOS", 5)
+        ttl = cls._normalizar_ttl_compartilhamento(ttl_minutos)
         cls.repository.criar_compartilhamento({
             "cofre_senha_id": senha_id, "credencial": credencial, "token_hash": token_hash,
             "ttl_minutos": ttl, "created_by": usuario_email, "created_ip": ip_origem,
@@ -190,6 +194,20 @@ class CofreSenhaService:
             {"titulo": senha.get("titulo"), "expira_em_minutos": ttl, "credencial": credencial}, usuario_email,
         )
         return token
+
+    @staticmethod
+    def _normalizar_ttl_compartilhamento(ttl_minutos=None):
+        if ttl_minutos in (None, ""):
+            ttl_minutos = current_app.config.get("COFRE_COMPARTILHAMENTO_TTL_MINUTOS", COFRE_COMPARTILHAMENTO_TTL_MINUTOS_MIN)
+        try:
+            ttl = int(str(ttl_minutos).strip())
+        except (TypeError, ValueError) as erro:
+            raise ValueError("Informe a validade do link em minutos.") from erro
+        if ttl < COFRE_COMPARTILHAMENTO_TTL_MINUTOS_MIN:
+            raise ValueError("A validade minima do link temporario e de 5 minutos.")
+        if ttl > COFRE_COMPARTILHAMENTO_TTL_MINUTOS_MAX:
+            raise ValueError("A validade maxima do link temporario e de 60 horas.")
+        return ttl
 
     @classmethod
     def consumir_compartilhamento(cls, token, ip_origem=None):

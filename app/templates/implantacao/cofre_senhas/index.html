@@ -258,7 +258,7 @@
                                             <input class="form-control" type="password" value="********" readonly>
                                             <button class="btn btn-outline-secondary cofre-reveal-button" type="button" title="Revelar senha"><i class="bi bi-eye"></i></button>
                                             <button class="btn btn-outline-secondary cofre-copy-password" type="button" title="Copiar senha"><i class="bi bi-clipboard"></i></button>
-                                            <button class="btn btn-outline-warning cofre-share-password" type="button" data-share-url="{{ url_for('implantacao.compartilhar_senha_cofre', senha_id=item.id) }}" title="Gerar link de uso unico"><i class="bi bi-link-45deg"></i></button>
+                                            <button class="btn btn-outline-warning cofre-share-password" type="button" data-share-url="{{ url_for('implantacao.compartilhar_senha_cofre', senha_id=item.id) }}" title="Gerar link temporario de uso unico"><i class="bi bi-link-45deg"></i></button>
                                         </div>
                                         {% if item.usuario_2 %}
                                         <div class="input-group input-group-sm cofre-reveal-group" data-reveal-url="{{ url_for('implantacao.revelar_senha_cofre', senha_id=item.id, credencial='secundaria') }}">
@@ -266,7 +266,7 @@
                                             <input class="form-control" type="password" value="********" readonly>
                                             <button class="btn btn-outline-secondary cofre-reveal-button" type="button" title="Revelar senha secundária"><i class="bi bi-eye"></i></button>
                                             <button class="btn btn-outline-secondary cofre-copy-password" type="button" title="Copiar senha secundária"><i class="bi bi-clipboard"></i></button>
-                                            <button class="btn btn-outline-warning cofre-share-password" type="button" data-share-url="{{ url_for('implantacao.compartilhar_senha_cofre', senha_id=item.id, credencial='secundaria') }}" title="Gerar link de uso unico para senha secundária"><i class="bi bi-link-45deg"></i></button>
+                                            <button class="btn btn-outline-warning cofre-share-password" type="button" data-share-url="{{ url_for('implantacao.compartilhar_senha_cofre', senha_id=item.id, credencial='secundaria') }}" title="Gerar link temporario de uso unico para senha secundária"><i class="bi bi-link-45deg"></i></button>
                                         </div>
                                         {% endif %}
                                     </div>
@@ -374,7 +374,20 @@
 
     document.querySelectorAll('.cofre-share-password').forEach(function (button) {
         button.addEventListener('click', function () {
-            fetch(button.dataset.shareUrl, {method: 'POST'})
+            const prazo = window.prompt('Informe a validade do link em minutos (minimo 5, maximo 3600 = 60 horas):', '30');
+            if (prazo === null) {
+                return;
+            }
+            const ttl = Number.parseInt(String(prazo).trim(), 10);
+            if (!/^\d+$/.test(String(prazo).trim()) || ttl < 5 || ttl > 3600) {
+                alert('Informe um prazo entre 5 minutos e 3600 minutos (60 horas).');
+                return;
+            }
+            fetch(button.dataset.shareUrl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({ttl_minutos: String(ttl)})
+            })
                 .then(function (response) { return response.json(); })
                 .then(function (payload) {
                     if (!payload.ok) {

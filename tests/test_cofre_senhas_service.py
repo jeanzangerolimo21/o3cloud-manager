@@ -117,3 +117,67 @@ def test_salvar_anexos_registra_arquivo_txt(monkeypatch, tmp_path):
     assert anexos[0][1]["created_by"] == "ops@example.com"
     assert (tmp_path / "cofre_senhas" / "7" / anexos[0][1]["nome"]).exists()
 
+
+def test_criar_compartilhamento_usa_ttl_informado(monkeypatch):
+    app = _app()
+    gravados = []
+    eventos = []
+
+    class RepoFake:
+        @classmethod
+        def buscar_por_id(cls, senha_id):
+            return {"id": senha_id, "ativo": 1, "titulo": "Servidor app01"}
+
+        @classmethod
+        def criar_compartilhamento(cls, dados):
+            gravados.append(dados)
+            return 99
+
+    with app.app_context():
+        monkeypatch.setattr(CofreSenhaService, "repository", RepoFake)
+        monkeypatch.setattr("app.implantacao.cofre_senhas_service.registrar_evento", lambda *args, **kwargs: eventos.append(args))
+
+        token = CofreSenhaService.criar_compartilhamento(7, "ops@example.com", "127.0.0.1", ttl_minutos="120")
+
+    assert token
+    assert gravados[0]["ttl_minutos"] == 120
+    assert gravados[0]["created_by"] == "ops@example.com"
+    assert gravados[0]["created_ip"] == "127.0.0.1"
+    assert eventos[0][3]["expira_em_minutos"] == 120
+
+
+def test_criar_compartilhamento_recusa_ttl_menor_que_5(monkeypatch):
+    app = _app()
+
+    class RepoFake:
+        @classmethod
+        def buscar_por_id(cls, senha_id):
+            return {"id": senha_id, "ativo": 1, "titulo": "Servidor app01"}
+
+    with app.app_context():
+        monkeypatch.setattr(CofreSenhaService, "repository", RepoFake)
+        try:
+            CofreSenhaService.criar_compartilhamento(7, ttl_minutos="4")
+        except ValueError as erro:
+            assert "minima" in str(erro)
+        else:
+            raise AssertionError("deveria recusar ttl menor que 5 minutos")
+
+
+def test_criar_compartilhamento_recusa_ttl_maior_que_60_horas(monkeypatch):
+    app = _app()
+
+    class RepoFake:
+        @classmethod
+        def buscar_por_id(cls, senha_id):
+            return {"id": senha_id, "ativo": 1, "titulo": "Servidor app01"}
+
+    with app.app_context():
+        monkeypatch.setattr(CofreSenhaService, "repository", RepoFake)
+        try:
+            CofreSenhaService.criar_compartilhamento(7, ttl_minutos="3601")
+        except ValueError as erro:
+            assert "60 horas" in str(erro)
+        else:
+            raise AssertionError("deveria recusar ttl maior que 60 horas")
+

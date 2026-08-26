@@ -408,8 +408,13 @@ def _url_publica(caminho):
 @implantacao_bp.route("/cofre-senhas/<int:senha_id>/compartilhar", methods=["POST"])
 def compartilhar_senha_cofre(senha_id):
     try:
+        payload = request.get_json(silent=True) or request.form
         token = CofreSenhaService.criar_compartilhamento(
-            senha_id, _email_usuario_logado(), request.remote_addr, request.args.get("credencial")
+            senha_id,
+            _email_usuario_logado(),
+            request.remote_addr,
+            request.args.get("credencial"),
+            payload.get("ttl_minutos") or request.args.get("ttl_minutos"),
         )
     except ValueError as erro:
         return jsonify({"ok": False, "erro": str(erro)}), 400
