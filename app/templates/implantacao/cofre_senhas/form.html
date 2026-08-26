@@ -18,13 +18,29 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Cliente *</label>
-                                <select class="form-select" name="cliente_id" id="cliente_id" required>
-                                    <option value="">Selecionar cliente</option>
-                                    {% for cliente in clientes %}
-                                        {% set nome_cliente = cliente.nome_fantasia or cliente.razao_social %}
-                                        <option value="{{ cliente.id }}" {% if senha.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj|cnpj_br }}{% endif %}</option>
-                                    {% endfor %}
-                                </select>
+                                {% set cliente_atual = namespace(label="") %}
+                                {% for cliente in clientes %}
+                                    {% set nome_cliente = cliente.nome_fantasia or cliente.razao_social %}
+                                    {% if senha.cliente_id|string == cliente.id|string %}
+                                        {% set cliente_atual.label = nome_cliente ~ (" - " ~ (cliente.cnpj|cnpj_br) if cliente.cnpj else "") %}
+                                    {% endif %}
+                                {% endfor %}
+                                <input type="hidden" name="cliente_id" id="cliente_id" value="{{ senha.cliente_id or "" }}">
+                                <div class="position-relative js-single-search-picker" data-target-input="cliente_id">
+                                    <div class="input-group">
+                                        <input class="form-control js-single-picker-search" id="cliente_search" type="search" autocomplete="off" placeholder="Digite nome, razão social ou CNPJ..." value="{{ cliente_atual.label }}" required>
+                                        <button class="btn btn-outline-secondary js-single-picker-clear" type="button" title="Limpar cliente"><i class="bi bi-x-lg"></i></button>
+                                    </div>
+                                    <select class="d-none js-single-picker-select" tabindex="-1" aria-hidden="true">
+                                        <option value="">Selecionar cliente</option>
+                                        {% for cliente in clientes %}
+                                            {% set nome_cliente = cliente.nome_fantasia or cliente.razao_social %}
+                                            {% set label_cliente = nome_cliente ~ (" - " ~ (cliente.cnpj|cnpj_br) if cliente.cnpj else "") %}
+                                            <option value="{{ cliente.id }}" data-label="{{ label_cliente }}" data-search="{{ nome_cliente }} {{ cliente.razao_social or "" }} {{ cliente.cnpj or "" }} {{ cliente.cnpj|cnpj_br if cliente.cnpj else "" }}" {% if senha.cliente_id|string == cliente.id|string %}selected{% endif %}>{{ label_cliente }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="list-group position-absolute start-0 end-0 shadow-sm d-none js-single-picker-results" style="z-index: 1040; max-height: 260px; overflow-y: auto;"></div>
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Ambiente do cliente</label>
@@ -218,6 +234,133 @@
         numeros: '23456789',
         simbolos: '!@#$%&*()-_=+[]{}?'
     };
+
+    function normalizarTexto(valor) {
+        return String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
+
+    document.querySelectorAll('.js-single-search-picker').forEach(function (picker) {
+        const target = document.getElementById(picker.dataset.targetInput);
+        const search = picker.querySelector('.js-single-picker-search');
+        const select = picker.querySelector('.js-single-picker-select');
+        const results = picker.querySelector('.js-single-picker-results');
+        const clearButton = picker.querySelector('.js-single-picker-clear');
+        const form = picker.closest('form');
+        if (!target || !search || !select || !results) {
+            return;
+        }
+        const options = Array.from(select.options).filter(function (option) {
+            return option.value;
+        }).map(function (option) {
+            const label = option.dataset.label || option.textContent.trim();
+            return {
+                value: option.value,
+                label: label,
+                search: normalizarTexto([label, option.dataset.search || '', option.textContent || ''].join(' '))
+            };
+        });
+        let activeIndex = 0;
+
+        function hideResults() {
+            results.classList.add('d-none');
+            results.innerHTML = '';
+        }
+
+        function matchedOptions() {
+            const terms = normalizarTexto(search.value).split(/\s+/).filter(Boolean);
+            return options.filter(function (option) {
+                return !terms.length || terms.every(function (term) { return option.search.includes(term); });
+            }).slice(0, 8);
+        }
+
+        function chooseOption(option) {
+            if (!option) {
+                return;
+            }
+            target.value = option.value;
+            search.value = option.label;
+            select.value = option.value;
+            search.setCustomValidity('');
+            hideResults();
+        }
+
+        function renderResults() {
+            const matches = matchedOptions();
+            activeIndex = 0;
+            results.innerHTML = '';
+            if (!matches.length) {
+                hideResults();
+                return;
+            }
+            matches.forEach(function (option, index) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'list-group-item list-group-item-action text-start' + (index === activeIndex ? ' active' : '');
+                button.textContent = option.label;
+                button.addEventListener('mousedown', function (event) {
+                    event.preventDefault();
+                    chooseOption(option);
+                });
+                results.appendChild(button);
+            });
+            select.value = matches[0].value;
+            results.classList.remove('d-none');
+        }
+
+        function updateActive(nextIndex) {
+            const buttons = Array.from(results.querySelectorAll('button'));
+            if (!buttons.length) { return; }
+            activeIndex = (nextIndex + buttons.length) % buttons.length;
+            buttons.forEach(function (button, index) {
+                button.classList.toggle('active', index === activeIndex);
+            });
+            const option = matchedOptions()[activeIndex];
+            select.value = option ? option.value : '';
+        }
+
+        search.addEventListener('input', function () {
+            target.value = '';
+            search.setCustomValidity('');
+            renderResults();
+        });
+        search.addEventListener('focus', renderResults);
+        search.addEventListener('keydown', function (event) {
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                updateActive(activeIndex + 1);
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                updateActive(activeIndex - 1);
+            } else if (event.key === 'Enter') {
+                event.preventDefault();
+                chooseOption(matchedOptions()[activeIndex]);
+            } else if (event.key === 'Escape') {
+                hideResults();
+            }
+        });
+        if (clearButton) {
+            clearButton.addEventListener('click', function () {
+                target.value = '';
+                search.value = '';
+                select.value = '';
+                hideResults();
+                search.focus();
+            });
+        }
+        if (form) {
+            form.addEventListener('submit', function (event) {
+                if (target.value) {
+                    return;
+                }
+                event.preventDefault();
+                search.setCustomValidity('Selecione um cliente da lista.');
+                search.reportValidity();
+            });
+        }
+        document.addEventListener('click', function (event) {
+            if (!picker.contains(event.target)) { hideResults(); }
+        });
+    });
 
     function preencherImplantadorPorAmbiente() {
         if (!ambienteSelect || !implantadorSelect) return;
