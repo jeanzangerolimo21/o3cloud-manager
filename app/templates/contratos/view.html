@@ -5,7 +5,7 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <a href="{{ url_for('contratos.index') }}" class="btn btn-outline-secondary" onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }"><i class="bi bi-arrow-left"></i> Voltar</a>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap justify-content-end">
             {% if contrato.origem == 'MANUAL' %}
                 <a href="{{ url_for('contratos.editar', contrato_id=contrato.id) }}" class="btn btn-outline-primary"><i class="bi bi-pencil"></i> Editar</a>
                 <a href="{{ url_for('contratos.excluir', contrato_id=contrato.id) }}" class="btn btn-outline-danger" onclick="return confirm('Deseja excluir este contrato manual?')"><i class="bi bi-trash"></i> Excluir</a>
@@ -18,6 +18,9 @@
                 <form method="POST" action="{{ url_for('contratos.iniciar_implantacao', contrato_id=contrato.id) }}">
                     <button class="btn btn-outline-info"><i class="bi bi-hdd-network"></i> Iniciar Implantação</button>
                 </form>
+            {% endif %}
+            {% if contrato.origem == 'OMIE' %}
+                <button class="btn btn-outline-warning" type="button" data-bs-toggle="modal" data-bs-target="#modalCalculadoraOmie"><i class="bi bi-calculator"></i> Calculadora</button>
             {% endif %}
             {% if contrato.arquivo_assinado %}
                 <a href="{{ url_for('contratos.abrir', contrato_id=contrato.id) }}" class="btn btn-success" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Abrir contrato</a>
@@ -129,5 +132,194 @@
         </div>
     {% endif %}
 </div>
+
+
+{% if contrato.origem == 'OMIE' %}
+<div class="modal fade" id="modalCalculadoraOmie" tabindex="-1" aria-labelledby="modalCalculadoraOmieLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="modalCalculadoraOmieLabel"><i class="bi bi-calculator"></i> Calculadora de mensalidades Omie</h5>
+                    <small class="text-muted">Contrato {{ contrato.numero }} · {{ contrato.cliente_nome or contrato.cliente_razao_social }}</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="contrato_calculadora_omie"
+                     data-valor-base="{{ contrato.valor_servicos_bruto if contrato.valor_servicos_bruto is not none else (contrato.valor_servicos_liquido if contrato.valor_servicos_liquido is not none else ((contrato.valor_promocional or contrato.valor_mensal) or 0)) }}"
+                     data-inicio-vigencia="{{ contrato.inicio_vigencia or '' }}"
+                     data-observacoes='{{ (contrato.observacao_contrato or '')|tojson }}'>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Início da vigência</label>
+                            <input class="form-control" type="date" id="calc_inicio_vigencia" value="{{ contrato.inicio_vigencia or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Valor mensal base</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input class="form-control" type="number" min="0" step="0.01" id="calc_valor_base">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Desconto detectado/manual</label>
+                            <div class="input-group">
+                                <input class="form-control" type="number" min="0" max="100" step="0.01" id="calc_desconto_percentual">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Mensalidades com desconto</label>
+                            <input class="form-control" type="number" min="0" max="120" step="1" id="calc_meses_desconto">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Dias faturados na 1ª mensalidade</label>
+                            <input class="form-control" type="number" min="0" max="30" step="1" id="calc_dias_proporcionais" placeholder="Ex.: 16">
+                        </div>
+                        <div class="col-md-9">
+                            <label class="form-label">Observações Omie analisadas</label>
+                            <textarea class="form-control" rows="3" id="calc_observacoes" readonly>{{ contrato.observacao_contrato or '' }}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-light border" id="calc_deteccao_resumo"></div>
+
+                    <div class="row g-3 mb-4" id="calc_cards_resultado"></div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mensalidade</th>
+                                    <th>Referência</th>
+                                    <th class="text-end">Valor base</th>
+                                    <th class="text-end">Desconto</th>
+                                    <th class="text-end">Valor a cobrar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="calc_tabela_mensalidades"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" id="calc_recalcular"><i class="bi bi-arrow-repeat"></i> Recalcular</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if contrato.origem == 'OMIE' %}
+<script>
+(function () {
+    const root = document.getElementById('contrato_calculadora_omie');
+    if (!root) { return; }
+
+    const valorBaseInput = document.getElementById('calc_valor_base');
+    const descontoInput = document.getElementById('calc_desconto_percentual');
+    const mesesInput = document.getElementById('calc_meses_desconto');
+    const diasInput = document.getElementById('calc_dias_proporcionais');
+    const inicioInput = document.getElementById('calc_inicio_vigencia');
+    const resumo = document.getElementById('calc_deteccao_resumo');
+    const cards = document.getElementById('calc_cards_resultado');
+    const tabela = document.getElementById('calc_tabela_mensalidades');
+    const recalcular = document.getElementById('calc_recalcular');
+    const observacoesInput = document.getElementById('calc_observacoes');
+    const observacoes = observacoesInput ? observacoesInput.value : '';
+
+    function numero(valor) {
+        const normalizado = String(valor || '0').replace(/\./g, '').replace(',', '.');
+        const parsed = Number.parseFloat(normalizado);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function inteiro(valor) {
+        const parsed = Number.parseInt(String(valor || '0'), 10);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function moeda(valor) {
+        return new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(valor || 0);
+    }
+
+    function detectarDesconto(texto) {
+        const percentualMatch = texto.match(/(\d{1,3}(?:[,.]\d+)?)\s*%\s*(?:de\s*)?desconto/i);
+        const mesesMatch = texto.match(/(?:nas|nos|em|por|durante)\s+(?:as\s+|os\s+)?(\d{1,2})\s+(?:primeir[ao]s?\s+)?mensalidades/i)
+            || texto.match(/(\d{1,2})\s+primeir[ao]s?\s+mensalidades/i);
+        return {
+            percentual: percentualMatch ? numero(percentualMatch[1]) : 0,
+            meses: mesesMatch ? inteiro(mesesMatch[1]) : 0
+        };
+    }
+
+    function referenciaMensal(dataBase, indice) {
+        if (!dataBase) { return '-'; }
+        const data = new Date(dataBase + 'T00:00:00');
+        if (Number.isNaN(data.getTime())) { return '-'; }
+        data.setMonth(data.getMonth() + indice);
+        return data.toLocaleDateString('pt-BR', {month: '2-digit', year: 'numeric'});
+    }
+
+    function card(titulo, valor, detalhe) {
+        return '<div class="col-md-3"><div class="border rounded p-3 h-100"><small class="text-muted">' + titulo + '</small><div class="fs-5 fw-semibold">' + valor + '</div><small class="text-muted">' + detalhe + '</small></div></div>';
+    }
+
+    function calcular() {
+        const valorBase = Math.max(numero(valorBaseInput.value), 0);
+        const percentual = Math.min(Math.max(numero(descontoInput.value), 0), 100);
+        const mesesDesconto = Math.max(inteiro(mesesInput.value), 0);
+        const diasProporcionais = Math.min(Math.max(inteiro(diasInput.value), 0), 30);
+        const valorDescontoMensal = valorBase * (percentual / 100);
+        const valorComDesconto = valorBase - valorDescontoMensal;
+        const primeiraMensalidadeBase = mesesDesconto > 0 && percentual > 0 ? valorComDesconto : valorBase;
+        const valorDia = primeiraMensalidadeBase / 30;
+        const valorProporcional = diasProporcionais > 0 ? valorDia * diasProporcionais : 0;
+        const linhas = Math.max(mesesDesconto, 1);
+
+        resumo.innerHTML = percentual > 0 && mesesDesconto > 0
+            ? 'Desconto identificado/aplicado: <strong>' + percentual + '%</strong> nas <strong>' + mesesDesconto + '</strong> primeiras mensalidades.'
+            : 'Nenhum desconto automático foi identificado. Ajuste manualmente os campos se houver regra comercial nas observações.';
+
+        cards.innerHTML = [
+            card('Valor mensal base', moeda(valorBase), 'Valor usado como referência'),
+            card('Mensalidade com desconto', moeda(valorComDesconto), percentual + '% aplicado'),
+            card('Total descontado no período', moeda(valorDescontoMensal * mesesDesconto), mesesDesconto + ' mensalidade(s)'),
+            card('1ª mensalidade proporcional', diasProporcionais ? moeda(valorProporcional) : '-', diasProporcionais ? diasProporcionais + ' dia(s) faturado(s)' : 'Informe os dias para calcular')
+        ].join('');
+
+        tabela.innerHTML = '';
+        for (let index = 0; index < linhas; index += 1) {
+            const aplicaDesconto = percentual > 0 && index < mesesDesconto;
+            const desconto = aplicaDesconto ? valorDescontoMensal : 0;
+            const cobrar = valorBase - desconto;
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td>' + (index + 1) + 'ª mensalidade</td>'
+                + '<td>' + referenciaMensal(inicioInput.value, index) + '</td>'
+                + '<td class="text-end">' + moeda(valorBase) + '</td>'
+                + '<td class="text-end">' + moeda(desconto) + '</td>'
+                + '<td class="text-end fw-semibold">' + moeda(cobrar) + '</td>';
+            tabela.appendChild(tr);
+        }
+    }
+
+    const detectado = detectarDesconto(observacoes);
+    valorBaseInput.value = Number.parseFloat(root.dataset.valorBase || '0').toFixed(2);
+    descontoInput.value = detectado.percentual || 0;
+    mesesInput.value = detectado.meses || 0;
+    calcular();
+
+    [valorBaseInput, descontoInput, mesesInput, diasInput, inicioInput].forEach(function (input) {
+        input.addEventListener('input', calcular);
+        input.addEventListener('change', calcular);
+    });
+    if (recalcular) {
+        recalcular.addEventListener('click', calcular);
+    }
+})();
+</script>
+{% endif %}
 
 {% endblock %}
