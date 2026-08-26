@@ -191,6 +191,8 @@ ENDPOINT_PERMISSOES = {
     "implantacao.excluir_pasta_cofre": "cofre_senhas",
     "implantacao.nova_senha_cofre": "cofre_senhas",
     "implantacao.editar_senha_cofre": "cofre_senhas",
+    "implantacao.baixar_anexo_senha_cofre": "cofre_senhas",
+    "implantacao.excluir_anexo_senha_cofre": "cofre_senhas",
     "implantacao.revelar_senha_cofre": "cofre_senhas",
     "implantacao.compartilhar_senha_cofre": "cofre_senhas",
     "implantacao.excluir_senha_cofre": "cofre_senhas",

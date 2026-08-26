@@ -14,7 +14,7 @@
         <div class="col-12">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
-                    <form method="POST">
+                    <form method="POST" enctype="multipart/form-data">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Cliente *</label>
@@ -127,6 +127,24 @@
                             </div>
                             <div class="col-md-6"><label class="form-label">Observações</label><textarea class="form-control" rows="3" name="observacoes">{{ senha.observacoes or '' }}</textarea></div>
                             <div class="col-md-6">
+                                <label class="form-label">Arquivos vinculados</label>
+                                <input class="form-control" type="file" name="anexos" id="anexos" multiple>
+                                <small class="text-muted">PDF, documentos, planilhas, imagens, CSV, TXT, ZIP ou DWG até 20 MB por arquivo.</small>
+                                <div id="anexos_selecionados" class="small text-muted mt-2"></div>
+                                {% if modo == 'editar' and anexos %}
+                                    <div class="list-group list-group-flush border rounded mt-3">
+                                        {% for anexo in anexos %}
+                                            <a class="list-group-item list-group-item-action d-flex align-items-center gap-2" href="{{ url_for('implantacao.baixar_anexo_senha_cofre', anexo_id=anexo.id) }}" target="_blank">
+                                                <i class="bi bi-paperclip text-primary"></i>
+                                                <span class="text-truncate" title="{{ anexo.arquivo_original }}">{{ anexo.arquivo_original }}</span>
+                                            </a>
+                                        {% endfor %}
+                                    </div>
+                                {% elif modo == 'editar' %}
+                                    <div class="small text-muted mt-2">Nenhum arquivo vinculado.</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
                                 <label class="form-label">Proxmox Node</label>
                                 <select class="form-select" name="proxmox_node_inventory_id" id="proxmox_node_inventory_id">
                                     <option value="">Sem vinculo de Node</option>
@@ -185,6 +203,8 @@
     const gerar2Button = document.getElementById('gerar_senha_2');
     const copiar2Button = document.getElementById('copiar_senha_2_form');
     const copyFieldButtons = document.querySelectorAll('.cofre-copy-field');
+    const anexosInput = document.getElementById('anexos');
+    const anexosSelecionados = document.getElementById('anexos_selecionados');
     const policy = {
         tamanho: {{ senha_policy.tamanho or 20 }},
         maiusculas: {{ 'true' if senha_policy.maiusculas else 'false' }},
@@ -413,6 +433,13 @@
                     }
                 })
                 .catch(function (erro) { alert(erro.message); });
+        });
+    }
+
+    if (anexosInput && anexosSelecionados) {
+        anexosInput.addEventListener('change', function () {
+            const nomes = Array.from(anexosInput.files || []).map(function (arquivo) { return arquivo.name; });
+            anexosSelecionados.textContent = nomes.length ? nomes.join(', ') : '';
         });
     }
     copyFieldButtons.forEach(function (button) {

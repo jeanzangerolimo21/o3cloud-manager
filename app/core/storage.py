@@ -38,6 +38,7 @@ class StorageService:
         ".xls",
         ".xlsx",
         ".csv",
+        ".txt",
         ".zip",
         ".dwg",
     }

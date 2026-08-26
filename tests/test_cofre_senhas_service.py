@@ -1,3 +1,5 @@
+from io import BytesIO
+
 from flask import Flask
 
 from app.implantacao.cofre_senhas_service import CofreSenhaService
@@ -76,3 +78,42 @@ def test_consumir_compartilhamento_secundario_retorna_somente_senha(monkeypatch)
 
     assert compartilhamento == {"titulo": "Servidor app01", "senha": "senha-local", "expires_at": None}
     assert "usuario" not in compartilhamento
+
+class ArquivoFake:
+    def __init__(self, nome, conteudo=b"secret"):
+        self.filename = nome
+        self.mimetype = "text/plain"
+        self._buffer = BytesIO(conteudo)
+
+    def seek(self, *args):
+        return self._buffer.seek(*args)
+
+    def tell(self):
+        return self._buffer.tell()
+
+    def save(self, destino):
+        with open(destino, "wb") as handle:
+            handle.write(self._buffer.getvalue())
+
+
+def test_salvar_anexos_registra_arquivo_txt(monkeypatch, tmp_path):
+    from app.core.storage import StorageService
+
+    anexos = []
+
+    class RepoFake:
+        @classmethod
+        def inserir_anexo(cls, senha_id, salvo):
+            anexos.append((senha_id, salvo))
+
+    monkeypatch.setattr(StorageService, "BASE_STORAGE", tmp_path)
+    monkeypatch.setattr(CofreSenhaService, "repository", RepoFake)
+
+    total = CofreSenhaService._salvar_anexos(7, [ArquivoFake("senhas.txt")], "ops@example.com")
+
+    assert total == 1
+    assert anexos[0][0] == 7
+    assert anexos[0][1]["arquivo_original"] == "senhas.txt"
+    assert anexos[0][1]["created_by"] == "ops@example.com"
+    assert (tmp_path / "cofre_senhas" / "7" / anexos[0][1]["nome"]).exists()
+

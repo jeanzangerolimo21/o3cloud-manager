@@ -5,8 +5,10 @@ from flask import jsonify
 from flask import redirect
 from flask import render_template
 from flask import request
+from flask import send_file
 from flask import session
 from flask import url_for
+from pathlib import Path
 from urllib.parse import urljoin
 
 from app.core.auditoria import registrar_evento
@@ -313,10 +315,15 @@ def nova_senha_cofre():
     contexto = CofreSenhaService.contexto_form(_email_usuario_logado())
     if request.method == "POST":
         try:
-            senha_id = CofreSenhaService.criar(_cofre_senha_form_data(), _email_usuario_logado(), request.remote_addr)
+            senha_id = CofreSenhaService.criar(
+                _cofre_senha_form_data(),
+                request.files.getlist("anexos"),
+                _email_usuario_logado(),
+                request.remote_addr,
+            )
         except ValueError as erro:
             flash(str(erro), "danger")
-            return render_template("implantacao/cofre_senhas/form.html", senha=request.form, modo="novo", **contexto)
+            return render_template("implantacao/cofre_senhas/form.html", senha=request.form, anexos=[], modo="novo", **contexto)
         flash("Credencial cadastrada no cofre.", "success")
         return redirect(url_for("implantacao.editar_senha_cofre", senha_id=senha_id))
     senha = {"ativo": 1, "pasta_id": request.args.get("pasta_id")}
@@ -324,7 +331,7 @@ def nova_senha_cofre():
         pasta = CofrePastaService.buscar_por_id(senha.get("pasta_id"))
         if pasta and pasta.get("cliente_id"):
             senha["cliente_id"] = pasta.get("cliente_id")
-    return render_template("implantacao/cofre_senhas/form.html", senha=senha, modo="novo", **contexto)
+    return render_template("implantacao/cofre_senhas/form.html", senha=senha, anexos=[], modo="novo", **contexto)
 
 
 @implantacao_bp.route("/cofre-senhas/<int:senha_id>/editar", methods=["GET", "POST"])
@@ -336,14 +343,46 @@ def editar_senha_cofre(senha_id):
     contexto = CofreSenhaService.contexto_form(_email_usuario_logado())
     if request.method == "POST":
         try:
-            CofreSenhaService.atualizar(senha_id, _cofre_senha_form_data(), _email_usuario_logado(), request.remote_addr)
+            CofreSenhaService.atualizar(
+                senha_id,
+                _cofre_senha_form_data(),
+                request.files.getlist("anexos"),
+                _email_usuario_logado(),
+                request.remote_addr,
+            )
         except ValueError as erro:
             flash(str(erro), "danger")
             senha = {**senha, **request.form}
+            anexos = CofreSenhaService.listar_anexos(senha_id, _email_usuario_logado())
         else:
             flash("Credencial atualizada.", "success")
             return redirect(url_for("implantacao.cofre_senhas"))
-    return render_template("implantacao/cofre_senhas/form.html", senha=senha, modo="editar", **contexto)
+    anexos = CofreSenhaService.listar_anexos(senha_id, _email_usuario_logado())
+    return render_template("implantacao/cofre_senhas/form.html", senha=senha, anexos=anexos, modo="editar", **contexto)
+
+
+@implantacao_bp.route("/cofre-senhas/anexos/<int:anexo_id>")
+def baixar_anexo_senha_cofre(anexo_id):
+    anexo = CofreSenhaService.buscar_anexo(anexo_id, _email_usuario_logado())
+    if not anexo:
+        flash("Anexo não encontrado.", "danger")
+        return redirect(url_for("implantacao.cofre_senhas"))
+    caminho = Path(anexo.get("caminho") or "")
+    if not caminho.is_file():
+        flash("Arquivo não encontrado no armazenamento.", "danger")
+        return redirect(url_for("implantacao.editar_senha_cofre", senha_id=anexo.get("cofre_senha_id")))
+    return send_file(caminho, download_name=anexo.get("arquivo_original") or anexo.get("nome_arquivo"), as_attachment=False)
+
+
+@implantacao_bp.route("/cofre-senhas/anexos/<int:anexo_id>/excluir", methods=["POST"])
+def excluir_anexo_senha_cofre(anexo_id):
+    try:
+        anexo = CofreSenhaService.excluir_anexo(anexo_id, _email_usuario_logado())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+        return redirect(request.referrer or url_for("implantacao.cofre_senhas"))
+    flash("Anexo excluído.", "success")
+    return redirect(url_for("implantacao.editar_senha_cofre", senha_id=anexo.get("cofre_senha_id")))
 
 
 @implantacao_bp.route("/cofre-senhas/<int:senha_id>/revelar", methods=["POST"])

@@ -15,13 +15,19 @@ class CofreSenhaRepository(BaseRepository):
                    cs.categoria, cs.titulo, cs.host, cs.porta, cs.url, cs.usuario, cs.usuario_2,
                    cs.observacoes, cs.proxmox_node_id, cs.proxmox_vm_id,
                    cs.pbs_server_id, cs.zabbix_host_id, cs.ativo,
-                   cs.created_by, cs.updated_by, cs.created_at, cs.updated_at
+                   cs.created_by, cs.updated_by, cs.created_at, cs.updated_at,
+                   COALESCE(anexos.total_anexos, 0) AS total_anexos
             FROM implantacao_cofre_senhas cs
             LEFT JOIN ambientes amb ON amb.id = cs.ambiente_id
             LEFT JOIN implantadores imp ON imp.id = cs.implantador_id
             LEFT JOIN implantacao_faixas_rede fr ON fr.id = cs.faixa_rede_id
             LEFT JOIN o3web_licencas o3 ON o3.id = cs.licenca_o3web_id
             LEFT JOIN implantacao_cofre_pastas cp ON cp.id = cs.pasta_id
+            LEFT JOIN (
+                SELECT cofre_senha_id, COUNT(*) AS total_anexos
+                FROM implantacao_cofre_senhas_anexos
+                GROUP BY cofre_senha_id
+            ) anexos ON anexos.cofre_senha_id = cs.id
             WHERE 1 = 1
         """
         where, params = cls._filtros(pesquisa, categoria, ativo, pasta_id, apenas_clientes)
@@ -143,6 +149,58 @@ class CofreSenhaRepository(BaseRepository):
         return cls.execute(
             "UPDATE implantacao_cofre_senhas SET ativo = 0, updated_by = %s WHERE id = %s",
             (usuario_email or "sistema", senha_id),
+        )
+
+    @classmethod
+    def inserir_anexo(cls, senha_id, dados):
+        return cls.execute_insert(
+            """
+            INSERT INTO implantacao_cofre_senhas_anexos (
+                uuid, cofre_senha_id, arquivo_original, nome_arquivo, caminho,
+                url, mime_type, tamanho, created_by
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                cls.generate_uuid(),
+                senha_id,
+                dados.get("arquivo_original"),
+                dados.get("nome"),
+                dados.get("caminho"),
+                dados.get("url"),
+                dados.get("mime_type"),
+                dados.get("tamanho", 0),
+                dados.get("created_by"),
+            ),
+        )
+
+    @classmethod
+    def listar_anexos(cls, senha_id):
+        return cls.fetch_all(
+            """
+            SELECT *
+            FROM implantacao_cofre_senhas_anexos
+            WHERE cofre_senha_id = %s
+            ORDER BY created_at DESC, id DESC
+            """,
+            (senha_id,),
+        )
+
+    @classmethod
+    def buscar_anexo(cls, anexo_id):
+        return cls.fetch_one(
+            """
+            SELECT *
+            FROM implantacao_cofre_senhas_anexos
+            WHERE id = %s
+            """,
+            (anexo_id,),
+        )
+
+    @classmethod
+    def excluir_anexo(cls, anexo_id):
+        return cls.execute(
+            "DELETE FROM implantacao_cofre_senhas_anexos WHERE id = %s",
+            (anexo_id,),
         )
 
     @classmethod

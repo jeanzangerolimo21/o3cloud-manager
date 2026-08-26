@@ -3,10 +3,12 @@ import hashlib
 import hmac
 import os
 import secrets
+from pathlib import Path
 
 from flask import current_app
 
 from app.core.auditoria import registrar_evento
+from app.core.storage import StorageService
 from app.clientes.service import ClienteService
 from app.ambientes.implantador_service import ImplantadorService
 from app.implantacao.cofre_pastas_service import TIPOS_COFRE_PASTA
@@ -88,7 +90,8 @@ class CofreSenhaService:
         }
 
     @classmethod
-    def criar(cls, dados, usuario_email="sistema", ip_origem=None):
+    def criar(cls, dados, arquivos=None, usuario_email="sistema", ip_origem=None):
+        cls._validar_anexos(arquivos)
         payload = cls._normalizar(dados, exigir_senha=True, usuario_email=usuario_email)
         payload["senha_encrypted"] = cls._encrypt(payload.pop("senha"))
         senha_2 = payload.pop("senha_2", None)
@@ -96,11 +99,13 @@ class CofreSenhaService:
         payload["created_by"] = usuario_email or "sistema"
         payload["updated_by"] = usuario_email or "sistema"
         senha_id = cls.repository.inserir(payload)
-        registrar_evento("COFRE_CREDENCIAL_CRIADA", "cofre_senhas", senha_id, {"cliente_id": payload.get("cliente_id"), "categoria": payload.get("categoria"), "titulo": payload.get("titulo")}, usuario_email)
+        total_anexos = cls._salvar_anexos(senha_id, arquivos, usuario_email)
+        registrar_evento("COFRE_CREDENCIAL_CRIADA", "cofre_senhas", senha_id, {"cliente_id": payload.get("cliente_id"), "categoria": payload.get("categoria"), "titulo": payload.get("titulo"), "anexos": total_anexos}, usuario_email)
         return senha_id
 
     @classmethod
-    def atualizar(cls, senha_id, dados, usuario_email="sistema", ip_origem=None):
+    def atualizar(cls, senha_id, dados, arquivos=None, usuario_email="sistema", ip_origem=None):
+        cls._validar_anexos(arquivos)
         existente = cls.buscar_por_id(senha_id, usuario_email)
         if not existente:
             raise ValueError("Credencial não encontrada.")
@@ -114,7 +119,33 @@ class CofreSenhaService:
             payload["senha_2_encrypted"] = None
         payload["updated_by"] = usuario_email or "sistema"
         cls.repository.atualizar(senha_id, payload)
-        registrar_evento("COFRE_CREDENCIAL_ATUALIZADA", "cofre_senhas", senha_id, {"cliente_id": payload.get("cliente_id"), "categoria": payload.get("categoria"), "titulo": payload.get("titulo"), "senha_alterada": bool(dados.get("senha")), "senha_2_alterada": bool(senha_2)}, usuario_email)
+        total_anexos = cls._salvar_anexos(senha_id, arquivos, usuario_email)
+        registrar_evento("COFRE_CREDENCIAL_ATUALIZADA", "cofre_senhas", senha_id, {"cliente_id": payload.get("cliente_id"), "categoria": payload.get("categoria"), "titulo": payload.get("titulo"), "senha_alterada": bool(dados.get("senha")), "senha_2_alterada": bool(senha_2), "anexos_adicionados": total_anexos}, usuario_email)
+
+    @classmethod
+    def listar_anexos(cls, senha_id, usuario_email="sistema"):
+        if not cls.buscar_por_id(senha_id, usuario_email):
+            raise ValueError("Credencial não encontrada.")
+        return cls.repository.listar_anexos(senha_id)
+
+    @classmethod
+    def buscar_anexo(cls, anexo_id, usuario_email="sistema"):
+        anexo = cls.repository.buscar_anexo(anexo_id)
+        if not anexo:
+            return None
+        if not cls.buscar_por_id(anexo.get("cofre_senha_id"), usuario_email):
+            return None
+        return anexo
+
+    @classmethod
+    def excluir_anexo(cls, anexo_id, usuario_email="sistema"):
+        anexo = cls.buscar_anexo(anexo_id, usuario_email)
+        if not anexo:
+            raise ValueError("Anexo não encontrado.")
+        cls.repository.excluir_anexo(anexo_id)
+        cls._remover_arquivo_storage(anexo.get("caminho"))
+        registrar_evento("COFRE_CREDENCIAL_ANEXO_EXCLUIDO", "cofre_senhas", anexo.get("cofre_senha_id"), {"arquivo": anexo.get("arquivo_original")}, usuario_email)
+        return anexo
 
     @classmethod
     def excluir(cls, senha_id, usuario_email="sistema", ip_origem=None):
@@ -183,6 +214,39 @@ class CofreSenhaService:
             "senha": valor,
             "expires_at": compartilhamento.get("expires_at"),
         }
+
+    @classmethod
+    def _validar_anexos(cls, arquivos):
+        for arquivo in arquivos or []:
+            if arquivo and arquivo.filename:
+                StorageService.validar(arquivo)
+
+    @classmethod
+    def _salvar_anexos(cls, senha_id, arquivos, usuario_email="sistema"):
+        total = 0
+        for arquivo in arquivos or []:
+            if not arquivo or not arquivo.filename:
+                continue
+            salvo = StorageService.salvar(arquivo, f"cofre_senhas/{senha_id}")
+            if not salvo:
+                continue
+            salvo["created_by"] = usuario_email or "sistema"
+            cls.repository.inserir_anexo(senha_id, salvo)
+            total += 1
+        return total
+
+    @staticmethod
+    def _remover_arquivo_storage(caminho):
+        if not caminho:
+            return
+        base = StorageService.BASE_STORAGE.resolve()
+        arquivo = Path(caminho).resolve()
+        try:
+            dentro_storage = arquivo.is_relative_to(base)
+        except AttributeError:
+            dentro_storage = str(arquivo).startswith(str(base) + os.sep)
+        if dentro_storage and arquivo.exists() and arquivo.is_file():
+            arquivo.unlink()
 
     @staticmethod
     def _usuario_tem_acesso(senha, usuario_email):
