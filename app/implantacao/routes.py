@@ -356,7 +356,8 @@ def editar_senha_cofre(senha_id):
             anexos = CofreSenhaService.listar_anexos(senha_id, _email_usuario_logado())
         else:
             flash("Credencial atualizada.", "success")
-            return redirect(url_for("implantacao.cofre_senhas"))
+            pasta_id = request.form.get("pasta_id") or senha.get("pasta_id")
+            return redirect(url_for("implantacao.cofre_senhas", pasta_id=pasta_id) if pasta_id else url_for("implantacao.cofre_senhas"))
     anexos = CofreSenhaService.listar_anexos(senha_id, _email_usuario_logado())
     return render_template("implantacao/cofre_senhas/form.html", senha=senha, anexos=anexos, modo="editar", **contexto)
 

@@ -5,7 +5,7 @@
     {% set page_title = "Editar Credencial" if modo == "editar" else "Nova Credencial" %}
     {% set page_description = "Senha criptografada com vínculos operacionais do cliente." %}
     {% set page_icon = "bi-shield-lock-fill" %}
-    {% set page_button_url = url_for('implantacao.cofre_senhas') %}
+    {% set page_button_url = url_for('implantacao.cofre_senhas', pasta_id=senha.pasta_id) if senha.pasta_id else url_for('implantacao.cofre_senhas') %}
     {% set page_button_icon = "bi-arrow-left" %}
     {% set page_button_text = "Voltar" %}
     {% include "components/page_header.html" %}
