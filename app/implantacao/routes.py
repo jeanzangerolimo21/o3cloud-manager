@@ -155,7 +155,8 @@ def nova_faixa_rede():
             faixa_id = FaixaRedeService.criar(_faixa_rede_form_data())
         except ValueError as erro:
             flash(str(erro), "danger")
-            return render_template("implantacao/faixas_rede/form.html", faixa=request.form, clientes=clientes, modo="novo")
+            faixa_form = {**request.form, "portas_adicionais": _faixa_rede_portas_adicionais_form_data()}
+            return render_template("implantacao/faixas_rede/form.html", faixa=faixa_form, clientes=clientes, modo="novo")
         flash("Faixa de rede cadastrada.", "success")
         return redirect(url_for("implantacao.editar_faixa_rede", faixa_id=faixa_id))
     return render_template("implantacao/faixas_rede/form.html", faixa=faixa, clientes=clientes, modo="novo")
@@ -173,7 +174,7 @@ def editar_faixa_rede(faixa_id):
             FaixaRedeService.atualizar(faixa_id, _faixa_rede_form_data())
         except ValueError as erro:
             flash(str(erro), "danger")
-            faixa = {**faixa, **request.form}
+            faixa = {**faixa, **request.form, "portas_adicionais": _faixa_rede_portas_adicionais_form_data()}
         else:
             flash("Faixa de rede atualizada.", "success")
             return redirect(url_for("implantacao.faixas_rede"))
@@ -1112,6 +1113,19 @@ def _email_usuario_logado():
     return "sistema"
 
 
+def _faixa_rede_portas_adicionais_form_data():
+    inicios = request.form.getlist("porta_inicio_adicional")
+    fins = request.form.getlist("porta_fim_adicional")
+    total = max(len(inicios), len(fins))
+    portas = []
+    for index in range(total):
+        inicio = inicios[index] if index < len(inicios) else ""
+        fim = fins[index] if index < len(fins) else ""
+        if not str(inicio or "").strip() and not str(fim or "").strip():
+            continue
+        portas.append({"porta_inicio": inicio, "porta_fim": fim})
+    return portas
+
 def _faixa_rede_form_data():
     return {
         "rede": request.form.get("rede"),
@@ -1124,6 +1138,8 @@ def _faixa_rede_form_data():
         "vpn": request.form.get("vpn"),
         "porta_inicio": request.form.get("porta_inicio"),
         "porta_fim": request.form.get("porta_fim"),
+        "porta_inicio_adicional": request.form.getlist("porta_inicio_adicional"),
+        "porta_fim_adicional": request.form.getlist("porta_fim_adicional"),
         "portas": request.form.get("portas"),
         "pve": request.form.get("pve"),
         "observacoes": request.form.get("observacoes"),

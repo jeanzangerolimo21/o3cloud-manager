@@ -18,6 +18,8 @@ class FaixaRedeService:
             limit=limit,
             offset=offset,
         )
+        for faixa in faixas:
+            faixa["portas_exibicao"] = cls._portas_exibicao(faixa)
         total = cls.repository.total(pesquisa=pesquisa, ativo=ativo_normalizado)
         return faixas, total
 
@@ -27,7 +29,11 @@ class FaixaRedeService:
 
     @classmethod
     def buscar_por_id(cls, faixa_id):
-        return cls.repository.buscar_por_id(faixa_id)
+        faixa = cls.repository.buscar_por_id(faixa_id)
+        if faixa:
+            faixa["portas_adicionais"] = cls.repository.listar_portas_adicionais(faixa_id)
+            faixa["portas_exibicao"] = cls._portas_exibicao(faixa)
+        return faixa
 
     @classmethod
     def criar(cls, dados):
@@ -112,6 +118,13 @@ class FaixaRedeService:
             dados.get("porta_fim"),
             dados.get("portas"),
         )
+        portas_adicionais = cls._normalizar_portas_adicionais(dados)
+        ranges_portas = [
+            item
+            for item in [{"porta_inicio": porta_inicio, "porta_fim": porta_fim, "portas": portas}]
+            if item.get("porta_inicio") and item.get("porta_fim")
+        ]
+        cls._validar_ranges_sem_sobreposicao(ranges_portas + portas_adicionais)
         return {
             "rede": rede,
             "mascara": mascara,
@@ -125,6 +138,7 @@ class FaixaRedeService:
             "porta_inicio": porta_inicio,
             "porta_fim": porta_fim,
             "portas": portas,
+            "portas_adicionais": portas_adicionais,
             "pve": cls._texto_longo(dados.get("pve")),
             "observacoes": cls._texto_longo(dados.get("observacoes")),
             "ativo": 1 if str(dados.get("ativo", "1")) != "0" else 0,
@@ -132,19 +146,85 @@ class FaixaRedeService:
 
     @classmethod
     def _validar_conflito_portas(cls, dados, ignorar_id=None):
-        conflito = cls.repository.buscar_conflito_portas(
-            dados.get("fw_wan"),
-            dados.get("porta_inicio"),
-            dados.get("porta_fim"),
-            ignorar_id=ignorar_id,
+        ranges = [
+            item for item in [{
+                "porta_inicio": dados.get("porta_inicio"),
+                "porta_fim": dados.get("porta_fim"),
+            }] if item.get("porta_inicio") and item.get("porta_fim")
+        ]
+        ranges.extend(dados.get("portas_adicionais") or [])
+        for item in ranges:
+            conflito = cls.repository.buscar_conflito_portas(
+                dados.get("fw_wan"),
+                item.get("porta_inicio"),
+                item.get("porta_fim"),
+                ignorar_id=ignorar_id,
+            )
+            if not conflito:
+                continue
+            conflito_range = ""
+            if conflito.get("conflito_inicio") and conflito.get("conflito_fim"):
+                conflito_range = f" ({conflito.get('conflito_inicio')}-{conflito.get('conflito_fim')})"
+            raise ValueError(
+                "Range de portas "
+                f"{item.get('porta_inicio')}-{item.get('porta_fim')} conflita com a faixa "
+                f"{conflito.get('rede')}{conflito_range} do cliente {conflito.get('cliente_nome')} "
+                f"no mesmo FW - WAN ({conflito.get('fw_wan')})."
+            )
+
+    @classmethod
+    def _normalizar_portas_adicionais(cls, dados):
+        inicios = (
+            dados.getlist("porta_inicio_adicional")
+            if hasattr(dados, "getlist")
+            else dados.get("porta_inicio_adicional", [])
         )
-        if not conflito:
-            return
-        raise ValueError(
-            "Range de portas conflita com a faixa "
-            f"{conflito.get('rede')} do cliente {conflito.get('cliente_nome')} "
-            f"no mesmo FW - WAN ({conflito.get('fw_wan')})."
+        fins = (
+            dados.getlist("porta_fim_adicional")
+            if hasattr(dados, "getlist")
+            else dados.get("porta_fim_adicional", [])
         )
+        if isinstance(inicios, (str, int)):
+            inicios = [inicios]
+        if isinstance(fins, (str, int)):
+            fins = [fins]
+        total = max(len(inicios), len(fins))
+        portas = []
+        for index in range(total):
+            inicio_raw = inicios[index] if index < len(inicios) else None
+            fim_raw = fins[index] if index < len(fins) else None
+            if not str(inicio_raw or "").strip() and not str(fim_raw or "").strip():
+                continue
+            inicio, fim, texto = cls._normalizar_portas(inicio_raw, fim_raw)
+            portas.append({"porta_inicio": inicio, "porta_fim": fim, "portas": texto})
+        return portas
+
+    @staticmethod
+    def _validar_ranges_sem_sobreposicao(ranges):
+        ordenados = sorted(ranges, key=lambda item: (item.get("porta_inicio") or 0, item.get("porta_fim") or 0))
+        anterior = None
+        for atual in ordenados:
+            if anterior and atual.get("porta_inicio") <= anterior.get("porta_fim"):
+                raise ValueError(
+                    "Ranges de portas informados se sobrepõem: "
+                    f"{anterior.get('porta_inicio')}-{anterior.get('porta_fim')} e "
+                    f"{atual.get('porta_inicio')}-{atual.get('porta_fim')}."
+                )
+            anterior = atual
+
+    @staticmethod
+    def _portas_exibicao(faixa):
+        portas = []
+        if faixa.get("porta_inicio") and faixa.get("porta_fim"):
+            portas.append(f"{faixa.get('porta_inicio')}-{faixa.get('porta_fim')}")
+        elif faixa.get("portas"):
+            portas.append(str(faixa.get("portas")))
+        adicionais = faixa.get("portas_adicionais") or []
+        if isinstance(adicionais, str):
+            portas.extend(item.strip() for item in adicionais.split(",") if item.strip())
+        else:
+            portas.extend(item.get("portas") for item in adicionais if item.get("portas"))
+        return ", ".join(portas) if portas else None
 
     @classmethod
     def _normalizar_portas(cls, porta_inicio, porta_fim, portas_legado=None):

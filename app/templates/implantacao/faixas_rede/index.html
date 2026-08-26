@@ -64,7 +64,7 @@
                             <td>{{ faixa.fw_lan or '-' }}</td>
                             <td><strong>{{ faixa.cliente_nome }}</strong><br><small class="text-muted">{{ faixa.cliente_cnpj|cnpj_br if faixa.cliente_cnpj else 'CNPJ não vinculado' }}</small></td>
                             <td>{{ faixa.vpn or '-' }}</td>
-                            <td>{% if faixa.porta_inicio and faixa.porta_fim %}{{ faixa.porta_inicio }}-{{ faixa.porta_fim }}{% else %}{{ faixa.portas or '-' }}{% endif %}</td>
+                            <td>{{ faixa.portas_exibicao or '-' }}</td>
                             <td>{{ faixa.pve or '-' }}</td>
                             <td>{{ faixa.observacoes or '-' }}</td>
                             <td>

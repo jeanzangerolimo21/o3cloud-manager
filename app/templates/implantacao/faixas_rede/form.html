@@ -34,6 +34,24 @@
                     <div class="col-md-2"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if faixa.ativo is not defined or faixa.ativo %}selected{% endif %}>Ativa</option><option value="0" {% if faixa.ativo is defined and not faixa.ativo %}selected{% endif %}>Inativa</option></select></div>
                     <div class="col-md-3"><label class="form-label">Porta início</label><input class="form-control" type="number" min="1" max="65535" name="porta_inicio" value="{{ faixa.porta_inicio or '' }}"></div>
                     <div class="col-md-3"><label class="form-label">Porta fim</label><input class="form-control" type="number" min="1" max="65535" name="porta_fim" value="{{ faixa.porta_fim or '' }}"></div>
+                    <div class="col-12">
+                        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-2">
+                            <div>
+                                <label class="form-label mb-0">Ranges adicionais de portas</label>
+                                <div class="small text-muted">Use quando o cliente precisar de mais de um intervalo no mesmo FW - WAN.</div>
+                            </div>
+                            <button class="btn btn-outline-primary" type="button" id="adicionar_range_portas"><i class="bi bi-plus-circle"></i> Adicionar range</button>
+                        </div>
+                        <div id="ranges_portas" class="vstack gap-2">
+                            {% for range in faixa.portas_adicionais or [] %}
+                            <div class="row g-2 align-items-end faixa-porta-range">
+                                <div class="col-md-3"><label class="form-label">Porta início adicional</label><input class="form-control" type="number" min="1" max="65535" name="porta_inicio_adicional" value="{{ range.porta_inicio or '' }}"></div>
+                                <div class="col-md-3"><label class="form-label">Porta fim adicional</label><input class="form-control" type="number" min="1" max="65535" name="porta_fim_adicional" value="{{ range.porta_fim or '' }}"></div>
+                                <div class="col-md-2"><button class="btn btn-outline-danger remover-range-portas" type="button" title="Remover range"><i class="bi bi-trash"></i></button></div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                     <div class="col-md-6"><label class="form-label">PVE</label><textarea class="form-control" rows="4" name="pve">{{ faixa.pve or '' }}</textarea></div>
                     <div class="col-12"><label class="form-label">Observações</label><textarea class="form-control" rows="4" name="observacoes">{{ faixa.observacoes or '' }}</textarea></div>
                 </div>
@@ -58,6 +76,36 @@
     }
     select.addEventListener('change', atualizarCliente);
     atualizarCliente();
+})();
+
+(function () {
+    const container = document.getElementById('ranges_portas');
+    const addButton = document.getElementById('adicionar_range_portas');
+    if (!container || !addButton) {
+        return;
+    }
+
+    function criarRange(inicio, fim) {
+        const row = document.createElement('div');
+        row.className = 'row g-2 align-items-end faixa-porta-range';
+        row.innerHTML = '<div class="col-md-3"><label class="form-label">Porta início adicional</label><input class="form-control" type="number" min="1" max="65535" name="porta_inicio_adicional"></div><div class="col-md-3"><label class="form-label">Porta fim adicional</label><input class="form-control" type="number" min="1" max="65535" name="porta_fim_adicional"></div><div class="col-md-2"><button class="btn btn-outline-danger remover-range-portas" type="button" title="Remover range"><i class="bi bi-trash"></i></button></div>';
+        row.querySelector('[name="porta_inicio_adicional"]').value = inicio || '';
+        row.querySelector('[name="porta_fim_adicional"]').value = fim || '';
+        row.querySelector('.remover-range-portas').addEventListener('click', function () {
+            row.remove();
+        });
+        container.appendChild(row);
+        row.querySelector('input').focus();
+    }
+
+    addButton.addEventListener('click', function () {
+        criarRange('', '');
+    });
+    container.querySelectorAll('.remover-range-portas').forEach(function (button) {
+        button.addEventListener('click', function () {
+            button.closest('.faixa-porta-range').remove();
+        });
+    });
 })();
 </script>
 {% endblock %}
