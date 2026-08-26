@@ -170,6 +170,7 @@ ENDPOINT_PERMISSOES = {
     "implantacao.adicionar_item_checklist": "implantacao",
     "implantacao.aplicar_modelo_checklist": "implantacao",
     "implantacao.atualizar_checklist": "implantacao",
+    "implantacao.atualizar_checklist_lote": "implantacao",
     "implantacao.excluir_item_checklist": "implantacao",
     "implantacao.kanban": "kanban_implantacao",
     "implantacao.kanban_colunas": "kanban_implantacao",

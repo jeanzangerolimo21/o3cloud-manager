@@ -162,35 +162,41 @@
                 </div>
             </form>
         </div>
+        <form id="checklist-batch-form" method="POST" action="{{ url_for('implantacao.atualizar_checklist_lote', implantacao_id=implantacao.id) }}"></form>
+        <div class="card-body border-bottom d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="checklist_select_all">
+                <label class="form-check-label" for="checklist_select_all">Selecionar todos</label>
+            </div>
+            <button class="btn btn-primary" form="checklist-batch-form" id="checklist_save_selected" disabled>
+                <i class="bi bi-check2-square"></i> Salvar selecionados
+            </button>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead><tr><th width="80">Ordem</th><th>Item</th><th>Grupo</th><th>Status</th><th>Responsável</th><th>Evidência</th><th width="140">Ações</th></tr></thead>
+                <thead><tr><th width="48"></th><th width="80">Ordem</th><th>Item</th><th>Grupo</th><th>Status</th><th>Responsável</th><th>Evidência</th><th width="80">Ações</th></tr></thead>
                 <tbody>
                     {% for item in implantacao.checklist %}
                     <tr>
+                        <td><input class="form-check-input checklist-item-select" type="checkbox" form="checklist-batch-form" name="item_ids" value="{{ item.id }}" aria-label="Selecionar item {{ item.ordem }}"></td>
                         <td>{{ item.ordem }}</td>
                         <td><strong>{{ item.titulo }}</strong>{% if item.obrigatorio %} <span class="badge bg-light text-dark border">Obrigatório</span>{% endif %}<br><small class="text-muted">{{ item.descricao or '' }}</small></td>
                         <td>{{ item.grupo }}</td>
                         <td>
-                            <form id="checklist-update-{{ item.id }}" method="POST" action="{{ url_for('implantacao.atualizar_checklist', item_id=item.id) }}">
-                                <select class="form-select form-select-sm" name="status">
-                                    {% for valor, descricao in checklist_status_options.items() %}<option value="{{ valor }}" {% if item.status == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}
-                                </select>
-                            </form>
+                            <select class="form-select form-select-sm checklist-batch-field" form="checklist-batch-form" name="status_{{ item.id }}" data-item-id="{{ item.id }}">
+                                {% for valor, descricao in checklist_status_options.items() %}<option value="{{ valor }}" {% if item.status == valor %}selected{% endif %}>{{ descricao }}</option>{% endfor %}
+                            </select>
                         </td>
-                        <td><input class="form-control form-control-sm" form="checklist-update-{{ item.id }}" name="responsavel" value="{{ item.responsavel or '' }}" placeholder="Responsável"></td>
-                        <td><input class="form-control form-control-sm" form="checklist-update-{{ item.id }}" name="evidencia" value="{{ item.evidencia or '' }}" placeholder="Evidência ou observação"></td>
+                        <td><input class="form-control form-control-sm checklist-batch-field" form="checklist-batch-form" name="responsavel_{{ item.id }}" data-item-id="{{ item.id }}" value="{{ item.responsavel or '' }}" placeholder="Responsável"></td>
+                        <td><input class="form-control form-control-sm checklist-batch-field" form="checklist-batch-form" name="evidencia_{{ item.id }}" data-item-id="{{ item.id }}" value="{{ item.evidencia or '' }}" placeholder="Evidência ou observação"></td>
                         <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary" form="checklist-update-{{ item.id }}" title="Salvar item"><i class="bi bi-check2-circle"></i></button>
-                                <form method="POST" action="{{ url_for('implantacao.excluir_item_checklist', item_id=item.id) }}" onsubmit="return confirm('Remover este item do checklist?');">
-                                    <button class="btn btn-outline-danger" title="Remover item"><i class="bi bi-trash"></i></button>
-                                </form>
-                            </div>
+                            <form method="POST" action="{{ url_for('implantacao.excluir_item_checklist', item_id=item.id) }}" onsubmit="return confirm('Remover este item do checklist?');">
+                                <button class="btn btn-sm btn-outline-danger" title="Remover item"><i class="bi bi-trash"></i></button>
+                            </form>
                         </td>
                     </tr>
                     {% else %}
-                        {% set colspan = 7 %}
+                        {% set colspan = 8 %}
                         {% set empty_message = "Checklist não gerado." %}
                         {% include "components/empty_state.html" %}
                     {% endfor %}
@@ -269,4 +275,47 @@
         <a href="{{ url_for('implantacao.index') }}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
     </div>
 </div>
+<script>
+(function () {
+    const selectAll = document.getElementById('checklist_select_all');
+    const saveButton = document.getElementById('checklist_save_selected');
+    const itemChecks = Array.from(document.querySelectorAll('.checklist-item-select'));
+    const batchFields = Array.from(document.querySelectorAll('.checklist-batch-field'));
+
+    function updateSaveState() {
+        const selected = itemChecks.filter(function (input) { return input.checked; }).length;
+        if (saveButton) {
+            saveButton.disabled = selected === 0;
+        }
+        if (selectAll) {
+            selectAll.checked = selected > 0 && selected === itemChecks.length;
+            selectAll.indeterminate = selected > 0 && selected < itemChecks.length;
+        }
+    }
+
+    itemChecks.forEach(function (input) {
+        input.addEventListener('change', updateSaveState);
+    });
+
+    batchFields.forEach(function (field) {
+        field.addEventListener('change', function () {
+            const checkbox = document.querySelector('.checklist-item-select[value="' + field.dataset.itemId + '"]');
+            if (checkbox) {
+                checkbox.checked = true;
+                updateSaveState();
+            }
+        });
+    });
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            itemChecks.forEach(function (input) { input.checked = selectAll.checked; });
+            updateSaveState();
+        });
+    }
+
+    updateSaveState();
+})();
+</script>
+
 {% endblock %}

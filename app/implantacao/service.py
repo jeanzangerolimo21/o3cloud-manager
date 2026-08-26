@@ -614,6 +614,37 @@ class ImplantacaoService:
         cls.repository.atualizar_percentual(item.get("implantacao_id"))
         return item.get("implantacao_id")
 
+    @classmethod
+    def atualizar_itens_checklist(cls, implantacao_id, dados):
+        implantacao = cls.repository.buscar_por_id(implantacao_id)
+        if not implantacao:
+            raise ValueError("Implantação não encontrada.")
+        item_ids = dados.getlist("item_ids") if hasattr(dados, "getlist") else dados.get("item_ids", [])
+        if isinstance(item_ids, (str, int)):
+            item_ids = [item_ids]
+        item_ids = [cls._inteiro(item_id) for item_id in item_ids]
+        item_ids = [item_id for item_id in item_ids if item_id]
+        if not item_ids:
+            raise ValueError("Selecione ao menos um item do checklist para salvar.")
+
+        atualizados = 0
+        for item_id in item_ids:
+            item = cls.repository.buscar_item_checklist(item_id)
+            if not item or int(item.get("implantacao_id") or 0) != int(implantacao_id):
+                raise ValueError("Item de checklist inválido para esta implantação.")
+            status = dados.get(f"status_{item_id}") or "PENDENTE"
+            if status not in STATUS_CHECKLIST:
+                raise ValueError("Status de checklist inválido.")
+            cls.repository.atualizar_item_checklist(item_id, {
+                "status": status,
+                "responsavel": (dados.get(f"responsavel_{item_id}") or "").strip() or None,
+                "evidencia": (dados.get(f"evidencia_{item_id}") or "").strip() or None,
+            })
+            atualizados += 1
+
+        cls.repository.atualizar_percentual(implantacao_id)
+        return atualizados
+
     @staticmethod
     def _normalizar_agrupamento(agrupamento):
         return agrupamento if agrupamento in ("principais", "vinculadas", "todos") else "principais"

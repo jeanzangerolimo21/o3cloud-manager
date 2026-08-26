@@ -1029,6 +1029,18 @@ def atualizar_checklist(item_id):
     return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
 
 
+@implantacao_bp.route("/<int:implantacao_id>/checklist/lote", methods=["POST"])
+def atualizar_checklist_lote(implantacao_id):
+    try:
+        atualizados = ImplantacaoService.atualizar_itens_checklist(implantacao_id, request.form)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+        return redirect(request.referrer or url_for("implantacao.visualizar", implantacao_id=implantacao_id))
+    registrar_evento("IMPLANTACAO_CHECKLIST_LOTE_ATUALIZADO", "implantacoes", implantacao_id, {"itens": atualizados})
+    flash(f"Checklist atualizado: {atualizados} item(ns) salvo(s).", "success")
+    return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
+
+
 def _usuario_pode_acessar_pasta(pasta, usuario_email):
     if not pasta or pasta.get("tipo") != "usuario":
         return True
