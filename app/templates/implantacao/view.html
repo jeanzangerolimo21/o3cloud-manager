@@ -212,7 +212,7 @@
         <div class="card-body">
             <form method="POST" action="{{ url_for('implantacao.adicionar_comentario', implantacao_id=implantacao.id) }}" enctype="multipart/form-data" class="mb-4">
                 <div class="row g-3">
-                    <div class="col-md-4"><label class="form-label">Autor</label><input class="form-control" name="autor" value="{{ implantacao.implantador_nome or implantacao.responsavel or '' }}" placeholder="Nome de quem registrou"></div>
+                    <div class="col-md-4"><label class="form-label">Autor</label><input class="form-control" name="autor" value="{{ autor_comentario_padrao or '' }}" placeholder="Nome de quem registrou"></div>
                     <div class="col-md-8 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" name="enviar_email" id="enviar_email"><label class="form-check-label" for="enviar_email">Enviar comentário por e-mail para os envolvidos do projeto</label></div></div>
                     <div class="col-12"><label class="form-label">Comentário</label><textarea class="form-control" rows="4" name="comentario" required placeholder="Registre atualização, pendência, decisão ou alinhamento do projeto..."></textarea></div>
                     <div class="col-md-8"><label class="form-label">Anexos</label><input class="form-control" type="file" name="anexos" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.zip,.dwg,.png,.jpg,.jpeg,.svg"><small class="text-muted">Arquivos permitidos: PDF, Office, CSV, ZIP, DWG e imagens. Limite de 20 MB por arquivo.</small></div>

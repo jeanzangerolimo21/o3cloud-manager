@@ -827,6 +827,7 @@ def visualizar(implantacao_id):
         provisionamento_options=STATUS_PROVISIONAMENTO,
         checklist_status_options=STATUS_CHECKLIST,
         checklist_modelos=CHECKLIST_MODELOS,
+        autor_comentario_padrao=session.get("usuario_nome") or _email_usuario_logado(),
         kanban_labels=ImplantacaoService.kanban_labels(),
         implantacoes_principais=ImplantacaoService.listar_principais_para_vinculo(),
     )
