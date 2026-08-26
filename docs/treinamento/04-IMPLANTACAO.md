@@ -57,6 +57,16 @@ Uso recomendado:
 - Revisar tarefas em reunião operacional.
 - Manter etapas atualizadas para evitar perda de visibilidade.
 
+## Comentários da implantação
+
+Comentários registram decisões, impedimentos e atualizações da entrega.
+
+Regras atuais:
+
+- O autor do comentário é o usuário logado no sistema.
+- O responsável pela implantação não substitui o autor do comentário.
+- Quando outra pessoa comentar, basta ela estar autenticada com seu próprio login para manter a rastreabilidade correta.
+
 ## Ambientes
 
 Ambientes representam estruturas técnicas associadas ao cliente.
@@ -78,6 +88,17 @@ Uso recomendado:
 - Conferir recursos provisionados.
 - Registrar dados que impactam operação e suporte.
 
+## Checklist técnico
+
+O Checklist técnico fica na visualização da implantação e apoia o preenchimento dos itens operacionais da entrega.
+
+Uso recomendado:
+
+- Selecionar vários itens quando a revisão for feita em lote.
+- Alterar os campos necessários nos itens selecionados.
+- Usar o botão de salvamento em lote para gravar as alterações de uma vez.
+- Deixar desmarcados os itens que não devem ser modificados naquele salvamento.
+
 ## Integrações
 
 Integrações registram conexões ou dependências técnicas do ambiente do cliente.
@@ -97,16 +118,19 @@ Boas práticas:
 - Manter quantidade e status atualizados.
 - Importar dados com atenção.
 - Revisar licenças antes da entrega final.
+- Ao criar nova licença, pesquisar o cliente no campo digitável por nome fantasia, razão social ou CNPJ e selecionar o resultado correto antes de salvar.
 
 ## Faixas de rede
 
-Registra redes e faixas utilizadas em ambientes de clientes.
+Registra redes, faixas e intervalos de portas utilizadas em ambientes de clientes.
 
 Cuidados:
 
 - Evitar conflito de faixas.
 - Confirmar dados técnicos antes de salvar.
 - Manter rastreabilidade de alterações.
+- Usar `Adicionar range` quando o cliente precisar de mais de um intervalo de portas no mesmo FW - WAN.
+- Conferir se os ranges adicionais não se sobrepõem ao range principal nem a outros registros ativos.
 
 ## Cofre de senhas
 
@@ -118,6 +142,9 @@ Regras importantes:
 - Compartilhamentos devem ter validade quando aplicável.
 - Nunca registrar senha em campo inadequado ou observação pública.
 - Remover acessos desnecessários.
+- Ao cadastrar credencial, pesquisar o cliente no campo digitável por nome fantasia, razão social ou CNPJ.
+- Usar anexos da credencial para documentos, evidências ou arquivos técnicos diretamente relacionados à senha.
+- Ao trabalhar dentro de uma pasta, conferir que o retorno após salvar permanece no mesmo contexto.
 
 ## Erros comuns
 

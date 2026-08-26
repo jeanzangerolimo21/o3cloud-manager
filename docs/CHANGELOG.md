@@ -1424,3 +1424,15 @@ Homologação de Servidores e consolidação da base de Dimensionamento.
 
 - Cadastro manual de clientes bloqueia CNPJ duplicado, com normalizacao de pontuacao.
 - Sincronizacao OMIE prioriza registros OMIE por CNPJ, codigo externo e contratos manuais correspondentes.
+
+## 2026-08-26
+
+- Cofre de Senhas passou a permitir anexos em credenciais e exibicao dos arquivos vinculados na edicao.
+- Cofre de Senhas preserva a pasta selecionada ao retornar do cadastro de nova credencial.
+- Campo Cliente do Cofre de Senhas passou a usar busca digitavel por nome, razao social e CNPJ.
+- Checklist Tecnico da implantacao passou a permitir selecao de varios itens e salvamento em lote.
+- Telas operacionais com listas extensas preservam a posicao de rolagem ao selecionar ou desselecionar itens.
+- Comentarios de implantacao passam a registrar como autor o usuario logado, nao o responsavel da implantacao.
+- Licencas O3Web passaram a usar selecao pesquisavel de cliente no cadastro.
+- Faixas de Rede passaram a aceitar ranges adicionais de portas, com validacao de sobreposicao e conflito por FW - WAN.
+- Documentacao detalhada adicionada em `docs/52-MELHORIAS-BETA-2026-08-26.md`.
