@@ -916,6 +916,17 @@ class ImplantacaoWorkflowRepository(BaseRepository):
         return cls.fetch_one("SELECT * FROM implantacao_historico WHERE id = %s", (historico_id,))
 
     @classmethod
+    def atualizar_email_historico(cls, historico_id, email_enviado=False, email_resultado=None):
+        return cls.execute(
+            """
+            UPDATE implantacao_historico
+            SET email_enviado=%s, email_resultado=%s
+            WHERE id=%s
+            """,
+            (cls.bool_to_int(email_enviado), email_resultado, historico_id),
+        )
+
+    @classmethod
     def atualizar_comentario_historico(cls, historico_id, comentario):
         return cls.execute(
             """

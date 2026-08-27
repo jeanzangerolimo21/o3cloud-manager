@@ -219,7 +219,21 @@
                             <tr>
                                 <td><strong>{{ item.cliente_nome }}</strong><br><small class="text-muted">{{ item.cliente_cnpj|cnpj_br if item.cliente_cnpj else 'CNPJ não vinculado' }}</small></td>
                                 <td><span class="badge bg-secondary">{{ categoria_options.get(item.categoria, item.categoria) }}</span></td>
-                                <td><strong>{{ item.titulo }}</strong>{% if item.pasta_nome %}<br><small class="text-muted"><i class="bi bi-folder"></i> {{ item.pasta_nome }}</small>{% endif %}{% if item.total_anexos %}<br><small class="text-muted"><i class="bi bi-paperclip"></i> {{ item.total_anexos }} arquivo(s)</small>{% endif %}</td>
+                                <td>
+                                    <strong>{{ item.titulo }}</strong>
+                                    {% if item.pasta_nome %}<br><small class="text-muted"><i class="bi bi-folder"></i> {{ item.pasta_nome }}</small>{% endif %}
+                                    {% if item.anexos %}
+                                        <div class="d-flex flex-column gap-1 mt-1">
+                                            {% for anexo in item.anexos %}
+                                                <a class="small text-decoration-none text-truncate" href="{{ url_for('implantacao.baixar_anexo_senha_cofre', anexo_id=anexo.id) }}" title="Baixar {{ anexo.arquivo_original }}">
+                                                    <i class="bi bi-paperclip"></i> {{ anexo.arquivo_original }}
+                                                </a>
+                                            {% endfor %}
+                                        </div>
+                                    {% elif item.total_anexos %}
+                                        <br><small class="text-muted"><i class="bi bi-paperclip"></i> {{ item.total_anexos }} arquivo(s)</small>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <div class="d-flex flex-column gap-1">
                                         <div class="input-group input-group-sm">

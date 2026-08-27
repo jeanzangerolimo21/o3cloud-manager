@@ -1,5 +1,6 @@
 import os
 import requests
+import time
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,15 +29,22 @@ class OmieClient:
             "param": [params]
         }
 
-        response = requests.post(
-            url,
-            json=payload,
-            timeout=30
-        )
-
-        response.raise_for_status()
-
-        return response.json()
+        ultimo_erro = None
+        for tentativa in range(3):
+            try:
+                response = requests.post(
+                    url,
+                    json=payload,
+                    timeout=30
+                )
+                response.raise_for_status()
+                return response.json()
+            except requests.RequestException as erro:
+                ultimo_erro = erro
+                if tentativa == 2:
+                    raise
+                time.sleep(2 ** tentativa)
+        raise ultimo_erro
 
     # -----------------------------------------
     # CLIENTES

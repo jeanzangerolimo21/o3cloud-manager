@@ -548,6 +548,9 @@ class FinanceiroRepository(BaseRepository):
                     CASE WHEN pe.id IS NOT NULL THEN rc.percentual_executivo ELSE 0 END AS percentual_executivo_aplicado,
                     rc.vigencia_inicio AS campanha_inicio,
                     rc.vigencia_fim AS campanha_fim,
+                    COALESCE(fpp.status_manual, 'ABERTO') AS status_premiacao_manual,
+                    fpp.updated_at AS status_premiacao_updated_at,
+                    fpp.updated_by AS status_premiacao_updated_by,
                     {base_valor} AS valor_base_comissao,
                     COALESCE(SUM(CASE
                         WHEN UPPER(COALESCE(r.situacao, '')) IN ('RECEBIDO', 'PAGO', 'LIQUIDADO')
@@ -594,6 +597,9 @@ class FinanceiroRepository(BaseRepository):
                         LOWER(TRIM(c.vendedor_nome)) COLLATE utf8mb4_unicode_ci,
                         LOWER(TRIM(c.projeto_nome)) COLLATE utf8mb4_unicode_ci
                     )
+                LEFT JOIN financeiro_premiacoes_pagamento fpp
+                    ON fpp.contrato_id = c.id
+                   AND fpp.campanha_id = rc.id
                 LEFT JOIN financeiro_recebimentos r
                     ON r.id = (
                         SELECT r1.id
@@ -614,11 +620,12 @@ class FinanceiroRepository(BaseRepository):
                     c.valor_servicos_liquido, c.valor_promocional, c.valor_mensal,
                     c.vendedor_nome, c.codigo_vendedor, p.id, p.nome, pe.id, pe.nome, c.projeto_nome, c.codigo_projeto,
                     cli.id, cli.nome_fantasia, cli.razao_social,
-                    rc.id, rc.nome, rc.percentual_parceiro, rc.percentual_executivo, rc.vigencia_inicio, rc.vigencia_fim
+                    rc.id, rc.nome, rc.percentual_parceiro, rc.percentual_executivo, rc.vigencia_inicio, rc.vigencia_fim,
+                    fpp.status_manual, fpp.updated_at, fpp.updated_by
             ) base
         """
 
-        filtros_base = ["base.premiacao_liberada = 1"]
+        filtros_base = ["base.premiacao_liberada = 1", "base.campanha_id IS NOT NULL"]
 
         status = (filtros.get("status_pagamento") or "").strip().upper()
         if status in ("RECEBIDO", "ATRASADO", "NAO_LOCALIZADO"):
@@ -628,6 +635,28 @@ class FinanceiroRepository(BaseRepository):
         if filtros_base:
             sql += " WHERE " + " AND ".join(filtros_base)
         return sql, params
+
+    @classmethod
+    def salvar_status_premiacao_manual(cls, contrato_id, campanha_id, status_manual, usuario_email=None):
+        return cls.execute_insert(
+            """
+            INSERT INTO financeiro_premiacoes_pagamento (
+                uuid, contrato_id, campanha_id, status_manual, created_by, updated_by
+            ) VALUES (%s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                status_manual = VALUES(status_manual),
+                updated_by = VALUES(updated_by),
+                updated_at = NOW()
+            """,
+            (
+                cls.generate_uuid(),
+                contrato_id,
+                campanha_id,
+                status_manual,
+                usuario_email or "sistema",
+                usuario_email or "sistema",
+            ),
+        )
 
     @classmethod
     def contratos_para_faturamento(cls):

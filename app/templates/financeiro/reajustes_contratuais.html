@@ -8,9 +8,14 @@
             <p class="text-muted mb-0">Monitoramento preventivo dos aniversarios contratuais a partir da vigencia inicial sincronizada do OMIE.</p>
         </div>
         {% if pode_editar('reajustes_contratuais') %}
-        <form method="post" action="{{ url_for('financeiro.reajustes_contratuais_verificar') }}">
-            <button class="btn btn-primary"><i class="bi bi-arrow-repeat"></i> Verificar agora</button>
-        </form>
+        <div class="d-flex flex-wrap gap-2">
+            <form method="post" action="{{ url_for('financeiro.reajustes_contratuais_sincronizar_omie') }}">
+                <button class="btn btn-outline-success" title="Importar Faturamento e Previsoes do Omie"><i class="bi bi-cloud-arrow-down"></i> Sincronizar Faturamento e Previsoes</button>
+            </form>
+            <form method="post" action="{{ url_for('financeiro.reajustes_contratuais_verificar') }}">
+                <button class="btn btn-primary"><i class="bi bi-arrow-repeat"></i> Verificar agora</button>
+            </form>
+        </div>
         {% endif %}
     </div>
 
@@ -18,9 +23,9 @@
         <div class="col-md-6 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Proximos 30 dias</small><h3 class="mb-0">{{ resumo.proximos_30 or 0 }}</h3></div></div></div>
         <div class="col-md-6 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Proximos 15 dias</small><h3 class="mb-0">{{ resumo.proximos_15 or 0 }}</h3></div></div></div>
         <div class="col-md-6 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Proximos 7 dias</small><h3 class="mb-0">{{ resumo.proximos_7 or 0 }}</h3></div></div></div>
-        <div class="col-md-6 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Vencidos</small><h3 class="mb-0 text-danger">{{ resumo.vencidos or 0 }}</h3></div></div></div>
-        <div class="col-md-6 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Alteracoes detectadas</small><h3 class="mb-0 text-success">{{ resumo.reajustados or 0 }}</h3></div></div></div>
-        <div class="col-md-6 col-xl-2"><a class="card border-0 shadow-sm h-100 text-decoration-none text-reset" href="{{ url_for('financeiro.reajustes_contratuais', situacao='SEM_BASE_COMPARACAO') }}"><div class="card-body"><small class="text-muted">Sem base</small><h3 class="mb-0">{{ resumo.sem_base or 0 }}</h3>{% if resumo.sem_base_investigar %}<small class="text-danger fw-semibold">{{ resumo.sem_base_investigar }} para investigar</small>{% endif %}</div></a></div>
+        <div class="col-md-6 col-xl-2"><a class="card border-0 shadow-sm h-100 text-decoration-none text-reset" href="{{ url_for('financeiro.reajustes_contratuais', situacao='SEM_REAJUSTE_DETECTADO') }}"><div class="card-body"><small class="text-muted">Sem reajuste</small><h3 class="mb-0 text-danger">{{ resumo.sem_reajuste or 0 }}</h3></div></a></div>
+        <div class="col-md-6 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Prejuizo estimado no filtro</small><h3 class="mb-0 text-danger">{{ resumo.prejuizo_estimado|moeda }}</h3></div></div></div>
+        <div class="col-md-6 col-xl-2"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Inativos/cancelados</small><h3 class="mb-0">{{ resumo.inativos or 0 }}</h3></div></div></div>
     </div>
 
     <form method="get" class="card border-0 shadow-sm mb-4">
@@ -37,27 +42,53 @@
     </form>
 
     <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2"><strong>Contratos monitorados</strong><div class="d-flex gap-2"><span class="badge text-bg-light border">{{ total_monitorados }} monitorado(s)</span><span class="badge text-bg-primary">{{ itens|length }} exibido(s)</span></div></div>
+        <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2"><strong>Contratos ativos monitorados</strong><div class="d-flex gap-2"><span class="badge text-bg-light border">{{ total_monitorados }} monitorado(s)</span><span class="badge text-bg-primary">{{ itens_ativos|length }} ativo(s)</span></div></div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead class="table-light"><tr><th>Contrato</th><th>Cliente</th><th>Vendedor</th><th>Inicio</th><th>Idade</th><th>Tempo sem alteração detectada</th><th class="text-end">Valor atual</th><th>Proximo reajuste</th><th>Dias</th><th>Situação</th><th>Status</th></tr></thead>
+                <thead class="table-light"><tr><th>Contrato</th><th>Cliente</th><th>Vendedor</th><th>Inicio</th><th>Tempo sem reajuste</th><th class="text-end">Valor atual</th><th class="text-end">Valor INPC</th><th class="text-end">Prejuizo</th><th>Proximo reajuste</th><th>Situação</th><th>Status</th></tr></thead>
                 <tbody>
-                    {% for item in itens %}
+                    {% for item in itens_ativos %}
                     <tr class="{% if item.sem_base_investigar %}table-warning{% endif %}">
                         <td><a class="font-monospace" href="{{ url_for('contratos.view', contrato_id=item.contrato_id) }}">{{ item.contrato_numero or item.contrato_id }}</a>{% if item.sem_base_investigar %}<br><small class="text-danger fw-semibold">Investigar reajuste</small>{% endif %}</td>
                         <td>{{ item.cliente_nome or item.cliente_razao_social or '-' }}{% if item.projeto_nome or item.codigo_projeto %}<br><small class="text-muted">{{ item.projeto_nome or item.codigo_projeto }}</small>{% endif %}</td>
+
                         <td>{{ item.vendedor_nome or item.codigo_vendedor or '-' }}</td>
                         <td>{{ item.inicio_vigencia|date_br if item.inicio_vigencia else '-' }}</td>
-                        <td>{{ item.idade_label }}</td>
-                        <td>{% if item.situacao == 'SEM_BASE_COMPARACAO' %}{{ item.tempo_sem_alteracao_label }}{% else %}-{% endif %}</td>
-                        <td class="text-end">{{ item.valor_atual|moeda if item.valor_atual is not none else '-' }}{% if item.valor_referencia_origem == 'FATURAMENTO_INICIAL' %}<br><small class="text-muted">Base {{ item.valor_referencia|moeda }}{% if item.valor_referencia_data %} em {{ item.valor_referencia_data|date_br }}{% endif %}</small>{% endif %}</td>
-                        <td>{{ item.proximo_aniversario|date_br if item.proximo_aniversario else '-' }}</td>
-                        <td>{{ item.dias_para_reajuste if item.dias_para_reajuste is not none else '-' }}</td>
+                        <td>{{ item.tempo_sem_reajuste_label or item.idade_label }}</td>
+                        <td class="text-end">{{ item.valor_atual|moeda if item.valor_atual is not none else '-' }}{% if item.valor_referencia_origem %}<br><small class="text-muted">{% if item.valor_referencia_origem == 'FATURAMENTO_INICIAL' %}Base faturamento{% else %}Base contrato{% endif %}: {{ item.valor_referencia|moeda }}{% if item.valor_referencia_data %} em {{ item.valor_referencia_data|date_br }}{% endif %}</small>{% endif %}</td>
+                        <td class="text-end">{{ item.valor_inpc_estimado|moeda if item.valor_inpc_estimado is not none else '-' }}{% if item.inpc_acumulado_percentual %}<br><small class="text-muted">INPC {{ item.inpc_acumulado_percentual }}%</small>{% endif %}</td>
+                        <td class="text-end">{% if item.prejuizo_estimado %}<span class="text-danger fw-semibold">{{ item.prejuizo_estimado|moeda }}</span>{% else %}-{% endif %}</td>
+                        <td>{{ item.proximo_aniversario|date_br if item.proximo_aniversario else '-' }}{% if item.dias_para_reajuste is not none %}<br><small class="text-muted">{{ item.dias_para_reajuste }} dia(s)</small>{% endif %}</td>
                         <td><span class="badge text-bg-{{ item.situacao_class }}">{{ item.situacao_label }}</span>{% if item.percentual_variacao is not none %}<br><small class="text-muted">{{ item.percentual_variacao }}%</small>{% endif %}</td>
+                        <td>{{ item.status|replace('_',' ')|title }}{% if item.status_omie_codigo %}<br><small class="text-muted">Omie: {{ item.status_omie_descricao }} ({{ item.status_omie_codigo }})</small>{% endif %}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="12" class="text-center text-muted py-4">Nenhum contrato ativo encontrado para os filtros selecionados.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2"><strong>Contratos inativos, suspensos, encerrados e cancelados</strong><span class="badge text-bg-secondary">{{ itens_inativos|length }} contrato(s)</span></div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light"><tr><th>Contrato</th><th>Cliente</th><th>Inicio</th><th class="text-end">Valor atual</th><th class="text-end">Prejuizo historico estimado</th><th>Situação</th><th>Status</th></tr></thead>
+                <tbody>
+                    {% for item in itens_inativos %}
+                    <tr>
+                        <td><a class="font-monospace" href="{{ url_for('contratos.view', contrato_id=item.contrato_id) }}">{{ item.contrato_numero or item.contrato_id }}</a></td>
+                        <td>{{ item.cliente_nome or item.cliente_razao_social or '-' }}{% if item.projeto_nome or item.codigo_projeto %}<br><small class="text-muted">{{ item.projeto_nome or item.codigo_projeto }}</small>{% endif %}</td>
+
+                        <td>{{ item.inicio_vigencia|date_br if item.inicio_vigencia else '-' }}</td>
+                        <td class="text-end">{{ item.valor_atual|moeda if item.valor_atual is not none else '-' }}</td>
+                        <td class="text-end">{{ item.prejuizo_estimado|moeda if item.prejuizo_estimado else '-' }}</td>
+                        <td><span class="badge text-bg-{{ item.situacao_class }}">{{ item.situacao_label }}</span></td>
                         <td>{{ item.status|replace('_',' ')|title }}</td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="11" class="text-center text-muted py-4">Nenhum contrato encontrado para os filtros selecionados.</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4">Nenhum contrato inativo ou cancelado encontrado para os filtros selecionados.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

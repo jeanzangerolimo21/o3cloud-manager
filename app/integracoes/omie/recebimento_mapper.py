@@ -5,7 +5,7 @@ from unicodedata import normalize
 
 class RecebimentoMapper:
     STATUS_RECEBIDOS = {"RECEBIDO", "PAGO", "LIQUIDADO"}
-    STATUS_SINCRONIZAVEIS = STATUS_RECEBIDOS | {"ATRASADO", "VENCIDO"}
+    STATUS_SINCRONIZAVEIS = STATUS_RECEBIDOS | {"ATRASADO", "VENCIDO", "ABERTO", "EM ABERTO", "A VENCER", "PREVISTO"}
     TERMOS_EXCLUIDOS = ("SETUP", "IMPLANTACAO")
 
     @classmethod
@@ -23,7 +23,7 @@ class RecebimentoMapper:
             "numero_documento": item.get("numero_documento"),
             "numero_documento_fiscal": item.get("numero_documento_fiscal"),
             "numero_parcela": item.get("numero_parcela"),
-            "numero_contrato": item.get("cNumeroContrato"),
+            "numero_contrato": item.get("numero_contrato") or item.get("cNumeroContrato") or item.get("nNumeroContrato"),
             "categoria_codigo": categoria_codigo,
             "categoria_nome": categoria_nome,
             "categoria_excluida": categoria_excluida,
@@ -37,7 +37,7 @@ class RecebimentoMapper:
             "data_emissao": cls._data(item.get("data_emissao")),
             "situacao": item.get("status_titulo"),
             "codigo_cliente_omie": item.get("codigo_cliente_fornecedor"),
-            "codigo_contrato_omie": None,
+            "codigo_contrato_omie": item.get("codigo_contrato_omie") or item.get("nCodCtr"),
             "codigo_vendedor": item.get("codigo_vendedor") or None,
             "codigo_projeto": item.get("codigo_projeto") or None,
             "origem": "OMIE",

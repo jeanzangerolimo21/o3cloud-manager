@@ -44,31 +44,73 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Ambiente do cliente</label>
-                                <select class="form-select" name="ambiente_id" id="ambiente_id">
-                                    <option value="">Sem ambiente vinculado</option>
-                                    {% for ambiente in ambientes %}
-                                        <option value="{{ ambiente.id }}" data-cliente-id="{{ ambiente.cliente_id }}" data-implantador-id="{{ ambiente.implantador_id or '' }}" {% if senha.ambiente_id|string == ambiente.id|string %}selected{% endif %}>{{ ambiente.cliente_nome }} - {{ ambiente.nome }}{% if ambiente.prefixo_proxmox %} ({{ ambiente.prefixo_proxmox }}){% endif %}</option>
-                                    {% endfor %}
-                                </select>
+                                {% set ambiente_atual = namespace(label="") %}
+                                {% for ambiente in ambientes %}
+                                    {% if senha.ambiente_id|string == ambiente.id|string %}
+                                        {% set ambiente_atual.label = ambiente.cliente_nome ~ " - " ~ ambiente.nome ~ (" (" ~ ambiente.prefixo_proxmox ~ ")" if ambiente.prefixo_proxmox else "") %}
+                                    {% endif %}
+                                {% endfor %}
+                                <div class="position-relative js-single-search-picker" data-target-input="ambiente_id">
+                                    <div class="input-group">
+                                        <input class="form-control js-single-picker-search" id="ambiente_search" type="search" autocomplete="off" placeholder="Digite cliente, ambiente ou prefixo..." value="{{ ambiente_atual.label }}">
+                                        <button class="btn btn-outline-secondary js-single-picker-clear" type="button" title="Limpar ambiente"><i class="bi bi-x-lg"></i></button>
+                                    </div>
+                                    <select class="d-none js-single-picker-select" name="ambiente_id" id="ambiente_id" tabindex="-1" aria-hidden="true">
+                                        <option value="">Sem ambiente vinculado</option>
+                                        {% for ambiente in ambientes %}
+                                            {% set label_ambiente = ambiente.cliente_nome ~ " - " ~ ambiente.nome ~ (" (" ~ ambiente.prefixo_proxmox ~ ")" if ambiente.prefixo_proxmox else "") %}
+                                            <option value="{{ ambiente.id }}" data-label="{{ label_ambiente }}" data-search="{{ ambiente.cliente_nome or "" }} {{ ambiente.nome or "" }} {{ ambiente.prefixo_proxmox or "" }}" data-cliente-id="{{ ambiente.cliente_id }}" data-implantador-id="{{ ambiente.implantador_id or '' }}" {% if senha.ambiente_id|string == ambiente.id|string %}selected{% endif %}>{{ label_ambiente }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="list-group position-absolute start-0 end-0 shadow-sm d-none js-single-picker-results" style="z-index: 1040; max-height: 260px; overflow-y: auto;"></div>
+                                </div>
                                 <small class="text-muted">Opcional. Use quando a credencial pertencer a um ambiente específico.</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Implantador</label>
-                                <select class="form-select" name="implantador_id" id="implantador_id">
-                                    <option value="">Sem implantador vinculado</option>
-                                    {% for implantador in implantadores %}
-                                        <option value="{{ implantador.id }}" {% if senha.implantador_id|string == implantador.id|string %}selected{% endif %}>{{ implantador.nome }}{% if implantador.email %} - {{ implantador.email }}{% endif %}</option>
-                                    {% endfor %}
-                                </select>
+                                {% set implantador_atual = namespace(label="") %}
+                                {% for implantador in implantadores %}
+                                    {% if senha.implantador_id|string == implantador.id|string %}
+                                        {% set implantador_atual.label = implantador.nome ~ (" - " ~ implantador.email if implantador.email else "") %}
+                                    {% endif %}
+                                {% endfor %}
+                                <div class="position-relative js-single-search-picker" data-target-input="implantador_id">
+                                    <div class="input-group">
+                                        <input class="form-control js-single-picker-search" id="implantador_search" type="search" autocomplete="off" placeholder="Digite nome ou e-mail..." value="{{ implantador_atual.label }}">
+                                        <button class="btn btn-outline-secondary js-single-picker-clear" type="button" title="Limpar implantador"><i class="bi bi-x-lg"></i></button>
+                                    </div>
+                                    <select class="d-none js-single-picker-select" name="implantador_id" id="implantador_id" tabindex="-1" aria-hidden="true">
+                                        <option value="">Sem implantador vinculado</option>
+                                        {% for implantador in implantadores %}
+                                            {% set label_implantador = implantador.nome ~ (" - " ~ implantador.email if implantador.email else "") %}
+                                            <option value="{{ implantador.id }}" data-label="{{ label_implantador }}" data-search="{{ implantador.nome or "" }} {{ implantador.email or "" }}" {% if senha.implantador_id|string == implantador.id|string %}selected{% endif %}>{{ label_implantador }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="list-group position-absolute start-0 end-0 shadow-sm d-none js-single-picker-results" style="z-index: 1040; max-height: 260px; overflow-y: auto;"></div>
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Faixa de rede</label>
-                                <select class="form-select" name="faixa_rede_id">
-                                    <option value="">Sem vínculo de rede</option>
-                                    {% for faixa in faixas_rede %}
-                                        <option value="{{ faixa.id }}" {% if senha.faixa_rede_id|string == faixa.id|string %}selected{% endif %}>{{ faixa.cliente_nome }} - {{ faixa.rede }}</option>
-                                    {% endfor %}
-                                </select>
+                                {% set faixa_atual = namespace(label="") %}
+                                {% for faixa in faixas_rede %}
+                                    {% if senha.faixa_rede_id|string == faixa.id|string %}
+                                        {% set faixa_atual.label = faixa.cliente_nome ~ " - " ~ faixa.rede %}
+                                    {% endif %}
+                                {% endfor %}
+                                <div class="position-relative js-single-search-picker" data-target-input="faixa_rede_id">
+                                    <div class="input-group">
+                                        <input class="form-control js-single-picker-search" id="faixa_rede_search" type="search" autocomplete="off" placeholder="Digite cliente ou rede..." value="{{ faixa_atual.label }}">
+                                        <button class="btn btn-outline-secondary js-single-picker-clear" type="button" title="Limpar faixa de rede"><i class="bi bi-x-lg"></i></button>
+                                    </div>
+                                    <select class="d-none js-single-picker-select" name="faixa_rede_id" id="faixa_rede_id" tabindex="-1" aria-hidden="true">
+                                        <option value="">Sem vínculo de rede</option>
+                                        {% for faixa in faixas_rede %}
+                                            {% set label_faixa = faixa.cliente_nome ~ " - " ~ faixa.rede %}
+                                            <option value="{{ faixa.id }}" data-label="{{ label_faixa }}" data-search="{{ faixa.cliente_nome or "" }} {{ faixa.rede or "" }}" {% if senha.faixa_rede_id|string == faixa.id|string %}selected{% endif %}>{{ label_faixa }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="list-group position-absolute start-0 end-0 shadow-sm d-none js-single-picker-results" style="z-index: 1040; max-height: 260px; overflow-y: auto;"></div>
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Pasta</label>
@@ -81,13 +123,28 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Licença O3Web</label>
-                                <select class="form-select" name="licenca_o3web_id" id="licenca_o3web_id">
-                                    <option value="">Sem vínculo</option>
-                                    {% for licenca in licencas_o3web %}
-                                        {% set licenca_url = licenca.url_principal or licenca.url_secundaria or '' %}
-                                        <option value="{{ licenca.id }}" data-url="{{ licenca_url }}" {% if senha.licenca_o3web_id|string == licenca.id|string %}selected{% endif %}>{{ licenca.cliente_nome }} - {{ licenca.id_licenca or licenca.chave_ativacao or licenca.id }}{% if licenca_url %} - {{ licenca_url }}{% endif %}</option>
-                                    {% endfor %}
-                                </select>
+                                {% set licenca_atual = namespace(label="") %}
+                                {% for licenca in licencas_o3web %}
+                                    {% set licenca_url = licenca.url_principal or licenca.url_secundaria or '' %}
+                                    {% if senha.licenca_o3web_id|string == licenca.id|string %}
+                                        {% set licenca_atual.label = licenca.cliente_nome ~ " - " ~ (licenca.id_licenca or licenca.chave_ativacao or licenca.id) ~ (" - " ~ licenca_url if licenca_url else "") %}
+                                    {% endif %}
+                                {% endfor %}
+                                <div class="position-relative js-single-search-picker" data-target-input="licenca_o3web_id">
+                                    <div class="input-group">
+                                        <input class="form-control js-single-picker-search" id="licenca_o3web_search" type="search" autocomplete="off" placeholder="Digite cliente, licença ou URL..." value="{{ licenca_atual.label }}">
+                                        <button class="btn btn-outline-secondary js-single-picker-clear" type="button" title="Limpar licença"><i class="bi bi-x-lg"></i></button>
+                                    </div>
+                                    <select class="d-none js-single-picker-select" name="licenca_o3web_id" id="licenca_o3web_id" tabindex="-1" aria-hidden="true">
+                                        <option value="">Sem vínculo</option>
+                                        {% for licenca in licencas_o3web %}
+                                            {% set licenca_url = licenca.url_principal or licenca.url_secundaria or '' %}
+                                            {% set label_licenca = licenca.cliente_nome ~ " - " ~ (licenca.id_licenca or licenca.chave_ativacao or licenca.id) ~ (" - " ~ licenca_url if licenca_url else "") %}
+                                            <option value="{{ licenca.id }}" data-label="{{ label_licenca }}" data-search="{{ licenca.cliente_nome or "" }} {{ licenca.id_licenca or "" }} {{ licenca.chave_ativacao or "" }} {{ licenca_url }}" data-url="{{ licenca_url }}" {% if senha.licenca_o3web_id|string == licenca.id|string %}selected{% endif %}>{{ label_licenca }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="list-group position-absolute start-0 end-0 shadow-sm d-none js-single-picker-results" style="z-index: 1040; max-height: 260px; overflow-y: auto;"></div>
+                                </div>
                             </div>
                             <div class="col-md-3"><label class="form-label">Categoria *</label><select class="form-select" name="categoria" required>{% for valor, label in categoria_options.items() %}<option value="{{ valor }}" {% if senha.categoria == valor %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
                             <div class="col-md-3"><label class="form-label">Situação</label><select class="form-select" name="ativo"><option value="1" {% if senha.ativo is not defined or senha.ativo %}selected{% endif %}>Ativa</option><option value="0" {% if senha.ativo is defined and not senha.ativo %}selected{% endif %}>Inativa</option></select></div>
@@ -150,10 +207,15 @@
                                 {% if modo == 'editar' and anexos %}
                                     <div class="list-group list-group-flush border rounded mt-3">
                                         {% for anexo in anexos %}
-                                            <a class="list-group-item list-group-item-action d-flex align-items-center gap-2" href="{{ url_for('implantacao.baixar_anexo_senha_cofre', anexo_id=anexo.id) }}" target="_blank">
-                                                <i class="bi bi-paperclip text-primary"></i>
-                                                <span class="text-truncate" title="{{ anexo.arquivo_original }}">{{ anexo.arquivo_original }}</span>
-                                            </a>
+                                            <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                                                <a class="d-flex align-items-center gap-2 text-decoration-none min-w-0" href="{{ url_for('implantacao.baixar_anexo_senha_cofre', anexo_id=anexo.id) }}">
+                                                    <i class="bi bi-paperclip text-primary"></i>
+                                                    <span class="text-truncate" title="{{ anexo.arquivo_original }}">{{ anexo.arquivo_original }}</span>
+                                                </a>
+                                                <form method="POST" action="{{ url_for('implantacao.excluir_anexo_senha_cofre', anexo_id=anexo.id) }}" onsubmit="return confirm('Excluir este arquivo vinculado?');">
+                                                    <button class="btn btn-sm btn-outline-danger" type="submit" title="Excluir arquivo"><i class="bi bi-trash"></i></button>
+                                                </form>
+                                            </div>
                                         {% endfor %}
                                     </div>
                                 {% elif modo == 'editar' %}
@@ -273,6 +335,10 @@
             }).slice(0, 8);
         }
 
+        function notifyChange() {
+            target.dispatchEvent(new Event('change', {bubbles: true}));
+        }
+
         function chooseOption(option) {
             if (!option) {
                 return;
@@ -282,6 +348,7 @@
             select.value = option.value;
             search.setCustomValidity('');
             hideResults();
+            notifyChange();
         }
 
         function renderResults() {
@@ -303,7 +370,6 @@
                 });
                 results.appendChild(button);
             });
-            select.value = matches[0].value;
             results.classList.remove('d-none');
         }
 
@@ -314,8 +380,6 @@
             buttons.forEach(function (button, index) {
                 button.classList.toggle('active', index === activeIndex);
             });
-            const option = matchedOptions()[activeIndex];
-            select.value = option ? option.value : '';
         }
 
         search.addEventListener('input', function () {
@@ -343,17 +407,19 @@
                 target.value = '';
                 search.value = '';
                 select.value = '';
+                search.setCustomValidity('');
                 hideResults();
+                notifyChange();
                 search.focus();
             });
         }
-        if (form) {
+        if (form && search.required) {
             form.addEventListener('submit', function (event) {
                 if (target.value) {
                     return;
                 }
                 event.preventDefault();
-                search.setCustomValidity('Selecione um cliente da lista.');
+                search.setCustomValidity('Selecione uma opção da lista.');
                 search.reportValidity();
             });
         }
@@ -368,6 +434,14 @@
         const implantadorId = selected ? selected.getAttribute('data-implantador-id') : '';
         if (implantadorId) {
             implantadorSelect.value = implantadorId;
+            implantadorSelect.dispatchEvent(new Event('change', {bubbles: true}));
+            const implantadorPicker = document.querySelector('.js-single-search-picker[data-target-input="implantador_id"]');
+            const implantadorSearch = implantadorPicker ? implantadorPicker.querySelector('.js-single-picker-search') : null;
+            const implantadorOption = Array.from(implantadorSelect.options).find(function (option) { return option.value === implantadorId; });
+            if (implantadorSearch && implantadorOption) {
+                implantadorSearch.value = implantadorOption.dataset.label || implantadorOption.textContent.trim();
+                implantadorSearch.setCustomValidity('');
+            }
         }
     }
 

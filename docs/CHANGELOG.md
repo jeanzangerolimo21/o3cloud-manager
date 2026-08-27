@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-27 - Melhorias operacionais para Beta
+
+- Cofre de Senhas passou a usar seletores pesquisaveis tambem para Ambiente do Cliente, Implantador, Faixa de rede e Licenca O3Web.
+- Cofre de Senhas passou a permitir exclusao de arquivos vinculados na edicao da credencial e links de download na tela principal.
+- Ambientes removeu `Implantacao` das opcoes padrao de `Situacao`, mantendo compatibilidade para registros antigos ja salvos com esse valor.
+- Premiacoes recebeu checagem manual de pagamento com status `Aberto`, `Lancado` e `Pago`, exibida somente quando o contrato ja esta `Recebido` pelo sistema e salva automaticamente por AJAX.
+- Premiacoes passou a listar apenas contratos cuja vigencia se encaixa em uma campanha ativa.
+- Criada a migration `114_create_financeiro_premiacoes_pagamento.sql` para persistir o status manual de pagamento da premiacao por contrato e campanha.
+- Reajustes Contratuais recebeu sincronismo manual de Faturamento e Previsoes do Omie, com calculo operacional considerando faturamentos a partir de `01/03/2026`.
+- Comentarios de Implantacao passaram a permitir envio opcional dos arquivos anexados junto no e-mail do comentario.
+- Procedimento e validacoes documentados em `docs/53-MELHORIAS-BETA-2026-08-27.md`.
+
 ## 2026-08-25 - Pesquisa de satisfacao publica com rolagem
 
 - Tela publica de resposta da pesquisa de satisfacao da implantacao passou a liberar rolagem vertical no `body`.

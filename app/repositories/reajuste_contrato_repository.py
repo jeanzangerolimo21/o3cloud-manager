@@ -91,20 +91,28 @@ class ReajusteContratoRepository(BaseRepository):
         )
 
     @classmethod
-    def total_contratos_monitoramento(cls):
+    def total_contratos_monitoramento(cls, filtros=None):
+        filtros = filtros or {}
+        where = []
+        params = []
+        if filtros.get("status"):
+            where.append("c.status=%s")
+            params.append(filtros.get("status"))
+        where_sql = f"WHERE {' AND '.join(where)}" if where else ""
         return cls.scalar(
-            """
+            f"""
             SELECT COUNT(*)
             FROM contratos c
             INNER JOIN clientes cli ON cli.id = c.cliente_id
-            WHERE c.ativo=1
-            """
+            {where_sql}
+            """,
+            tuple(params),
         ) or 0
 
     @classmethod
     def listar_contratos_monitoramento(cls, filtros=None, limit=500):
         filtros = filtros or {}
-        where = ["c.ativo=1"]
+        where = []
         params = []
         q = filtros.get("q")
         if q:
@@ -118,18 +126,33 @@ class ReajusteContratoRepository(BaseRepository):
             where.append("COALESCE(c.vendedor_nome, c.codigo_vendedor, '') LIKE %s")
             params.append(f"%{filtros.get('vendedor')}%")
         sql = f"""
-            SELECT c.id, c.numero, c.status, c.origem, c.inicio_vigencia, c.fim_vigencia,
+            SELECT c.id, c.numero, c.status, c.ativo, c.origem, c.inicio_vigencia, c.fim_vigencia,
                    c.valor_mensal, c.valor_servicos_bruto, c.valor_descontos, c.valor_servicos_liquido,
                    c.vendedor_nome, c.codigo_vendedor, c.projeto_nome, c.codigo_projeto,
                    cli.nome_fantasia AS cliente_nome, cli.razao_social AS cliente_razao_social
             FROM contratos c
             INNER JOIN clientes cli ON cli.id = c.cliente_id
-            WHERE {' AND '.join(where)}
+            {"WHERE " + " AND ".join(where) if where else ""}
             ORDER BY c.inicio_vigencia IS NULL ASC, c.inicio_vigencia ASC, c.id DESC
             LIMIT %s
         """
         params.append(limit)
         return cls.fetch_all(sql, tuple(params))
+
+    @classmethod
+    def faturamentos_contrato(cls, contrato_id):
+        return cls.fetch_all(
+            """
+            SELECT id, valor_original, valor_recebido, data_recebimento, data_vencimento, data_emissao,
+                   categoria_nome, situacao, origem
+            FROM financeiro_recebimentos
+            WHERE contrato_id=%s
+              AND COALESCE(categoria_excluida, 0)=0
+              AND COALESCE(valor_original, valor_recebido, 0) > 0
+            ORDER BY COALESCE(data_recebimento, data_vencimento, data_emissao, created_at) ASC, id ASC
+            """,
+            (contrato_id,),
+        )
 
     @classmethod
     def primeiro_faturamento_contrato(cls, contrato_id):

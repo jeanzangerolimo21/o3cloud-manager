@@ -55,7 +55,17 @@ class CofreSenhaService:
             offset=offset,
         )
         total = cls.repository.total(pesquisa=pesquisa, categoria=categoria, ativo=ativo_normalizado, pasta_id=pasta_id, apenas_clientes=apenas_clientes)
+        cls._anexar_arquivos_listagem(senhas)
         return senhas, total
+
+    @classmethod
+    def _anexar_arquivos_listagem(cls, senhas):
+        anexos = cls.repository.listar_anexos_por_senhas([senha.get("id") for senha in senhas])
+        por_senha = {}
+        for anexo in anexos:
+            por_senha.setdefault(anexo.get("cofre_senha_id"), []).append(anexo)
+        for senha in senhas:
+            senha["anexos"] = por_senha.get(senha.get("id"), [])
 
     @classmethod
     def dashboard(cls):

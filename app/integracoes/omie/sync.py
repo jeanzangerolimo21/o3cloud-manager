@@ -326,6 +326,65 @@ class OmieSync:
             )
             raise
 
+    def sincronizar_faturamento_previsoes(self, dias=3650):
+        _log("=" * 60)
+        _log("Iniciando sincronizacao de Faturamento e Previsoes OMIE...")
+        _log("=" * 60)
+
+        sync_id = SyncRepository.iniciar("OMIE")
+        categorias_cache = self._indexar_categorias()
+        data_ate = date.today()
+        data_de = data_ate - timedelta(days=dias) if dias else None
+        processados = novos = atualizados = ignorados = 0
+
+        try:
+            pagina = 1
+            while True:
+                resposta = self.client.listar_contas_receber(
+                    pagina,
+                    {"ordenar_por": "DATA_VENCIMENTO", "ordem_descrescente": "N"},
+                )
+                recebimentos = resposta.get("conta_receber_cadastro", [])
+                if not recebimentos:
+                    break
+
+                for recebimento in recebimentos:
+                    resultado = FinanceiroRecebimentoService.sincronizar_omie(
+                        recebimento,
+                        categorias_cache,
+                        data_de,
+                        data_ate,
+                        exigir_nota_fiscal=False,
+                    )
+                    if resultado == "INSERT":
+                        novos += 1
+                    elif resultado == "UPDATE":
+                        atualizados += 1
+                    else:
+                        ignorados += 1
+                    processados += 1
+
+                total_paginas = resposta.get("total_de_paginas", pagina)
+                if pagina >= total_paginas:
+                    break
+                pagina += 1
+
+            resultado = {
+                "processados": processados,
+                "novos": novos,
+                "atualizados": atualizados,
+                "ignorados": ignorados,
+            }
+            SyncRepository.finalizar(
+                sync_id, "SUCESSO", processados, novos, atualizados, ignorados
+            )
+            return resultado
+        except Exception as erro:
+            SyncRepository.finalizar(
+                sync_id, "ERRO", processados, novos, atualizados, ignorados, str(erro)
+            )
+            raise
+
     def _indexar_categorias(self):
         pagina = 1
         categorias = {}

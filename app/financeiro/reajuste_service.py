@@ -30,6 +30,25 @@ class ReajusteContratoService:
         "IGNORADO": "secondary",
     }
     STATUS_ALERTA = {"REAJUSTE_PROXIMO", "REAJUSTE_VENCIDO"}
+    STATUS_INATIVOS = {"CANCELADO", "ENCERRADO", "SUSPENSO"}
+    DATA_CORTE_CALCULO = date(2026, 3, 1)
+    # INPC anual fechado; aplicado pelo ano anterior ao aniversario contratual.
+    INPC_ANUAL = {
+        2012: Decimal("6.20"),
+        2013: Decimal("5.56"),
+        2014: Decimal("6.23"),
+        2015: Decimal("11.28"),
+        2016: Decimal("6.58"),
+        2017: Decimal("2.07"),
+        2018: Decimal("3.43"),
+        2019: Decimal("4.48"),
+        2020: Decimal("5.45"),
+        2021: Decimal("10.16"),
+        2022: Decimal("5.93"),
+        2023: Decimal("3.71"),
+        2024: Decimal("4.77"),
+        2025: Decimal("3.90"),
+    }
 
     @classmethod
     def filtros(cls, dados):
@@ -38,6 +57,7 @@ class ReajusteContratoService:
             "status": cls._texto(dados.get("status")),
             "vendedor": cls._texto(dados.get("vendedor")),
             "situacao": cls._texto(dados.get("situacao")),
+            "integracao_id": cls._inteiro(dados.get("integracao_id")),
             "ano": cls._inteiro(dados.get("ano")),
             "janela": cls._inteiro(dados.get("janela")),
         }
@@ -53,10 +73,14 @@ class ReajusteContratoService:
             item = cls.analisar_contrato(contrato, hoje=hoje, config=config)
             if cls._filtra_item(item, filtros):
                 itens.append(item)
+        ativos = [i for i in itens if i.get("carteira") == "ATIVA"]
+        inativos = [i for i in itens if i.get("carteira") != "ATIVA"]
         return {
             "itens": itens,
+            "itens_ativos": ativos,
+            "itens_inativos": inativos,
             "resumo": cls.resumo(itens),
-            "total_monitorados": cls.repository.total_contratos_monitoramento(),
+            "total_monitorados": cls._total_contratos_monitoramento(filtros),
             "config": config,
             "usuarios": cls.repository.usuarios_disponiveis(),
             "usuarios_configurados": {u["id"] for u in cls.repository.usuarios_notificacao(config.get("id"))},
@@ -105,6 +129,8 @@ class ReajusteContratoService:
         for contrato in cls.repository.listar_contratos_monitoramento({}, limit=2000):
             cls.registrar_historico_valor_se_necessario(contrato.get("id"), contrato, origem="MONITORAMENTO")
             item = cls.analisar_contrato(contrato, hoje=hoje, config=config)
+            if item.get("carteira") != "ATIVA":
+                continue
             antecedencia = cls.antecedencia_alerta(item, config)
             if antecedencia is None:
                 continue
@@ -138,12 +164,20 @@ class ReajusteContratoService:
         config = config or cls.configuracao()
         inicio = cls._data(contrato.get("inicio_vigencia"))
         valor_atual = cls._valor_referencia(contrato)
-        historico = cls.repository.historico_contrato(contrato.get("id")) if contrato.get("id") else []
-        primeiro_faturamento = cls.repository.primeiro_faturamento_contrato(contrato.get("id")) if contrato.get("id") else None
+        contrato_id = contrato.get("id")
+        faturamentos = cls._faturamentos_contrato(contrato_id)
+        faturamentos = [
+            f for f in faturamentos
+            if (cls._data_faturamento(f) or date.min) >= cls.DATA_CORTE_CALCULO
+        ]
+        historico = cls.repository.historico_contrato(contrato_id) if contrato_id else []
+        primeiro_faturamento = cls._primeiro_faturamento_por_vigencia(faturamentos, inicio)
+        carteira = cls._carteira_contrato(contrato)
         item = dict(contrato)
         item.update({
-            "contrato_id": contrato.get("id"),
+            "contrato_id": contrato_id,
             "contrato_numero": contrato.get("numero"),
+            "carteira": carteira,
             "valor_atual": valor_atual,
             "valor_referencia": None,
             "valor_referencia_origem": None,
@@ -155,6 +189,12 @@ class ReajusteContratoService:
             "idade_label": "-",
             "tempo_sem_alteracao_meses": None,
             "tempo_sem_alteracao_label": "-",
+            "tempo_sem_reajuste_label": "-",
+            "prejuizo_estimado": Decimal("0.00"),
+            "valor_inpc_estimado": None,
+            "inpc_acumulado_percentual": Decimal("0.00"),
+            "ciclos_reajuste": [],
+            "ciclos_sem_reajuste": 0,
             "sem_base_investigar": False,
             "situacao_label": cls.STATUS_LABELS["SEM_DATA_VIGENCIA"],
             "situacao_class": cls.STATUS_CLASSES["SEM_DATA_VIGENCIA"],
@@ -165,37 +205,69 @@ class ReajusteContratoService:
         })
         if not inicio:
             return cls._aplicar_status_visual(item)
-        if contrato.get("status") in ("CANCELADO", "ENCERRADO", "SUSPENSO"):
-            item.update({"situacao": "IGNORADO", "idade_meses": cls.calcular_idade_meses(inicio, hoje)})
-            item["idade_label"] = cls.idade_label(item["idade_meses"])
-            return cls._aplicar_status_visual(item)
+
         proximo = cls.calcular_proximo_aniversario(inicio, hoje)
         anterior = cls._add_years(proximo, -1)
         idade_meses = cls.calcular_idade_meses(inicio, hoje)
         dias = (proximo - hoje).days
+        valor_base_contrato = cls._valor_referencia(contrato)
+        analise = cls._analisar_ciclos_faturamento(
+            inicio, faturamentos, valor_atual, hoje,
+            valor_base=valor_base_contrato,
+            data_base=inicio,
+        ) if primeiro_faturamento else {}
         item.update({
             "idade_meses": idade_meses,
             "idade_label": cls.idade_label(idade_meses),
             "proximo_aniversario": proximo,
             "aniversario_anterior": anterior if idade_meses >= 12 else None,
             "dias_para_reajuste": dias,
+            **analise,
         })
-        comparacao = cls._comparar_faturamento_inicial(primeiro_faturamento, valor_atual) or cls._comparar_historico(historico, anterior)
-        item.update(comparacao)
-        if valor_atual is None or valor_atual <= 0:
+
+        if primeiro_faturamento:
+            valor_base = cls._valor_faturamento(primeiro_faturamento)
+            data_base = cls._data_faturamento(primeiro_faturamento)
+            item.update({
+                "valor_referencia": valor_base,
+                "valor_referencia_origem": "FATURAMENTO_INICIAL",
+                "valor_referencia_data": data_base,
+                "valor_pos_aniversario": valor_atual,
+            })
+            if valor_base and valor_atual is not None:
+                item["diferenca_valor"] = valor_atual - valor_base
+                item["percentual_variacao"] = ((valor_atual - valor_base) / valor_base * Decimal("100")).quantize(Decimal("0.01"))
+        elif valor_base_contrato and valor_base_contrato > 0 and not historico:
+            item.update({
+                "valor_referencia": valor_base_contrato,
+                "valor_referencia_origem": "VALOR_CONTRATO_INICIAL",
+                "valor_referencia_data": max(inicio, cls.DATA_CORTE_CALCULO),
+                "valor_pos_aniversario": valor_atual,
+            })
+
+        comparacao_historico = cls._comparar_historico(historico, anterior) if historico and not primeiro_faturamento else None
+        if comparacao_historico and comparacao_historico.get("percentual_variacao") is not None:
+            item.update(comparacao_historico)
+
+        if carteira != "ATIVA":
+            item["situacao"] = "IGNORADO"
+        elif valor_atual is None or valor_atual <= 0:
             item["situacao"] = "SEM_BASE_COMPARACAO"
-        elif comparacao.get("percentual_variacao") is not None and comparacao.get("diferenca_valor") != 0:
+        elif not primeiro_faturamento and not historico and idade_meses >= 12:
+            item["situacao"] = "SEM_BASE_COMPARACAO"
+        elif not primeiro_faturamento and (valor_base_contrato is None or valor_base_contrato <= 0):
+            item["situacao"] = "SEM_BASE_COMPARACAO"
+        elif item.get("percentual_variacao") is not None and item.get("diferenca_valor") != 0:
             item["situacao"] = "REAJUSTADO"
-        elif idade_meses >= 12 and comparacao.get("valor_referencia") and comparacao.get("valor_pos_aniversario") and comparacao.get("diferenca_valor") == 0:
+        elif item.get("ciclos_sem_reajuste"):
             item["situacao"] = "SEM_REAJUSTE_DETECTADO"
-        elif idade_meses >= 12 and (not historico and not primeiro_faturamento or not comparacao.get("valor_referencia") or not comparacao.get("valor_pos_aniversario")):
-            item["situacao"] = "SEM_BASE_COMPARACAO"
         elif dias <= 0:
             item["situacao"] = "REAJUSTE_VENCIDO"
         elif cls.antecedencia_alerta(item, config) is not None:
             item["situacao"] = "REAJUSTE_PROXIMO"
         else:
             item["situacao"] = "A_VENCER"
+
         if item["situacao"] == "SEM_BASE_COMPARACAO":
             item["tempo_sem_alteracao_meses"] = idade_meses
             item["tempo_sem_alteracao_label"] = cls.idade_label(idade_meses)
@@ -224,15 +296,23 @@ class ReajusteContratoService:
 
     @classmethod
     def resumo(cls, itens):
+        ativos = [i for i in itens if i.get("carteira") == "ATIVA"]
+        inativos = [i for i in itens if i.get("carteira") != "ATIVA"]
         return {
             "total": len(itens),
-            "proximos_30": len([i for i in itens if i.get("dias_para_reajuste") is not None and 0 < i.get("dias_para_reajuste") <= 30]),
-            "proximos_15": len([i for i in itens if i.get("dias_para_reajuste") is not None and 0 < i.get("dias_para_reajuste") <= 15]),
-            "proximos_7": len([i for i in itens if i.get("dias_para_reajuste") is not None and 0 < i.get("dias_para_reajuste") <= 7]),
-            "vencidos": len([i for i in itens if i.get("situacao") == "REAJUSTE_VENCIDO"]),
-            "reajustados": len([i for i in itens if i.get("situacao") == "REAJUSTADO"]),
-            "sem_base": len([i for i in itens if i.get("situacao") == "SEM_BASE_COMPARACAO"]),
-            "sem_base_investigar": len([i for i in itens if i.get("sem_base_investigar")]),
+            "ativos": len(ativos),
+            "inativos": len(inativos),
+            "prejuizo_estimado": sum((i.get("prejuizo_estimado") or Decimal("0.00")) for i in itens),
+            "prejuizo_estimado_ativos": sum((i.get("prejuizo_estimado") or Decimal("0.00")) for i in ativos),
+            "prejuizo_estimado_inativos": sum((i.get("prejuizo_estimado") or Decimal("0.00")) for i in inativos),
+            "sem_reajuste": len([i for i in ativos if i.get("situacao") == "SEM_REAJUSTE_DETECTADO"]),
+            "proximos_30": len([i for i in ativos if i.get("dias_para_reajuste") is not None and 0 < i.get("dias_para_reajuste") <= 30]),
+            "proximos_15": len([i for i in ativos if i.get("dias_para_reajuste") is not None and 0 < i.get("dias_para_reajuste") <= 15]),
+            "proximos_7": len([i for i in ativos if i.get("dias_para_reajuste") is not None and 0 < i.get("dias_para_reajuste") <= 7]),
+            "vencidos": len([i for i in ativos if i.get("situacao") == "REAJUSTE_VENCIDO"]),
+            "reajustados": len([i for i in ativos if i.get("situacao") == "REAJUSTADO"]),
+            "sem_base": len([i for i in ativos if i.get("situacao") == "SEM_BASE_COMPARACAO"]),
+            "sem_base_investigar": len([i for i in ativos if i.get("sem_base_investigar")]),
         }
 
     @classmethod
@@ -297,6 +377,154 @@ class ReajusteContratoService:
             "enviar_email": bool(config.get("enviar_email")),
             "ativo": bool(config.get("ativo", True)),
         }
+
+    @classmethod
+    def _total_contratos_monitoramento(cls, filtros):
+        try:
+            return cls.repository.total_contratos_monitoramento(filtros)
+        except TypeError:
+            return cls.repository.total_contratos_monitoramento()
+
+    @classmethod
+    def _faturamentos_contrato(cls, contrato_id):
+        if not contrato_id:
+            return []
+        if hasattr(cls.repository, "faturamentos_contrato"):
+            return cls.repository.faturamentos_contrato(contrato_id) or []
+        primeiro = cls.repository.primeiro_faturamento_contrato(contrato_id) if hasattr(cls.repository, "primeiro_faturamento_contrato") else None
+        return [primeiro] if primeiro else []
+
+    @classmethod
+    def _analisar_ciclos_faturamento(cls, inicio, faturamentos, valor_atual, hoje, valor_base=None, data_base=None):
+        primeiro = cls._primeiro_faturamento_por_vigencia(faturamentos, inicio)
+        valor_base = cls._valor_faturamento(primeiro) if primeiro else valor_base
+        data_base = cls._data_faturamento(primeiro) if primeiro else data_base
+        if not inicio or valor_base is None or valor_base <= 0:
+            return {}
+
+        faturamentos_normalizados = []
+        for faturamento in faturamentos:
+            data = cls._data_faturamento(faturamento)
+            valor = cls._valor_faturamento(faturamento)
+            if data and valor is not None:
+                faturamentos_normalizados.append({"data": data, "valor": valor})
+
+        ciclos = []
+        valor_anterior = valor_base
+        ultima_alteracao = data_base or inicio
+        prejuizo = Decimal("0.00")
+        anos_sem_reajuste = []
+        tem_alteracao = False
+        ano = 1
+        while cls._add_years(inicio, ano) <= hoje:
+            inicio_ciclo = cls._add_years(inicio, ano)
+            fim_ciclo = min(cls._add_years(inicio, ano + 1), hoje)
+            if inicio_ciclo < cls.DATA_CORTE_CALCULO:
+                ano += 1
+                continue
+            meses_ciclo = cls.calcular_idade_meses(inicio_ciclo, fim_ciclo)
+            indice_ano = inicio_ciclo.year - 1
+            inpc = cls.INPC_ANUAL.get(indice_ano)
+            esperado = cls._aplicar_percentual(valor_anterior, inpc) if inpc is not None else valor_anterior
+            valor_ciclo = cls._valor_no_ciclo(faturamentos_normalizados, inicio_ciclo, fim_ciclo, valor_anterior, valor_atual)
+            alterado = valor_ciclo is not None and valor_ciclo != valor_anterior
+            sem_reajuste = meses_ciclo > 0 and valor_ciclo is not None and not alterado
+            diferenca_mensal = Decimal("0.00")
+            perda_ciclo = Decimal("0.00")
+
+            if alterado:
+                tem_alteracao = True
+                ultima_alteracao = inicio_ciclo
+            elif sem_reajuste and inpc is not None and esperado > valor_ciclo:
+                diferenca_mensal = esperado - valor_ciclo
+                perda_ciclo = (diferenca_mensal * Decimal(meses_ciclo)).quantize(Decimal("0.01"))
+                prejuizo += perda_ciclo
+                anos_sem_reajuste.append({
+                    "ano": inicio_ciclo.year,
+                    "inpc": inpc,
+                    "diferenca_mensal": diferenca_mensal.quantize(Decimal("0.01")),
+                    "prejuizo": perda_ciclo,
+                })
+
+            ciclos.append({
+                "aniversario": inicio_ciclo,
+                "ano_inpc": indice_ano,
+                "inpc_percentual": inpc,
+                "valor_anterior": valor_anterior,
+                "valor_faturado": valor_ciclo,
+                "valor_estimado_inpc": esperado,
+                "alterado": alterado,
+                "sem_reajuste": sem_reajuste,
+                "meses": meses_ciclo,
+                "diferenca_mensal": diferenca_mensal.quantize(Decimal("0.01")),
+                "prejuizo": perda_ciclo,
+            })
+            if valor_ciclo is not None:
+                valor_anterior = valor_ciclo
+            ano += 1
+
+        if not tem_alteracao and anos_sem_reajuste:
+            acumulado = Decimal("1.00")
+            for ano_sem_reajuste in anos_sem_reajuste:
+                acumulado *= Decimal("1.00") + ano_sem_reajuste["inpc"] / Decimal("100")
+            inpc_acumulado = (acumulado - Decimal("1.00")) * Decimal("100")
+        else:
+            inpc_acumulado = sum((item["inpc"] for item in anos_sem_reajuste), Decimal("0.00"))
+
+        tempo_sem_reajuste = cls.calcular_idade_meses(ultima_alteracao, hoje) if ultima_alteracao else None
+        return {
+            "tempo_sem_alteracao_meses": tempo_sem_reajuste,
+            "tempo_sem_alteracao_label": cls.idade_label(tempo_sem_reajuste),
+            "tempo_sem_reajuste_label": cls.idade_label(tempo_sem_reajuste),
+            "prejuizo_estimado": prejuizo.quantize(Decimal("0.01")),
+            "valor_inpc_estimado": ciclos[-1]["valor_estimado_inpc"] if ciclos else valor_base,
+            "inpc_acumulado_percentual": inpc_acumulado.quantize(Decimal("0.01")),
+            "ciclos_reajuste": ciclos,
+            "ciclos_sem_reajuste": len([c for c in ciclos if c.get("sem_reajuste")]),
+            "anos_sem_reajuste": anos_sem_reajuste,
+        }
+
+    @classmethod
+    def _primeiro_faturamento_por_vigencia(cls, faturamentos, inicio):
+        if not faturamentos:
+            return None
+        if not inicio:
+            return faturamentos[0]
+        posteriores = [f for f in faturamentos if (cls._data_faturamento(f) or date.min) >= inicio]
+        return posteriores[0] if posteriores else faturamentos[0]
+
+    @classmethod
+    def _valor_no_ciclo(cls, faturamentos, inicio, fim, valor_anterior, valor_atual):
+        for faturamento in faturamentos:
+            if inicio <= faturamento["data"] < fim:
+                return faturamento["valor"]
+        anteriores = [f for f in faturamentos if f["data"] < fim]
+        if anteriores:
+            return anteriores[-1]["valor"]
+        return valor_atual if valor_atual is not None else valor_anterior
+
+    @staticmethod
+    def _aplicar_percentual(valor, percentual):
+        if percentual is None:
+            return valor
+        return (valor * (Decimal("1.00") + percentual / Decimal("100"))).quantize(Decimal("0.01"))
+
+    @classmethod
+    def _carteira_contrato(cls, contrato):
+        ativo = contrato.get("ativo")
+        if ativo is not None and not ativo:
+            return "INATIVA_CANCELADA"
+        if contrato.get("status") in cls.STATUS_INATIVOS:
+            return "INATIVA_CANCELADA"
+        return "ATIVA"
+
+    @classmethod
+    def _valor_faturamento(cls, faturamento):
+        return cls._decimal(faturamento.get("valor_original")) or cls._decimal(faturamento.get("valor_recebido"))
+
+    @classmethod
+    def _data_faturamento(cls, faturamento):
+        return cls._data(faturamento.get("data_recebimento")) or cls._data(faturamento.get("data_vencimento")) or cls._data(faturamento.get("data_emissao"))
 
     @classmethod
     def _comparar_faturamento_inicial(cls, faturamento, valor_atual):

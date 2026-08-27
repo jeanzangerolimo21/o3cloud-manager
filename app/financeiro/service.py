@@ -9,6 +9,12 @@ from app.financeiro.repository import FinanceiroRepository
 
 class FinanceiroService:
 
+    STATUS_PREMIACAO_MANUAL = {
+        "ABERTO": "Aberto",
+        "LANCADO": "Lançado",
+        "PAGO": "Pago",
+    }
+
     @staticmethod
     def listar_faturamentos():
 
@@ -125,6 +131,32 @@ class FinanceiroService:
             "RECEBIDO": "Recebido",
             "ATRASADO": "Atrasado",
             "NAO_LOCALIZADO": "Nao localizado",
+        }
+
+    @classmethod
+    def status_premiacao_manual_options(cls):
+
+        return cls.STATUS_PREMIACAO_MANUAL
+
+    @classmethod
+    def atualizar_status_premiacao_manual(cls, contrato_id, campanha_id, status_manual, usuario_email="sistema"):
+
+        contrato_id = cls._inteiro(contrato_id)
+        campanha_id = cls._inteiro(campanha_id)
+        status_manual = cls._texto(status_manual).upper()
+        if not contrato_id or not campanha_id:
+            raise ValueError("Contrato e campanha são obrigatórios para atualizar a premiação.")
+        if status_manual not in cls.STATUS_PREMIACAO_MANUAL:
+            raise ValueError("Status de premiação inválido.")
+        contrato = cls.buscar_comissao_contrato(contrato_id, campanha_id)
+        if not contrato or not contrato.get("premiacao_liberada"):
+            raise ValueError("Premiação não encontrada para o contrato informado.")
+        if contrato.get("status_pagamento") != "RECEBIDO":
+            raise ValueError("A checagem manual só fica disponível após o recebimento pelo sistema.")
+        FinanceiroRepository.salvar_status_premiacao_manual(contrato_id, campanha_id, status_manual, usuario_email)
+        return {
+            "status": status_manual,
+            "label": cls.STATUS_PREMIACAO_MANUAL[status_manual],
         }
 
     @staticmethod

@@ -1,7 +1,9 @@
 import logging
+import mimetypes
 import os
 import smtplib
 from email.message import EmailMessage
+from pathlib import Path
 
 
 logger = logging.getLogger(__name__)
@@ -9,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class EmailService:
     @staticmethod
-    def enviar(assunto, corpo, destinatarios, corpo_html=None, finalidade="GERAL"):
+    def enviar(assunto, corpo, destinatarios, corpo_html=None, finalidade="GERAL", anexos=None):
         destinatarios = sorted({email.strip().lower() for email in destinatarios if email and email.strip()})
         if not destinatarios:
             return {"enviado": False, "motivo": "sem_destinatarios"}
@@ -36,6 +38,7 @@ class EmailService:
         mensagem.set_content(corpo)
         if corpo_html:
             mensagem.add_alternative(corpo_html, subtype="html")
+        EmailService._adicionar_anexos(mensagem, anexos or [])
 
         with smtplib.SMTP(host, port, timeout=20) as smtp:
             if usar_tls:
@@ -45,6 +48,18 @@ class EmailService:
             smtp.send_message(mensagem)
 
         return {"enviado": True, "destinatarios": destinatarios, "origem_config": config.get("origem")}
+
+    @staticmethod
+    def _adicionar_anexos(mensagem, anexos):
+        for anexo in anexos:
+            caminho = Path(anexo.get("caminho") or "")
+            if not caminho.is_file():
+                logger.warning("Anexo de e-mail ignorado porque o arquivo não existe: %s", caminho)
+                continue
+            nome = anexo.get("nome") or anexo.get("arquivo_original") or caminho.name
+            mime_type = anexo.get("mime_type") or mimetypes.guess_type(nome)[0] or "application/octet-stream"
+            maintype, subtype = mime_type.split("/", 1) if "/" in mime_type else ("application", "octet-stream")
+            mensagem.add_attachment(caminho.read_bytes(), maintype=maintype, subtype=subtype, filename=nome)
 
     @staticmethod
     def _configuracao(finalidade="GERAL"):

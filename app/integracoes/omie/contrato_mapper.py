@@ -15,7 +15,9 @@ class ContratoMapper:
         "30": "EM_IMPLANTACAO",
         "40": "ENCERRADO",
         "50": "CANCELADO",
-        "99": "CANCELADO"
+        "90": "SUSPENSO",
+        "99": "CANCELADO",
+        "WAIG": "SUSPENSO"
     }
 
     @staticmethod
@@ -24,7 +26,7 @@ class ContratoMapper:
         cabecalho = item.get("cabecalho", {})
         inf_adic = item.get("infAdic", {})
         observacoes = item.get("observacoes", {})
-        codigo_status = str(cabecalho.get("cCodSit"))
+        codigo_status = str(cabecalho.get("cCodSit") or "").strip().upper()
         totais_servicos = ContratoMapper._totais_servicos(
             item.get("itensContrato", [])
         )
@@ -40,7 +42,7 @@ class ContratoMapper:
 
         status = ContratoMapper.STATUS_MAP.get(
             codigo_status,
-            "ENCAMINHADO_PROJETO"
+            "SUSPENSO"
         )
 
         return {

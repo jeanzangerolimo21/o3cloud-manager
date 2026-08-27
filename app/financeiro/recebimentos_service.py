@@ -6,7 +6,7 @@ class FinanceiroRecebimentoService:
     repository = FinanceiroRecebimentoRepository
 
     @classmethod
-    def sincronizar_omie(cls, recebimento_omie, categorias_cache=None, data_de=None, data_ate=None):
+    def sincronizar_omie(cls, recebimento_omie, categorias_cache=None, data_de=None, data_ate=None, exigir_nota_fiscal=True):
         if not RecebimentoMapper.sincronizavel(recebimento_omie):
             return "IGNORADO"
 
@@ -19,8 +19,11 @@ class FinanceiroRecebimentoService:
         vinculos = cls.repository.buscar_vinculos(
             dados.get("codigo_cliente_omie"),
             dados.get("numero_contrato"),
+        ) or cls.repository.buscar_vinculo_codigo(
+            dados.get("codigo_cliente_omie"),
+            dados.get("codigo_contrato_omie"),
         )
-        if not cls._possui_nota_fiscal(dados):
+        if exigir_nota_fiscal and not cls._possui_nota_fiscal(dados):
             return "IGNORADO"
 
         if not dados.get("numero_contrato"):

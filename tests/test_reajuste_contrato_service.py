@@ -173,7 +173,7 @@ def test_sem_base_informa_tempo_sem_alteracao_detectada_desde_vigencia():
 
 def test_faturamento_inicial_igual_ao_atual_detecta_sem_reajuste():
     RepoReajustesFake.faturamentos = {
-        1: {"valor_original": Decimal("541.94"), "data_recebimento": date(2020, 3, 1)}
+        1: {"valor_original": Decimal("541.94"), "data_recebimento": date(2026, 3, 1)}
     }
 
     item = ReajusteContratoService.analisar_contrato(_contrato(inicio_vigencia=date(2020, 3, 1), valor_mensal=Decimal("541.94")), hoje=date(2026, 8, 14))
@@ -186,7 +186,7 @@ def test_faturamento_inicial_igual_ao_atual_detecta_sem_reajuste():
 
 def test_faturamento_inicial_menor_que_atual_detecta_reajuste():
     RepoReajustesFake.faturamentos = {
-        1: {"valor_original": Decimal("1000.00"), "data_recebimento": date(2020, 3, 1)}
+        1: {"valor_original": Decimal("1000.00"), "data_recebimento": date(2026, 3, 1)}
     }
 
     item = ReajusteContratoService.analisar_contrato(_contrato(inicio_vigencia=date(2020, 3, 1), valor_mensal=Decimal("1100.00")), hoje=date(2026, 8, 14))
@@ -197,13 +197,24 @@ def test_faturamento_inicial_menor_que_atual_detecta_reajuste():
 
 def test_faturamento_inicial_maior_que_atual_tambem_detecta_alteracao():
     RepoReajustesFake.faturamentos = {
-        1: {"valor_original": Decimal("1000.00"), "data_recebimento": date(2020, 3, 1)}
+        1: {"valor_original": Decimal("1000.00"), "data_recebimento": date(2026, 3, 1)}
     }
 
     item = ReajusteContratoService.analisar_contrato(_contrato(inicio_vigencia=date(2020, 3, 1), valor_mensal=Decimal("900.00")), hoje=date(2026, 8, 14))
 
     assert item["situacao"] == "REAJUSTADO"
     assert item["percentual_variacao"] == Decimal("-10.00")
+
+
+def test_faturamento_anterior_ao_corte_de_marco_2026_e_ignorado():
+    RepoReajustesFake.faturamentos = {
+        1: {"valor_original": Decimal("1000.00"), "data_recebimento": date(2026, 2, 28)}
+    }
+
+    item = ReajusteContratoService.analisar_contrato(_contrato(inicio_vigencia=date(2020, 3, 1), valor_mensal=Decimal("1000.00")), hoje=date(2026, 8, 14))
+
+    assert item["situacao"] == "SEM_BASE_COMPARACAO"
+    assert item["valor_referencia_origem"] == "VALOR_CONTRATO_INICIAL"
 
 
 def test_historico_com_aumento_detecta_reajustado():

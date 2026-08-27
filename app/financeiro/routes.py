@@ -53,10 +53,27 @@ def comissoes():
         campanhas=FinanceiroService.listar_campanhas_comissao(),
         campanha_selecionada=FinanceiroService.buscar_campanha_comissao(filtros.get("campanha_id")),
         status_options=FinanceiroService.status_comissoes(),
+        status_premiacao_manual_options=FinanceiroService.status_premiacao_manual_options(),
         pagina=pagina,
         total_paginas=total_paginas,
         total=total,
     )
+
+
+@financeiro_bp.route("/financeiro/comissoes/<int:contrato_id>/status-premiacao", methods=["POST"])
+def atualizar_status_premiacao(contrato_id):
+
+    dados = request.get_json(silent=True) or request.form
+    try:
+        resultado = FinanceiroService.atualizar_status_premiacao_manual(
+            contrato_id,
+            dados.get("campanha_id"),
+            dados.get("status"),
+            _email_usuario_logado(),
+        )
+    except ValueError as erro:
+        return jsonify({"ok": False, "erro": str(erro)}), 400
+    return jsonify({"ok": True, **resultado})
 
 
 @financeiro_bp.route("/financeiro/comissoes/<int:contrato_id>/calcular", methods=["GET", "POST"])
@@ -128,6 +145,20 @@ def reajustes_contratuais_configuracao():
         flash(str(erro), "danger")
     else:
         flash("Configuracao de reajustes contratuais atualizada.", "success")
+    return redirect(url_for("financeiro.reajustes_contratuais"))
+
+
+@financeiro_bp.route("/financeiro/reajustes-contratuais/sincronizar-omie", methods=["POST"])
+def reajustes_contratuais_sincronizar_omie():
+    try:
+        resultado = SincronismosAgendadosService.executar_manual_por_tipo(
+            "OMIE_FATURAMENTO_PREVISOES",
+            _email_usuario_logado(),
+        )
+    except Exception as erro:
+        flash("Falha ao sincronizar Faturamento e Previsoes OMIE: {}".format(erro), "danger")
+    else:
+        flash(resultado, "success" if ": OK" in resultado else "warning")
     return redirect(url_for("financeiro.reajustes_contratuais"))
 
 

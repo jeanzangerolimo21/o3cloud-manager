@@ -213,7 +213,7 @@
             <form method="POST" action="{{ url_for('implantacao.adicionar_comentario', implantacao_id=implantacao.id) }}" enctype="multipart/form-data" class="mb-4">
                 <div class="row g-3">
                     <div class="col-md-4"><label class="form-label">Autor</label><input class="form-control" name="autor" value="{{ autor_comentario_padrao or '' }}" placeholder="Nome de quem registrou"></div>
-                    <div class="col-md-8 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" name="enviar_email" id="enviar_email"><label class="form-check-label" for="enviar_email">Enviar comentário por e-mail para os envolvidos do projeto</label></div></div>
+                    <div class="col-md-8 d-flex align-items-end"><div><div class="form-check"><input class="form-check-input" type="checkbox" name="enviar_email" id="enviar_email"><label class="form-check-label" for="enviar_email">Enviar comentário por e-mail para os envolvidos do projeto</label></div><div class="form-check mt-2"><input class="form-check-input" type="checkbox" name="anexar_arquivos_email" id="anexar_arquivos_email" disabled><label class="form-check-label" for="anexar_arquivos_email">Enviar arquivos anexados junto no e-mail</label></div></div></div>
                     <div class="col-12"><label class="form-label">Comentário</label><textarea class="form-control" rows="4" name="comentario" required placeholder="Registre atualização, pendência, decisão ou alinhamento do projeto..."></textarea></div>
                     <div class="col-md-8"><label class="form-label">Anexos</label><input class="form-control" type="file" name="anexos" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.zip,.dwg,.png,.jpg,.jpeg,.svg"><small class="text-muted">Arquivos permitidos: PDF, Office, CSV, ZIP, DWG e imagens. Limite de 20 MB por arquivo.</small></div>
                     <div class="col-md-4 d-flex align-items-end justify-content-end"><button class="btn btn-primary"><i class="bi bi-chat-left-text"></i> Registrar Comentário</button></div>
@@ -281,6 +281,21 @@
     const saveButton = document.getElementById('checklist_save_selected');
     const itemChecks = Array.from(document.querySelectorAll('.checklist-item-select'));
     const batchFields = Array.from(document.querySelectorAll('.checklist-batch-field'));
+    const enviarEmail = document.getElementById('enviar_email');
+    const anexarArquivos = document.getElementById('anexar_arquivos_email');
+
+    function atualizarAnexoEmail() {
+        if (!enviarEmail || !anexarArquivos) { return; }
+        anexarArquivos.disabled = !enviarEmail.checked;
+        if (!enviarEmail.checked) {
+            anexarArquivos.checked = false;
+        }
+    }
+
+    if (enviarEmail) {
+        enviarEmail.addEventListener('change', atualizarAnexoEmail);
+        atualizarAnexoEmail();
+    }
 
     function updateSaveState() {
         const selected = itemChecks.filter(function (input) { return input.checked; }).length;

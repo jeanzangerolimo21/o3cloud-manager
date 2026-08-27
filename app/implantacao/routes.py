@@ -373,7 +373,7 @@ def baixar_anexo_senha_cofre(anexo_id):
     if not caminho.is_file():
         flash("Arquivo não encontrado no armazenamento.", "danger")
         return redirect(url_for("implantacao.editar_senha_cofre", senha_id=anexo.get("cofre_senha_id")))
-    return send_file(caminho, download_name=anexo.get("arquivo_original") or anexo.get("nome_arquivo"), as_attachment=False)
+    return send_file(caminho, download_name=anexo.get("arquivo_original") or anexo.get("nome_arquivo"), as_attachment=True)
 
 
 @implantacao_bp.route("/cofre-senhas/anexos/<int:anexo_id>/excluir", methods=["POST"])

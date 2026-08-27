@@ -197,6 +197,22 @@ class CofreSenhaRepository(BaseRepository):
         )
 
     @classmethod
+    def listar_anexos_por_senhas(cls, senha_ids):
+        senha_ids = [senha_id for senha_id in senha_ids or [] if senha_id]
+        if not senha_ids:
+            return []
+        placeholders = ", ".join(["%s"] * len(senha_ids))
+        return cls.fetch_all(
+            f"""
+            SELECT *
+            FROM implantacao_cofre_senhas_anexos
+            WHERE cofre_senha_id IN ({placeholders})
+            ORDER BY cofre_senha_id ASC, created_at DESC, id DESC
+            """,
+            tuple(senha_ids),
+        )
+
+    @classmethod
     def excluir_anexo(cls, anexo_id):
         return cls.execute(
             "DELETE FROM implantacao_cofre_senhas_anexos WHERE id = %s",

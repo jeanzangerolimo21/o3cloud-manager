@@ -12,6 +12,8 @@ class FinanceiroRecebimentoRepository(BaseRepository):
 
     @classmethod
     def buscar_vinculos(cls, codigo_cliente_omie, numero_contrato):
+        if not codigo_cliente_omie or not numero_contrato:
+            return None
         return cls.fetch_one(
             """
             SELECT c.id AS contrato_id, c.codigo_externo AS codigo_contrato_omie, cli.id AS cliente_id
@@ -19,11 +21,27 @@ class FinanceiroRecebimentoRepository(BaseRepository):
             INNER JOIN clientes cli ON cli.id = c.cliente_id
             WHERE cli.codigo_externo=%s
               AND c.numero=%s
-              AND c.ativo=1
-            ORDER BY c.origem='OMIE' DESC, c.id DESC
+            ORDER BY c.ativo DESC, c.origem='OMIE' DESC, c.id DESC
             LIMIT 1
             """,
             (codigo_cliente_omie, numero_contrato),
+        )
+
+    @classmethod
+    def buscar_vinculo_codigo(cls, codigo_cliente_omie, codigo_contrato_omie):
+        if not codigo_cliente_omie or not codigo_contrato_omie:
+            return None
+        return cls.fetch_one(
+            """
+            SELECT c.id AS contrato_id, c.codigo_externo AS codigo_contrato_omie, cli.id AS cliente_id
+            FROM contratos c
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            WHERE cli.codigo_externo=%s
+              AND c.codigo_externo=%s
+            ORDER BY c.ativo DESC, c.id DESC
+            LIMIT 1
+            """,
+            (codigo_cliente_omie, codigo_contrato_omie),
         )
 
     @classmethod

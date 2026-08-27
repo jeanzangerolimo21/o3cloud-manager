@@ -510,19 +510,25 @@ class ImplantacaoService:
             raise ValueError("Informe um comentário para registrar no histórico.")
         autor = (dados.get("autor") or "").strip() or None
         enviar_email = str(dados.get("enviar_email") or "").lower() in ("1", "true", "on", "sim")
+        anexar_no_email = enviar_email and str(dados.get("anexar_arquivos_email") or "").lower() in ("1", "true", "on", "sim")
         arquivos = arquivos or []
         cls._validar_anexos_comentario(arquivos)
-        email = None
-        if enviar_email:
-            email = cls._notificar_comentario(implantacao, comentario, autor)
         historico_id = cls._registrar_historico(
             implantacao_id,
             tipo="COMENTARIO",
             comentario=comentario,
             autor=autor,
-            email=email,
+            email=None,
         )
-        cls._salvar_anexos_comentario(implantacao_id, historico_id, arquivos or [])
+        anexos_salvos = cls._salvar_anexos_comentario(implantacao_id, historico_id, arquivos or [])
+        email = None
+        if enviar_email:
+            email = cls._notificar_comentario(implantacao, comentario, autor, anexos_salvos if anexar_no_email else [])
+            cls.repository.atualizar_email_historico(
+                historico_id,
+                bool(email and email.get("enviado")),
+                json.dumps(email, ensure_ascii=False) if email else None,
+            )
         return email
 
     @classmethod
@@ -799,7 +805,7 @@ class ImplantacaoService:
 
 
     @classmethod
-    def _notificar_comentario(cls, implantacao, comentario, autor=None):
+    def _notificar_comentario(cls, implantacao, comentario, autor=None, anexos=None):
         assunto = f"Comentário na implantação - {implantacao.get('cliente_nome') or implantacao.get('titulo') or implantacao.get('id')}"
         corpo = "\n".join([
             f"Projeto: {implantacao.get('titulo') or '-'}",
@@ -810,7 +816,7 @@ class ImplantacaoService:
             "",
             comentario,
         ])
-        return EmailService.enviar(assunto, corpo, cls._destinatarios_implantacao(implantacao))
+        return EmailService.enviar(assunto, corpo, cls._destinatarios_implantacao(implantacao), anexos=anexos or [])
 
     @classmethod
     def _notificar_financeiro_implantacao_finalizada(cls, implantacao):
@@ -905,6 +911,7 @@ class ImplantacaoService:
 
     @classmethod
     def _salvar_anexos_comentario(cls, implantacao_id, historico_id, arquivos):
+        anexos_salvos = []
         for arquivo in arquivos:
             if not arquivo or not arquivo.filename:
                 continue
@@ -912,16 +919,24 @@ class ImplantacaoService:
             salvo = StorageService.salvar(arquivo, pasta)
             if not salvo:
                 continue
+            caminho_relativo = f"{pasta}/{salvo.get('nome')}"
             cls.repository.inserir_anexo_historico({
                 "historico_id": historico_id,
                 "implantacao_id": implantacao_id,
                 "arquivo_original": salvo.get("arquivo_original"),
                 "nome_arquivo": salvo.get("nome"),
-                "caminho": f"{pasta}/{salvo.get('nome')}",
+                "caminho": caminho_relativo,
                 "url": salvo.get("url"),
                 "mime_type": salvo.get("mime_type"),
                 "tamanho": salvo.get("tamanho"),
             })
+            anexos_salvos.append({
+                "arquivo_original": salvo.get("arquivo_original"),
+                "nome": salvo.get("arquivo_original") or salvo.get("nome"),
+                "caminho": StorageService.BASE_STORAGE / caminho_relativo,
+                "mime_type": salvo.get("mime_type"),
+            })
+        return anexos_salvos
 
     @classmethod
     def _excluir_arquivos_anexos(cls, anexos):

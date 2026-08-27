@@ -25,6 +25,11 @@ class SincronismosAgendadosService:
             "descricao": "Contas a Receber recebidas para cache financeiro e comissoes.",
             "icone": "bi-cash-coin",
         },
+        "OMIE_FATURAMENTO_PREVISOES": {
+            "nome": "Omie - Faturamento e Previsoes",
+            "descricao": "Historico de contas a receber e previsoes vinculadas aos contratos.",
+            "icone": "bi-calendar2-check",
+        },
         "ZABBIX": {
             "nome": "Zabbix",
             "descricao": "Hosts e alarmes recentes para cache operacional.",
@@ -260,6 +265,7 @@ class SincronismosAgendadosService:
         handlers = {
             "OMIE": cls._sincronizar_omie,
             "OMIE_RECEBIMENTOS": cls._sincronizar_omie_recebimentos,
+            "OMIE_FATURAMENTO_PREVISOES": cls._sincronizar_omie_faturamento_previsoes,
             "ZABBIX": cls._sincronizar_zabbix,
             "PROXMOX": cls._sincronizar_proxmox,
             "CLICKSIGN": cls._sincronizar_clicksign,
@@ -303,6 +309,20 @@ class SincronismosAgendadosService:
                 atualizados=recebimentos.get("atualizados", 0),
                 ignorados=recebimentos.get("ignorados", 0),
             ),
+        }
+
+    @staticmethod
+    def _sincronizar_omie_faturamento_previsoes(usuario_email):
+        from app.integracoes.omie.sync import OmieSync
+
+        dados = OmieSync().sincronizar_faturamento_previsoes() or {}
+        return {
+            "status": "OK",
+            "mensagem": (
+                "Faturamento e Previsoes Omie atualizados. "
+                "Processados: {processados}. Novos: {novos}. "
+                "Atualizados: {atualizados}. Ignorados: {ignorados}."
+            ).format(**{chave: dados.get(chave, 0) for chave in ("processados", "novos", "atualizados", "ignorados")}),
         }
 
     @staticmethod

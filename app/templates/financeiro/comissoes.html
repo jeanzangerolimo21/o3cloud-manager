@@ -95,6 +95,7 @@
                         <th>Vendedor</th>
                         <th>Vigência</th>
                         <th>Status</th>
+                        <th>Pagamento premiação</th>
                         <th class="text-end">Base</th>
                         <th class="text-end">Recebido</th>
                         <th class="text-end">Atrasado</th>
@@ -122,6 +123,18 @@
                                 {% endif %}
                                 <br><small class="text-muted">{{ '1º título localizado' if item.recebimentos_total else '1º título não localizado' }}</small>
                             </td>
+                            <td>
+                                {% if recebido and item.campanha_id %}
+                                <select class="form-select form-select-sm js-status-premiacao" data-update-url="{{ url_for('financeiro.atualizar_status_premiacao', contrato_id=item.contrato_id) }}" data-campanha-id="{{ item.campanha_id }}" aria-label="Status de pagamento da premiação">
+                                    {% for chave, label in status_premiacao_manual_options.items() %}
+                                    <option value="{{ chave }}" {% if (item.status_premiacao_manual or 'ABERTO') == chave %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted js-status-premiacao-feedback d-block mt-1">{% if item.status_premiacao_updated_at %}Atualizado{% else %}Pendente de conferência{% endif %}</small>
+                                {% else %}
+                                <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
                             <td class="text-end">{{ item.valor_base_comissao|moeda }}</td>
                             <td class="text-end">{{ item.valor_recebido_elegivel|moeda }}{% if item.valor_recebido_excluido %}<br><small class="text-warning">Excl. {{ item.valor_recebido_excluido|moeda }}</small>{% endif %}</td>
                             <td class="text-end {% if atrasado %}text-danger fw-semibold{% endif %}">{{ item.valor_atrasado|moeda }}</td>
@@ -135,7 +148,7 @@
                             </td>
                         </tr>
                     {% else %}
-                        <tr><td colspan="11" class="text-muted">Nenhum contrato encontrado para os filtros informados.</td></tr>
+                        <tr><td colspan="12" class="text-muted">Nenhum contrato encontrado para os filtros informados.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -161,4 +174,49 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+document.querySelectorAll('.js-status-premiacao').forEach(function (select) {
+    const feedback = select.parentElement.querySelector('.js-status-premiacao-feedback');
+    let valorAnterior = select.value;
+
+    function setFeedback(texto, classe) {
+        if (!feedback) { return; }
+        feedback.textContent = texto;
+        feedback.className = 'js-status-premiacao-feedback d-block mt-1 small ' + classe;
+    }
+
+    select.addEventListener('change', function () {
+        const novoValor = select.value;
+        select.disabled = true;
+        setFeedback('Salvando...', 'text-muted');
+        fetch(select.dataset.updateUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({campanha_id: select.dataset.campanhaId, status: novoValor})
+        })
+            .then(function (response) {
+                return response.json().then(function (payload) {
+                    return {ok: response.ok && payload.ok, payload: payload};
+                });
+            })
+            .then(function (result) {
+                if (!result.ok) {
+                    throw new Error(result.payload.erro || 'Não foi possível atualizar o status.');
+                }
+                valorAnterior = result.payload.status || novoValor;
+                select.value = valorAnterior;
+                setFeedback('Salvo automaticamente', 'text-success');
+            })
+            .catch(function (erro) {
+                select.value = valorAnterior;
+                setFeedback(erro.message, 'text-danger');
+            })
+            .finally(function () {
+                select.disabled = false;
+            });
+    });
+});
+</script>
 {% endblock %}
