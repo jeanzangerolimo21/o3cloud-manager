@@ -1,10 +1,16 @@
+import os
+import subprocess
+import sys
 from datetime import datetime, time, timedelta
+from pathlib import Path
 
 from app.repositories.base_repository import BaseRepository
 
 
 class SincronismosAgendadosService:
     repository = BaseRepository
+    REPO_DIR = Path(__file__).resolve().parents[2]
+    TIPOS_BACKGROUND = {"OMIE_SETUP_CONTRATOS"}
     OPCOES_FREQUENCIA = (
         (15, "15 minutos"),
         (30, "30 minutos"),
@@ -113,6 +119,8 @@ class SincronismosAgendadosService:
         agendamento = cls._buscar_por_id(agendamento_id)
         if not agendamento:
             raise ValueError("Agendamento nao encontrado.")
+        if agendamento["tipo"] in cls.TIPOS_BACKGROUND:
+            return cls._executar_background(agendamento, usuario_email, manual=True)
         return cls._executar(agendamento, usuario_email, manual=True)
 
     @classmethod
@@ -121,6 +129,8 @@ class SincronismosAgendadosService:
         agendamento = cls._buscar_por_tipo(tipo)
         if not agendamento:
             raise ValueError("Agendamento nao encontrado.")
+        if agendamento["tipo"] in cls.TIPOS_BACKGROUND:
+            return cls._executar_background(agendamento, usuario_email, manual=True)
         return cls._executar(agendamento, usuario_email, manual=True)
 
     @classmethod
@@ -136,7 +146,30 @@ class SincronismosAgendadosService:
             LIMIT {limite}
             """
         )
-        return [cls._executar(item, "sistema-agendador", manual=False) for item in agendamentos]
+        resultados = []
+        for item in agendamentos:
+            if item["tipo"] in cls.TIPOS_BACKGROUND:
+                resultados.append(cls._executar_background(item, "sistema-agendador", manual=False))
+            else:
+                resultados.append(cls._executar(item, "sistema-agendador", manual=False))
+        return resultados
+
+    @classmethod
+    def executar_worker(cls, execucao_id):
+        execucao = cls.repository.fetch_one(
+            """
+            SELECT e.*, a.ativo, a.frequencia_minutos, a.horario_execucao
+            FROM config_sincronismos_execucoes e
+            INNER JOIN config_sincronismos_agendados a ON a.id = e.agendamento_id
+            WHERE e.id=%s
+            """,
+            (execucao_id,),
+        )
+        if not execucao:
+            raise ValueError("Execucao de sincronismo nao encontrada.")
+        if execucao.get("status") != "EXECUTANDO" or execucao.get("finalizada_em"):
+            return f"{execucao['tipo']}: ignorado - execucao ja finalizada."
+        return cls._executar_handler_e_finalizar(execucao, execucao.get("executado_por") or "sistema-worker")
 
     @classmethod
     def _agendamentos_com_definicao(cls):
@@ -173,13 +206,100 @@ class SincronismosAgendadosService:
             """,
             (cls.repository.generate_uuid(), agendamento["id"], agendamento["tipo"], usuario_email, 1 if manual else 0),
         )
+        execucao = {
+            **agendamento,
+            "id": execucao_id,
+            "agendamento_id": agendamento["id"],
+        }
+        return cls._executar_handler_e_finalizar(execucao, usuario_email)
+
+    @classmethod
+    def _executar_background(cls, agendamento, usuario_email, manual=False):
+        em_andamento = cls._execucao_em_andamento(agendamento["tipo"])
+        if em_andamento:
+            return f"{agendamento['tipo']}: EXECUTANDO - Sincronismo ja esta em andamento desde {em_andamento.get('iniciada_em')}."
+
+        execucao_id = cls.repository.execute_insert(
+            """
+            INSERT INTO config_sincronismos_execucoes (uuid, agendamento_id, tipo, status, executado_por, manual, mensagem)
+            VALUES (%s, %s, %s, 'EXECUTANDO', %s, %s, %s)
+            """,
+            (
+                cls.repository.generate_uuid(),
+                agendamento["id"],
+                agendamento["tipo"],
+                usuario_email,
+                1 if manual else 0,
+                "Sincronismo iniciado em segundo plano.",
+            ),
+        )
+        cls.repository.execute(
+            """
+            UPDATE config_sincronismos_agendados
+               SET ultima_execucao_em=NOW(),
+                   proxima_execucao_em=%s,
+                   ultimo_status='EXECUTANDO',
+                   ultimo_mensagem=%s,
+                   updated_by=%s
+             WHERE id=%s
+            """,
+            (
+                cls._proxima_execucao(
+                    agendamento.get("ativo"),
+                    agendamento.get("frequencia_minutos"),
+                    cls._horario_obj(agendamento.get("horario_execucao")),
+                ),
+                "Sincronismo iniciado em segundo plano.",
+                usuario_email,
+                agendamento["id"],
+            ),
+        )
         try:
-            resultado = cls._handler(agendamento["tipo"])(usuario_email)
+            subprocess.Popen(
+                [
+                    sys.executable,
+                    "-m",
+                    "flask",
+                    "--app",
+                    "app:create_app",
+                    "sincronismos-executar-worker",
+                    "--execucao-id",
+                    str(execucao_id),
+                ],
+                cwd=str(cls.REPO_DIR),
+                env=os.environ.copy(),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except OSError as erro:
+            mensagem = f"Falha ao iniciar sincronismo em segundo plano: {erro}"[:500]
+            cls._finalizar_execucao(agendamento, execucao_id, "ERRO", mensagem, usuario_email)
+            return f"{agendamento['tipo']}: ERRO - {mensagem}"
+
+        return f"{agendamento['tipo']}: EXECUTANDO - Sincronismo iniciado em segundo plano."
+
+    @classmethod
+    def _executar_handler_e_finalizar(cls, execucao, usuario_email):
+        agendamento = {
+            "id": execucao.get("agendamento_id") or execucao.get("id"),
+            "tipo": execucao["tipo"],
+            "ativo": execucao.get("ativo"),
+            "frequencia_minutos": execucao.get("frequencia_minutos"),
+            "horario_execucao": execucao.get("horario_execucao"),
+        }
+        try:
+            resultado = cls._handler(execucao["tipo"])(usuario_email)
             status = "OK" if (resultado.get("status") or "OK") == "OK" else "ERRO"
             mensagem = (resultado.get("mensagem") or "Sincronismo concluido.")[:500]
         except Exception as erro:
             status = "ERRO"
             mensagem = str(erro)[:500]
+        cls._finalizar_execucao(agendamento, execucao["id"], status, mensagem, usuario_email)
+        return f"{execucao['tipo']}: {status} - {mensagem}"
+
+    @classmethod
+    def _finalizar_execucao(cls, agendamento, execucao_id, status, mensagem, usuario_email):
         cls.repository.execute(
             """
             UPDATE config_sincronismos_execucoes
@@ -210,7 +330,21 @@ class SincronismosAgendadosService:
                 agendamento["id"],
             ),
         )
-        return f"{agendamento['tipo']}: {status} - {mensagem}"
+
+    @classmethod
+    def _execucao_em_andamento(cls, tipo):
+        return cls.repository.fetch_one(
+            """
+            SELECT id, iniciada_em
+            FROM config_sincronismos_execucoes
+            WHERE tipo=%s
+              AND status='EXECUTANDO'
+              AND finalizada_em IS NULL
+            ORDER BY iniciada_em DESC, id DESC
+            LIMIT 1
+            """,
+            (tipo,),
+        )
 
     @staticmethod
     def _normalizar_horario(valor):

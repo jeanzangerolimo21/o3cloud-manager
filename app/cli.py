@@ -33,6 +33,7 @@ def init_cli(app):
     app.cli.add_command(bootstrap_admin_command)
     app.cli.add_command(relatorios_processar_jobs_command)
     app.cli.add_command(sincronismos_processar_agendados_command)
+    app.cli.add_command(sincronismos_executar_worker_command)
     app.cli.add_command(backups_processar_agendados_command)
     app.cli.add_command(aso_processar_lembretes_command)
     app.cli.add_command(operacao_alertas_enviar_command)
@@ -66,6 +67,16 @@ def sincronismos_processar_agendados_command(limite):
         return
     for resultado in resultados:
         click.echo(resultado)
+
+
+@click.command("sincronismos-executar-worker")
+@with_appcontext
+@click.option("--execucao-id", required=True, type=int, help="ID da execucao de sincronismo a processar.")
+def sincronismos_executar_worker_command(execucao_id):
+    """Executa uma execucao de sincronismo ja registrada."""
+    from app.configuracoes.sincronismos_service import SincronismosAgendadosService
+
+    click.echo(SincronismosAgendadosService.executar_worker(execucao_id))
 
 
 @click.command("backups-processar-agendados")

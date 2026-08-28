@@ -336,9 +336,9 @@ class ContratoService:
 
     @classmethod
     def _sincronizar_setup_omie_contrato(cls, contrato, omie, ordens_por_cliente=None):
-        codigo_cliente = contrato.get("cliente_codigo_externo")
+        codigo_cliente = cls._codigo_omie_inteiro(contrato.get("cliente_codigo_externo"))
         if not codigo_cliente:
-            raise ValueError("Cliente sem codigo Omie. Cadastre/sincronize o cliente no Omie antes de buscar OS de setup.")
+            raise ValueError("Cliente sem codigo Omie valido. Cadastre/sincronize o cliente no Omie antes de buscar OS de setup.")
 
         ordens_por_cliente = ordens_por_cliente if ordens_por_cliente is not None else {}
         if codigo_cliente not in ordens_por_cliente:
@@ -377,6 +377,16 @@ class ContratoService:
                 break
             pagina += 1
         return ordens
+
+    @staticmethod
+    def _codigo_omie_inteiro(valor):
+        texto = str(valor or "").strip()
+        if not texto:
+            return None
+        try:
+            return int(texto)
+        except (TypeError, ValueError):
+            return None
 
     @classmethod
     def _selecionar_ordem_servico_setup(cls, contrato, ordens):

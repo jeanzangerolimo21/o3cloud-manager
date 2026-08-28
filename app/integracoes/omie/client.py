@@ -32,6 +32,7 @@ class OmieClient:
 
         ultimo_erro = None
         for tentativa in range(3):
+            response = None
             try:
                 response = requests.post(
                     url,
@@ -43,9 +44,9 @@ class OmieClient:
             except requests.RequestException as erro:
                 ultimo_erro = erro
                 if tentativa == 2:
-                    raise
+                    raise RuntimeError(_erro_omie(call, response, erro)) from erro
                 time.sleep(2 ** tentativa)
-        raise ultimo_erro
+        raise RuntimeError(str(ultimo_erro))
 
     # -----------------------------------------
     # CLIENTES
@@ -122,7 +123,7 @@ class OmieClient:
 
             "StatusOS",
 
-            {"nCodOS": codigo_os}
+            {"nCodOS": int(codigo_os)}
 
         )
 
@@ -197,3 +198,16 @@ class OmieClient:
             params
 
         )
+
+def _erro_omie(call, response, erro):
+    if response is None:
+        return f"Omie {call} falhou: {erro}"
+    detalhe = ""
+    try:
+        corpo = response.json()
+        detalhe = corpo.get("faultstring") or corpo.get("description") or corpo.get("message") or str(corpo)
+    except ValueError:
+        detalhe = response.text or str(erro)
+    detalhe = " ".join(str(detalhe).split())[:300]
+    return f"Omie {call} falhou HTTP {response.status_code}: {detalhe}"
+
