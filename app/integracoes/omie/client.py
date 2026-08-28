@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 import time
 from dotenv import load_dotenv
@@ -43,6 +44,10 @@ class OmieClient:
                 return response.json()
             except requests.RequestException as erro:
                 ultimo_erro = erro
+                espera_redundante = _espera_consumo_redundante(response)
+                if espera_redundante and tentativa < 2:
+                    time.sleep(espera_redundante)
+                    continue
                 if tentativa == 2:
                     raise RuntimeError(_erro_omie(call, response, erro)) from erro
                 time.sleep(2 ** tentativa)
@@ -202,12 +207,26 @@ class OmieClient:
 def _erro_omie(call, response, erro):
     if response is None:
         return f"Omie {call} falhou: {erro}"
-    detalhe = ""
+    detalhe = _detalhe_resposta_omie(response) or str(erro)
+    return f"Omie {call} falhou HTTP {response.status_code}: {detalhe[:300]}"
+
+
+def _espera_consumo_redundante(response):
+    detalhe = _detalhe_resposta_omie(response)
+    if "REDUNDANT" not in detalhe.upper():
+        return None
+    match = re.search(r"Aguarde\s+(\d+)\s+segundos", detalhe, re.IGNORECASE)
+    segundos = int(match.group(1)) if match else 60
+    return min(max(segundos + 2, 5), 70)
+
+
+def _detalhe_resposta_omie(response):
+    if response is None:
+        return ""
     try:
         corpo = response.json()
         detalhe = corpo.get("faultstring") or corpo.get("description") or corpo.get("message") or str(corpo)
     except ValueError:
-        detalhe = response.text or str(erro)
-    detalhe = " ".join(str(detalhe).split())[:300]
-    return f"Omie {call} falhou HTTP {response.status_code}: {detalhe}"
+        detalhe = response.text or ""
+    return " ".join(str(detalhe).split())
 
