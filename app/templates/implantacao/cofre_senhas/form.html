@@ -212,9 +212,7 @@
                                                     <i class="bi bi-paperclip text-primary"></i>
                                                     <span class="text-truncate" title="{{ anexo.arquivo_original }}">{{ anexo.arquivo_original }}</span>
                                                 </a>
-                                                <form method="POST" action="{{ url_for('implantacao.excluir_anexo_senha_cofre', anexo_id=anexo.id) }}" onsubmit="return confirm('Excluir este arquivo vinculado?');">
-                                                    <button class="btn btn-sm btn-outline-danger" type="submit" title="Excluir arquivo"><i class="bi bi-trash"></i></button>
-                                                </form>
+                                                <button class="btn btn-sm btn-outline-danger" type="submit" form="excluir_anexo_{{ anexo.id }}" title="Excluir arquivo"><i class="bi bi-trash"></i></button>
                                             </div>
                                         {% endfor %}
                                     </div>
@@ -260,6 +258,11 @@
                         </div>
                         <div class="text-end mt-4"><button class="btn btn-primary"><i class="bi bi-floppy"></i> Salvar</button></div>
                     </form>
+                    {% if modo == 'editar' and anexos %}
+                        {% for anexo in anexos %}
+                            <form id="excluir_anexo_{{ anexo.id }}" method="POST" action="{{ url_for('implantacao.excluir_anexo_senha_cofre', anexo_id=anexo.id) }}" onsubmit="return confirm('Excluir este arquivo vinculado?');"></form>
+                        {% endfor %}
+                    {% endif %}
                 </div>
             </div>
         </div>

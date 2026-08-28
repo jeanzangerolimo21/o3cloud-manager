@@ -3,6 +3,7 @@ from datetime import date
 from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 
 from app.core.auditoria import registrar_evento
+from app.configuracoes.sincronismos_service import SincronismosAgendadosService
 from app.contratos.service import ContratoService
 from app.propostas.service import PropostaService
 from app.implantacao.service import ImplantacaoService
@@ -78,6 +79,23 @@ def sincronizar_omie():
         )
     return redirect(url_for("contratos.index"))
 
+
+@contratos_bp.route("/sincronizar-setups-omie", methods=["POST"])
+def sincronizar_setups_omie():
+    try:
+        resultado = SincronismosAgendadosService.executar_manual_por_tipo("OMIE_SETUP_CONTRATOS", _email_usuario_logado())
+        registrar_evento("CONTRATOS_SETUP_OMIE_SINCRONIZADOS", "contratos", None, {"resultado": resultado})
+    except Exception as erro:
+        flash(f"Erro ao sincronizar setups Omie: {erro}", "danger")
+    else:
+        flash(resultado, "success" if ": OK -" in resultado else "warning")
+    return redirect(url_for("contratos.index"))
+
+
+def _email_usuario_logado():
+    from flask import session
+
+    return session.get("usuario_email") or session.get("email") or "sistema"
 
 @contratos_bp.route("/")
 def index():
@@ -184,6 +202,21 @@ def editar(contrato_id):
     return render_template("contratos/form.html", contrato=contrato, modo="editar", **contexto)
 
 
+@contratos_bp.route("/<int:contrato_id>/sincronizar-setup-omie", methods=["POST"])
+def sincronizar_setup_omie(contrato_id):
+    try:
+        resultado = ContratoService.sincronizar_setup_omie(contrato_id)
+        registrar_evento("CONTRATO_SETUP_OMIE_SINCRONIZADO", "contratos", contrato_id, resultado)
+    except ValueError as erro:
+        flash(str(erro), "warning")
+    except Exception as erro:
+        flash(f"Erro ao sincronizar setup no Omie: {erro}", "danger")
+    else:
+        status = ContratoService.SETUP_OMIE_STATUS_OPTIONS.get(resultado.get("setup_omie_status"), resultado.get("setup_omie_status"))
+        numero = resultado.get("setup_omie_numero_os") or resultado.get("setup_omie_codigo_os") or "sem numero"
+        flash(f"Setup Omie atualizado: OS {numero} - {status}.", "success")
+    return redirect(url_for("contratos.view", contrato_id=contrato_id))
+
 @contratos_bp.route("/<int:contrato_id>/iniciar-implantacao", methods=["POST"])
 def iniciar_implantacao(contrato_id):
     try:
@@ -256,4 +289,6 @@ def view(contrato_id):
         reajuste_status_labels=ReajusteContratoService.STATUS_LABELS,
         reajuste_status_classes=ReajusteContratoService.STATUS_CLASSES,
         status_options=ContratoService.STATUS_OPTIONS,
+        setup_omie_status_options=ContratoService.SETUP_OMIE_STATUS_OPTIONS,
+        setup_omie_status_classes=ContratoService.SETUP_OMIE_STATUS_CLASSES,
     )

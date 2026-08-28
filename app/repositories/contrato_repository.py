@@ -49,6 +49,7 @@ class ContratoRepository(BaseRepository):
                 cli.cnpj AS cliente_cnpj,
                 cli.email AS cliente_email,
                 cli.telefone AS cliente_telefone,
+                cli.codigo_externo AS cliente_codigo_externo,
                 exec.nome AS executivo_nome,
                 exec.email AS executivo_email,
                 p.nome AS parceiro_nome
@@ -100,6 +101,13 @@ class ContratoRepository(BaseRepository):
                 c.valor_mensal,
                 c.valor_setup,
                 c.valor_projeto,
+                c.setup_omie_status,
+                c.setup_omie_codigo_os,
+                c.setup_omie_numero_os,
+                c.setup_omie_valor_total,
+                c.setup_omie_parcelas,
+                c.setup_omie_faturamento_status,
+                c.setup_omie_sincronizado_em,
                 c.valor_promocional,
                 c.valor_servicos_bruto,
                 c.valor_descontos,
@@ -428,6 +436,34 @@ class ContratoRepository(BaseRepository):
         return contrato_id
 
     @classmethod
+    def listar_para_setup_omie(cls, limit=1000):
+        return cls.fetch_all(
+            """
+            SELECT
+                c.id,
+                c.cliente_id,
+                c.codigo_externo,
+                c.numero,
+                c.origem,
+                c.status,
+                c.data_fechamento,
+                c.inicio_vigencia,
+                cli.codigo_externo AS cliente_codigo_externo,
+                cli.nome_fantasia AS cliente_nome,
+                cli.razao_social AS cliente_razao_social
+            FROM contratos c
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            WHERE c.ativo = 1
+              AND cli.codigo_externo IS NOT NULL
+              AND cli.codigo_externo <> ''
+              AND c.status NOT IN ('CANCELADO', 'ENCERRADO')
+            ORDER BY COALESCE(c.setup_omie_sincronizado_em, '1970-01-01'), c.id
+            LIMIT %s
+            """,
+            (limit,),
+        )
+
+    @classmethod
     def listar_omie_ativos_para_vinculos_comerciais(cls):
         return cls.fetch_all(
             """
@@ -451,6 +487,46 @@ class ContratoRepository(BaseRepository):
               AND ativo = 1
             """,
             (parceiro_id, executivo_id, contrato_id, ORIGEM_OMIE),
+        )
+
+    @classmethod
+    def atualizar_setup_omie(cls, contrato_id, dados):
+        return cls.execute(
+            """
+            UPDATE contratos
+            SET valor_setup = COALESCE(%s, valor_setup),
+                setup_omie_status = %s,
+                setup_omie_codigo_os = %s,
+                setup_omie_numero_os = %s,
+                setup_omie_valor_total = %s,
+                setup_omie_parcelas = %s,
+                setup_omie_etapa = %s,
+                setup_omie_faturamento_status = %s,
+                setup_omie_data_previsao = %s,
+                setup_omie_data_faturamento = %s,
+                setup_omie_data_cancelamento = %s,
+                setup_omie_descricao = %s,
+                setup_omie_observacao = %s,
+                setup_omie_sincronizado_em = NOW()
+            WHERE id = %s
+              AND ativo = 1
+            """,
+            (
+                dados.get("valor_setup"),
+                dados.get("setup_omie_status"),
+                dados.get("setup_omie_codigo_os"),
+                dados.get("setup_omie_numero_os"),
+                dados.get("setup_omie_valor_total"),
+                dados.get("setup_omie_parcelas"),
+                dados.get("setup_omie_etapa"),
+                dados.get("setup_omie_faturamento_status"),
+                dados.get("setup_omie_data_previsao"),
+                dados.get("setup_omie_data_faturamento"),
+                dados.get("setup_omie_data_cancelamento"),
+                dados.get("setup_omie_descricao"),
+                dados.get("setup_omie_observacao"),
+                contrato_id,
+            ),
         )
 
     @classmethod

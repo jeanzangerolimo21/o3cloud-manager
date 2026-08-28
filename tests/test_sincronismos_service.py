@@ -15,3 +15,10 @@ def test_horario_execucao_e_formatado():
 def test_horario_execucao_invalido():
     with pytest.raises(ValueError):
         SincronismosAgendadosService._normalizar_horario("25:90")
+
+
+def test_tipo_omie_setup_contratos_tem_handler():
+    handler = SincronismosAgendadosService._handler("OMIE_SETUP_CONTRATOS")
+
+    assert handler == SincronismosAgendadosService._sincronizar_omie_setup_contratos
+    assert SincronismosAgendadosService.TIPOS["OMIE_SETUP_CONTRATOS"]["nome"] == "Omie - Setup dos Contratos"

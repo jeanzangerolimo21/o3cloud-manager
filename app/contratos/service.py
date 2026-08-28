@@ -8,6 +8,7 @@ from app.core.pdf_assinatura import extrair_data_assinatura_pdf
 from app.core.storage import StorageService
 from app.integracoes.omie.client import OmieClient
 from app.integracoes.omie.contrato_mapper import ContratoMapper
+from app.integracoes.omie.ordem_servico_mapper import OrdemServicoMapper
 from app.parceiros.executivo_service import ParceiroExecutivoService
 from app.parceiros.service import ParceiroService
 from app.propostas.service import PropostaService
@@ -16,6 +17,9 @@ from app.repositories.contrato_repository import ContratoRepository
 
 
 class ContratoService:
+    SETUP_OMIE_STATUS_OPTIONS = OrdemServicoMapper.STATUS_LABELS
+    SETUP_OMIE_STATUS_CLASSES = OrdemServicoMapper.STATUS_CLASSES
+
     STATUS_OPTIONS = {
         "RASCUNHO": "Rascunho",
         "ENVIADO_CLICKSIGN": "Enviado ClickSign",
@@ -282,6 +286,157 @@ class ContratoService:
             pagina += 1
 
         return cadastros
+
+    @classmethod
+    def sincronizar_setup_omie(cls, contrato_id, omie_client=None):
+        contrato = ContratoRepository.buscar_por_id(contrato_id)
+        if not contrato:
+            raise ValueError("Contrato nao encontrado.")
+        return cls._sincronizar_setup_omie_contrato(contrato, omie_client or OmieClient())
+
+    @classmethod
+    def sincronizar_setups_omie(cls, limite=1000, omie_client=None):
+        omie = omie_client or OmieClient()
+        contratos = ContratoRepository.listar_para_setup_omie(limite)
+        ordens_por_cliente = {}
+        resultado = {
+            "processados": 0,
+            "atualizados": 0,
+            "nao_encontrados": 0,
+            "ignorados": 0,
+            "erros": 0,
+            "mensagens": [],
+        }
+
+        for contrato in contratos:
+            resultado["processados"] += 1
+            try:
+                dados = cls._sincronizar_setup_omie_contrato(contrato, omie, ordens_por_cliente)
+            except ValueError as erro:
+                resultado["ignorados"] += 1
+                resultado["mensagens"].append(f"Contrato {contrato.get('numero') or contrato.get('id')}: {erro}")
+                continue
+            except Exception as erro:
+                resultado["erros"] += 1
+                resultado["mensagens"].append(f"Contrato {contrato.get('numero') or contrato.get('id')}: {erro}")
+                continue
+
+            if dados.get("setup_omie_status") == "NAO_ENCONTRADO":
+                resultado["nao_encontrados"] += 1
+            else:
+                resultado["atualizados"] += 1
+
+        resultado["status"] = "ERRO" if resultado["erros"] else "OK"
+        resultado["mensagem"] = (
+            "Setups Omie sincronizados. "
+            "Processados: {processados}. Atualizados: {atualizados}. "
+            "Nao encontrados: {nao_encontrados}. Ignorados: {ignorados}. Erros: {erros}."
+        ).format(**resultado)
+        return resultado
+
+    @classmethod
+    def _sincronizar_setup_omie_contrato(cls, contrato, omie, ordens_por_cliente=None):
+        codigo_cliente = contrato.get("cliente_codigo_externo")
+        if not codigo_cliente:
+            raise ValueError("Cliente sem codigo Omie. Cadastre/sincronize o cliente no Omie antes de buscar OS de setup.")
+
+        ordens_por_cliente = ordens_por_cliente if ordens_por_cliente is not None else {}
+        if codigo_cliente not in ordens_por_cliente:
+            ordens_por_cliente[codigo_cliente] = cls._listar_ordens_servico_cliente(omie, codigo_cliente)
+        ordens = ordens_por_cliente[codigo_cliente]
+
+        if not ordens:
+            dados = OrdemServicoMapper.nao_encontrado("Nenhuma ordem de servico encontrada no Omie para este cliente.")
+            ContratoRepository.atualizar_setup_omie(contrato["id"], dados)
+            return dados
+
+        ordem = cls._selecionar_ordem_servico_setup(contrato, ordens)
+        cabecalho = OrdemServicoMapper._grupo(ordem, "Cabecalho", "cabecalho")
+        status_resposta = {}
+        codigo_os = cabecalho.get("nCodOS")
+        if codigo_os:
+            status_resposta = omie.status_ordem_servico(codigo_os) or {}
+
+        dados = OrdemServicoMapper.from_omie(ordem, status_resposta, len(ordens))
+        ContratoRepository.atualizar_setup_omie(contrato["id"], dados)
+        return dados
+
+    @classmethod
+    def _listar_ordens_servico_cliente(cls, omie, codigo_cliente):
+        pagina = 1
+        ordens = []
+        while True:
+            resposta = omie.listar_ordens_servico(
+                pagina,
+                {"filtrar_por_cliente": codigo_cliente},
+            )
+            itens = resposta.get("osCadastro") or []
+            ordens.extend(itens)
+            total_paginas = resposta.get("total_de_paginas", pagina)
+            if pagina >= total_paginas:
+                break
+            pagina += 1
+        return ordens
+
+    @classmethod
+    def _selecionar_ordem_servico_setup(cls, contrato, ordens):
+        ordenadas = sorted(
+            ordens,
+            key=lambda ordem: cls._score_ordem_servico_setup(contrato, ordem),
+            reverse=True,
+        )
+        return ordenadas[0]
+
+    @classmethod
+    def _score_ordem_servico_setup(cls, contrato, ordem):
+        cabecalho = OrdemServicoMapper._grupo(ordem, "Cabecalho", "cabecalho")
+        adicionais = OrdemServicoMapper._grupo(ordem, "InformacoesAdicionais", "informacoesAdicionais", "infAdic")
+        info = OrdemServicoMapper._grupo(ordem, "InfoCadastro", "infoCadastro", "info_cadastro")
+        texto = cls._normalizar_nome_vinculo(" ".join([
+            str(cabecalho.get("cNumOS") or ""),
+            str(cabecalho.get("cNumCtr") or ""),
+            str(cabecalho.get("nCodCtr") or ""),
+            str(adicionais.get("cNumContrato") or ""),
+            OrdemServicoMapper._descricao(ordem) or "",
+        ]))
+
+        score = 0
+        numero = cls._normalizar_nome_vinculo(contrato.get("numero"))
+        if numero and numero in texto:
+            score += 80
+
+        codigo_contrato = str(contrato.get("codigo_externo") or "").strip()
+        if codigo_contrato and codigo_contrato in texto:
+            score += 60
+
+        if any(termo in texto for termo in ("SETUP", "IMPLANTACAO", "INSTALACAO", "PROJETO")):
+            score += 40
+
+        if str(info.get("cCancelada") or "").strip().upper() == "S":
+            score -= 30
+        if str(info.get("cFaturada") or "").strip().upper() == "S":
+            score += 10
+
+        valor = OrdemServicoMapper._decimal(cabecalho.get("nValorTotal")) or Decimal("0.00")
+        if valor > 0:
+            score += 5
+
+        data_ref = OrdemServicoMapper._data(cabecalho.get("dDtPrevisao"))
+        data_contrato = contrato.get("data_fechamento") or contrato.get("inicio_vigencia")
+        if data_ref and data_contrato:
+            try:
+                distancia = abs((data_ref - data_contrato).days)
+                if distancia <= 90:
+                    score += max(0, 20 - distancia // 5)
+            except TypeError:
+                pass
+
+        codigo_os = cabecalho.get("nCodOS")
+        try:
+            score += int(codigo_os or 0) / 1000000000000
+        except (TypeError, ValueError):
+            pass
+        return score
 
     @classmethod
     def listar(cls, filtros, pagina=1, limit=50):

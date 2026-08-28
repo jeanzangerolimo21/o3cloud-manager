@@ -1,4 +1,5 @@
 from app.parceiros.executivo_service import ParceiroExecutivoService
+from app.repositories.cliente_repository import ClienteRepository
 from app.repositories.contato_repository import ContatoRepository
 from app.repositories.lead_repository import LeadRepository
 from app.repositories.parceiro_executivo_repository import ParceiroExecutivoRepository
@@ -25,6 +26,8 @@ CANAL_PREFERIDO = {
     "OUTRO": "Outro",
 }
 
+
+FORM_LIMIT = 1000
 
 class ContatoService:
 
@@ -69,6 +72,10 @@ class ContatoService:
         return LeadRepository.listar_todos_ativos()
 
     @classmethod
+    def listar_clientes(cls):
+        return ClienteRepository.listar(limit=FORM_LIMIT, offset=0)
+
+    @classmethod
     def listar_todos_ativos(cls, tipo_contato=None):
         contatos = cls.repository.listar_todos_ativos()
         contatos = [cls._formatar_contato(contato) for contato in contatos]
@@ -106,6 +113,7 @@ class ContatoService:
     def normalizar(cls, dados):
         dados = dict(dados)
         dados["lead_id"] = cls._normalizar_inteiro(dados.get("lead_id"))
+        dados["cliente_id"] = cls._normalizar_inteiro(dados.get("cliente_id"))
         dados["parceiro_id"] = cls._normalizar_inteiro(dados.get("parceiro_id"))
         dados["executivo_responsavel_id"] = cls._normalizar_inteiro(dados.get("executivo_responsavel_id"))
         dados["empresa"] = (dados.get("empresa") or "").strip()
@@ -136,6 +144,12 @@ class ContatoService:
 
         if dados["empresa"] and len(dados["empresa"]) > 150:
             raise ValueError("Empresa deve possuir no máximo 150 caracteres.")
+
+        if dados["cliente_id"]:
+            cliente = ClienteRepository.buscar_por_id(dados["cliente_id"])
+            if not cliente:
+                raise ValueError("Cliente vinculado não encontrado.")
+            dados["empresa"] = (cliente.get("nome_fantasia") or cliente.get("razao_social") or dados["empresa"] or "")[:150]
 
         if len(dados["nome"]) > 150:
             raise ValueError("Nome do contato deve possuir no máximo 150 caracteres.")

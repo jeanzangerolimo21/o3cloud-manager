@@ -12,6 +12,8 @@ class ContatoRepository(BaseRepository):
             FROM {cls.TABLE} c
             LEFT JOIN crm_leads l
                 ON l.id = c.lead_id
+            LEFT JOIN clientes cli
+                ON cli.id = c.cliente_id
             LEFT JOIN parceiros p
                 ON p.id = c.parceiro_id
             LEFT JOIN parceiros_executivos pe
@@ -27,6 +29,8 @@ class ContatoRepository(BaseRepository):
             AND (
                 c.nome LIKE %s
                 OR COALESCE(c.empresa, '') LIKE %s
+                OR COALESCE(cli.nome_fantasia, cli.razao_social, '') LIKE %s
+                OR COALESCE(cli.cnpj, '') LIKE %s
                 OR COALESCE(c.email, '') LIKE %s
                 OR COALESCE(c.telefone, '') LIKE %s
                 OR COALESCE(c.whatsapp, '') LIKE %s
@@ -35,7 +39,7 @@ class ContatoRepository(BaseRepository):
                 OR COALESCE(pe.nome, '') LIKE %s
             )
             """
-            params.extend([termo, termo, termo, termo, termo, termo, termo, termo])
+            params.extend([termo, termo, termo, termo, termo, termo, termo, termo, termo, termo])
 
         if tipo_contato:
             sql += """
@@ -56,6 +60,7 @@ class ContatoRepository(BaseRepository):
                 c.id,
                 c.uuid,
                 c.lead_id,
+                c.cliente_id,
                 c.parceiro_id,
                 c.executivo_responsavel_id,
                 c.empresa,
@@ -73,11 +78,16 @@ class ContatoRepository(BaseRepository):
                 c.created_at,
                 c.updated_at,
                 l.empresa AS lead_empresa,
+                COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_exibicao,
+                cli.cnpj AS cliente_cnpj,
+                cli.origem AS cliente_origem,
                 COALESCE(p.nome_fantasia, p.nome, p.razao_social) AS parceiro_exibicao,
                 pe.nome AS executivo_responsavel_nome
             FROM {cls.TABLE} c
             LEFT JOIN crm_leads l
                 ON l.id = c.lead_id
+            LEFT JOIN clientes cli
+                ON cli.id = c.cliente_id
             LEFT JOIN parceiros p
                 ON p.id = c.parceiro_id
             LEFT JOIN parceiros_executivos pe
@@ -93,6 +103,8 @@ class ContatoRepository(BaseRepository):
             AND (
                 c.nome LIKE %s
                 OR COALESCE(c.empresa, '') LIKE %s
+                OR COALESCE(cli.nome_fantasia, cli.razao_social, '') LIKE %s
+                OR COALESCE(cli.cnpj, '') LIKE %s
                 OR COALESCE(c.email, '') LIKE %s
                 OR COALESCE(c.telefone, '') LIKE %s
                 OR COALESCE(c.whatsapp, '') LIKE %s
@@ -101,7 +113,7 @@ class ContatoRepository(BaseRepository):
                 OR COALESCE(pe.nome, '') LIKE %s
             )
             """
-            params.extend([termo, termo, termo, termo, termo, termo, termo, termo])
+            params.extend([termo, termo, termo, termo, termo, termo, termo, termo, termo, termo])
 
         if tipo_contato:
             sql += """
@@ -125,17 +137,21 @@ class ContatoRepository(BaseRepository):
     def listar_todos_ativos(cls):
         sql = f"""
             SELECT
-                id,
-                nome,
-                empresa,
-                cpf,
-                email,
-                telefone,
-                whatsapp,
-                tipo_contato
-            FROM {cls.TABLE}
-            WHERE ativo = 1
-            ORDER BY nome
+                c.id,
+                c.cliente_id,
+                c.nome,
+                c.empresa,
+                c.cpf,
+                c.email,
+                c.telefone,
+                c.whatsapp,
+                c.tipo_contato,
+                COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_exibicao
+            FROM {cls.TABLE} c
+            LEFT JOIN clientes cli
+                ON cli.id = c.cliente_id
+            WHERE c.ativo = 1
+            ORDER BY c.nome
         """
         return cls.fetch_all(sql)
 
@@ -146,6 +162,7 @@ class ContatoRepository(BaseRepository):
                 c.id,
                 c.uuid,
                 c.lead_id,
+                c.cliente_id,
                 c.parceiro_id,
                 c.executivo_responsavel_id,
                 c.empresa,
@@ -164,11 +181,16 @@ class ContatoRepository(BaseRepository):
                 c.created_at,
                 c.updated_at,
                 l.empresa AS lead_empresa,
+                COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_exibicao,
+                cli.cnpj AS cliente_cnpj,
+                cli.origem AS cliente_origem,
                 COALESCE(p.nome_fantasia, p.nome, p.razao_social) AS parceiro_exibicao,
                 pe.nome AS executivo_responsavel_nome
             FROM {cls.TABLE} c
             LEFT JOIN crm_leads l
                 ON l.id = c.lead_id
+            LEFT JOIN clientes cli
+                ON cli.id = c.cliente_id
             LEFT JOIN parceiros p
                 ON p.id = c.parceiro_id
             LEFT JOIN parceiros_executivos pe
@@ -185,6 +207,7 @@ class ContatoRepository(BaseRepository):
             (
                 uuid,
                 lead_id,
+                cliente_id,
                 parceiro_id,
                 executivo_responsavel_id,
                 empresa,
@@ -203,7 +226,7 @@ class ContatoRepository(BaseRepository):
             )
             VALUES
             (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
         """
 
@@ -212,6 +235,7 @@ class ContatoRepository(BaseRepository):
             (
                 cls.generate_uuid(),
                 dados.get("lead_id"),
+                dados.get("cliente_id"),
                 dados.get("parceiro_id"),
                 dados.get("executivo_responsavel_id"),
                 dados.get("empresa"),
@@ -235,6 +259,7 @@ class ContatoRepository(BaseRepository):
         sql = f"""
             UPDATE {cls.TABLE}
             SET lead_id = %s,
+                cliente_id = %s,
                 parceiro_id = %s,
                 executivo_responsavel_id = %s,
                 empresa = %s,
@@ -257,6 +282,7 @@ class ContatoRepository(BaseRepository):
             sql,
             (
                 dados.get("lead_id"),
+                dados.get("cliente_id"),
                 dados.get("parceiro_id"),
                 dados.get("executivo_responsavel_id"),
                 dados.get("empresa"),

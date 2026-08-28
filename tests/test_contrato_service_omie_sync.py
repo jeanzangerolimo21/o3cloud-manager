@@ -20,10 +20,26 @@ class ContratoRepoFake:
     inseridos = []
     duplicados_desativados = []
     ausentes = []
+    contrato_por_id = {
+        77: {
+            "id": 77,
+            "cliente_id": 10,
+            "cliente_codigo_externo": 1001,
+            "codigo_externo": 222,
+            "numero": "CTR-222",
+            "data_fechamento": None,
+            "inicio_vigencia": None,
+        }
+    }
+    setup_updates = []
 
     @classmethod
     def buscar_por_codigo_externo(cls, codigo_externo):
         return cls.contrato_por_codigo.get(codigo_externo)
+
+    @classmethod
+    def buscar_por_id(cls, contrato_id):
+        return cls.contrato_por_id.get(contrato_id)
 
     @classmethod
     def buscar_manual_por_numero(cls, cliente_id, numero):
@@ -55,6 +71,14 @@ class ContratoRepoFake:
     def desativar_omie_ativos_ausentes(cls, codigos_externos):
         cls.ausentes.append(set(codigos_externos))
         return 2
+
+    @classmethod
+    def atualizar_setup_omie(cls, contrato_id, dados):
+        cls.setup_updates.append((contrato_id, dados.copy()))
+
+    @classmethod
+    def listar_para_setup_omie(cls, limit=1000):
+        return list(cls.contrato_por_id.values())
 
 
 class ReajusteFake:
@@ -94,6 +118,18 @@ def setup_function():
     ContratoRepoFake.inseridos = []
     ContratoRepoFake.duplicados_desativados = []
     ContratoRepoFake.ausentes = []
+    ContratoRepoFake.contrato_por_id = {
+        77: {
+            "id": 77,
+            "cliente_id": 10,
+            "cliente_codigo_externo": 1001,
+            "codigo_externo": 222,
+            "numero": "CTR-222",
+            "data_fechamento": None,
+            "inicio_vigencia": None,
+        }
+    }
+    ContratoRepoFake.setup_updates = []
     ReajusteFake.historicos = []
 
 
@@ -167,3 +203,79 @@ def test_resolver_vinculo_vendedor_omie_por_prefixo_da_planilha():
 
     assert vinculos["parceiro_id"] == 7
     assert vinculos["executivo_id"] is None
+
+
+class OmieOSFake:
+    def __init__(self, ordens):
+        self.ordens = ordens
+        self.status_calls = []
+
+    def listar_ordens_servico(self, pagina=1, filtros=None):
+        return {"osCadastro": self.ordens, "total_de_paginas": 1}
+
+    def status_ordem_servico(self, codigo_os):
+        self.status_calls.append(codigo_os)
+        return {"nCodOS": codigo_os, "cFaturada": "S", "dDtFat": "20/08/2026", "nValorTot": 1250.50}
+
+
+def _os(codigo, numero, descricao, valor="100.00", parcelas=1, faturada="N", cancelada="N"):
+    return {
+        "Cabecalho": {
+            "nCodOS": codigo,
+            "cNumOS": numero,
+            "nCodCli": 1001,
+            "nValorTotal": valor,
+            "nQtdeParc": parcelas,
+            "cEtapa": "50",
+        },
+        "InfoCadastro": {"cFaturada": faturada, "cCancelada": cancelada},
+        "ServicosPrestados": [{"cDescServ": descricao, "nQtde": 1, "nValUnit": valor}],
+    }
+
+
+def test_sincronizar_setup_omie_marca_nao_encontrado_quando_cliente_sem_os():
+    resultado = ContratoService.sincronizar_setup_omie(77, OmieOSFake([]))
+
+    assert resultado["setup_omie_status"] == "NAO_ENCONTRADO"
+    assert ContratoRepoFake.setup_updates[0][0] == 77
+    assert ContratoRepoFake.setup_updates[0][1]["valor_setup"] is None
+
+
+def test_sincronizar_setup_omie_atualiza_valor_parcelas_e_status_faturado():
+    omie = OmieOSFake([_os(900, "OS-900", "Setup implantacao O3", "1250.50", 3)])
+
+    resultado = ContratoService.sincronizar_setup_omie(77, omie)
+
+    assert resultado["setup_omie_status"] == "FATURADO"
+    assert resultado["setup_omie_numero_os"] == "OS-900"
+    assert resultado["setup_omie_parcelas"] == 3
+    assert resultado["valor_setup"] == Decimal("1250.50")
+    assert omie.status_calls == [900]
+    assert ContratoRepoFake.setup_updates[0][1]["setup_omie_faturamento_status"] == "FATURADO"
+
+
+def test_selecionar_ordem_servico_setup_prioriza_descricao_de_setup():
+    ordens = [
+        _os(901, "OS-901", "Treinamento avulso", "500.00", 1),
+        _os(902, "OS-902", "Projeto e instalacao inicial", "1200.00", 2),
+    ]
+
+    escolhida = ContratoService._selecionar_ordem_servico_setup(ContratoRepoFake.contrato_por_id[77], ordens)
+
+    assert escolhida["Cabecalho"]["nCodOS"] == 902
+
+
+def test_sincronizar_setups_omie_processa_lote_com_cache_por_cliente():
+    ContratoRepoFake.contrato_por_id = {
+        77: ContratoRepoFake.contrato_por_id[77],
+        78: {**ContratoRepoFake.contrato_por_id[77], "id": 78, "numero": "CTR-223"},
+    }
+    omie = OmieOSFake([_os(900, "OS-900", "Setup implantacao O3", "1250.50", 3)])
+
+    resultado = ContratoService.sincronizar_setups_omie(omie_client=omie)
+
+    assert resultado["status"] == "OK"
+    assert resultado["processados"] == 2
+    assert resultado["atualizados"] == 2
+    assert len(ContratoRepoFake.setup_updates) == 2
+    assert len(omie.status_calls) == 2

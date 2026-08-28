@@ -1,0 +1,16 @@
+ALTER TABLE contratos
+    ADD COLUMN IF NOT EXISTS setup_omie_status VARCHAR(30) NOT NULL DEFAULT 'NAO_SINCRONIZADO' AFTER valor_projeto,
+    ADD COLUMN IF NOT EXISTS setup_omie_codigo_os BIGINT NULL AFTER setup_omie_status,
+    ADD COLUMN IF NOT EXISTS setup_omie_numero_os VARCHAR(30) NULL AFTER setup_omie_codigo_os,
+    ADD COLUMN IF NOT EXISTS setup_omie_valor_total DECIMAL(15,2) NULL AFTER setup_omie_numero_os,
+    ADD COLUMN IF NOT EXISTS setup_omie_parcelas INT NULL AFTER setup_omie_valor_total,
+    ADD COLUMN IF NOT EXISTS setup_omie_etapa VARCHAR(10) NULL AFTER setup_omie_parcelas,
+    ADD COLUMN IF NOT EXISTS setup_omie_faturamento_status VARCHAR(40) NULL AFTER setup_omie_etapa,
+    ADD COLUMN IF NOT EXISTS setup_omie_data_previsao DATE NULL AFTER setup_omie_faturamento_status,
+    ADD COLUMN IF NOT EXISTS setup_omie_data_faturamento DATE NULL AFTER setup_omie_data_previsao,
+    ADD COLUMN IF NOT EXISTS setup_omie_data_cancelamento DATE NULL AFTER setup_omie_data_faturamento,
+    ADD COLUMN IF NOT EXISTS setup_omie_descricao VARCHAR(500) NULL AFTER setup_omie_data_cancelamento,
+    ADD COLUMN IF NOT EXISTS setup_omie_observacao TEXT NULL AFTER setup_omie_descricao,
+    ADD COLUMN IF NOT EXISTS setup_omie_sincronizado_em DATETIME NULL AFTER setup_omie_observacao,
+    ADD INDEX IF NOT EXISTS idx_contratos_setup_omie_status (setup_omie_status),
+    ADD INDEX IF NOT EXISTS idx_contratos_setup_omie_codigo_os (setup_omie_codigo_os);

@@ -55,6 +55,7 @@ def novo():
     parceiros = ContatoService.listar_parceiros()
     executivos = ContatoService.listar_executivos()
     leads = ContatoService.listar_leads()
+    clientes = ContatoService.listar_clientes()
 
     if request.method == "POST":
         dados = _coletar_dados_form()
@@ -69,6 +70,7 @@ def novo():
                 parceiros=parceiros,
                 executivos=executivos,
                 leads=leads,
+                clientes=clientes,
                 tipo_options=TIPO_CONTATO,
                 canal_options=CANAL_PREFERIDO,
             )
@@ -83,6 +85,7 @@ def novo():
         parceiros=parceiros,
         executivos=executivos,
         leads=leads,
+        clientes=clientes,
         tipo_options=TIPO_CONTATO,
         canal_options=CANAL_PREFERIDO,
     )
@@ -110,6 +113,7 @@ def editar(contato_id):
     parceiros = ContatoService.listar_parceiros()
     executivos = ContatoService.listar_executivos()
     leads = ContatoService.listar_leads()
+    clientes = ContatoService.listar_clientes()
 
     if not contato:
         flash("Contato não encontrado.", "danger")
@@ -130,6 +134,7 @@ def editar(contato_id):
                 parceiros=parceiros,
                 executivos=executivos,
                 leads=leads,
+                clientes=clientes,
                 tipo_options=TIPO_CONTATO,
                 canal_options=CANAL_PREFERIDO,
             )
@@ -144,6 +149,7 @@ def editar(contato_id):
         parceiros=parceiros,
         executivos=executivos,
         leads=leads,
+        clientes=clientes,
         tipo_options=TIPO_CONTATO,
         canal_options=CANAL_PREFERIDO,
     )
@@ -173,6 +179,7 @@ def excluir(contato_id):
 def _coletar_dados_form():
     return {
         "lead_id": request.form.get("lead_id"),
+        "cliente_id": request.form.get("cliente_id"),
         "parceiro_id": request.form.get("parceiro_id"),
         "executivo_responsavel_id": request.form.get("executivo_responsavel_id"),
         "empresa": request.form.get("empresa"),
@@ -194,6 +201,7 @@ def _coletar_dados_form():
 def _contato_form_payload():
     return {
         "lead_id": request.form.get("lead_id"),
+        "cliente_id": request.form.get("cliente_id"),
         "parceiro_id": request.form.get("parceiro_id"),
         "executivo_responsavel_id": request.form.get("executivo_responsavel_id"),
         "empresa": request.form.get("empresa"),

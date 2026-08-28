@@ -30,6 +30,11 @@ class SincronismosAgendadosService:
             "descricao": "Historico de contas a receber e previsoes vinculadas aos contratos.",
             "icone": "bi-calendar2-check",
         },
+        "OMIE_SETUP_CONTRATOS": {
+            "nome": "Omie - Setup dos Contratos",
+            "descricao": "Ordens de servico de setup/implantacao vinculadas aos contratos.",
+            "icone": "bi-cloud-arrow-down",
+        },
         "ZABBIX": {
             "nome": "Zabbix",
             "descricao": "Hosts e alarmes recentes para cache operacional.",
@@ -266,6 +271,7 @@ class SincronismosAgendadosService:
             "OMIE": cls._sincronizar_omie,
             "OMIE_RECEBIMENTOS": cls._sincronizar_omie_recebimentos,
             "OMIE_FATURAMENTO_PREVISOES": cls._sincronizar_omie_faturamento_previsoes,
+            "OMIE_SETUP_CONTRATOS": cls._sincronizar_omie_setup_contratos,
             "ZABBIX": cls._sincronizar_zabbix,
             "PROXMOX": cls._sincronizar_proxmox,
             "CLICKSIGN": cls._sincronizar_clicksign,
@@ -323,6 +329,16 @@ class SincronismosAgendadosService:
                 "Processados: {processados}. Novos: {novos}. "
                 "Atualizados: {atualizados}. Ignorados: {ignorados}."
             ).format(**{chave: dados.get(chave, 0) for chave in ("processados", "novos", "atualizados", "ignorados")}),
+        }
+
+    @staticmethod
+    def _sincronizar_omie_setup_contratos(usuario_email):
+        from app.contratos.service import ContratoService
+
+        dados = ContratoService.sincronizar_setups_omie() or {}
+        return {
+            "status": dados.get("status") or "OK",
+            "mensagem": dados.get("mensagem") or "Setups Omie sincronizados.",
         }
 
     @staticmethod

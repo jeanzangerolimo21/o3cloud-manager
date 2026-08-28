@@ -24,6 +24,9 @@
         <a class="btn btn-sm btn-outline-info" href="{{ url_for('contratos.sincronizar_omie') }}" onclick="return confirm('Sincronizar contratos com o Omie agora?')">
             <i class="bi bi-arrow-repeat"></i> Sincronizar Omie
         </a>
+        <form method="POST" action="{{ url_for('contratos.sincronizar_setups_omie') }}" onsubmit="return confirm('Sincronizar setup Omie de todos os contratos ativos com cliente Omie?');">
+            <button class="btn btn-sm btn-outline-warning"><i class="bi bi-cloud-arrow-down"></i> Sync Setups Omie</button>
+        </form>
     </div>
 
     {% if pendencias_upload %}
@@ -114,7 +117,8 @@
                                     <span class="me-3">Fechamento: {{ contrato.data_fechamento|date_br if contrato.data_fechamento else '-' }}</span>
                                     {% if contrato.arquivo_assinado %}<span class="me-3">Assinado em: {{ contrato.clicksign_assinado_em|datetime_br if contrato.clicksign_assinado_em else '-' }}</span>{% endif %}
                                     <span class="me-3">{{ (contrato.valor_promocional or contrato.valor_mensal)|moeda }}/mes</span>
-                                    <span>Usuarios: {{ contrato.quantidade_usuarios or '-' }}</span>
+                                    <span class="me-3">Usuarios: {{ contrato.quantidade_usuarios or '-' }}</span>
+                                    {% if contrato.setup_omie_status and contrato.setup_omie_status != 'NAO_SINCRONIZADO' %}<span>Setup Omie: {{ contrato.setup_omie_status|replace('_', ' ')|title }}</span>{% endif %}
                                 </div>
                             </div>
                             <div class="d-flex flex-wrap align-items-start justify-content-lg-end gap-2" style="min-width: 280px;">

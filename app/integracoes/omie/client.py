@@ -14,6 +14,7 @@ class OmieClient:
     BASE_VENDEDORES = "https://app.omie.com.br/api/v1/geral/vendedores/"
     BASE_CONTAS_RECEBER = "https://app.omie.com.br/api/v1/financas/contareceber/"
     BASE_CATEGORIAS = "https://app.omie.com.br/api/v1/geral/categorias/"
+    BASE_OS = "https://app.omie.com.br/api/v1/servicos/os/"
 
     def __init__(self):
 
@@ -84,6 +85,44 @@ class OmieClient:
                 "apenas_importado_api": "N",
                 "cExibeObs": "S"
             }
+
+        )
+
+
+    # -----------------------------------------
+    # ORDENS DE SERVIÇO
+    # -----------------------------------------
+
+    def listar_ordens_servico(self, pagina=1, filtros=None):
+
+        params = {
+            "pagina": pagina,
+            "registros_por_pagina": 100,
+            "apenas_importado_api": "N",
+            "ordem_descrescente": "S",
+        }
+        if filtros:
+            params.update(filtros)
+
+        return self._post(
+
+            self.BASE_OS,
+
+            "ListarOS",
+
+            params
+
+        )
+
+    def status_ordem_servico(self, codigo_os):
+
+        return self._post(
+
+            self.BASE_OS,
+
+            "StatusOS",
+
+            {"nCodOS": codigo_os}
 
         )
 

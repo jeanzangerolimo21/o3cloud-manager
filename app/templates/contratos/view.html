@@ -22,6 +22,9 @@
             {% if contrato.origem == 'OMIE' %}
                 <button class="btn btn-outline-warning" type="button" data-bs-toggle="modal" data-bs-target="#modalCalculadoraOmie"><i class="bi bi-calculator"></i> Calculadora</button>
             {% endif %}
+            <form method="POST" action="{{ url_for('contratos.sincronizar_setup_omie', contrato_id=contrato.id) }}" onsubmit="return confirm('Buscar ordem de serviço de setup no Omie para este cliente?')">
+                <button class="btn btn-outline-info"><i class="bi bi-cloud-arrow-down"></i> Sync Setup Omie</button>
+            </form>
             {% if contrato.arquivo_assinado %}
                 <a href="{{ url_for('contratos.abrir', contrato_id=contrato.id) }}" class="btn btn-success" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Abrir contrato</a>
             {% endif %}
@@ -56,6 +59,30 @@
                 <div class="col-md-3"><strong>Parceiro</strong><br>{{ contrato.parceiro_nome or 'Sem parceiro' }}</div>
                 <div class="col-md-3"><strong>Representante Legal</strong><br>{{ contrato.contato_nome or '-' }}</div>
                 <div class="col-md-3"><strong>E-mail</strong><br>{{ contrato.contato_email or contrato.cliente_email or '-' }}</div>
+            </div>
+
+
+            <hr>
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                <div>
+                    <h5 class="mb-1">Setup Omie</h5>
+                    <p class="text-muted mb-0">Ordem de servico de instalacao associada ao cliente no Omie.</p>
+                </div>
+                {% set setup_status = contrato.setup_omie_status or 'NAO_SINCRONIZADO' %}
+                <span class="badge text-bg-{{ setup_omie_status_classes.get(setup_status, 'secondary') }}">{{ setup_omie_status_options.get(setup_status, setup_status) }}</span>
+            </div>
+            <div class="row g-4 mt-1">
+                <div class="col-md-3"><strong>OS</strong><br>{{ contrato.setup_omie_numero_os or contrato.setup_omie_codigo_os or '-' }}</div>
+                <div class="col-md-3"><strong>Valor Setup Omie</strong><br>{{ contrato.setup_omie_valor_total|moeda if contrato.setup_omie_valor_total is not none else '-' }}</div>
+                <div class="col-md-2"><strong>Parcelas</strong><br>{{ contrato.setup_omie_parcelas or '-' }}</div>
+                <div class="col-md-2"><strong>Faturamento</strong><br>{{ contrato.setup_omie_faturamento_status|replace('_', ' ')|title if contrato.setup_omie_faturamento_status else '-' }}</div>
+                <div class="col-md-2"><strong>Sync</strong><br>{{ contrato.setup_omie_sincronizado_em|datetime_br if contrato.setup_omie_sincronizado_em else '-' }}</div>
+                <div class="col-md-3"><strong>Previsao</strong><br>{{ contrato.setup_omie_data_previsao|date_br if contrato.setup_omie_data_previsao else '-' }}</div>
+                <div class="col-md-3"><strong>Faturado em</strong><br>{{ contrato.setup_omie_data_faturamento|date_br if contrato.setup_omie_data_faturamento else '-' }}</div>
+                <div class="col-md-3"><strong>Cancelado em</strong><br>{{ contrato.setup_omie_data_cancelamento|date_br if contrato.setup_omie_data_cancelamento else '-' }}</div>
+                <div class="col-md-3"><strong>Etapa Omie</strong><br>{{ contrato.setup_omie_etapa or '-' }}</div>
+                {% if contrato.setup_omie_descricao %}<div class="col-12"><strong>Descricao da OS</strong><br><span class="text-muted">{{ contrato.setup_omie_descricao }}</span></div>{% endif %}
+                {% if contrato.setup_omie_observacao %}<div class="col-12"><strong>Observacao</strong><br><span class="text-muted">{{ contrato.setup_omie_observacao }}</span></div>{% endif %}
             </div>
 
             <hr>

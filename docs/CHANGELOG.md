@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-08-28 - CRM com vinculo de clientes e ajustes Beta de UI
+
+### Contratos com Setup Omie
+- Adicionado sincronismo manual de OS Omie no detalhe do contrato para preencher valor de setup, parcelas e status da OS.
+- Criado mapeamento de status de setup: aberto, cancelado, faturado, nao encontrado e nao sincronizado.
+- Criada migration `116_add_setup_omie_contratos.sql` para persistir os metadados da OS no contrato.
+- Adicionado sincronismo geral de setup Omie na tela principal de Contratos e automacao `OMIE_SETUP_CONTRATOS` em Configuracoes > Automacoes de Sincronismo.
+- Criada migration `117_add_omie_setup_contratos_sincronismo.sql` para cadastrar o agendamento, inativo por padrao.
+
+
+- Removidas referencias visiveis de Sprints em telas da versao Beta, substituindo por linguagem de Beta/homologacao.
+- Cofre de Senhas corrigiu a exclusao de arquivos vinculados na edicao da credencial, removendo formulario aninhado e direcionando o POST para a rota correta.
+- Contatos do CRM passaram a ter `cliente_id` vinculado a `clientes`, com listagem/detalhe priorizando o cliente cadastrado.
+- Oportunidades passaram a usar `Empresa / Cliente` como vinculo direto com Cadastro Clientes, eliminando o seletor duplicado de cliente.
+- Criado o componente reutilizavel `app/templates/components/search_picker_script.html`, reaproveitando o padrao de busca/adicao de `Ambientes > Vinculos comerciais`.
+- Em Contatos e Oportunidades, o botao `+` do campo `Empresa / Cliente` redireciona para o cadastro manual de cliente em `/clientes/novo`.
+- Criada e aplicada localmente a migration `115_add_cliente_id_crm_contatos.sql`.
+- Procedimento e validacoes documentados em `docs/54-MELHORIAS-BETA-2026-08-28.md`.
+
 ## 2026-08-27 - Melhorias operacionais para Beta
 
 - Cofre de Senhas passou a usar seletores pesquisaveis tambem para Ambiente do Cliente, Implantador, Faixa de rede e Licenca O3Web.

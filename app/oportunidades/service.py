@@ -1,7 +1,6 @@
 from decimal import Decimal
 from decimal import InvalidOperation
 
-from app.clientes.service import ClienteService
 from app.contatos.service import ContatoService
 from app.parceiros.executivo_service import ParceiroExecutivoService
 from app.repositories.cliente_repository import ClienteRepository
@@ -24,6 +23,8 @@ STATUS_OPORTUNIDADE = {
     "PERDIDA": "Perdida",
 }
 
+
+FORM_LIMIT = 1000
 
 class OportunidadeService:
 
@@ -64,7 +65,7 @@ class OportunidadeService:
 
     @classmethod
     def listar_clientes(cls):
-        return ClienteService.listar_para_importacao()
+        return ClienteRepository.listar(limit=FORM_LIMIT, offset=0)
 
     @classmethod
     def listar_parceiros(cls):
@@ -158,6 +159,7 @@ class OportunidadeService:
             cliente = ClienteRepository.buscar_por_id(dados["cliente_id"])
             if not cliente:
                 raise ValueError("Cliente vinculado não encontrado.")
+            dados["empresa"] = (cliente.get("nome_fantasia") or cliente.get("razao_social") or dados["empresa"] or "")[:150]
 
         if dados["parceiro_id"]:
             parceiro = ParceiroRepository.buscar_por_id(dados["parceiro_id"])

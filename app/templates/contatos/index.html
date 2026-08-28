@@ -74,13 +74,16 @@
                                 <small class="text-muted">{{ contato.email or contato.telefone or contato.whatsapp or '-' }}</small>
                             </td>
                             <td>
-                                {{ contato.empresa or contato.lead_empresa or contato.parceiro_exibicao or '-' }}
+                                {{ contato.cliente_exibicao or contato.empresa or contato.lead_empresa or contato.parceiro_exibicao or '-' }}
                                 <br>
                                 <small class="text-muted">{{ contato.cargo or '-' }}</small>
                             </td>
                             <td>{{ tipo_options.get(contato.tipo_contato, contato.tipo_contato) }}</td>
                             <td>
-                                {% if contato.lead_empresa %}
+                                {% if contato.cliente_exibicao %}
+                                    <span class="badge bg-success">Cliente</span>
+                                    <small class="text-muted d-block">{{ contato.cliente_exibicao }}</small>
+                                {% elif contato.lead_empresa %}
                                     <span class="badge bg-info text-dark">Lead</span>
                                     <small class="text-muted d-block">{{ contato.lead_empresa }}</small>
                                 {% elif contato.parceiro_exibicao %}

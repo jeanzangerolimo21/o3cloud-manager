@@ -24,9 +24,19 @@
                         <label class="form-label">Nome *</label>
                         <input class="form-control" name="nome" required placeholder="Nome completo" value="{{ contato.nome if contato else '' }}">
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Empresa</label>
-                        <input class="form-control" name="empresa" placeholder="Empresa ou organização" value="{{ contato.empresa if contato else '' }}">
+                    <div class="col-md-6" data-picker data-input-name="cliente_id" data-picker-max="1" data-picker-create-url="{{ url_for('clientes.novo') }}">
+                        <label class="form-label">Empresa / Cliente</label>
+                        <div class="position-relative js-search-picker">
+                            <div class="input-group">
+                                <input class="form-control js-picker-search" type="search" autocomplete="off" placeholder="Digite nome, razao social ou CNPJ...">
+                                <button class="btn btn-outline-primary js-picker-add" type="button" title="Cadastrar novo cliente"><i class="bi bi-plus-lg"></i></button>
+                            </div>
+                            <select class="d-none js-picker-select" tabindex="-1" aria-hidden="true"><option value="">Selecione um cliente...</option>{% for cliente in clientes %}{% set nome_cliente = cliente.nome_fantasia or cliente.razao_social or ('Cliente #' ~ cliente.id) %}<option value="{{ cliente.id }}" data-label="{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj|cnpj_br }}{% endif %}" data-search="{{ nome_cliente }} {{ cliente.razao_social or '' }} {{ cliente.cnpj or '' }} {{ cliente.cnpj|cnpj_br if cliente.cnpj else '' }} {{ cliente.origem or '' }}">{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj|cnpj_br }}{% endif %}</option>{% endfor %}</select>
+                            <div class="list-group position-absolute start-0 end-0 shadow-sm d-none js-picker-results" style="z-index: 1040; max-height: 260px; overflow-y: auto;"></div>
+                        </div>
+                        <div class="list-group mt-3 js-picker-list"></div>
+                        {% for cliente in clientes %}{% if contato and contato.cliente_id and contato.cliente_id|string == cliente.id|string %}{% set nome_cliente = cliente.nome_fantasia or cliente.razao_social or ('Cliente #' ~ cliente.id) %}<input type="hidden" name="cliente_id" value="{{ cliente.id }}" data-label="{{ nome_cliente }}{% if cliente.cnpj %} - {{ cliente.cnpj|cnpj_br }}{% endif %}">{% endif %}{% endfor %}
+                        <input type="hidden" name="empresa" value="{{ contato.empresa if contato else '' }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Cargo</label>
@@ -144,4 +154,5 @@
 
 </div>
 
+{% include "components/search_picker_script.html" %}
 {% endblock %}
