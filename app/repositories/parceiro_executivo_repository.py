@@ -102,6 +102,7 @@ class ParceiroExecutivoRepository(BaseRepository):
                 pe.nome,
                 pe.email,
                 pe.telefone,
+                pe.premiacao_ativa,
                 p.nome AS parceiro
             FROM {cls.TABLE} pe
             LEFT JOIN parceiros p

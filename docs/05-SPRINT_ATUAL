@@ -4,7 +4,7 @@
 
 Versao: 3.0 Beta
 
-Ultima atualizacao: 14/08/2026
+Ultima atualizacao: 28/08/2026
 
 Status: Sprint 22 concluido tecnicamente - Beta liberavel
 
@@ -180,6 +180,24 @@ Entregas realizadas:
 - Status `Sem reajuste detectado` para contratos com base inicial igual ao valor atual e mais de 12 meses.
 - Destaque `Sem base - investigar` para contratos antigos sem base suficiente.
 - Retrato validado no banco: 204 contratos monitorados, 177 com base por faturamento inicial, 56 com alteracao detectada, 70 sem reajuste detectado e 2 sem base de comparacao.
+
+## 10. Adendos Contratuais e Premiações Manuais
+
+Status:
+
+Implementado para homologacao Beta
+
+Regras definidas:
+
+- Adendo contratual é vinculado a um contrato principal sincronizado ou cadastrado no O3Cloud Manager.
+- Adendos representam upgrade, usuários adicionais ou outro complemento comercial sem nova implantação.
+- Adendos não geram card, checklist, fila ou qualquer nova implantação.
+- Adendos não possuem setup Omie e não entram no sincronismo de setup dos contratos.
+- O contrato principal pode manter múltiplos PDFs de adendos anexados ao cadastro e permite editar dados comerciais do adendo quando houver correção de valor, data, título ou observação.
+- A premiação de adendo é lançada manualmente em Financeiro > Premiações, vinculando adendo, contrato, cliente e campanha de comissão; parceiro, executivo, percentuais e valores são calculados pela mesma regra da apuração automática.
+- O cálculo automático por campanha permanece restrito ao contrato principal; adendos não são inferidos automaticamente do Omie enquanto não houver chave confiável de identificação.
+- A apuração manual deve pedir campanha, valor base, status e observações; o sistema registra percentuais aplicados, valor do parceiro e valor do executivo a partir da regra vigente selecionada. Premiações manuais de adendos entram nos filtros por campanha e nos totais de base e premiação prevista da tela de Premiações.
+
 
 ---
 

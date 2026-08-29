@@ -659,6 +659,157 @@ class FinanceiroRepository(BaseRepository):
         )
 
     @classmethod
+    def buscar_base_premiacao_contrato(cls, contrato_id):
+        return cls.fetch_one(
+            """
+            SELECT
+                c.id AS contrato_id,
+                c.numero AS contrato_numero,
+                c.cliente_id,
+                COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
+                p.id AS parceiro_premiacao_id,
+                p.nome AS parceiro_premiacao_nome,
+                pe.id AS executivo_premiacao_id,
+                pe.nome AS executivo_premiacao_nome,
+                CASE
+                    WHEN p.id IS NOT NULL OR ((COALESCE(TRIM(c.vendedor_nome), '') <> '' OR COALESCE(TRIM(c.projeto_nome), '') <> '') AND pe.id IS NOT NULL) THEN 1
+                    ELSE 0
+                END AS premiacao_liberada
+            FROM contratos c
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            LEFT JOIN parceiros p ON p.id = c.parceiro_id AND p.ativo = 1 AND COALESCE(p.premiacao_ativa, 0) = 1
+            LEFT JOIN (
+                SELECT
+                    LOWER(TRIM(nome)) COLLATE utf8mb4_unicode_ci AS nome_normalizado,
+                    MIN(id) AS id,
+                    MIN(nome) AS nome
+                FROM parceiros_executivos
+                WHERE ativo = 1
+                  AND COALESCE(premiacao_ativa, 0) = 1
+                GROUP BY LOWER(TRIM(nome)) COLLATE utf8mb4_unicode_ci
+            ) pe
+                ON pe.nome_normalizado IN (
+                    LOWER(TRIM(c.vendedor_nome)) COLLATE utf8mb4_unicode_ci,
+                    LOWER(TRIM(c.projeto_nome)) COLLATE utf8mb4_unicode_ci
+                )
+            WHERE c.id = %s
+              AND c.ativo = 1
+              AND c.status = 'ATIVO'
+            LIMIT 1
+            """,
+            (contrato_id,),
+        )
+
+    @classmethod
+    def listar_premiacoes_adendos(cls, filtros=None, limite=80):
+        where, params = cls._filtros_premiacoes_adendos(filtros)
+        params.append(limite)
+        return cls.fetch_all(
+            f"""
+            SELECT pa.*,
+                   a.titulo AS adendo_titulo,
+                   a.tipo AS adendo_tipo,
+                   a.numero_adendo,
+                   c.numero AS contrato_numero,
+                   COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
+                   p.nome AS parceiro_nome,
+                   pe.nome AS executivo_nome,
+                   rc.nome AS campanha_nome
+            FROM financeiro_premiacoes_adendos pa
+            INNER JOIN contratos_adendos a ON a.id = pa.adendo_id
+            INNER JOIN contratos c ON c.id = pa.contrato_id
+            INNER JOIN clientes cli ON cli.id = pa.cliente_id
+            LEFT JOIN parceiros p ON p.id = pa.parceiro_id
+            LEFT JOIN parceiros_executivos pe ON pe.id = pa.executivo_id
+            LEFT JOIN regras_campanhas_comissao rc ON rc.id = pa.campanha_id
+            WHERE {where}
+            ORDER BY pa.data_lancamento DESC, pa.id DESC
+            LIMIT %s
+            """,
+            tuple(params),
+        )
+
+    @classmethod
+    def resumo_premiacoes_adendos(cls, filtros=None):
+        where, params = cls._filtros_premiacoes_adendos(filtros)
+        return cls.fetch_one(
+            f"""
+            SELECT COUNT(*) AS total,
+                   COALESCE(SUM(pa.valor_base), 0) AS valor_base,
+                   COALESCE(SUM(pa.valor_total), 0) AS valor_total,
+                   SUM(pa.status_manual = 'ABERTO') AS abertos,
+                   SUM(pa.status_manual = 'LANCADO') AS lancados,
+                   SUM(pa.status_manual = 'PAGO') AS pagos
+            FROM financeiro_premiacoes_adendos pa
+            INNER JOIN contratos_adendos a ON a.id = pa.adendo_id
+            INNER JOIN contratos c ON c.id = pa.contrato_id
+            INNER JOIN clientes cli ON cli.id = pa.cliente_id
+            WHERE {where}
+            """,
+            tuple(params),
+        ) or {}
+
+    @classmethod
+    def _filtros_premiacoes_adendos(cls, filtros=None):
+        filtros = filtros or {}
+        where = ["pa.ativo = 1", "a.ativo = 1", "c.ativo = 1"]
+        params = []
+
+        campanha_id = filtros.get("campanha_id")
+        if campanha_id:
+            where.append("pa.campanha_id = %s")
+            params.append(campanha_id)
+
+        pesquisa = (filtros.get("q") or "").strip()
+        if pesquisa:
+            like = f"%{pesquisa}%"
+            where.append("""
+                (
+                    COALESCE(cli.nome_fantasia, '') LIKE %s
+                    OR COALESCE(cli.razao_social, '') LIKE %s
+                    OR COALESCE(c.numero, '') LIKE %s
+                    OR COALESCE(a.titulo, '') LIKE %s
+                    OR COALESCE(a.numero_adendo, '') LIKE %s
+                )
+            """)
+            params.extend([like, like, like, like, like])
+
+        return " AND ".join(where), params
+
+    @classmethod
+    def buscar_premiacao_adendo(cls, adendo_id):
+        return cls.fetch_one(
+            """
+            SELECT *
+            FROM financeiro_premiacoes_adendos
+            WHERE adendo_id = %s
+              AND ativo = 1
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (adendo_id,),
+        )
+
+    @classmethod
+    def inserir_premiacao_adendo(cls, dados):
+        return cls.execute_insert(
+            """
+            INSERT INTO financeiro_premiacoes_adendos (
+                uuid, adendo_id, contrato_id, cliente_id, campanha_id, parceiro_id, executivo_id, descricao, data_lancamento,
+                valor_base, percentual_parceiro, percentual_executivo, valor_premiacao_parceiro,
+                valor_premiacao_executivo, valor_total, status_manual, observacoes, created_by, updated_by
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                cls.generate_uuid(), dados.get("adendo_id"), dados.get("contrato_id"), dados.get("cliente_id"),
+                dados.get("campanha_id"), dados.get("parceiro_id"), dados.get("executivo_id"), dados.get("descricao"), dados.get("data_lancamento"),
+                dados.get("valor_base"), dados.get("percentual_parceiro"), dados.get("percentual_executivo"),
+                dados.get("valor_premiacao_parceiro"), dados.get("valor_premiacao_executivo"), dados.get("valor_total"),
+                dados.get("status_manual"), dados.get("observacoes"), dados.get("created_by"), dados.get("updated_by"),
+            ),
+        )
+
+    @classmethod
     def contratos_para_faturamento(cls):
 
         return cls.fetch_all(

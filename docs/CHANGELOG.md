@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-29 - Adendos contratuais e premiações manuais
+
+- Contratos passaram a permitir cadastro, edição, inativação e anexos PDF de adendos contratuais vinculados ao contrato principal.
+- Adendos não geram implantação, checklist, fila ou setup Omie.
+- Premiações manuais de adendos usam campanha de comissão, valor base, status e observações; parceiro, executivo, percentuais e valores são calculados pela mesma regra da apuração automática.
+- Financeiro > Premiações passou a considerar adendos nos filtros por campanha, no total de contratos + adendos, na base de premiação e na premiação prevista.
+- Corrigida a normalização decimal do cadastro de adendos para aceitar valores como `435.00` e `435,00` sem multiplicar por 100.
+- Criadas as migrations `118_create_contratos_adendos.sql` e `119_add_campanha_id_premiacoes_adendos.sql`.
+
 ## 2026-08-28 - CRM com vinculo de clientes e ajustes Beta de UI
 
 ### Contratos com Setup Omie
@@ -399,6 +408,11 @@ Junho/2026
 # O3Cloud Manager v3.0
 
 # CHANGELOG
+
+## 2026-08-28 - Adendos contratuais
+
+- Documentada a regra de adendos vinculados ao contrato principal, sem criação de implantação e sem setup, com edição dos dados comerciais do adendo.
+- Preparado cadastro de adendos com anexos PDF e lançamento manual de premiação financeira para upgrade/usuários adicionais, calculando parceiro e executivo pelas regras de campanha usadas na apuração automática e somando adendos aos totais filtrados por campanha.
 - Publicada a tag `v0.9.0-beta.2` com a integração de GitHub Releases; verificação real encontrou 2 tags remotas e 0 releases publicadas no GitHub.
 - Tela de Atualizações passou a consultar GitHub Releases pela API pública, com `GITHUB_TOKEN` opcional, exibindo repositório GitHub, total de releases, release recomendada e changelog resumido quando publicado.
 - Publicada a tag `v0.9.0-beta.1` no remoto e validada a detecção pela tela de Atualizações do Sistema com 1 tag remota encontrada.

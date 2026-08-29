@@ -1,10 +1,12 @@
 import csv
 import io
+from datetime import date
 from datetime import datetime
 from decimal import Decimal
 from decimal import InvalidOperation
 
 from app.financeiro.repository import FinanceiroRepository
+from app.repositories.contrato_adendo_repository import ContratoAdendoRepository
 
 
 class FinanceiroService:
@@ -83,7 +85,22 @@ class FinanceiroService:
     @staticmethod
     def resumo_comissoes_contratos(filtros=None):
 
-        return FinanceiroRepository.resumo_comissoes_contratos(filtros)
+        resumo = FinanceiroRepository.resumo_comissoes_contratos(filtros) or {}
+        resumo_adendos = FinanceiroRepository.resumo_premiacoes_adendos(filtros) or {}
+        valor_base_contratos = FinanceiroService._decimal_seguro(resumo.get("valor_base_comissao"))
+        valor_premiacao_contratos = FinanceiroService._decimal_seguro(resumo.get("valor_comissao_prevista"))
+        valor_base_adendos = FinanceiroService._decimal_seguro(resumo_adendos.get("valor_base"))
+        valor_premiacao_adendos = FinanceiroService._decimal_seguro(resumo_adendos.get("valor_total"))
+        resumo["contratos_total"] = resumo.get("total") or 0
+        resumo["adendos_total"] = resumo_adendos.get("total") or 0
+        resumo["total_itens_premiacao"] = resumo["contratos_total"] + resumo["adendos_total"]
+        resumo["valor_base_comissao_contratos"] = valor_base_contratos
+        resumo["valor_comissao_prevista_contratos"] = valor_premiacao_contratos
+        resumo["valor_base_comissao_adendos"] = valor_base_adendos
+        resumo["valor_comissao_prevista_adendos"] = valor_premiacao_adendos
+        resumo["valor_base_comissao"] = valor_base_contratos + valor_base_adendos
+        resumo["valor_comissao_prevista"] = valor_premiacao_contratos + valor_premiacao_adendos
+        return resumo
 
     @staticmethod
     def buscar_comissao_contrato(contrato_id, campanha_id=None):
@@ -158,6 +175,72 @@ class FinanceiroService:
             "status": status_manual,
             "label": cls.STATUS_PREMIACAO_MANUAL[status_manual],
         }
+
+    @staticmethod
+    def listar_premiacoes_adendos(filtros=None):
+
+        return FinanceiroRepository.listar_premiacoes_adendos(filtros)
+
+    @staticmethod
+    def resumo_premiacoes_adendos(filtros=None):
+
+        return FinanceiroRepository.resumo_premiacoes_adendos(filtros)
+
+    @classmethod
+    def lancar_premiacao_adendo(cls, dados, usuario_email="sistema"):
+
+        adendo_id = cls._inteiro(dados.get("adendo_id"))
+        adendo = ContratoAdendoRepository.buscar_por_id(adendo_id)
+        if not adendo:
+            raise ValueError("Adendo contratual nao encontrado.")
+        if FinanceiroRepository.buscar_premiacao_adendo(adendo_id):
+            raise ValueError("Este adendo ja possui premiacao manual lancada.")
+
+        campanha_id = cls._inteiro(dados.get("campanha_id"))
+        campanha = cls.buscar_campanha_comissao(campanha_id)
+        if not campanha:
+            raise ValueError("Selecione uma campanha valida para calcular a premiacao do adendo.")
+        contrato = FinanceiroRepository.buscar_base_premiacao_contrato(adendo["contrato_id"])
+        if not contrato or not contrato.get("premiacao_liberada"):
+            raise ValueError("Contrato sem parceiro ou executivo habilitado para premiacao.")
+
+        valor_base = cls._normalizar_decimal(dados.get("valor_base"))
+        if valor_base <= 0:
+            raise ValueError("Valor base da premiacao deve ser maior que zero.")
+
+        parceiro_id = contrato.get("parceiro_premiacao_id")
+        executivo_id = contrato.get("executivo_premiacao_id")
+        percentual_parceiro = cls._decimal_seguro(campanha.get("percentual_parceiro")) if parceiro_id else Decimal("0.00")
+        percentual_executivo = cls._decimal_seguro(campanha.get("percentual_executivo")) if executivo_id else Decimal("0.00")
+        valor_premiacao_parceiro = (valor_base * percentual_parceiro / Decimal("100")).quantize(Decimal("0.01"))
+        valor_premiacao_executivo = (valor_base * percentual_executivo / Decimal("100")).quantize(Decimal("0.01"))
+
+        status_manual = cls._texto(dados.get("status_manual") or "LANCADO").upper()
+        if status_manual not in cls.STATUS_PREMIACAO_MANUAL:
+            raise ValueError("Status de premiacao invalido.")
+
+        descricao = cls._texto(dados.get("descricao")) or f"Premiacao manual do adendo {adendo.get('titulo')}"
+        payload = {
+            "adendo_id": adendo_id,
+            "contrato_id": adendo["contrato_id"],
+            "cliente_id": adendo["cliente_id"],
+            "campanha_id": campanha["id"],
+            "parceiro_id": parceiro_id,
+            "executivo_id": executivo_id,
+            "descricao": descricao[:255],
+            "data_lancamento": cls._texto(dados.get("data_lancamento")) or date.today().isoformat(),
+            "valor_base": valor_base,
+            "percentual_parceiro": percentual_parceiro,
+            "percentual_executivo": percentual_executivo,
+            "valor_premiacao_parceiro": valor_premiacao_parceiro,
+            "valor_premiacao_executivo": valor_premiacao_executivo,
+            "valor_total": valor_premiacao_parceiro + valor_premiacao_executivo,
+            "status_manual": status_manual,
+            "observacoes": cls._texto(dados.get("observacoes")) or None,
+            "created_by": usuario_email,
+            "updated_by": usuario_email,
+        }
+        return FinanceiroRepository.inserir_premiacao_adendo(payload)
 
     @staticmethod
     def contratos_para_faturamento():

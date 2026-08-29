@@ -54,10 +54,29 @@ def comissoes():
         campanha_selecionada=FinanceiroService.buscar_campanha_comissao(filtros.get("campanha_id")),
         status_options=FinanceiroService.status_comissoes(),
         status_premiacao_manual_options=FinanceiroService.status_premiacao_manual_options(),
+        premiacoes_adendos=FinanceiroService.listar_premiacoes_adendos(filtros),
+        resumo_premiacoes_adendos=FinanceiroService.resumo_premiacoes_adendos(filtros),
         pagina=pagina,
         total_paginas=total_paginas,
         total=total,
     )
+
+
+@financeiro_bp.route("/financeiro/comissoes/adendos", methods=["POST"])
+def lancar_premiacao_adendo():
+
+    contrato_id = request.form.get("contrato_id", type=int)
+    try:
+        premiacao_id = FinanceiroService.lancar_premiacao_adendo(request.form, _email_usuario_logado())
+        flash("Premiação manual do adendo lançada.", "success")
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        from app.core.auditoria import registrar_evento
+        registrar_evento("PREMIACAO_ADENDO_LANCADA", "financeiro", premiacao_id, {"contrato_id": contrato_id})
+    if contrato_id:
+        return redirect(url_for("contratos.view", contrato_id=contrato_id))
+    return redirect(url_for("financeiro.comissoes"))
 
 
 @financeiro_bp.route("/financeiro/comissoes/<int:contrato_id>/status-premiacao", methods=["POST"])

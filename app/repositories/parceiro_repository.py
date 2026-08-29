@@ -134,6 +134,7 @@ class ParceiroRepository(BaseRepository):
                 id,
                 nome,
                 sigla,
+                premiacao_ativa,
                 COALESCE(nome_fantasia, nome, razao_social) AS nome_exibicao
             FROM parceiros
             WHERE ativo = 1

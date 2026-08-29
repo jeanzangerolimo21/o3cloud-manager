@@ -58,7 +58,7 @@
 
     <div class="row g-3 mb-4">
         <div class="col-md-2">
-            <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Contratos</small><h3 class="mb-0">{{ resumo.total or 0 }}</h3></div></div>
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Contratos + adendos</small><h3 class="mb-0">{{ resumo.total_itens_premiacao or 0 }}</h3><small class="text-muted">Contratos {{ resumo.contratos_total or 0 }} · Adendos {{ resumo.adendos_total or 0 }}</small></div></div>
         </div>
         <div class="col-md-2">
             <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Recebidos</small><h3 class="mb-0 text-success">{{ resumo.contratos_recebidos or 0 }}</h3></div></div>
@@ -67,13 +67,13 @@
             <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Atrasados</small><h3 class="mb-0 text-danger">{{ resumo.contratos_atrasados or 0 }}</h3></div></div>
         </div>
         <div class="col-md-2">
-            <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Não localizados</small><h3 class="mb-0">{{ resumo.contratos_nao_localizados or 0 }}</h3></div></div>
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Pagamentos não localizados</small><h3 class="mb-0">{{ resumo.contratos_nao_localizados or 0 }}</h3></div></div>
         </div>
         <div class="col-md-2">
-            <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Base premiação</small><h5 class="mb-0">{{ resumo.valor_base_comissao|moeda }}</h5></div></div>
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Base premiação</small><h5 class="mb-0">{{ resumo.valor_base_comissao|moeda }}</h5><small class="text-muted">Contratos {{ resumo.valor_base_comissao_contratos|moeda }} · Adendos {{ resumo.valor_base_comissao_adendos|moeda }}</small></div></div>
         </div>
         <div class="col-md-2">
-            <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Premiação prevista</small><h5 class="mb-0">{{ resumo.valor_comissao_prevista|moeda }}</h5></div></div>
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Premiação prevista</small><h5 class="mb-0">{{ resumo.valor_comissao_prevista|moeda }}</h5><small class="text-muted">Contratos {{ resumo.valor_comissao_prevista_contratos|moeda }} · Adendos {{ resumo.valor_comissao_prevista_adendos|moeda }}</small></div></div>
         </div>
     </div>
 
@@ -172,6 +172,41 @@
             </nav>
         </div>
         {% endif %}
+    </div>
+
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white d-flex flex-column flex-lg-row justify-content-between gap-2">
+            <div>
+                <strong>Premiações manuais de adendos</strong>
+                <div class="text-muted small">Lançamentos de upgrade e usuários adicionais vinculados ao contrato principal, sem geração de implantação.</div>
+            </div>
+            <span class="badge text-bg-light border align-self-start">{{ resumo.adendos_total or 0 }} lançamento(s)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr><th>Adendo</th><th>Contrato</th><th>Cliente</th><th>Premiado</th><th>Status</th><th class="text-end">Base</th><th class="text-end">Premiação</th></tr>
+                </thead>
+                <tbody>
+                    {% for item in premiacoes_adendos %}
+                    <tr>
+                        <td><strong>{{ item.adendo_titulo }}</strong><br><small class="text-muted">{{ item.numero_adendo or item.adendo_tipo }} · {{ item.data_lancamento|date_br }}{% if item.campanha_nome %}<br>{{ item.campanha_nome }}{% endif %}</small></td>
+                        <td><a class="font-monospace" href="{{ url_for('contratos.view', contrato_id=item.contrato_id) }}">{{ item.contrato_numero }}</a></td>
+                        <td>{{ item.cliente_nome or '-' }}</td>
+                        <td>{% if item.parceiro_nome %}<span class="d-block">Parceiro: {{ item.parceiro_nome }} · {{ ('%.2f'|format(item.percentual_parceiro or 0)).replace('.', ',') }}%</span>{% endif %}{% if item.executivo_nome %}<span class="d-block">Executivo: {{ item.executivo_nome }} · {{ ('%.2f'|format(item.percentual_executivo or 0)).replace('.', ',') }}%</span>{% endif %}</td>
+                        <td><span class="badge text-bg-secondary">{{ status_premiacao_manual_options.get(item.status_manual, item.status_manual) }}</span></td>
+                        <td class="text-end">{{ item.valor_base|moeda }}</td>
+                        <td class="text-end"><strong>{{ item.valor_total|moeda }}</strong><br><small class="text-muted">P {{ item.valor_premiacao_parceiro|moeda }} · E {{ item.valor_premiacao_executivo|moeda }}</small></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="text-muted">Nenhuma premiação manual de adendo lançada.</td></tr>
+                    {% endfor %}
+                </tbody>
+                {% if resumo_premiacoes_adendos.total %}
+                <tfoot><tr class="table-light"><td colspan="5"><strong>Total</strong></td><td class="text-end">{{ resumo_premiacoes_adendos.valor_base|moeda }}</td><td class="text-end">{{ resumo_premiacoes_adendos.valor_total|moeda }}</td></tr></tfoot>
+                {% endif %}
+            </table>
+        </div>
     </div>
 </div>
 

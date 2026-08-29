@@ -121,6 +121,117 @@
             <p class="text-muted mt-3 mb-0">Historico insuficiente para validar reajustes anteriores.</p>
             {% endif %}
             <hr>
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+                <div>
+                    <h5 class="mb-1">Adendos Contratuais</h5>
+                    <p class="text-muted mb-0">Adendos ficam vinculados ao contrato principal, não geram implantação e podem receber premiação manual.</p>
+                </div>
+            </div>
+            <form method="POST" enctype="multipart/form-data" action="{{ url_for('contratos.criar_adendo', contrato_id=contrato.id) }}" class="row g-2 align-items-end mb-3">
+                <div class="col-md-2">
+                    <label class="form-label">Tipo</label>
+                    <select class="form-select" name="tipo">
+                        {% for chave, label in adendo_tipo_options.items() %}<option value="{{ chave }}">{{ label }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3"><label class="form-label">Título</label><input class="form-control" name="titulo" placeholder="Upgrade, usuários adicionais..." required></div>
+                <div class="col-md-2"><label class="form-label">Número</label><input class="form-control" name="numero_adendo"></div>
+                <div class="col-md-2"><label class="form-label">Data</label><input class="form-control" type="date" name="data_adendo"></div>
+                <div class="col-md-1"><label class="form-label">Usuários</label><input class="form-control" type="number" min="0" name="quantidade_usuarios"></div>
+                <div class="col-md-2"><label class="form-label">PDFs</label><input class="form-control" type="file" name="arquivos" accept="application/pdf,.pdf" multiple></div>
+                <div class="col-md-2"><label class="form-label">Recorrente</label><input class="form-control" inputmode="decimal" name="valor_recorrente" value="0,00"></div>
+                <div class="col-md-2"><label class="form-label">Pontual</label><input class="form-control" inputmode="decimal" name="valor_pontual" value="0,00"></div>
+                <div class="col-md-6"><label class="form-label">Observações</label><input class="form-control" name="observacoes"></div>
+                <div class="col-md-2 d-grid"><button class="btn btn-outline-primary"><i class="bi bi-plus-circle"></i> Adicionar</button></div>
+            </form>
+            {% if adendos %}
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead class="table-light"><tr><th>Adendo</th><th>Data</th><th class="text-end">Valores</th><th>Anexos</th><th>Premiação</th><th class="text-end">Ações</th></tr></thead>
+                    <tbody>
+                    {% for adendo in adendos %}
+                        <tr>
+                            <td>
+                                <strong>{{ adendo.titulo }}</strong><br><small class="text-muted">{{ adendo_tipo_options.get(adendo.tipo, adendo.tipo) }}{% if adendo.numero_adendo %} · {{ adendo.numero_adendo }}{% endif %}{% if adendo.quantidade_usuarios %} · {{ adendo.quantidade_usuarios }} usuário(s){% endif %}</small>{% if adendo.observacoes %}<br><small class="text-muted">{{ adendo.observacoes }}</small>{% endif %}
+                                <div class="collapse mt-2" id="editar-adendo-{{ adendo.id }}">
+                                    <form method="POST" action="{{ url_for('contratos.editar_adendo', contrato_id=contrato.id, adendo_id=adendo.id) }}" class="row g-2 border rounded p-2 bg-light">
+                                        <div class="col-md-3">
+                                            <label class="form-label small">Tipo</label>
+                                            <select class="form-select form-select-sm" name="tipo">
+                                                {% for chave, label in adendo_tipo_options.items() %}<option value="{{ chave }}" {% if adendo.tipo == chave %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-5"><label class="form-label small">Título</label><input class="form-control form-control-sm" name="titulo" value="{{ adendo.titulo }}" required></div>
+                                        <div class="col-md-2"><label class="form-label small">Número</label><input class="form-control form-control-sm" name="numero_adendo" value="{{ adendo.numero_adendo or '' }}"></div>
+                                        <div class="col-md-2"><label class="form-label small">Data</label><input class="form-control form-control-sm" type="date" name="data_adendo" value="{{ adendo.data_adendo or '' }}"></div>
+                                        <div class="col-md-2"><label class="form-label small">Usuários</label><input class="form-control form-control-sm" type="number" min="0" name="quantidade_usuarios" value="{{ adendo.quantidade_usuarios or '' }}"></div>
+                                        <div class="col-md-3"><label class="form-label small">Recorrente</label><input class="form-control form-control-sm" inputmode="decimal" name="valor_recorrente" value="{{ adendo.valor_recorrente or '0,00' }}"></div>
+                                        <div class="col-md-3"><label class="form-label small">Pontual</label><input class="form-control form-control-sm" inputmode="decimal" name="valor_pontual" value="{{ adendo.valor_pontual or '0,00' }}"></div>
+                                        <div class="col-md-4"><label class="form-label small">Observações</label><input class="form-control form-control-sm" name="observacoes" value="{{ adendo.observacoes or '' }}"></div>
+                                        <div class="col-12 d-flex justify-content-end gap-2"><button class="btn btn-sm btn-primary"><i class="bi bi-check2"></i> Salvar</button></div>
+                                    </form>
+                                </div>
+                            </td>
+                            <td>{{ adendo.data_adendo|date_br if adendo.data_adendo else '-' }}</td>
+                            <td class="text-end">Rec. {{ adendo.valor_recorrente|moeda }}<br><small class="text-muted">Pontual {{ adendo.valor_pontual|moeda }}</small></td>
+                            <td>
+                                {% for anexo in adendo.anexos %}
+                                    <div><a href="{{ url_for('contratos.abrir_anexo_adendo', anexo_id=anexo.id) }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf"></i> {{ anexo.arquivo_original }}</a></div>
+                                {% else %}
+                                    <span class="text-muted small">Sem PDF</span>
+                                {% endfor %}
+                                <form method="POST" enctype="multipart/form-data" action="{{ url_for('contratos.anexar_adendo', contrato_id=contrato.id, adendo_id=adendo.id) }}" class="d-flex gap-2 mt-2">
+                                    <input class="form-control form-control-sm" type="file" name="arquivo" accept="application/pdf,.pdf" required>
+                                    <button class="btn btn-sm btn-outline-secondary" title="Anexar PDF"><i class="bi bi-upload"></i></button>
+                                </form>
+                            </td>
+                            <td>
+                                {% if adendo.premiacao_status %}
+                                    <span class="badge text-bg-success">{{ status_premiacao_manual_options.get(adendo.premiacao_status, adendo.premiacao_status) }}</span><br><small class="text-muted">{{ adendo.premiacao_valor_total|moeda }}{% if adendo.premiacao_campanha_nome %} · {{ adendo.premiacao_campanha_nome }}{% endif %}</small>
+                                {% else %}
+                                    <form method="POST" action="{{ url_for('financeiro.lancar_premiacao_adendo') }}" class="row g-1">
+                                        <input type="hidden" name="contrato_id" value="{{ contrato.id }}">
+                                        <input type="hidden" name="adendo_id" value="{{ adendo.id }}">
+                                        <input type="hidden" name="descricao" value="Premiação do adendo {{ adendo.titulo }}">
+                                        <div class="col-12">
+                                            <select class="form-select form-select-sm" name="campanha_id" required>
+                                                <option value="">Campanha</option>
+                                                {% for campanha in campanhas_premiacao_adendo %}
+                                                <option value="{{ campanha.id }}">{{ campanha.nome }} - P {{ ('%.2f'|format(campanha.percentual_parceiro or 0)).replace('.', ',') }}% / E {{ ('%.2f'|format(campanha.percentual_executivo or 0)).replace('.', ',') }}%</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-6"><input class="form-control form-control-sm" type="number" step="0.01" min="0.01" name="valor_base" value="{{ adendo.valor_recorrente or adendo.valor_pontual or '' }}" placeholder="Base" required></div>
+                                        <div class="col-6">
+                                            <select class="form-select form-select-sm" name="status_manual">
+                                                {% for chave, label in status_premiacao_manual_options.items() %}
+                                                <option value="{{ chave }}" {% if chave == 'LANCADO' %}selected{% endif %}>{{ label }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-12"><input class="form-control form-control-sm" name="observacoes" placeholder="Observações"></div>
+                                        <div class="col-12 d-grid"><button class="btn btn-sm btn-outline-success" {% if not campanhas_premiacao_adendo %}disabled{% endif %}><i class="bi bi-cash-coin"></i> Calcular e lançar</button></div>
+                                    </form>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end gap-1">
+                                    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#editar-adendo-{{ adendo.id }}" aria-expanded="false" aria-controls="editar-adendo-{{ adendo.id }}" title="Editar adendo"><i class="bi bi-pencil"></i></button>
+                                    <form method="POST" action="{{ url_for('contratos.excluir_adendo', contrato_id=contrato.id, adendo_id=adendo.id) }}" onsubmit="return confirm('Inativar este adendo?');">
+                                        <button class="btn btn-sm btn-outline-danger" title="Inativar"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">Nenhum adendo cadastrado para este contrato.</p>
+            {% endif %}
+
+            <hr>
             <div class="row g-4">
                 <div class="col-md-6">
                     <h5>Contrato assinado</h5>

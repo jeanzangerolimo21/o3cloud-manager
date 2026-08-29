@@ -8,6 +8,7 @@ from app.contratos.service import ContratoService
 from app.propostas.service import PropostaService
 from app.implantacao.service import ImplantacaoService
 from app.financeiro.reajuste_service import ReajusteContratoService
+from app.financeiro.service import FinanceiroService
 from app.integracoes.omie.sync import OmieSync
 from app.repositories.contrato_item_repository import ContratoItemRepository
 from app.repositories.contrato_repository import ContratoRepository
@@ -240,6 +241,71 @@ def upload_assinado(contrato_id):
     return redirect(request.referrer or url_for("contratos.view", contrato_id=contrato_id))
 
 
+@contratos_bp.route("/<int:contrato_id>/adendos", methods=["POST"])
+def criar_adendo(contrato_id):
+    try:
+        adendo_id = ContratoService.criar_adendo(
+            contrato_id,
+            request.form,
+            request.files.getlist("arquivos"),
+            _email_usuario_logado(),
+        )
+        registrar_evento("CONTRATO_ADENDO_CRIADO", "contratos", contrato_id, {"adendo_id": adendo_id})
+        flash("Adendo contratual cadastrado.", "success")
+    except ValueError as exc:
+        flash(str(exc), "danger")
+    return redirect(url_for("contratos.view", contrato_id=contrato_id))
+
+
+@contratos_bp.route("/<int:contrato_id>/adendos/<int:adendo_id>/editar", methods=["POST"])
+def editar_adendo(contrato_id, adendo_id):
+    try:
+        ContratoService.atualizar_adendo(contrato_id, adendo_id, request.form, _email_usuario_logado())
+        registrar_evento("CONTRATO_ADENDO_ATUALIZADO", "contratos", contrato_id, {"adendo_id": adendo_id})
+        flash("Adendo contratual atualizado.", "success")
+    except ValueError as exc:
+        flash(str(exc), "danger")
+    return redirect(url_for("contratos.view", contrato_id=contrato_id))
+
+
+@contratos_bp.route("/<int:contrato_id>/adendos/<int:adendo_id>/anexos", methods=["POST"])
+def anexar_adendo(contrato_id, adendo_id):
+    try:
+        ContratoService.salvar_anexo_adendo(adendo_id, request.files.get("arquivo"), _email_usuario_logado())
+        registrar_evento("CONTRATO_ADENDO_ANEXO_CRIADO", "contratos", contrato_id, {"adendo_id": adendo_id})
+        flash("PDF do adendo anexado.", "success")
+    except ValueError as exc:
+        flash(str(exc), "danger")
+    return redirect(url_for("contratos.view", contrato_id=contrato_id))
+
+
+@contratos_bp.route("/adendos/anexos/<int:anexo_id>/download")
+def download_anexo_adendo(anexo_id):
+    caminho, nome = ContratoService.caminho_anexo_adendo(anexo_id)
+    if not caminho:
+        abort(404)
+    return send_file(caminho, as_attachment=True, download_name=nome, mimetype="application/pdf")
+
+
+@contratos_bp.route("/adendos/anexos/<int:anexo_id>/abrir")
+def abrir_anexo_adendo(anexo_id):
+    caminho, nome = ContratoService.caminho_anexo_adendo(anexo_id)
+    if not caminho:
+        abort(404)
+    return send_file(caminho, as_attachment=False, download_name=nome, mimetype="application/pdf")
+
+
+@contratos_bp.route("/<int:contrato_id>/adendos/<int:adendo_id>/excluir", methods=["POST"])
+def excluir_adendo(contrato_id, adendo_id):
+    try:
+        ContratoService.excluir_adendo(adendo_id, _email_usuario_logado())
+        registrar_evento("CONTRATO_ADENDO_EXCLUIDO", "contratos", contrato_id, {"adendo_id": adendo_id})
+        flash("Adendo inativado.", "success")
+    except ValueError as exc:
+        flash(str(exc), "danger")
+    return redirect(url_for("contratos.view", contrato_id=contrato_id))
+
+
 @contratos_bp.route("/<int:contrato_id>/download")
 def download(contrato_id):
     caminho, nome = ContratoService.caminho_assinado(contrato_id)
@@ -283,6 +349,10 @@ def view(contrato_id):
         "contratos/view.html",
         contrato=contrato,
         itens=itens,
+        adendos=ContratoService.listar_adendos(contrato_id),
+        adendo_tipo_options=ContratoService.ADENDO_TIPO_OPTIONS,
+        campanhas_premiacao_adendo=FinanceiroService.listar_campanhas_comissao(),
+        status_premiacao_manual_options=FinanceiroService.status_premiacao_manual_options(),
         rastreabilidade=ImplantacaoService.rastreabilidade_por_contrato(contrato_id),
         diagnostico_pre_beta=ContratoService.diagnostico_pre_beta(contrato, implantacao),
         reajuste=ReajusteContratoService.detalhe_contrato(contrato),

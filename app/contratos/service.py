@@ -14,6 +14,7 @@ from app.parceiros.service import ParceiroService
 from app.propostas.service import PropostaService
 from app.repositories.cliente_repository import ClienteRepository
 from app.repositories.contrato_repository import ContratoRepository
+from app.repositories.contrato_adendo_repository import ContratoAdendoRepository
 
 
 class ContratoService:
@@ -36,6 +37,12 @@ class ContratoService:
     TIPO_VENDA_OPTIONS = {
         "USUARIO": "Usuario",
         "PROJETO": "Projeto",
+    }
+
+    ADENDO_TIPO_OPTIONS = {
+        "UPGRADE": "Upgrade",
+        "USUARIOS_ADICIONAIS": "Usuarios adicionais",
+        "OUTRO": "Outro",
     }
 
     @classmethod
@@ -610,6 +617,110 @@ class ContratoService:
         ContratoRepository.atualizar_vinculos_comerciais(contrato_id, dados)
 
     @classmethod
+    def listar_adendos(cls, contrato_id):
+        return ContratoAdendoRepository.listar_por_contrato(contrato_id)
+
+    @classmethod
+    def criar_adendo(cls, contrato_id, dados, arquivos=None, usuario_email="sistema"):
+        contrato = ContratoRepository.buscar_por_id(contrato_id)
+        if not contrato:
+            raise ValueError("Contrato nao encontrado.")
+        dados = cls._normalizar_adendo(dados)
+        dados.update({
+            "contrato_id": contrato_id,
+            "cliente_id": contrato["cliente_id"],
+            "created_by": usuario_email,
+            "updated_by": usuario_email,
+        })
+        adendo_id = ContratoAdendoRepository.inserir(dados)
+        for arquivo in arquivos or []:
+            if arquivo and arquivo.filename:
+                cls.salvar_anexo_adendo(adendo_id, arquivo, usuario_email)
+        return adendo_id
+
+    @classmethod
+    def atualizar_adendo(cls, contrato_id, adendo_id, dados, usuario_email="sistema"):
+        adendo = ContratoAdendoRepository.buscar_por_id(adendo_id)
+        if not adendo or int(adendo.get("contrato_id") or 0) != int(contrato_id):
+            raise ValueError("Adendo nao encontrado para este contrato.")
+        dados = cls._normalizar_adendo(dados)
+        dados.update({
+            "contrato_id": contrato_id,
+            "updated_by": usuario_email,
+        })
+        ContratoAdendoRepository.atualizar(adendo_id, dados)
+        return adendo_id
+
+    @classmethod
+    def salvar_anexo_adendo(cls, adendo_id, arquivo, usuario_email="sistema"):
+        adendo = ContratoAdendoRepository.buscar_por_id(adendo_id)
+        if not adendo:
+            raise ValueError("Adendo nao encontrado.")
+        if not cls._arquivo_pdf(arquivo):
+            raise ValueError("Envie um arquivo PDF do adendo.")
+        salvo = StorageService.salvar(arquivo, "contratos/adendos")
+        ContratoAdendoRepository.inserir_anexo(
+            adendo_id,
+            salvo["nome"],
+            salvo["arquivo_original"],
+            salvo.get("mime_type"),
+            salvo.get("tamanho"),
+            usuario_email,
+        )
+        return salvo
+
+    @classmethod
+    def caminho_anexo_adendo(cls, anexo_id):
+        anexo = ContratoAdendoRepository.buscar_anexo(anexo_id)
+        if not anexo:
+            return None, None
+        caminho = StorageService.caminho("contratos/adendos", anexo["arquivo"])
+        if not Path(caminho).exists():
+            return None, None
+        return caminho, anexo.get("arquivo_original") or anexo["arquivo"]
+
+    @classmethod
+    def excluir_adendo(cls, adendo_id, usuario_email="sistema"):
+        adendo = ContratoAdendoRepository.buscar_por_id(adendo_id)
+        if not adendo:
+            raise ValueError("Adendo nao encontrado.")
+        ContratoAdendoRepository.excluir(adendo_id, usuario_email)
+        return adendo
+
+    @classmethod
+    def _normalizar_adendo(cls, dados):
+        tipo = (dados.get("tipo") or "OUTRO").strip().upper()
+        if tipo not in cls.ADENDO_TIPO_OPTIONS:
+            raise ValueError("Tipo de adendo invalido.")
+        titulo = (dados.get("titulo") or "").strip()
+        if not titulo:
+            raise ValueError("Informe o titulo do adendo.")
+        valor_recorrente = cls._decimal(dados.get("valor_recorrente")) or Decimal("0.00")
+        valor_pontual = cls._decimal(dados.get("valor_pontual")) or Decimal("0.00")
+        if valor_recorrente < 0 or valor_pontual < 0:
+            raise ValueError("Valores do adendo nao podem ser negativos.")
+        quantidade_usuarios = cls._inteiro_ou_none(dados.get("quantidade_usuarios"))
+        return {
+            "tipo": tipo,
+            "titulo": titulo,
+            "numero_adendo": (dados.get("numero_adendo") or "").strip() or None,
+            "data_adendo": (dados.get("data_adendo") or "").strip() or None,
+            "valor_recorrente": valor_recorrente,
+            "valor_pontual": valor_pontual,
+            "quantidade_usuarios": quantidade_usuarios,
+            "observacoes": (dados.get("observacoes") or "").strip() or None,
+        }
+
+    @staticmethod
+    def _inteiro_ou_none(valor):
+        if valor in (None, ""):
+            return None
+        try:
+            return int(valor)
+        except (TypeError, ValueError):
+            return None
+
+    @classmethod
     def salvar_assinado(cls, contrato_id, arquivo):
         contrato = ContratoRepository.buscar_por_id(contrato_id)
         if not contrato:
@@ -786,8 +897,10 @@ class ContratoService:
     def _decimal(valor):
         if valor in (None, ""):
             return None
-        texto = str(valor).strip().replace("R$", "").replace(".", "").replace(",", ".")
+        texto = str(valor).strip().replace("R$", "").replace(" ", "")
+        if "," in texto:
+            texto = texto.replace(".", "").replace(",", ".")
         try:
-            return Decimal(texto)
+            return Decimal(texto).quantize(Decimal("0.01"))
         except (InvalidOperation, ValueError):
             return None
