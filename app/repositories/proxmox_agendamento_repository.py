@@ -49,7 +49,7 @@ class ProxmoxAgendamentoRepository(BaseRepository):
     def buscar_por_id(cls, agendamento_id):
         return cls.fetch_one(
             """
-            SELECT a.*, i.nome AS integracao_nome, i.base_url, i.token_nome, i.timeout_seconds, i.verify_ssl
+            SELECT a.*, i.nome AS integracao_nome, i.base_url, i.usuario, i.token_nome, i.timeout_seconds, i.verify_ssl
             FROM proxmox_agendamentos a
             JOIN implantacao_integracoes_config i ON i.id = a.integracao_id
             WHERE a.id = %s

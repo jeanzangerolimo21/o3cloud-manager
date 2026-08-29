@@ -135,6 +135,36 @@ class ProxmoxAgendamentoExecutor:
         )
 
     @classmethod
+    def _enviar_email_inicio(cls, agendamento):
+        destinatario = (agendamento.get("created_by") or "").strip().lower()
+        if not destinatario or destinatario == "sistema" or "@" not in destinatario:
+            return
+        assunto = f"Agendamento Proxmox #{agendamento.get('id')} em execução"
+        corpo = "\n".join([
+            "Execução iniciada",
+            "",
+            "O worker iniciou a execução do seu agendamento Proxmox.",
+            "",
+            f"Agendamento: #{agendamento.get('id')}",
+            f"Execução programada: {agendamento.get('executar_em').strftime('%d/%m/%Y %H:%M') if agendamento.get('executar_em') else '-'}",
+            f"Cluster: {agendamento.get('integracao_nome') or agendamento.get('cluster_nome') or '-'}",
+            f"Node: {agendamento.get('node_nome') or '-'}",
+            f"VMID: {agendamento.get('vmid') or '-'}",
+            f"VM: {agendamento.get('vm_nome') or '-'}",
+            f"CPU total desejada: {agendamento.get('cpu_nova') or 'sem alteração'}",
+            f"Memória total desejada: {round((agendamento.get('memoria_nova_mb') or 0) / 1024, 2) if agendamento.get('memoria_nova_mb') else 'sem alteração'} GB",
+            f"Motivo: {agendamento.get('motivo') or '-'}",
+        ])
+        try:
+            resultado = EmailService.enviar(assunto, corpo, [destinatario])
+            if resultado.get("enviado"):
+                cls.repository.registrar_evento(agendamento["id"], "VALIDANDO", f"E-mail de início enviado para {destinatario}.")
+            else:
+                cls.repository.registrar_evento(agendamento["id"], "VALIDANDO", f"E-mail de início não enviado: {resultado.get('motivo') or 'motivo não informado'}.")
+        except Exception as erro:
+            cls.repository.registrar_evento(agendamento["id"], "VALIDANDO", f"Falha ao enviar e-mail de início: {erro}")
+
+    @classmethod
     def _enviar_email_final(cls, agendamento, sucesso=True, mensagem_erro=None):
         if not agendamento:
             return
@@ -173,13 +203,22 @@ class ProxmoxAgendamentoExecutor:
     @classmethod
     def _client(cls, agendamento):
         segredo = IntegracaoConfigService.revelar_segredo_config(agendamento["integracao_id"])
+        token_nome = cls._token_nome_completo(agendamento)
         return ProxmoxClient(
             agendamento.get("base_url") or agendamento.get("cluster_base_url"),
-            agendamento.get("token_nome"),
+            token_nome,
             segredo,
             timeout=agendamento.get("timeout_seconds") or 30,
             verify_ssl=bool(agendamento.get("verify_ssl")),
         )
+
+    @staticmethod
+    def _token_nome_completo(agendamento):
+        token_nome = (agendamento.get("token_nome") or "").strip()
+        usuario = (agendamento.get("usuario") or "").strip()
+        if token_nome and "!" not in token_nome and usuario:
+            return f"{usuario}!{token_nome}"
+        return token_nome
 
     @staticmethod
     def _localizar_recurso(client, agendamento):
