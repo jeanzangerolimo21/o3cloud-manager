@@ -101,6 +101,8 @@ def create_app():
     # Infraestrutura
     from app.infraestrutura.routes import infraestrutura_bp
     app.register_blueprint(infraestrutura_bp)
+    from app.infraestrutura.agendamentos.routes import proxmox_agendamentos_bp
+    app.register_blueprint(proxmox_agendamentos_bp)
 
     from app.conhecimentos.routes import conhecimentos_bp
     app.register_blueprint(conhecimentos_bp)

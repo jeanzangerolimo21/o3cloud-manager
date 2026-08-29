@@ -1,0 +1,69 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Novo Agendamento Proxmox" %}
+    {% set page_description = "Agende upgrade de CPU e memória para uma VM QEMU sincronizada." %}
+    {% set page_icon = "bi-calendar-plus" %}
+    {% include "components/page_header.html" %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="POST" id="form-agendamento">
+                <div class="row g-3">
+                    <div class="col-md-4"><label class="form-label">Cluster</label><select class="form-select" id="cluster-select"><option value="">Selecione</option>{% for cluster in clusters %}<option value="{{ cluster.id }}">{{ cluster.nome }}</option>{% endfor %}</select></div>
+                    <div class="col-md-4"><label class="form-label">Node</label><select class="form-select" id="node-select"><option value="">Selecione</option>{% for node in nodes %}<option value="{{ node.node }}" data-cluster="{{ node.integracao_id }}">{{ node.cluster_nome }} / {{ node.node }}</option>{% endfor %}</select></div>
+                    <div class="col-md-4"><label class="form-label">VM QEMU</label><select class="form-select" name="inventario_id" id="vm-select" required><option value="">Selecione</option>{% for vm in vms %}<option value="{{ vm.id }}" data-cluster="{{ vm.integracao_id }}" data-node="{{ vm.node }}" data-cpu="{{ vm.cpu_cores or '' }}" data-memoria="{{ vm.memoria_mb or '' }}" data-status="{{ vm.status or '' }}">{{ vm.vmid }} - {{ vm.nome or 'sem nome' }} ({{ vm.cluster_nome }} / {{ vm.node }})</option>{% endfor %}</select></div>
+                    <div class="col-md-3"><label class="form-label">CPU atual</label><input class="form-control" id="cpu-atual" readonly></div>
+                    <div class="col-md-3"><label class="form-label">Memória atual</label><input class="form-control" id="memoria-atual" readonly></div>
+                    <div class="col-md-3"><label class="form-label">Status atual</label><input class="form-control" id="status-atual" readonly></div>
+                    <div class="col-md-3"><label class="form-label">Executar em</label><input class="form-control" type="datetime-local" name="executar_em" value="{{ form.executar_em or '' }}" required></div>
+                    <div class="col-md-3"><label class="form-label">CPU total desejada</label><input class="form-control" type="number" min="1" step="1" name="cpu_nova" value="{{ form.cpu_nova or '' }}"><div class="form-text">Informe o total final da VM, não a quantidade a adicionar.</div></div>
+                    <div class="col-md-3"><label class="form-label">Memória total desejada (GB)</label><input class="form-control" type="number" min="0.5" step="0.5" name="memoria_nova_gb" value="{{ form.memoria_nova_gb or '' }}"><div class="form-text">Informe o total final em GB, não a quantidade a adicionar.</div></div>
+                    <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="desligar_se_necessario" id="desligar" checked><label class="form-check-label" for="desligar">Desligar se necessário</label></div></div>
+                    <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="religar_automaticamente" id="religar" checked><label class="form-check-label" for="religar">Religar automaticamente</label></div></div>
+                    <div class="col-12"><label class="form-label">Motivo</label><textarea class="form-control" name="motivo" rows="4" required>{{ form.motivo or '' }}</textarea></div>
+                </div>
+                <div class="d-flex justify-content-between mt-4">
+                    <a class="btn btn-outline-secondary" href="{{ url_for('proxmox_agendamentos.index') }}">Voltar</a>
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-calendar2-check"></i> Agendar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const clusterSelect = document.getElementById('cluster-select');
+    const nodeSelect = document.getElementById('node-select');
+    const vmSelect = document.getElementById('vm-select');
+    const cpuAtual = document.getElementById('cpu-atual');
+    const memoriaAtual = document.getElementById('memoria-atual');
+    const statusAtual = document.getElementById('status-atual');
+
+    function filtrar() {
+        const cluster = clusterSelect.value;
+        const node = nodeSelect.value;
+        Array.from(nodeSelect.options).forEach(function (option) {
+            option.hidden = option.value && cluster && option.dataset.cluster !== cluster;
+        });
+        Array.from(vmSelect.options).forEach(function (option) {
+            option.hidden = option.value && ((cluster && option.dataset.cluster !== cluster) || (node && option.dataset.node !== node));
+        });
+        const selected = vmSelect.selectedOptions[0];
+        if (selected && selected.hidden) vmSelect.value = '';
+        atualizarResumo();
+    }
+    function atualizarResumo() {
+        const selected = vmSelect.selectedOptions[0];
+        cpuAtual.value = selected && selected.value ? selected.dataset.cpu || '-' : '';
+        memoriaAtual.value = selected && selected.value && selected.dataset.memoria ? (Math.round((Number(selected.dataset.memoria) / 1024) * 10) / 10) + ' GB' : '';
+        statusAtual.value = selected && selected.value ? selected.dataset.status || '-' : '';
+    }
+    clusterSelect.addEventListener('change', filtrar);
+    nodeSelect.addEventListener('change', filtrar);
+    vmSelect.addEventListener('change', atualizarResumo);
+});
+</script>
+{% endblock %}

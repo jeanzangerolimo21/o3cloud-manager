@@ -1,0 +1,56 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    {% set page_title = "Agendamento Proxmox #" ~ agendamento.id %}
+    {% set page_description = agendamento.integracao_nome ~ " / " ~ agendamento.node_nome ~ " / VMID " ~ agendamento.vmid %}
+    {% set page_icon = "bi-calendar2-check" %}
+    {% include "components/page_header.html" %}
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong>{{ agendamento.vm_nome or 'VM sem nome' }}</strong>
+                    <span class="badge bg-{{ agendamento.status_classe }}">{{ agendamento.status_label }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4"><small class="text-muted">Execução</small><div>{{ agendamento.executar_em.strftime('%d/%m/%Y %H:%M') if agendamento.executar_em else '-' }}</div></div>
+                        <div class="col-md-4"><small class="text-muted">Cluster</small><div>{{ agendamento.integracao_nome }}</div></div>
+                        <div class="col-md-4"><small class="text-muted">Node</small><div>{{ agendamento.node_nome }}</div></div>
+                        <div class="col-md-4"><small class="text-muted">CPU</small><div>{{ agendamento.cpu_original or '-' }}{% if agendamento.cpu_nova %} → {{ agendamento.cpu_nova }}{% endif %}{% if agendamento.cpu_final %}<br><small class="text-muted">Final: {{ agendamento.cpu_final }}</small>{% endif %}</div></div>
+                        <div class="col-md-4"><small class="text-muted">Memória</small><div>{{ agendamento.memoria_original_gb or '-' }}{% if agendamento.memoria_nova_gb %} → {{ agendamento.memoria_nova_gb }} GB{% endif %}{% if agendamento.memoria_final_gb %}<br><small class="text-muted">Final: {{ agendamento.memoria_final_gb }} GB</small>{% endif %}</div></div>
+                        <div class="col-md-4"><small class="text-muted">Status VM</small><div>{{ agendamento.status_original or '-' }}{% if agendamento.status_final %} → {{ agendamento.status_final }}{% endif %}</div></div>
+                        <div class="col-md-6"><small class="text-muted">Criado por</small><div>{{ agendamento.created_by or '-' }}</div></div>
+                        <div class="col-md-6"><small class="text-muted">Criado em</small><div>{{ agendamento.created_at.strftime('%d/%m/%Y %H:%M') if agendamento.created_at else '-' }}</div></div>
+                        <div class="col-12"><small class="text-muted">Motivo</small><div>{{ agendamento.motivo }}</div></div>
+                        {% if agendamento.mensagem_erro %}<div class="col-12"><div class="alert alert-danger mb-0">{{ agendamento.mensagem_erro }}</div></div>{% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Eventos</strong></div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light"><tr><th>Data</th><th>Status</th><th>Mensagem</th></tr></thead>
+                        <tbody>{% for evento in eventos %}<tr><td>{{ evento.created_at.strftime('%d/%m/%Y %H:%M:%S') if evento.created_at else '-' }}</td><td><span class="badge bg-{{ evento.status_classe }}">{{ evento.status_label }}</span></td><td>{{ evento.mensagem or '-' }}</td></tr>{% endfor %}</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <a class="btn btn-outline-secondary w-100 mb-2" href="{{ url_for('proxmox_agendamentos.index') }}">Voltar</a>
+                    {% if agendamento.status == 'AGENDADO' %}
+                    <form method="POST" action="{{ url_for('proxmox_agendamentos.cancelar', agendamento_id=agendamento.id) }}" onsubmit="return confirm('Cancelar este agendamento?');">
+                        <button class="btn btn-outline-danger w-100" type="submit"><i class="bi bi-x-circle"></i> Cancelar</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

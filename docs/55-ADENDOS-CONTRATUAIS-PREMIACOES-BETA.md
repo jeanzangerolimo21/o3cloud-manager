@@ -9,6 +9,7 @@ Permitir registrar adendos comerciais de contratos existentes, como upgrades, us
 ## Entregas
 
 - Cadastro de adendos no detalhe do contrato.
+- Adendos de usuários adicionais enviam solicitação automática para sac@o3cloud.com.br com dados do cliente, contrato e quantidade.
 - Edição dos dados comerciais do adendo: tipo, título, número, data, usuários, valor recorrente, valor pontual e observações.
 - Anexos PDF múltiplos por adendo.
 - Inativação lógica de adendos.
@@ -16,11 +17,14 @@ Permitir registrar adendos comerciais de contratos existentes, como upgrades, us
 - Cálculo da premiação do adendo pela campanha selecionada, usando a mesma elegibilidade de parceiro/executivo da apuração automática do contrato.
 - Soma de adendos nos totais de campanha: quantidade, base de premiação e premiação prevista.
 - Correção da leitura de valores decimais para aceitar vírgula ou ponto decimal.
+- Atualização automática da quantidade de usuários na licença O3Web quando houver uma única licença ativa localizada por cliente, CNPJ ou nome.
 
 ## Regras
 
 - O adendo fica sempre vinculado a um contrato principal.
 - O adendo não cria card de implantação, checklist, fila operacional ou setup Omie.
+- Para adendo do tipo `USUARIOS_ADICIONAIS`, o sistema envia e-mail ao SAC e tenta atualizar a licença O3Web do cliente.
+- Se nenhuma licença O3Web for localizada, ou se houver múltiplas licenças ativas para o mesmo cliente, a licença não é alterada automaticamente e a tela orienta conferência manual.
 - O cálculo automático sincronizado do Omie continua restrito ao contrato principal.
 - A premiação do adendo é manual porque ainda não há chave confiável para identificar adendos automaticamente no Omie.
 - No lançamento manual, o usuário informa campanha, valor base, status e observações.

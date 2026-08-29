@@ -10,6 +10,7 @@
     <div class="d-flex flex-wrap gap-2 mb-4">
         <a class="btn btn-sm {{ 'btn-primary' if tipo == 'qemu' else 'btn-outline-primary' }}" href="{{ url_for('infraestrutura.maquinas_virtuais') }}"><i class="bi bi-pc-display"></i> Máquinas Virtuais</a>
         <a class="btn btn-sm {{ 'btn-primary' if tipo == 'lxc' else 'btn-outline-primary' }}" href="{{ url_for('infraestrutura.containers') }}"><i class="bi bi-boxes"></i> Containers</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('proxmox_agendamentos.index') }}"><i class="bi bi-calendar2-check"></i> Agendamentos</a>
         <form method="POST" action="{{ url_for('infraestrutura.sincronizar_proxmox') }}">
             <button class="btn btn-sm btn-success" type="submit"><i class="bi bi-arrow-repeat"></i> Sincronizar Proxmox</button>
         </form>

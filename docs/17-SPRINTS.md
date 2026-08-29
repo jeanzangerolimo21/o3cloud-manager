@@ -5454,6 +5454,1399 @@ Seguir:
 Repository → Service → Routes → Templates → Testes.
 
 Não alterar o significado de campos atuais e não realizar refatorações fora do Sprint.
+
+
+#SPRINT 23 -
+
+# Sprint – Agendamento de Upgrade de CPU e Memória no Proxmox
+
+## 1. Objetivo
+
+Criar no O3Cloud Manager um módulo para agendar alterações de CPU e memória de máquinas virtuais no Proxmox em uma data e horário definidos pelo usuário.
+
+O fluxo deve permitir:
+
+* selecionar Cluster;
+* selecionar Node;
+* selecionar VM;
+* visualizar CPU e memória atuais;
+* informar nova quantidade de CPU;
+* informar nova quantidade de memória;
+* definir data e hora da execução;
+* desligar a VM de forma controlada quando necessário;
+* aplicar as alterações;
+* religar a VM quando ela estava ligada antes do agendamento;
+* validar o resultado;
+* manter histórico completo e auditável.
+
+O módulo não deve executar alterações imediatamente durante a requisição HTTP da interface.
+
+A execução deve ocorrer por worker/scheduler separado.
+
+---
+
+# 2. Localização no Sistema
+
+Adicionar dentro do módulo:
+
+`Infraestrutura`
+
+novo menu:
+
+```text
+Infraestrutura
+├── Clusters
+├── Nodes
+├── Máquinas Virtuais
+├── Containers
+└── Agendamentos
+```
+
+Tela principal:
+
+`Infraestrutura → Agendamentos`
+
+---
+
+# 3. Escopo Inicial
+
+A primeira versão será exclusivamente para:
+
+* Máquinas Virtuais QEMU;
+* alteração de vCPU;
+* alteração de memória RAM;
+* execução agendada;
+* shutdown/start automático quando necessário.
+
+Não implementar inicialmente:
+
+* resize de disco;
+* alteração de storage;
+* mudança de rede;
+* migração;
+* snapshot;
+* alteração de LXC;
+* atualização de sistema operacional;
+* execução genérica de comandos.
+
+Esses itens poderão ser evoluções futuras.
+
+---
+
+# 4. Novo Agendamento
+
+Adicionar botão:
+
+`+ Novo Agendamento`
+
+Fluxo:
+
+1. selecionar Cluster;
+2. selecionar Node;
+3. selecionar VM;
+4. carregar configuração atual;
+5. exibir status atual;
+6. informar CPU desejada;
+7. informar memória desejada;
+8. informar data;
+9. informar hora;
+10. informar motivo;
+11. revisar;
+12. confirmar agendamento.
+
+---
+
+# 5. Exemplo de Interface
+
+```text
+Novo Upgrade Proxmox
+
+Cluster
+C1-O3CLOUD-EVEO
+
+Node
+sp1-sd-o3cloud-07
+
+VM
+375 - CLIENTE-APP
+
+Status atual
+RUNNING
+
+CPU atual
+4 vCPU
+
+Nova CPU
+8 vCPU
+
+Memória atual
+8192 MB
+
+Nova memória
+16384 MB
+
+Executar em
+31/08/2026 23:30
+
+[x] Desligar automaticamente se necessário
+[x] Religar automaticamente após alteração
+
+Motivo
+Upgrade contratado pelo cliente
+
+[Cancelar] [Agendar]
+```
+
+---
+
+# 6. Regra de Estado Original
+
+No momento da execução, registrar antes de qualquer alteração:
+
+* status original;
+* CPU original;
+* memória original;
+* Node atual;
+* Cluster atual.
+
+Exemplo:
+
+```text
+status_original = RUNNING
+cpu_original = 4
+memoria_original_mb = 8192
+```
+
+Essa informação é obrigatória para auditoria e recuperação.
+
+---
+
+# 7. Regra de Ligamento
+
+A VM somente poderá ser ligada automaticamente ao final se:
+
+`status_original == RUNNING`
+
+Exemplo:
+
+### VM estava ligada
+
+Fluxo:
+
+```text
+RUNNING
+↓
+shutdown
+↓
+configuração
+↓
+start
+```
+
+### VM já estava desligada
+
+Fluxo:
+
+```text
+STOPPED
+↓
+configuração
+↓
+permanece STOPPED
+```
+
+Nunca ligar automaticamente uma VM que já estava desligada antes da manutenção.
+
+---
+
+# 8. Hotplug
+
+Antes de desligar a VM, verificar se a alteração solicitada pode ser aplicada por hotplug.
+
+Se:
+
+* hotplug estiver habilitado;
+* configuração do Proxmox permitir;
+* alteração solicitada for suportada;
+* guest permitir;
+
+o sistema poderá aplicar sem shutdown.
+
+Caso contrário:
+
+executar manutenção com desligamento.
+
+Não assumir que toda alteração de CPU/RAM pode ser feita online.
+
+---
+
+# 9. Estratégia Recomendada
+
+Para a primeira versão, priorizar segurança.
+
+Sugestão:
+
+`modo padrão = manutenção com shutdown`
+
+Mesmo quando hotplug estiver disponível, deixar opção futura para habilitar atualização online.
+
+Não tornar hotplug requisito para entrega do Sprint.
+
+---
+
+# 10. Shutdown Gracioso
+
+Para VM em execução:
+
+utilizar primeiro shutdown gracioso pela API do Proxmox.
+
+Fluxo:
+
+```text
+request shutdown
+↓
+aguardar STOPPED
+↓
+aplicar configuração
+```
+
+Não utilizar `stop` imediatamente.
+
+---
+
+# 11. Timeout de Shutdown
+
+Criar configuração:
+
+```env
+PROXMOX_VM_SHUTDOWN_TIMEOUT=300
+```
+
+Exemplo:
+
+300 segundos.
+
+Após esse período:
+
+status do agendamento:
+
+`ERRO`
+
+Mensagem:
+
+`VM não desligou dentro do tempo configurado.`
+
+Na primeira versão, não executar `stop` forçado automaticamente.
+
+Isso evita corrupção ou desligamentos inesperados.
+
+---
+
+# 12. Alteração de Configuração
+
+Após VM estar em estado apropriado:
+
+aplicar somente os campos realmente modificados.
+
+Exemplo:
+
+CPU:
+
+`cores`
+
+Memória:
+
+`memory`
+
+Não enviar configuração completa da VM desnecessariamente.
+
+Não alterar:
+
+* discos;
+* redes;
+* boot;
+* BIOS;
+* machine;
+* storage;
+* tags;
+* description.
+
+---
+
+# 13. Validação Após Alteração
+
+Após atualização:
+
+consultar novamente a configuração da VM.
+
+Validar:
+
+```text
+CPU configurada == CPU solicitada
+RAM configurada == RAM solicitada
+```
+
+Se não corresponder:
+
+marcar:
+
+`ERRO`
+
+Não assumir sucesso apenas porque a API retornou HTTP 200.
+
+---
+
+# 14. Start
+
+Se a VM estava originalmente RUNNING:
+
+executar start.
+
+Aguardar status:
+
+`RUNNING`
+
+Criar timeout configurável:
+
+```env
+PROXMOX_VM_START_TIMEOUT=180
+```
+
+Se a VM não entrar em RUNNING:
+
+marcar execução como erro operacional.
+
+---
+
+# 15. Validação Final
+
+Ao concluir:
+
+registrar:
+
+```text
+CPU anterior
+CPU nova
+
+RAM anterior
+RAM nova
+
+Status anterior
+Status final
+
+Node
+
+Início
+Fim
+
+Resultado
+```
+
+Status esperado:
+
+`CONCLUIDO`
+
+---
+
+# 16. Status do Agendamento
+
+Criar estados:
+
+```text
+AGENDADO
+VALIDANDO
+DESLIGANDO
+AGUARDANDO_DESLIGAMENTO
+APLICANDO
+VALIDANDO_CONFIGURACAO
+LIGANDO
+VALIDANDO_INICIALIZACAO
+CONCLUIDO
+ERRO
+CANCELADO
+```
+
+Não utilizar apenas:
+
+`PENDENTE / FINALIZADO`.
+
+O estado detalhado facilita diagnóstico.
+
+---
+
+# 17. Cancelamento
+
+Permitir cancelar somente quando:
+
+`status = AGENDADO`
+
+Depois que a execução entrar em:
+
+`VALIDANDO`
+
+não permitir cancelamento pela interface na primeira versão.
+
+Isso evita estado inconsistente.
+
+---
+
+# 18. Concorrência
+
+Não permitir dois agendamentos ativos simultaneamente para a mesma VM.
+
+Considerar ativos:
+
+```text
+AGENDADO
+VALIDANDO
+DESLIGANDO
+AGUARDANDO_DESLIGAMENTO
+APLICANDO
+VALIDANDO_CONFIGURACAO
+LIGANDO
+VALIDANDO_INICIALIZACAO
+```
+
+Caso exista outro:
+
+mostrar:
+
+`Já existe uma manutenção pendente ou em execução para esta VM.`
+
+---
+
+# 19. Validação Antes de Criar Agendamento
+
+Antes de salvar:
+
+validar:
+
+* Cluster existe;
+* Node existe;
+* VM existe;
+* API Proxmox está acessível;
+* CPU nova é válida;
+* RAM nova é válida;
+* pelo menos CPU ou RAM mudou;
+* data/hora está no futuro;
+* usuário possui permissão;
+* não existe manutenção conflitante.
+
+---
+
+# 20. Validação Imediatamente Antes da Execução
+
+Mesmo que o agendamento tenha sido validado no momento da criação, validar novamente no horário da manutenção.
+
+Verificar:
+
+* Cluster disponível;
+* Node online;
+* VM ainda existe;
+* VM ainda está no Node esperado;
+* configuração atual;
+* status atual;
+* nenhum outro job conflitante.
+
+Nunca confiar apenas na situação existente no momento em que o agendamento foi criado.
+
+---
+
+# 21. VM Migrada de Node
+
+Se a VM tiver sido migrada para outro Node antes do horário:
+
+NÃO executar automaticamente no Node antigo.
+
+Na primeira versão:
+
+marcar:
+
+`ERRO`
+
+Mensagem:
+
+`VM não está mais localizada no Node originalmente agendado.`
+
+Futuramente pode existir opção de localizar automaticamente a VM no Cluster.
+
+---
+
+# 22. Backup em Execução
+
+Antes da manutenção:
+
+consultar jobs/tasks do Proxmox e verificar se existe backup ativo para aquela VM.
+
+Se houver:
+
+não executar.
+
+Marcar:
+
+`ERRO` ou `ADIADO`, dependendo do design final.
+
+Para primeira versão:
+
+preferir `ERRO` com mensagem clara:
+
+`Existe backup em execução para a VM.`
+
+Não interromper backup automaticamente.
+
+---
+
+# 23. Migração em Execução
+
+Também impedir execução caso exista:
+
+* migration;
+* snapshot ativo;
+* lock de backup;
+* lock de clone;
+* outro lock impeditivo.
+
+Não remover locks automaticamente.
+
+---
+
+# 24. Permissões
+
+Criar permissões equivalentes:
+
+```text
+PROXMOX_AGENDAMENTOS_VISUALIZAR
+PROXMOX_AGENDAMENTOS_CRIAR
+PROXMOX_AGENDAMENTOS_CANCELAR
+PROXMOX_AGENDAMENTOS_EXECUTAR
+```
+
+Somente usuários autorizados podem agendar alterações de recursos.
+
+Não depender somente do nome textual do perfil.
+
+---
+
+# 25. Auditoria
+
+Registrar obrigatoriamente:
+
+* usuário que criou;
+* usuário que cancelou;
+* data de criação;
+* data agendada;
+* início real;
+* fim real;
+* CPU anterior;
+* CPU solicitada;
+* CPU final;
+* RAM anterior;
+* RAM solicitada;
+* RAM final;
+* status;
+* motivo;
+* mensagem de erro;
+* Cluster;
+* Node;
+* VMID;
+* nome da VM.
+
+---
+
+# 26. Modelagem Sugerida
+
+Criar tabela:
+
+`proxmox_agendamentos`
+
+Campos conceituais:
+
+```text
+id
+uuid
+
+cluster_identificador
+node_nome
+
+vmid
+vm_nome
+
+tipo_recurso
+
+cpu_original
+cpu_nova
+
+memoria_original_mb
+memoria_nova_mb
+
+status_original
+status_final
+
+executar_em
+
+status
+
+desligar_se_necessario
+religar_automaticamente
+
+motivo
+
+created_by
+cancelled_by
+
+created_at
+updated_at
+
+iniciado_em
+finalizado_em
+cancelado_em
+
+mensagem_erro
+```
+
+Adaptar tipos ao padrão atual do projeto.
+
+---
+
+# 27. Histórico de Etapas
+
+Recomendado criar também:
+
+`proxmox_agendamentos_eventos`
+
+Campos:
+
+```text
+id
+agendamento_id
+status
+mensagem
+created_at
+```
+
+Exemplo:
+
+```text
+23:30:01 VALIDANDO VM encontrada.
+23:30:03 DESLIGANDO Shutdown solicitado.
+23:30:22 AGUARDANDO_DESLIGAMENTO VM ainda running.
+23:30:41 APLICANDO CPU 4 → 8.
+23:30:42 APLICANDO RAM 8192 → 16384.
+23:30:45 LIGANDO Start solicitado.
+23:31:12 CONCLUIDO VM running.
+```
+
+Isso será extremamente útil para suporte e auditoria.
+
+---
+
+# 28. Não Armazenar Credenciais
+
+As credenciais/API Token do Proxmox devem utilizar o mecanismo atual de integração.
+
+Nunca armazenar token dentro do registro do agendamento.
+
+Não gravar:
+
+* password;
+* secret;
+* token secreto;
+* ticket;
+* cookie de sessão.
+
+---
+
+# 29. Arquitetura Python
+
+Seguir padrão do projeto.
+
+Sugestão:
+
+```text
+app/infraestrutura/agendamentos/
+├── __init__.py
+├── repository.py
+├── service.py
+├── executor.py
+└── routes.py
+```
+
+Integração:
+
+```text
+app/integracoes/proxmox/
+├── client.py
+├── service.py
+└── ...
+```
+
+Templates:
+
+```text
+app/templates/infraestrutura/agendamentos/
+├── index.html
+├── form.html
+└── view.html
+```
+
+---
+
+# 30. Responsabilidades
+
+## Repository
+
+Somente persistência:
+
+```text
+listar
+buscar_por_id
+criar
+atualizar_status
+registrar_inicio
+registrar_fim
+cancelar
+buscar_pendentes
+registrar_evento
+```
+
+Não chamar API Proxmox.
+
+---
+
+# 31. Service
+
+`ProxmoxAgendamentoService`
+
+Responsável por:
+
+```text
+validar_criacao
+criar_agendamento
+cancelar_agendamento
+validar_execucao
+```
+
+---
+
+# 32. Executor
+
+Criar:
+
+`ProxmoxAgendamentoExecutor`
+
+Responsável exclusivamente por executar a manutenção.
+
+Fluxo:
+
+```text
+carregar agendamento
+↓
+lock
+↓
+validar
+↓
+capturar estado original
+↓
+shutdown
+↓
+aguardar
+↓
+alterar CPU/RAM
+↓
+validar
+↓
+start se necessário
+↓
+validar
+↓
+concluir
+```
+
+---
+
+# 33. Scheduler / Worker
+
+Não executar agendamentos dentro de request Flask.
+
+Criar processo separado.
+
+Opções aceitáveis:
+
+* script Python executado por systemd timer;
+* worker;
+* scheduler existente no projeto.
+
+Primeira versão recomendada:
+
+script independente executado periodicamente.
+
+Exemplo:
+
+```bash
+python -m scripts.processar_agendamentos_proxmox
+```
+
+---
+
+# 34. Frequência
+
+Executar o worker a cada minuto.
+
+O worker deve localizar:
+
+```text
+status = AGENDADO
+AND executar_em <= NOW()
+```
+
+Processar de forma controlada.
+
+Não utilizar `sleep()` dentro do servidor Flask.
+
+---
+
+# 35. Lock de Execução
+
+Evitar que dois workers executem o mesmo agendamento.
+
+Implementar claim atômico.
+
+Exemplo conceitual:
+
+```text
+AGENDADO
+↓
+UPDATE atômico
+↓
+VALIDANDO
+```
+
+Somente o processo que conseguir alterar o estado poderá continuar.
+
+Não usar apenas:
+
+`SELECT → executar`.
+
+---
+
+# 36. Timezone
+
+As datas devem respeitar o timezone configurado no sistema.
+
+Preferencialmente:
+
+`America/Sao_Paulo`
+
+Não misturar horário local e UTC sem conversão explícita.
+
+Na interface mostrar:
+
+`DD/MM/YYYY HH:mm`
+
+---
+
+# 37. Tela de Listagem
+
+Exemplo:
+
+```text
+AGENDAMENTOS PROXMOX
+
+[ + Novo Agendamento ]
+
+VM          Alteração              Data/Hora        Status
+----------------------------------------------------------------
+APP01       CPU 4→8 RAM 8→16GB     31/08 23:30      AGENDADO
+SQL01       RAM 16→32GB             01/09 01:00      CONCLUIDO
+WEB01       CPU 2→4                 02/09 22:00      ERRO
+```
+
+Filtros:
+
+* status;
+* Cluster;
+* Node;
+* VMID/nome;
+* período;
+* usuário.
+
+---
+
+# 38. Tela de Detalhe
+
+Exibir:
+
+```text
+VM
+Cluster
+Node
+
+Status da VM antes
+Status final
+
+CPU anterior
+CPU nova
+
+RAM anterior
+RAM nova
+
+Agendado para
+
+Executado em
+
+Criado por
+
+Motivo
+
+Status
+```
+
+E timeline:
+
+```text
+23:30 Validando
+23:31 Desligando
+23:32 Aplicando configuração
+23:33 Ligando
+23:34 Concluído
+```
+
+---
+
+# 39. Atualização da Interface após Execução
+
+Após conclusão:
+
+badge verde:
+
+`CONCLUÍDO`
+
+Em erro:
+
+badge vermelho:
+
+`ERRO`
+
+Mostrar mensagem de erro de forma segura.
+
+Não expor dados sensíveis retornados pela API.
+
+---
+
+# 40. Notificações
+
+Preparar arquitetura para enviar notificações futuramente.
+
+Opcional na primeira versão:
+
+notificação interna ao usuário quando:
+
+* concluído;
+* erro.
+
+Se existir serviço de e-mail já consolidado no projeto, poderá ser reutilizado.
+
+Não tornar e-mail requisito para a execução funcionar.
+
+---
+
+# 41. Falha Durante Alteração
+
+Exemplo:
+
+VM desligou.
+
+CPU foi alterada.
+
+RAM falhou.
+
+O sistema deve:
+
+* registrar exatamente o que ocorreu;
+* consultar configuração final;
+* não fingir rollback se a API não o realizou;
+* registrar status ERRO;
+* tentar religar a VM se ela estava originalmente RUNNING, desde que seja seguro;
+* informar configuração final real.
+
+---
+
+# 42. Rollback
+
+Não implementar rollback automático complexo na primeira versão.
+
+Motivo:
+
+a tentativa automática de reverter configuração após falha pode gerar estado ainda mais inconsistente.
+
+Porém sempre registrar valores originais.
+
+Isso permite:
+
+* análise;
+* recuperação manual;
+* futura implementação de rollback seguro.
+
+---
+
+# 43. Prioridade de Disponibilidade
+
+Mesmo se a alteração de configuração falhar após a VM ter sido desligada:
+
+se:
+
+```text
+status_original = RUNNING
+```
+
+o executor deverá avaliar tentativa segura de start com a configuração existente.
+
+A prioridade operacional é evitar deixar VM desligada desnecessariamente.
+
+Registrar essa tentativa no histórico.
+
+---
+
+# 44. Idempotência
+
+O mesmo agendamento não pode executar duas vezes.
+
+Após:
+
+```text
+CONCLUIDO
+ERRO
+CANCELADO
+```
+
+não selecionar novamente pelo worker.
+
+Criar validações tanto no banco quanto no Service.
+
+---
+
+# 45. Validação de CPU
+
+Antes de aceitar:
+
+* inteiro;
+* maior que zero;
+* dentro dos limites do Proxmox/VM;
+* diferente da configuração atual quando for única alteração.
+
+Não aceitar valores negativos ou zero.
+
+---
+
+# 46. Validação de Memória
+
+Aceitar memória internamente em MB.
+
+Interface pode exibir GB.
+
+Exemplo:
+
+```text
+16 GB
+```
+
+persistir:
+
+```text
+16384 MB
+```
+
+Validar:
+
+* inteiro positivo;
+* limite suportado;
+* conversão correta.
+
+---
+
+# 47. Redução de Recursos
+
+Por segurança, a primeira versão deverá decidir explicitamente se permitirá redução.
+
+Recomendação inicial:
+
+permitir apenas:
+
+```text
+nova_cpu >= cpu_atual
+nova_memoria >= memoria_atual
+```
+
+Ou seja:
+
+**somente upgrades.**
+
+Bloquear downgrade.
+
+Mensagem:
+
+`Esta versão do módulo permite somente aumento de CPU e memória.`
+
+---
+
+# 48. Pré-validação Opcional
+
+Criar botão:
+
+`Validar Agendamento`
+
+antes de confirmar.
+
+Mostrar:
+
+```text
+✓ Cluster acessível
+✓ Node online
+✓ VM encontrada
+✓ VM sem lock
+✓ CPU válida
+✓ Memória válida
+✓ Nenhum conflito
+```
+
+Se falhar:
+
+não salvar.
+
+---
+
+# 49. Revalidação é Obrigatória
+
+Mesmo que a pré-validação passe:
+
+revalidar no horário de execução.
+
+A infraestrutura pode mudar entre criação e execução.
+
+---
+
+# 50. API Proxmox
+
+Utilizar API oficial existente.
+
+Não usar SSH para executar:
+
+```text
+qm set
+qm shutdown
+qm start
+```
+
+se a integração API já estiver disponível.
+
+Preferir:
+
+```text
+Proxmox REST API
+```
+
+A integração deve possuir métodos explícitos, por exemplo:
+
+```python
+get_vm_status()
+get_vm_config()
+shutdown_vm()
+start_vm()
+update_vm_config()
+get_task_status()
+```
+
+---
+
+# 51. Tasks/UPID
+
+Quando a API retornar UPID/task:
+
+acompanhar até:
+
+```text
+status = stopped
+exitstatus = OK
+```
+
+Não assumir conclusão porque a chamada retornou um UPID.
+
+---
+
+# 52. Testes Obrigatórios
+
+Testar pelo menos:
+
+1. VM RUNNING + CPU;
+2. VM RUNNING + RAM;
+3. VM RUNNING + CPU/RAM;
+4. VM STOPPED + CPU;
+5. VM STOPPED + RAM;
+6. VM STOPPED permanece desligada;
+7. VM inexistente;
+8. Node offline;
+9. Cluster indisponível;
+10. shutdown normal;
+11. shutdown timeout;
+12. alteração rejeitada;
+13. start com sucesso;
+14. start com erro;
+15. VM migrada antes do horário;
+16. backup em execução;
+17. VM locked;
+18. agendamento duplicado;
+19. duplo worker;
+20. cancelamento;
+21. tentativa de cancelar execução em andamento;
+22. CPU inválida;
+23. RAM inválida;
+24. downgrade de CPU;
+25. downgrade de RAM;
+26. data no passado;
+27. timezone;
+28. API timeout;
+29. HTTP 401/403;
+30. HTTP 5xx;
+31. worker reiniciado;
+32. aplicação Flask reiniciada;
+33. histórico preservado.
+
+---
+
+# 53. Teste Inicial Seguro
+
+Homologar primeiro em VM não crítica.
+
+Exemplo:
+
+```text
+VM teste
+2 CPU
+4 GB RAM
+```
+
+Agendar:
+
+```text
+2 → 4 CPU
+4 → 8 GB RAM
+```
+
+Confirmar:
+
+* shutdown;
+* configuração;
+* start;
+* estado final;
+* log.
+
+Somente depois testar em ambiente produtivo.
+
+---
+
+# 54. Critérios de Aceite
+
+Sprint concluído quando:
+
+* tela Agendamentos existir;
+* Cluster puder ser selecionado;
+* Node puder ser selecionado;
+* VM puder ser selecionada;
+* CPU/RAM atuais forem exibidas;
+* novo valor puder ser informado;
+* data/hora puder ser agendada;
+* agendamento persistir após restart;
+* worker identificar tarefa vencida;
+* execução não depender da sessão web;
+* VM puder ser desligada de forma graciosa;
+* CPU/RAM forem alteradas;
+* configuração final for validada;
+* VM originalmente ligada for religada;
+* VM originalmente desligada permanecer desligada;
+* duplicidade de execução for impedida;
+* concorrência for protegida;
+* logs detalhados existirem;
+* erros forem auditáveis;
+* permissões forem respeitadas;
+* cancelamento funcionar;
+* nenhum segredo for persistido;
+* testes existentes continuarem passando;
+* documentação, DER, modelo físico e CHANGELOG forem atualizados.
+
+---
+
+# 55. Fora do Escopo
+
+Não implementar nesta Sprint:
+
+* execução genérica de shell;
+* SSH arbitrário;
+* resize de disco;
+* mudança de storage;
+* migração automática;
+* backup automático;
+* snapshot automático;
+* upgrade de SO;
+* kernel update;
+* alteração de network;
+* LXC;
+* rollback completo;
+* HA orchestration;
+* manutenção simultânea em lote;
+* automação de Windows/Linux dentro da VM.
+
+---
+
+# 56. Evoluções Futuras
+
+Preparar arquitetura para futuramente suportar:
+
+* upgrade de disco;
+* alteração de network;
+* resize de filesystem;
+* snapshot antes da manutenção;
+* backup obrigatório antes da alteração;
+* LXC;
+* manutenção em lote;
+* aprovação em duas etapas;
+* janela de manutenção;
+* notificações por e-mail;
+* integração com chamados;
+* vínculo com contrato/upgrade vendido;
+* rollback automatizado;
+* execução condicionada ao PBS;
+* agendamento de reboot;
+* desligamento programado;
+* alteração de recursos sem shutdown quando hotplug seguro.
+
+---
+
+# 57. Regra de Desenvolvimento para o Codex
+
+Antes de alterar qualquer arquivo:
+
+1. ler a documentação atual;
+2. revisar módulo Infraestrutura;
+3. revisar integração Proxmox atual;
+4. verificar como Clusters e Nodes são modelados;
+5. verificar sistema de permissões;
+6. verificar padrão de migrations;
+7. verificar BaseRepository;
+8. identificar serviço/API existente;
+9. apresentar proposta de tabelas;
+10. implementar por etapas.
+
+Seguir:
+
+**Repository → Service → Executor → Routes → Templates → Worker → Testes**
+
+Não alterar funcionalidades existentes fora deste Sprint.
+
+Não executar comandos reais em VMs de produção durante desenvolvimento.
+
+Utilizar VM de homologação até conclusão dos testes.
+
+
 ___________________________________________________________________________________________
 
 # Sprint Final Planejada

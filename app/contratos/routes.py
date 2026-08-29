@@ -98,6 +98,23 @@ def _email_usuario_logado():
 
     return session.get("usuario_email") or session.get("email") or "sistema"
 
+def _flash_automacao_adendo_usuarios(automacao):
+    if not automacao or not automacao.get("aplicavel"):
+        return
+    email = automacao.get("email") or {}
+    licenca = automacao.get("licenca") or {}
+    if email.get("enviado"):
+        flash("Solicitação enviada para sac@o3cloud.com.br.", "success")
+    else:
+        flash(f"Solicitação ao SAC não enviada: {email.get('motivo') or 'erro desconhecido'}.", "warning")
+    if licenca.get("atualizada"):
+        flash(f"Licença O3Web atualizada: {licenca.get('usuarios_antes')} para {licenca.get('usuarios_depois')} usuário(s).", "success")
+    elif licenca.get("motivo") == "multiplas_licencas_o3web":
+        flash("Licença O3Web não atualizada automaticamente: há múltiplas licenças ativas para o cliente.", "warning")
+    else:
+        flash("Licença O3Web não localizada para atualização automática.", "warning")
+
+
 @contratos_bp.route("/")
 def index():
     pagina = request.args.get("page", 1, type=int)
@@ -244,14 +261,17 @@ def upload_assinado(contrato_id):
 @contratos_bp.route("/<int:contrato_id>/adendos", methods=["POST"])
 def criar_adendo(contrato_id):
     try:
-        adendo_id = ContratoService.criar_adendo(
+        resultado = ContratoService.criar_adendo(
             contrato_id,
             request.form,
             request.files.getlist("arquivos"),
             _email_usuario_logado(),
         )
-        registrar_evento("CONTRATO_ADENDO_CRIADO", "contratos", contrato_id, {"adendo_id": adendo_id})
+        adendo_id = resultado["adendo_id"] if isinstance(resultado, dict) else resultado
+        automacao = resultado.get("automacao") if isinstance(resultado, dict) else None
+        registrar_evento("CONTRATO_ADENDO_CRIADO", "contratos", contrato_id, {"adendo_id": adendo_id, "automacao": automacao})
         flash("Adendo contratual cadastrado.", "success")
+        _flash_automacao_adendo_usuarios(automacao)
     except ValueError as exc:
         flash(str(exc), "danger")
     return redirect(url_for("contratos.view", contrato_id=contrato_id))

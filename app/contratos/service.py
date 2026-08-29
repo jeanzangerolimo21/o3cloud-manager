@@ -4,6 +4,7 @@ from pathlib import Path
 import unicodedata
 
 from app.contatos.service import ContatoService
+from app.core.email import EmailService
 from app.core.pdf_assinatura import extrair_data_assinatura_pdf
 from app.core.storage import StorageService
 from app.integracoes.omie.client import OmieClient
@@ -15,6 +16,7 @@ from app.propostas.service import PropostaService
 from app.repositories.cliente_repository import ClienteRepository
 from app.repositories.contrato_repository import ContratoRepository
 from app.repositories.contrato_adendo_repository import ContratoAdendoRepository
+from app.repositories.o3web_licenca_repository import O3WebLicencaRepository
 
 
 class ContratoService:
@@ -636,7 +638,66 @@ class ContratoService:
         for arquivo in arquivos or []:
             if arquivo and arquivo.filename:
                 cls.salvar_anexo_adendo(adendo_id, arquivo, usuario_email)
-        return adendo_id
+        automacao = cls._processar_adendo_usuarios_adicionais(contrato, {**dados, "id": adendo_id}, usuario_email)
+        return {"adendo_id": adendo_id, "automacao": automacao}
+
+    @classmethod
+    def _processar_adendo_usuarios_adicionais(cls, contrato, adendo, usuario_email="sistema"):
+        if adendo.get("tipo") != "USUARIOS_ADICIONAIS":
+            return {"aplicavel": False}
+        quantidade = cls._inteiro_ou_none(adendo.get("quantidade_usuarios")) or 0
+        if quantidade <= 0:
+            return {"aplicavel": True, "email": {"enviado": False, "motivo": "quantidade_usuarios_ausente"}, "licenca": {"atualizada": False, "motivo": "quantidade_usuarios_ausente"}}
+
+        email = cls._enviar_email_adendo_usuarios(contrato, adendo, quantidade, usuario_email)
+        licenca = cls._incrementar_licenca_o3web_cliente(contrato, quantidade)
+        return {"aplicavel": True, "email": email, "licenca": licenca}
+
+    @classmethod
+    def _enviar_email_adendo_usuarios(cls, contrato, adendo, quantidade, usuario_email="sistema"):
+        destinatario = "sac@o3cloud.com.br"
+        cliente_nome = contrato.get("cliente_nome") or contrato.get("cliente_razao_social") or "Cliente não identificado"
+        assunto = f"Adicionar {quantidade} usuario(s) O3Web - {cliente_nome}"
+        corpo = "\n".join([
+            "Solicitação automática de usuários adicionais O3Web.",
+            "",
+            f"Cliente: {cliente_nome}",
+            f"CNPJ: {contrato.get('cliente_cnpj') or '-'}",
+            f"Contrato: {contrato.get('numero') or contrato.get('id')}",
+            f"Adendo: {adendo.get('titulo')}",
+            f"Número do adendo: {adendo.get('numero_adendo') or '-'}",
+            f"Quantidade adicional: {quantidade}",
+            f"Valor recorrente do adendo: R$ {adendo.get('valor_recorrente') or '0.00'}",
+            f"Solicitante: {usuario_email or 'sistema'}",
+            "",
+            "Providenciar atualização dos usuários adicionais na operação técnica.",
+        ])
+        try:
+            return EmailService.enviar(assunto, corpo, [destinatario])
+        except Exception as erro:
+            return {"enviado": False, "motivo": str(erro)[:180], "destinatarios": [destinatario]}
+
+    @classmethod
+    def _incrementar_licenca_o3web_cliente(cls, contrato, quantidade):
+        licencas = O3WebLicencaRepository.listar_ativas_por_cliente(
+            contrato.get("cliente_id"),
+            contrato.get("cliente_cnpj"),
+            contrato.get("cliente_nome") or contrato.get("cliente_razao_social"),
+        )
+        if not licencas:
+            return {"atualizada": False, "motivo": "licenca_o3web_nao_localizada"}
+        if len(licencas) > 1:
+            return {"atualizada": False, "motivo": "multiplas_licencas_o3web", "total": len(licencas)}
+        licenca = licencas[0]
+        usuarios_antes = cls._inteiro_ou_none(licenca.get("usuarios")) or 0
+        O3WebLicencaRepository.incrementar_usuarios(licenca["id"], quantidade)
+        return {
+            "atualizada": True,
+            "licenca_id": licenca["id"],
+            "id_licenca": licenca.get("id_licenca"),
+            "usuarios_antes": usuarios_antes,
+            "usuarios_depois": usuarios_antes + quantidade,
+        }
 
     @classmethod
     def atualizar_adendo(cls, contrato_id, adendo_id, dados, usuario_email="sistema"):

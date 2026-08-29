@@ -50,6 +50,51 @@ class O3WebLicencaRepository(BaseRepository):
         return cls.fetch_one("SELECT * FROM o3web_licencas WHERE id_licenca = %s LIMIT 1", (id_licenca,))
 
     @classmethod
+    def listar_ativas_por_cliente(cls, cliente_id=None, cliente_cnpj=None, cliente_nome=None):
+        filtros = ["ativo = 1"]
+        identificadores = []
+        params = []
+        if cliente_id:
+            identificadores.append("cliente_id = %s")
+            params.append(cliente_id)
+        cnpj_normalizado = "".join(ch for ch in str(cliente_cnpj or "") if ch.isalnum()).upper()
+        if cnpj_normalizado:
+            identificadores.append("REGEXP_REPLACE(COALESCE(cliente_cnpj, ''), '[^0-9A-Za-z]', '') = %s")
+            params.append(cnpj_normalizado)
+        nome = (cliente_nome or "").strip()
+        if nome:
+            identificadores.append("LOWER(TRIM(cliente_nome)) = LOWER(TRIM(%s))")
+            params.append(nome)
+        if not identificadores:
+            return []
+        filtros.append("(" + " OR ".join(identificadores) + ")")
+        return cls.fetch_all(
+            f"""
+            SELECT *
+            FROM o3web_licencas
+            WHERE {' AND '.join(filtros)}
+            ORDER BY CASE WHEN cliente_id = %s THEN 0 ELSE 1 END,
+                     COALESCE(data_expiracao, '2999-12-31') DESC,
+                     id DESC
+            """,
+            tuple(params + [cliente_id or 0]),
+        )
+
+    @classmethod
+    def incrementar_usuarios(cls, licenca_id, quantidade):
+        return cls.execute(
+            """
+            UPDATE o3web_licencas
+            SET usuarios = COALESCE(usuarios, 0) + %s,
+                observacao = CONCAT_WS(CHAR(10), NULLIF(observacao, ''), CONCAT('Usuários atualizados automaticamente por adendo: +', %s)),
+                updated_at = NOW()
+            WHERE id = %s
+              AND ativo = 1
+            """,
+            (quantidade, quantidade, licenca_id),
+        )
+
+    @classmethod
     def buscar_por_chave_cliente_url(cls, chave_ativacao, cliente_nome, url_principal):
         if not chave_ativacao or not cliente_nome:
             return None

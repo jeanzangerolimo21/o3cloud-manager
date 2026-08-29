@@ -13,15 +13,26 @@ class ProxmoxClient:
         self.session = requests.Session()
         self.session.headers.update(self.headers)
 
-    def _get(self, path, params=None, timeout=None):
-        response = self.session.get(
+    def _request(self, method, path, params=None, data=None, timeout=None):
+        response = self.session.request(
+            method,
             f"{self.base_url}{path}",
             params=params,
+            data=data,
             timeout=timeout or self.timeout,
             verify=self.verify_ssl,
         )
         response.raise_for_status()
         return (response.json() or {}).get("data") or []
+
+    def _get(self, path, params=None, timeout=None):
+        return self._request("GET", path, params=params, timeout=timeout)
+
+    def _post(self, path, data=None, timeout=None):
+        return self._request("POST", path, data=data, timeout=timeout)
+
+    def _put(self, path, data=None, timeout=None):
+        return self._request("PUT", path, data=data, timeout=timeout)
 
     def listar_nodes(self):
         return self._get("/api2/json/nodes")
@@ -46,5 +57,36 @@ class ProxmoxClient:
         recurso = "qemu" if tipo == "qemu" else "lxc"
         return self._get(
             f"/api2/json/nodes/{node}/{recurso}/{vmid}/config",
+            timeout=min(self.timeout, 5),
+        )
+
+    def obter_status_vm(self, node, vmid):
+        return self._get(
+            f"/api2/json/nodes/{node}/qemu/{vmid}/status/current",
+            timeout=min(self.timeout, 5),
+        )
+
+    def shutdown_vm(self, node, vmid):
+        return self._post(
+            f"/api2/json/nodes/{node}/qemu/{vmid}/status/shutdown",
+            timeout=min(self.timeout, 10),
+        )
+
+    def start_vm(self, node, vmid):
+        return self._post(
+            f"/api2/json/nodes/{node}/qemu/{vmid}/status/start",
+            timeout=min(self.timeout, 10),
+        )
+
+    def alterar_configuracao_vm(self, node, vmid, dados):
+        return self._put(
+            f"/api2/json/nodes/{node}/qemu/{vmid}/config",
+            data=dados,
+            timeout=min(self.timeout, 15),
+        )
+
+    def obter_task_status(self, node, upid):
+        return self._get(
+            f"/api2/json/nodes/{node}/tasks/{upid}/status",
             timeout=min(self.timeout, 5),
         )

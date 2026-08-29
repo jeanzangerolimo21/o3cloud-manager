@@ -1,0 +1,240 @@
+import os
+import socket
+import time
+from decimal import Decimal
+
+from app.core.email import EmailService
+from app.implantacao.integracoes_service import IntegracaoConfigService
+from app.integracoes.proxmox.client import ProxmoxClient
+from app.repositories.proxmox_agendamento_repository import ProxmoxAgendamentoRepository
+
+
+class ProxmoxAgendamentoExecutor:
+    repository = ProxmoxAgendamentoRepository
+
+    @classmethod
+    def processar_pendentes(cls, limite=5):
+        worker_id = cls._worker_id()
+        resultados = []
+        for pendente in cls.repository.listar_pendentes(limite):
+            agendamento_id = pendente["id"]
+            if not cls.repository.claim(agendamento_id, worker_id):
+                continue
+            try:
+                cls.executar(agendamento_id)
+                concluido = cls.repository.buscar_por_id(agendamento_id)
+                cls._enviar_email_final(concluido, sucesso=True)
+                resultados.append(f"Agendamento #{agendamento_id}: CONCLUIDO")
+            except Exception as erro:
+                mensagem = str(erro)
+                cls.repository.atualizar_status(
+                    agendamento_id,
+                    "ERRO",
+                    mensagem,
+                    mensagem_erro=mensagem,
+                    finalizado_em="NOW()",
+                )
+                falha = cls.repository.buscar_por_id(agendamento_id)
+                cls._enviar_email_final(falha, sucesso=False, mensagem_erro=mensagem)
+                resultados.append(f"Agendamento #{agendamento_id}: ERRO - {mensagem}")
+        return resultados
+
+    @classmethod
+    def executar(cls, agendamento_id):
+        agendamento = cls.repository.buscar_por_id(agendamento_id)
+        if not agendamento:
+            raise ValueError("Agendamento não encontrado.")
+        if agendamento.get("status") != "VALIDANDO":
+            raise ValueError("Agendamento não está em estado executável.")
+        cls._enviar_email_inicio(agendamento)
+
+        client = cls._client(agendamento)
+        recurso = cls._localizar_recurso(client, agendamento)
+        if recurso.get("node") != agendamento.get("node_nome"):
+            raise ValueError("VM localizada em outro node. Sincronize o inventário e crie um novo agendamento.")
+        if recurso.get("type") != "qemu":
+            raise ValueError("Esta automação aceita apenas VMs QEMU.")
+
+        status_atual = client.obter_status_vm(agendamento["node_nome"], agendamento["vmid"])
+        config_atual = client.obter_configuracao(agendamento["node_nome"], "qemu", agendamento["vmid"])
+        cls._validar_lock(config_atual, status_atual)
+
+        cpu_atual = cls._int_config(config_atual.get("cores") or recurso.get("maxcpu") or agendamento.get("cpu_original"))
+        memoria_atual = cls._int_config(config_atual.get("memory") or cls._bytes_para_mb(recurso.get("maxmem")) or agendamento.get("memoria_original_mb"))
+        status_original = status_atual.get("status") or recurso.get("status") or agendamento.get("status_original")
+        cls.repository.atualizar_status(
+            agendamento_id,
+            "VALIDANDO",
+            "Estado atual validado no Proxmox.",
+            cpu_original=cpu_atual,
+            memoria_original_mb=memoria_atual,
+            status_original=status_original,
+        )
+
+        payload = {}
+        if agendamento.get("cpu_nova") and int(agendamento["cpu_nova"]) != cpu_atual:
+            if cpu_atual and int(agendamento["cpu_nova"]) < cpu_atual:
+                raise ValueError("CPU nova é menor que a CPU atual.")
+            payload["cores"] = int(agendamento["cpu_nova"])
+        if agendamento.get("memoria_nova_mb") and int(agendamento["memoria_nova_mb"]) != memoria_atual:
+            if memoria_atual and int(agendamento["memoria_nova_mb"]) < memoria_atual:
+                raise ValueError("Memória nova é menor que a memória atual.")
+            payload["memory"] = int(agendamento["memoria_nova_mb"])
+        if not payload:
+            cls.repository.atualizar_status(
+                agendamento_id,
+                "CONCLUIDO",
+                "Configuração já estava nos valores solicitados.",
+                cpu_final=cpu_atual,
+                memoria_final_mb=memoria_atual,
+                status_final=status_original,
+                finalizado_em="NOW()",
+            )
+            return
+
+        estava_ligada = status_original == "running"
+        if estava_ligada:
+            if not agendamento.get("desligar_se_necessario"):
+                raise ValueError("VM está ligada e o desligamento automático foi desabilitado.")
+            cls.repository.atualizar_status(agendamento_id, "DESLIGANDO", "Solicitando shutdown gracioso da VM.")
+            upid = client.shutdown_vm(agendamento["node_nome"], agendamento["vmid"])
+            cls._aguardar_task(client, agendamento["node_nome"], upid)
+            cls.repository.atualizar_status(agendamento_id, "AGUARDANDO_DESLIGAMENTO", "Aguardando VM ficar stopped.")
+            cls._aguardar_status(client, agendamento["node_nome"], agendamento["vmid"], "stopped")
+
+        cls.repository.atualizar_status(agendamento_id, "APLICANDO", "Aplicando CPU/RAM no Proxmox.")
+        upid = client.alterar_configuracao_vm(agendamento["node_nome"], agendamento["vmid"], payload)
+        cls._aguardar_task(client, agendamento["node_nome"], upid)
+
+        cls.repository.atualizar_status(agendamento_id, "VALIDANDO_CONFIGURACAO", "Validando configuração aplicada.")
+        config_final = client.obter_configuracao(agendamento["node_nome"], "qemu", agendamento["vmid"])
+        cpu_final = cls._int_config(config_final.get("cores") or cpu_atual)
+        memoria_final = cls._int_config(config_final.get("memory") or memoria_atual)
+        if payload.get("cores") and cpu_final != payload["cores"]:
+            raise ValueError("CPU final não confere com o valor solicitado.")
+        if payload.get("memory") and memoria_final != payload["memory"]:
+            raise ValueError("Memória final não confere com o valor solicitado.")
+
+        status_final = client.obter_status_vm(agendamento["node_nome"], agendamento["vmid"]).get("status")
+        if estava_ligada and agendamento.get("religar_automaticamente"):
+            cls.repository.atualizar_status(agendamento_id, "LIGANDO", "Religando VM originalmente ligada.")
+            upid = client.start_vm(agendamento["node_nome"], agendamento["vmid"])
+            cls._aguardar_task(client, agendamento["node_nome"], upid)
+            cls.repository.atualizar_status(agendamento_id, "VALIDANDO_INICIALIZACAO", "Validando inicialização da VM.")
+            cls._aguardar_status(client, agendamento["node_nome"], agendamento["vmid"], "running")
+            status_final = "running"
+
+        cls.repository.atualizar_status(
+            agendamento_id,
+            "CONCLUIDO",
+            "Upgrade concluído e validado.",
+            cpu_final=cpu_final,
+            memoria_final_mb=memoria_final,
+            status_final=status_final,
+            finalizado_em="NOW()",
+        )
+
+    @classmethod
+    def _enviar_email_final(cls, agendamento, sucesso=True, mensagem_erro=None):
+        if not agendamento:
+            return
+        destinatario = (agendamento.get("created_by") or "").strip().lower()
+        if not destinatario or destinatario == "sistema" or "@" not in destinatario:
+            return
+        status = "CONCLUIDO" if sucesso else "ERRO"
+        assunto_status = "concluído com sucesso" if sucesso else "falhou"
+        assunto = f"Agendamento Proxmox #{agendamento.get('id')} {assunto_status}"
+        linhas = [
+            f"Agendamento {assunto_status}",
+            "",
+            "Resultado da execução do seu agendamento Proxmox.",
+            "",
+            f"Agendamento: #{agendamento.get('id')}",
+            f"Execução programada: {agendamento.get('executar_em').strftime('%d/%m/%Y %H:%M') if agendamento.get('executar_em') else '-'}",
+            f"Cluster: {agendamento.get('integracao_nome') or agendamento.get('cluster_nome') or '-'}",
+            f"Node: {agendamento.get('node_nome') or '-'}",
+            f"VMID: {agendamento.get('vmid') or '-'}",
+            f"VM: {agendamento.get('vm_nome') or '-'}",
+            f"Status final: {agendamento.get('status_final') or agendamento.get('status') or '-'}",
+            f"CPU final: {agendamento.get('cpu_final') or agendamento.get('cpu_nova') or '-'}",
+            f"Memória final: {round((agendamento.get('memoria_final_mb') or agendamento.get('memoria_nova_mb') or 0) / 1024, 2) if (agendamento.get('memoria_final_mb') or agendamento.get('memoria_nova_mb')) else '-'} GB",
+        ]
+        if mensagem_erro or agendamento.get("mensagem_erro"):
+            linhas.extend(["", f"Erro: {mensagem_erro or agendamento.get('mensagem_erro')}"])
+        try:
+            resultado = EmailService.enviar(assunto, "\n".join(linhas), [destinatario])
+            if resultado.get("enviado"):
+                cls.repository.registrar_evento(agendamento["id"], status, f"E-mail final enviado para {destinatario}.")
+            else:
+                cls.repository.registrar_evento(agendamento["id"], status, f"E-mail final não enviado: {resultado.get('motivo') or 'motivo não informado'}.")
+        except Exception as erro:
+            cls.repository.registrar_evento(agendamento["id"], status, f"Falha ao enviar e-mail final: {erro}")
+
+    @classmethod
+    def _client(cls, agendamento):
+        segredo = IntegracaoConfigService.revelar_segredo_config(agendamento["integracao_id"])
+        return ProxmoxClient(
+            agendamento.get("base_url") or agendamento.get("cluster_base_url"),
+            agendamento.get("token_nome"),
+            segredo,
+            timeout=agendamento.get("timeout_seconds") or 30,
+            verify_ssl=bool(agendamento.get("verify_ssl")),
+        )
+
+    @staticmethod
+    def _localizar_recurso(client, agendamento):
+        for item in client.listar_vms_containers():
+            if item.get("type") == "qemu" and str(item.get("vmid")) == str(agendamento.get("vmid")):
+                return item
+        raise ValueError("VM não localizada no cluster Proxmox no momento da execução.")
+
+    @staticmethod
+    def _validar_lock(config, status):
+        lock = (config or {}).get("lock") or (status or {}).get("lock")
+        if lock:
+            raise ValueError(f"VM possui lock ativo no Proxmox ({lock}).")
+
+    @classmethod
+    def _aguardar_task(cls, client, node, upid):
+        if not upid:
+            return
+        timeout = int(os.getenv("PROXMOX_AGENDAMENTO_TASK_TIMEOUT", "600"))
+        intervalo = int(os.getenv("PROXMOX_AGENDAMENTO_TASK_INTERVAL", "3"))
+        fim = time.time() + timeout
+        while time.time() < fim:
+            status = client.obter_task_status(node, upid)
+            if status.get("status") == "stopped":
+                exitstatus = status.get("exitstatus")
+                if exitstatus in (None, "OK"):
+                    return
+                raise ValueError(f"Task Proxmox finalizada com status {exitstatus}.")
+            time.sleep(intervalo)
+        raise ValueError("Timeout aguardando task do Proxmox.")
+
+    @classmethod
+    def _aguardar_status(cls, client, node, vmid, esperado):
+        timeout = int(os.getenv("PROXMOX_AGENDAMENTO_VM_TIMEOUT", "600"))
+        intervalo = int(os.getenv("PROXMOX_AGENDAMENTO_VM_INTERVAL", "5"))
+        fim = time.time() + timeout
+        while time.time() < fim:
+            status = client.obter_status_vm(node, vmid).get("status")
+            if status == esperado:
+                return
+            time.sleep(intervalo)
+        raise ValueError(f"Timeout aguardando VM ficar {esperado}.")
+
+    @staticmethod
+    def _int_config(valor):
+        if valor is None or valor == "":
+            return None
+        return int(Decimal(str(valor)))
+
+    @staticmethod
+    def _bytes_para_mb(valor):
+        if valor is None:
+            return None
+        return int(Decimal(str(valor)) / Decimal(1024 * 1024))
+
+    @staticmethod
+    def _worker_id():
+        return f"{socket.gethostname()}:{os.getpid()}"

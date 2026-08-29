@@ -1,3 +1,5 @@
+- Sprint 23: agendamentos Proxmox notificam por e-mail o usuário criador no cadastro, no início da execução e no resultado final de sucesso ou falha.
+- Sprint 23: módulo de agendamentos Proxmox para upgrade programado de CPU/memória em VMs QEMU, com fila persistente, eventos, worker e comando CLI.
 # Changelog
 
 ## 2026-08-29 - Adendos contratuais e premiações manuais
@@ -7,6 +9,7 @@
 - Premiações manuais de adendos usam campanha de comissão, valor base, status e observações; parceiro, executivo, percentuais e valores são calculados pela mesma regra da apuração automática.
 - Financeiro > Premiações passou a considerar adendos nos filtros por campanha, no total de contratos + adendos, na base de premiação e na premiação prevista.
 - Corrigida a normalização decimal do cadastro de adendos para aceitar valores como `435.00` e `435,00` sem multiplicar por 100.
+- Adendos de usuários adicionais passaram a enviar solicitação para sac@o3cloud.com.br e incrementar automaticamente a licença O3Web quando houver uma única licença ativa identificável.
 - Criadas as migrations `118_create_contratos_adendos.sql` e `119_add_campanha_id_premiacoes_adendos.sql`.
 
 ## 2026-08-28 - CRM com vinculo de clientes e ajustes Beta de UI

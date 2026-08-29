@@ -38,6 +38,7 @@ def init_cli(app):
     app.cli.add_command(aso_processar_lembretes_command)
     app.cli.add_command(operacao_alertas_enviar_command)
     app.cli.add_command(reajustes_processar_alertas_command)
+    app.cli.add_command(proxmox_agendamentos_processar_command)
 
 
 @click.command("relatorios-processar-jobs")
@@ -136,3 +137,18 @@ def reajustes_processar_alertas_command():
     )
     for mensagem in resultado.get("mensagens", [])[:50]:
         click.echo(mensagem)
+
+
+@click.command("proxmox-agendamentos-processar")
+@with_appcontext
+@click.option("--limite", default=5, show_default=True, help="Quantidade maxima de agendamentos Proxmox vencidos para processar.")
+def proxmox_agendamentos_processar_command(limite):
+    """Processa upgrades agendados de CPU/memoria no Proxmox."""
+    from app.infraestrutura.agendamentos.executor import ProxmoxAgendamentoExecutor
+
+    resultados = ProxmoxAgendamentoExecutor.processar_pendentes(limite)
+    if not resultados:
+        click.echo("Nenhum agendamento Proxmox pendente.")
+        return
+    for resultado in resultados:
+        click.echo(resultado)
