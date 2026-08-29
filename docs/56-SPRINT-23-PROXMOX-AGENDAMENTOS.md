@@ -12,6 +12,7 @@
 - Worker com claim atômico, revalidação no Proxmox, shutdown gracioso, aplicação de `cores`/`memory`, validação final e start automático quando configurado.
 - E-mail em HTML e texto para o usuário criador ao cadastrar o agendamento, quando o worker inicia a execução e ao finalizar com sucesso ou falha.
 - Tela de novo agendamento mostra CPU total atual, sockets e cores por socket consultados do Proxmox.
+- Cadastro de agendamento exige snapshot PBS vinculado à VM nas últimas 24 horas; sem backup recente, o agendamento é bloqueado e orienta executar/sincronizar backup antes do upgrade.
 - E-mails de agendamento incluem resumo, ambiente, topologia de CPU, memória, política de desligamento/religamento, motivo e link de acompanhamento quando `PUBLIC_BASE_URL` estiver configurado.
 
 ## Operação

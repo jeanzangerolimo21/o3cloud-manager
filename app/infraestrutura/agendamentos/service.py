@@ -7,6 +7,7 @@ from app.core.email import EmailService
 from app.infraestrutura.agendamentos.emails import ProxmoxAgendamentoEmailBuilder
 from app.implantacao.integracoes_service import IntegracaoConfigService
 from app.integracoes.proxmox.client import ProxmoxClient
+from app.repositories.pbs_backup_repository import PBSBackupRepository
 from app.repositories.proxmox_agendamento_repository import ProxmoxAgendamentoRepository
 
 
@@ -124,6 +125,7 @@ class ProxmoxAgendamentoService:
             raise ValueError("Esta primeira versão permite apenas upgrade de CPU.")
         if memoria_nova_mb is not None and memoria_atual and memoria_nova_mb < memoria_atual:
             raise ValueError("Esta primeira versão permite apenas upgrade de memória.")
+        cls._validar_backup_pbs_recente(vm)
         if cls.repository.existe_ativo_vm(vm["integracao_id"], vm["node"], vm["vmid"]):
             raise ValueError("Já existe um agendamento ativo para esta VM.")
 
@@ -203,6 +205,20 @@ class ProxmoxAgendamentoService:
         if not valor:
             return None
         return int(float(valor) / 1024 / 1024)
+
+    @classmethod
+    def _validar_backup_pbs_recente(cls, vm, horas=24):
+        backup = PBSBackupRepository.backup_recente_recurso(vm.get("id"), horas=horas)
+        if backup:
+            return backup
+        ultimo = PBSBackupRepository.ultimo_backup_recurso(vm.get("id"))
+        detalhe = "Nenhum backup PBS foi localizado para esta VM."
+        if ultimo and ultimo.get("backup_time"):
+            detalhe = f"Último backup PBS localizado: {ultimo.get('backup_time').strftime('%d/%m/%Y %H:%M')} ({ultimo.get('datastore') or '-'} / {ultimo.get('namespace') or '-'})."
+        raise ValueError(
+            f"Por segurança, não é possível salvar o agendamento: não há backup PBS desta VM nas últimas {horas} horas. "
+            f"{detalhe} Execute um backup no PBS ou sincronize os backups antes de agendar o upgrade."
+        )
 
     @classmethod
     def _enviar_email_cadastro(cls, agendamento_id):

@@ -162,6 +162,36 @@ class PBSBackupRepository(BaseRepository):
         )
 
     @classmethod
+    def backup_recente_recurso(cls, proxmox_inventory_id, horas=24):
+        horas = max(1, min(int(horas or 24), 168))
+        return cls.fetch_one(
+            f"""
+            SELECT id, datastore, namespace, backup_type, backup_id, backup_time, snapshot_name,
+                   TIMESTAMPDIFF(HOUR, backup_time, UTC_TIMESTAMP()) AS idade_horas
+            FROM pbs_backup_snapshots
+            WHERE proxmox_inventory_id = %s
+              AND backup_time >= UTC_TIMESTAMP() - INTERVAL {horas} HOUR
+            ORDER BY backup_time DESC, id DESC
+            LIMIT 1
+            """,
+            (proxmox_inventory_id,),
+        )
+
+    @classmethod
+    def ultimo_backup_recurso(cls, proxmox_inventory_id):
+        return cls.fetch_one(
+            """
+            SELECT id, datastore, namespace, backup_type, backup_id, backup_time, snapshot_name,
+                   TIMESTAMPDIFF(HOUR, backup_time, UTC_TIMESTAMP()) AS idade_horas
+            FROM pbs_backup_snapshots
+            WHERE proxmox_inventory_id = %s
+            ORDER BY backup_time DESC, id DESC
+            LIMIT 1
+            """,
+            (proxmox_inventory_id,),
+        )
+
+    @classmethod
     def listar_nodes_proxmox(cls):
         return cls.fetch_all(
             """

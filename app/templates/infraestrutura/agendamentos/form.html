@@ -7,6 +7,11 @@
     {% set page_icon = "bi-calendar-plus" %}
     {% include "components/page_header.html" %}
 
+    <div class="alert alert-info d-flex align-items-start gap-2" role="alert">
+        <i class="bi bi-shield-check fs-5"></i>
+        <div>Para segurança operacional, o agendamento só é salvo quando existe backup PBS da VM nas últimas 24 horas.</div>
+    </div>
+
     <div class="card border-0 shadow-sm">
         <div class="card-body">
             <form method="POST" id="form-agendamento">
