@@ -217,6 +217,7 @@ ENDPOINT_PERMISSOES = {
     "proxmox_agendamentos.index": "proxmox_agendamentos",
     "proxmox_agendamentos.novo": "proxmox_agendamentos",
     "proxmox_agendamentos.visualizar": "proxmox_agendamentos",
+    "proxmox_agendamentos.topologia_vm": "proxmox_agendamentos",
     "proxmox_agendamentos.cancelar": "proxmox_agendamentos",
     "infraestrutura.backups_pbs": "backups_pbs",
     "infraestrutura.novo_escopo_pbs": "backups_pbs",

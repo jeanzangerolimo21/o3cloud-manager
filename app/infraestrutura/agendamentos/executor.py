@@ -59,23 +59,33 @@ class ProxmoxAgendamentoExecutor:
         config_atual = client.obter_configuracao(agendamento["node_nome"], "qemu", agendamento["vmid"])
         cls._validar_lock(config_atual, status_atual)
 
-        cpu_atual = cls._int_config(config_atual.get("cores") or recurso.get("maxcpu") or agendamento.get("cpu_original"))
-        memoria_atual = cls._int_config(config_atual.get("memory") or cls._bytes_para_mb(recurso.get("maxmem")) or agendamento.get("memoria_original_mb"))
+        sockets_atual = cls._int_config(config_atual.get("sockets") or agendamento.get("cpu_sockets_original") or 1) or 1
+        cpu_atual = cls._int_config(status_atual.get("cpus") or recurso.get("maxcpu") or agendamento.get("cpu_original"))
+        cores_config_atual = cls._int_config(config_atual.get("cores") or agendamento.get("cpu_cores_por_socket_original"))
+        cores_por_socket_atual = int(cpu_atual / sockets_atual) if sockets_atual and cpu_atual and cpu_atual % sockets_atual == 0 else cores_config_atual
+        memoria_atual = cls._int_config(cls._bytes_para_mb(status_atual.get("maxmem") or recurso.get("maxmem")) or config_atual.get("memory") or agendamento.get("memoria_original_mb"))
         status_original = status_atual.get("status") or recurso.get("status") or agendamento.get("status_original")
         cls.repository.atualizar_status(
             agendamento_id,
             "VALIDANDO",
             "Estado atual validado no Proxmox.",
             cpu_original=cpu_atual,
+            cpu_sockets_original=sockets_atual,
+            cpu_cores_por_socket_original=cores_por_socket_atual,
             memoria_original_mb=memoria_atual,
             status_original=status_original,
         )
 
         payload = {}
-        if agendamento.get("cpu_nova") and int(agendamento["cpu_nova"]) != cpu_atual:
-            if cpu_atual and int(agendamento["cpu_nova"]) < cpu_atual:
+        cpu_desejada = int(agendamento["cpu_nova"]) if agendamento.get("cpu_nova") else None
+        topologia_desejada = None
+        if cpu_desejada and cpu_desejada != cpu_atual:
+            if cpu_atual and cpu_desejada < cpu_atual:
                 raise ValueError("CPU nova é menor que a CPU atual.")
-            payload["cores"] = int(agendamento["cpu_nova"])
+            topologia_desejada = cls._topologia_cpu_desejada(cpu_desejada, sockets_atual)
+            payload["cores"] = topologia_desejada["cores_por_socket"]
+            if topologia_desejada["sockets"] != sockets_atual:
+                payload["sockets"] = topologia_desejada["sockets"]
         if agendamento.get("memoria_nova_mb") and int(agendamento["memoria_nova_mb"]) != memoria_atual:
             if memoria_atual and int(agendamento["memoria_nova_mb"]) < memoria_atual:
                 raise ValueError("Memória nova é menor que a memória atual.")
@@ -86,6 +96,8 @@ class ProxmoxAgendamentoExecutor:
                 "CONCLUIDO",
                 "Configuração já estava nos valores solicitados.",
                 cpu_final=cpu_atual,
+                cpu_sockets_final=sockets_atual,
+                cpu_cores_por_socket_final=cores_por_socket_atual,
                 memoria_final_mb=memoria_atual,
                 status_final=status_original,
                 finalizado_em="NOW()",
@@ -108,9 +120,14 @@ class ProxmoxAgendamentoExecutor:
 
         cls.repository.atualizar_status(agendamento_id, "VALIDANDO_CONFIGURACAO", "Validando configuração aplicada.")
         config_final = client.obter_configuracao(agendamento["node_nome"], "qemu", agendamento["vmid"])
-        cpu_final = cls._int_config(config_final.get("cores") or cpu_atual)
-        memoria_final = cls._int_config(config_final.get("memory") or memoria_atual)
-        if payload.get("cores") and cpu_final != payload["cores"]:
+        status_config_final = client.obter_status_vm(agendamento["node_nome"], agendamento["vmid"])
+        sockets_final = cls._int_config(config_final.get("sockets") or payload.get("sockets") or sockets_atual) or 1
+        cores_payload_total = payload.get("cores") * sockets_final if payload.get("cores") else None
+        cpu_final = cls._int_config(status_config_final.get("cpus") or cores_payload_total or cpu_atual)
+        cores_config_final = cls._int_config(config_final.get("cores") or payload.get("cores") or cores_por_socket_atual)
+        cores_por_socket_final = int(cpu_final / sockets_final) if sockets_final and cpu_final and cpu_final % sockets_final == 0 else cores_config_final
+        memoria_final = cls._int_config(cls._bytes_para_mb(status_config_final.get("maxmem")) or config_final.get("memory") or memoria_atual)
+        if cpu_desejada and cpu_final != cpu_desejada:
             raise ValueError("CPU final não confere com o valor solicitado.")
         if payload.get("memory") and memoria_final != payload["memory"]:
             raise ValueError("Memória final não confere com o valor solicitado.")
@@ -129,6 +146,8 @@ class ProxmoxAgendamentoExecutor:
             "CONCLUIDO",
             "Upgrade concluído e validado.",
             cpu_final=cpu_final,
+            cpu_sockets_final=sockets_final,
+            cpu_cores_por_socket_final=cores_por_socket_final,
             memoria_final_mb=memoria_final,
             status_final=status_final,
             finalizado_em="NOW()",
@@ -226,6 +245,13 @@ class ProxmoxAgendamentoExecutor:
             if item.get("type") == "qemu" and str(item.get("vmid")) == str(agendamento.get("vmid")):
                 return item
         raise ValueError("VM não localizada no cluster Proxmox no momento da execução.")
+
+    @staticmethod
+    def _topologia_cpu_desejada(cpu_total, sockets_atual):
+        sockets_atual = max(int(sockets_atual or 1), 1)
+        if cpu_total % sockets_atual == 0:
+            return {"sockets": sockets_atual, "cores_por_socket": int(cpu_total / sockets_atual)}
+        return {"sockets": 1, "cores_por_socket": int(cpu_total)}
 
     @staticmethod
     def _validar_lock(config, status):

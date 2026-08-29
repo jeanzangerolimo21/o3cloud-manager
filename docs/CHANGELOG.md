@@ -1,6 +1,10 @@
+# Changelog
+
+## 2026-08-29 - Sprint 23 Proxmox Agendamentos
+
+- Agendamentos Proxmox passaram a considerar sockets ao aplicar CPU total desejada, exibindo topologia atual e ajustando para 1 socket quando necessário para evitar vCPU dobrada.
 - Sprint 23: agendamentos Proxmox notificam por e-mail o usuário criador no cadastro, no início da execução e no resultado final de sucesso ou falha.
 - Sprint 23: módulo de agendamentos Proxmox para upgrade programado de CPU/memória em VMs QEMU, com fila persistente, eventos, worker e comando CLI.
-# Changelog
 
 ## 2026-08-29 - Adendos contratuais e premiações manuais
 

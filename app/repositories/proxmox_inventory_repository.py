@@ -7,7 +7,7 @@ class ProxmoxInventoryRepository(BaseRepository):
     @classmethod
     def listar(cls, tipo=None, status=None, node=None, pesquisa=None):
         sql = """
-            SELECT p.id, p.integracao_id, i.base_url, p.node, p.vmid, p.tipo, p.nome, p.status, p.cpu_cores,
+            SELECT p.id, p.integracao_id, i.base_url, p.node, p.vmid, p.tipo, p.nome, p.status, p.cpu_cores, p.cpu_sockets,
                    p.memoria_mb, p.disco_gb, p.discos_qtd, p.interfaces_qtd, p.ips, p.tags,
                    p.template, p.uptime_seconds, p.cliente_id, c.nome_fantasia AS cliente_nome,
                    p.contrato_id, p.implantacao_id, p.ultimo_sync_em, p.ativo,
@@ -68,7 +68,7 @@ class ProxmoxInventoryRepository(BaseRepository):
                    SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) AS running,
                    SUM(CASE WHEN status = 'stopped' THEN 1 ELSE 0 END) AS stopped,
                    COUNT(DISTINCT node) AS nodes,
-                   COALESCE(SUM(cpu_cores), 0) AS cpu_total,
+                   COALESCE(SUM(cpu_cores * COALESCE(NULLIF(cpu_sockets, 0), 1)), 0) AS cpu_total,
                    COALESCE(SUM(memoria_mb), 0) AS memoria_total_mb,
                    COALESCE(SUM(disco_gb), 0) AS disco_total_gb,
                    COALESCE(SUM(discos_qtd), 0) AS discos_total,
@@ -144,7 +144,7 @@ class ProxmoxInventoryRepository(BaseRepository):
                     SUM(CASE WHEN tipo = 'qemu' THEN 1 ELSE 0 END) AS qemu_total,
                     SUM(CASE WHEN tipo = 'lxc' THEN 1 ELSE 0 END) AS lxc_total,
                     SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) AS running_total,
-                    COALESCE(SUM(cpu_cores), 0) AS cpu_alocada,
+                    COALESCE(SUM(cpu_cores * COALESCE(NULLIF(cpu_sockets, 0), 1)), 0) AS cpu_alocada,
                     COALESCE(SUM(memoria_mb), 0) AS memoria_alocada_mb,
                     COALESCE(SUM(disco_gb), 0) AS disco_alocado_gb,
                     COALESCE(SUM(discos_qtd), 0) AS discos_total,
@@ -194,7 +194,7 @@ class ProxmoxInventoryRepository(BaseRepository):
             ) n ON n.integracao_id = i.id
             LEFT JOIN (
                 SELECT integracao_id, COUNT(*) AS recursos_total,
-                       COALESCE(SUM(cpu_cores), 0) AS cpu_alocada,
+                       COALESCE(SUM(cpu_cores * COALESCE(NULLIF(cpu_sockets, 0), 1)), 0) AS cpu_alocada,
                        COALESCE(SUM(memoria_mb), 0) AS memoria_alocada_mb,
                        COALESCE(SUM(disco_gb), 0) AS disco_alocado_gb
                 FROM proxmox_vm_inventory
@@ -219,7 +219,7 @@ class ProxmoxInventoryRepository(BaseRepository):
                    SUM(CASE WHEN v.tipo = 'qemu' THEN 1 ELSE 0 END) AS qemu_total,
                    SUM(CASE WHEN v.tipo = 'lxc' THEN 1 ELSE 0 END) AS lxc_total,
                    SUM(CASE WHEN v.status = 'running' THEN 1 ELSE 0 END) AS running_total,
-                   COALESCE(SUM(v.cpu_cores), 0) AS cpu_alocada,
+                   COALESCE(SUM(v.cpu_cores * COALESCE(NULLIF(v.cpu_sockets, 0), 1)), 0) AS cpu_alocada,
                    COALESCE(SUM(v.memoria_mb), 0) AS memoria_alocada_mb,
                    COALESCE(SUM(v.disco_gb), 0) AS disco_alocado_gb
             FROM proxmox_node_inventory n
@@ -252,7 +252,7 @@ class ProxmoxInventoryRepository(BaseRepository):
                    SUM(CASE WHEN v.tipo = 'qemu' THEN 1 ELSE 0 END) AS qemu_total,
                    SUM(CASE WHEN v.tipo = 'lxc' THEN 1 ELSE 0 END) AS lxc_total,
                    SUM(CASE WHEN v.status = 'running' THEN 1 ELSE 0 END) AS running_total,
-                   COALESCE(SUM(v.cpu_cores), 0) AS cpu_alocada,
+                   COALESCE(SUM(v.cpu_cores * COALESCE(NULLIF(v.cpu_sockets, 0), 1)), 0) AS cpu_alocada,
                    COALESCE(SUM(v.memoria_mb), 0) AS memoria_alocada_mb,
                    COALESCE(SUM(v.disco_gb), 0) AS disco_alocado_gb,
                    COALESCE(SUM(v.discos_qtd), 0) AS discos_total,
@@ -406,13 +406,14 @@ class ProxmoxInventoryRepository(BaseRepository):
                 cursor.execute(
                     """
                     INSERT INTO proxmox_vm_inventory (
-                        uuid, integracao_id, node, vmid, tipo, nome, status, cpu_cores,
+                        uuid, integracao_id, node, vmid, tipo, nome, status, cpu_cores, cpu_sockets,
                         memoria_mb, disco_gb, discos_qtd, interfaces_qtd, ips, tags, template,
                         uptime_seconds, raw_payload, ativo, ultimo_sync_em
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, NOW())
                     ON DUPLICATE KEY UPDATE
                         tipo=VALUES(tipo), nome=VALUES(nome), status=VALUES(status),
-                        cpu_cores=VALUES(cpu_cores), memoria_mb=VALUES(memoria_mb),
+                        cpu_cores=VALUES(cpu_cores), cpu_sockets=VALUES(cpu_sockets),
+                        memoria_mb=VALUES(memoria_mb),
                         disco_gb=VALUES(disco_gb),
                         discos_qtd=COALESCE(VALUES(discos_qtd), discos_qtd),
                         interfaces_qtd=COALESCE(VALUES(interfaces_qtd), interfaces_qtd),
@@ -422,7 +423,7 @@ class ProxmoxInventoryRepository(BaseRepository):
                     """,
                     (
                         cls.generate_uuid(), integracao_id, item["node"], item["vmid"], item["tipo"],
-                        item.get("nome"), item.get("status"), item.get("cpu_cores"),
+                        item.get("nome"), item.get("status"), item.get("cpu_cores"), item.get("cpu_sockets"),
                         item.get("memoria_mb"), item.get("disco_gb"), item.get("discos_qtd"),
                         item.get("interfaces_qtd"), item.get("ips"), item.get("tags"),
                         cls.bool_to_int(item.get("template")), item.get("uptime_seconds"),

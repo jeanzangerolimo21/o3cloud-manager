@@ -48,7 +48,7 @@
                         <td>{{ item.executar_em.strftime('%d/%m/%Y %H:%M') if item.executar_em else '-' }}</td>
                         <td>{{ item.integracao_nome }}<br><small class="text-muted">{{ item.node_nome }}</small></td>
                         <td><strong>{{ item.vmid }}</strong> {{ item.vm_nome or '-' }}</td>
-                        <td>{{ item.cpu_original or '-' }}{% if item.cpu_nova %} → {{ item.cpu_nova }}{% endif %}</td>
+                        <td>{{ item.cpu_topologia_original or '-' }}{% if item.cpu_nova %}<br><small class="text-muted">Desejada: {{ item.cpu_nova }} vCPU</small>{% endif %}</td>
                         <td>{{ item.memoria_original_gb or '-' }}{% if item.memoria_nova_gb %} → {{ item.memoria_nova_gb }} GB{% endif %}</td>
                         <td>{{ item.created_by or '-' }}<br><small class="text-muted">{{ item.created_at.strftime('%d/%m/%Y %H:%M') if item.created_at else '-' }}</small></td>
                         <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('proxmox_agendamentos.visualizar', agendamento_id=item.id) }}"><i class="bi bi-eye"></i></a></td>

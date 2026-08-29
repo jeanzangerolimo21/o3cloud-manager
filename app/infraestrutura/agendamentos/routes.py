@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
 
 from app.infraestrutura.agendamentos.service import ProxmoxAgendamentoService, STATUS_LABELS
 
@@ -47,6 +47,14 @@ def novo():
         nodes=contexto["nodes"],
         vms=contexto["vms"],
     )
+
+
+@proxmox_agendamentos_bp.route("/vm/<int:inventario_id>/topologia")
+def topologia_vm(inventario_id):
+    try:
+        return jsonify({"ok": True, "topologia": ProxmoxAgendamentoService.topologia_vm_live(inventario_id)})
+    except ValueError as erro:
+        return jsonify({"ok": False, "erro": str(erro)}), 400
 
 
 @proxmox_agendamentos_bp.route("/<int:agendamento_id>")

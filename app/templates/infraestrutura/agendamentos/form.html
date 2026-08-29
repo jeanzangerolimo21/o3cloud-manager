@@ -13,12 +13,13 @@
                 <div class="row g-3">
                     <div class="col-md-4"><label class="form-label">Cluster</label><select class="form-select" id="cluster-select"><option value="">Selecione</option>{% for cluster in clusters %}<option value="{{ cluster.id }}">{{ cluster.nome }}</option>{% endfor %}</select></div>
                     <div class="col-md-4"><label class="form-label">Node</label><select class="form-select" id="node-select"><option value="">Selecione</option>{% for node in nodes %}<option value="{{ node.node }}" data-cluster="{{ node.integracao_id }}">{{ node.cluster_nome }} / {{ node.node }}</option>{% endfor %}</select></div>
-                    <div class="col-md-4"><label class="form-label">VM QEMU</label><select class="form-select" name="inventario_id" id="vm-select" required><option value="">Selecione</option>{% for vm in vms %}<option value="{{ vm.id }}" data-cluster="{{ vm.integracao_id }}" data-node="{{ vm.node }}" data-cpu="{{ vm.cpu_cores or '' }}" data-memoria="{{ vm.memoria_mb or '' }}" data-status="{{ vm.status or '' }}">{{ vm.vmid }} - {{ vm.nome or 'sem nome' }} ({{ vm.cluster_nome }} / {{ vm.node }})</option>{% endfor %}</select></div>
-                    <div class="col-md-3"><label class="form-label">CPU atual</label><input class="form-control" id="cpu-atual" readonly></div>
+                    <div class="col-md-4"><label class="form-label">VM QEMU</label><select class="form-select" name="inventario_id" id="vm-select" required><option value="">Selecione</option>{% for vm in vms %}<option value="{{ vm.id }}" data-cluster="{{ vm.integracao_id }}" data-node="{{ vm.node }}" data-cpu="{{ vm.cpu_total or vm.cpu_cores or '' }}" data-sockets="{{ vm.cpu_sockets or 1 }}" data-cores-socket="{{ vm.cpu_cores_por_socket or vm.cpu_cores or '' }}" data-memoria="{{ vm.memoria_mb or '' }}" data-status="{{ vm.status or '' }}">{{ vm.vmid }} - {{ vm.nome or 'sem nome' }} ({{ vm.cluster_nome }} / {{ vm.node }})</option>{% endfor %}</select></div>
+                    <div class="col-md-3"><label class="form-label">CPU total atual</label><input class="form-control" id="cpu-atual" readonly></div>
+                    <div class="col-md-3"><label class="form-label">Sockets atuais</label><input class="form-control" id="sockets-atual" readonly></div>
                     <div class="col-md-3"><label class="form-label">Memória atual</label><input class="form-control" id="memoria-atual" readonly></div>
                     <div class="col-md-3"><label class="form-label">Status atual</label><input class="form-control" id="status-atual" readonly></div>
                     <div class="col-md-3"><label class="form-label">Executar em</label><input class="form-control" type="datetime-local" name="executar_em" value="{{ form.executar_em or '' }}" required></div>
-                    <div class="col-md-3"><label class="form-label">CPU total desejada</label><input class="form-control" type="number" min="1" step="1" name="cpu_nova" value="{{ form.cpu_nova or '' }}"><div class="form-text">Informe o total final da VM, não a quantidade a adicionar.</div></div>
+                    <div class="col-md-3"><label class="form-label">CPU total desejada</label><input class="form-control" type="number" min="1" step="1" name="cpu_nova" value="{{ form.cpu_nova or '' }}"><div class="form-text">Informe o total final de vCPU. Se o total não dividir pelos sockets atuais, o executor ajusta para 1 socket.</div></div>
                     <div class="col-md-3"><label class="form-label">Memória total desejada (GB)</label><input class="form-control" type="number" min="0.5" step="0.5" name="memoria_nova_gb" value="{{ form.memoria_nova_gb or '' }}"><div class="form-text">Informe o total final em GB, não a quantidade a adicionar.</div></div>
                     <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="desligar_se_necessario" id="desligar" checked><label class="form-check-label" for="desligar">Desligar se necessário</label></div></div>
                     <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="religar_automaticamente" id="religar" checked><label class="form-check-label" for="religar">Religar automaticamente</label></div></div>
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const nodeSelect = document.getElementById('node-select');
     const vmSelect = document.getElementById('vm-select');
     const cpuAtual = document.getElementById('cpu-atual');
+    const socketsAtual = document.getElementById('sockets-atual');
     const memoriaAtual = document.getElementById('memoria-atual');
     const statusAtual = document.getElementById('status-atual');
 
@@ -55,11 +57,31 @@ document.addEventListener('DOMContentLoaded', function () {
         if (selected && selected.hidden) vmSelect.value = '';
         atualizarResumo();
     }
-    function atualizarResumo() {
+    async function atualizarResumo() {
         const selected = vmSelect.selectedOptions[0];
-        cpuAtual.value = selected && selected.value ? selected.dataset.cpu || '-' : '';
-        memoriaAtual.value = selected && selected.value && selected.dataset.memoria ? (Math.round((Number(selected.dataset.memoria) / 1024) * 10) / 10) + ' GB' : '';
-        statusAtual.value = selected && selected.value ? selected.dataset.status || '-' : '';
+        if (!selected || !selected.value) {
+            cpuAtual.value = '';
+            socketsAtual.value = '';
+            memoriaAtual.value = '';
+            statusAtual.value = '';
+            return;
+        }
+        cpuAtual.value = (selected.dataset.cpu || '-') + ' vCPU';
+        socketsAtual.value = (selected.dataset.sockets || '1') + ' socket(s) x ' + (selected.dataset.coresSocket || '-') + ' core(s)';
+        memoriaAtual.value = selected.dataset.memoria ? (Math.round((Number(selected.dataset.memoria) / 1024) * 10) / 10) + ' GB' : '';
+        statusAtual.value = selected.dataset.status || '-';
+        try {
+            const response = await fetch(`/infraestrutura/agendamentos/vm/${selected.value}/topologia`);
+            const data = await response.json();
+            if (!data.ok) return;
+            const topologia = data.topologia;
+            cpuAtual.value = topologia.cpu_total + ' vCPU';
+            socketsAtual.value = topologia.sockets + ' socket(s) x ' + topologia.cores_por_socket + ' core(s)';
+            memoriaAtual.value = topologia.memoria_gb ? topologia.memoria_gb + ' GB' : memoriaAtual.value;
+            statusAtual.value = topologia.status || statusAtual.value;
+        } catch (error) {
+            return;
+        }
     }
     clusterSelect.addEventListener('change', filtrar);
     nodeSelect.addEventListener('change', filtrar);

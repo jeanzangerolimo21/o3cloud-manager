@@ -88,7 +88,7 @@ class ProxmoxAgendamentoRepository(BaseRepository):
         return cls.fetch_one(
             """
             SELECT p.id, p.integracao_id, i.nome AS cluster_nome, i.base_url AS cluster_base_url,
-                   p.node, p.vmid, p.tipo, p.nome, p.status, p.cpu_cores, p.memoria_mb,
+                   p.node, p.vmid, p.tipo, p.nome, p.status, p.cpu_cores, p.cpu_sockets, p.memoria_mb, p.raw_payload,
                    p.ativo, p.ultimo_sync_em
             FROM proxmox_vm_inventory p
             JOIN implantacao_integracoes_config i ON i.id = p.integracao_id
@@ -102,7 +102,7 @@ class ProxmoxAgendamentoRepository(BaseRepository):
         return cls.fetch_all(
             """
             SELECT p.id, p.integracao_id, i.nome AS cluster_nome, i.base_url AS cluster_base_url,
-                   p.node, p.vmid, p.tipo, p.nome, p.status, p.cpu_cores, p.memoria_mb, p.ultimo_sync_em
+                   p.node, p.vmid, p.tipo, p.nome, p.status, p.cpu_cores, p.cpu_sockets, p.memoria_mb, p.raw_payload, p.ultimo_sync_em
             FROM proxmox_vm_inventory p
             JOIN implantacao_integracoes_config i ON i.id = p.integracao_id
             WHERE p.ativo = 1 AND p.tipo = 'qemu' AND i.ativo = 1 AND i.tipo = 'proxmox'
@@ -146,15 +146,15 @@ class ProxmoxAgendamentoRepository(BaseRepository):
                 """
                 INSERT INTO proxmox_agendamentos (
                     uuid, integracao_id, cluster_nome, cluster_base_url, inventario_id, node_nome,
-                    vmid, vm_nome, tipo, cpu_original, cpu_nova, memoria_original_mb,
+                    vmid, vm_nome, tipo, cpu_original, cpu_sockets_original, cpu_cores_por_socket_original, cpu_nova, memoria_original_mb,
                     memoria_nova_mb, status_original, executar_em, desligar_se_necessario,
                     religar_automaticamente, motivo, created_by
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'qemu', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'qemu', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     cls.generate_uuid(), dados["integracao_id"], dados.get("cluster_nome"), dados.get("cluster_base_url"),
                     dados.get("inventario_id"), dados["node_nome"], dados["vmid"], dados.get("vm_nome"),
-                    dados.get("cpu_original"), dados.get("cpu_nova"), dados.get("memoria_original_mb"),
+                    dados.get("cpu_original"), dados.get("cpu_sockets_original"), dados.get("cpu_cores_por_socket_original"), dados.get("cpu_nova"), dados.get("memoria_original_mb"),
                     dados.get("memoria_nova_mb"), dados.get("status_original"), dados["executar_em"],
                     cls.bool_to_int(dados.get("desligar_se_necessario")), cls.bool_to_int(dados.get("religar_automaticamente")),
                     dados.get("motivo"), dados.get("created_by"),
@@ -230,7 +230,7 @@ class ProxmoxAgendamentoRepository(BaseRepository):
     @classmethod
     def atualizar_status(cls, agendamento_id, status, mensagem=None, **campos):
         permitidos = {
-            "cpu_original", "cpu_final", "memoria_original_mb", "memoria_final_mb",
+            "cpu_original", "cpu_sockets_original", "cpu_cores_por_socket_original", "cpu_final", "cpu_sockets_final", "cpu_cores_por_socket_final", "memoria_original_mb", "memoria_final_mb",
             "status_original", "status_final", "mensagem_erro", "finalizado_em",
         }
         sets = ["status = %s"]

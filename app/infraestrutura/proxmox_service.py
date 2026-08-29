@@ -225,6 +225,7 @@ class ProxmoxInventoryService:
             "nome": item.get("name"),
             "status": item.get("status"),
             "cpu_cores": config.get("cores") or item.get("maxcpu"),
+            "cpu_sockets": config.get("sockets") or 1,
             "memoria_mb": config.get("memory") or int((item.get("maxmem") or 0) / 1024 / 1024) or None,
             "disco_gb": round((item.get("maxdisk") or 0) / 1024 / 1024 / 1024, 2) or None,
             "discos_qtd": ProxmoxInventoryService._contar_discos(item.get("type"), config) if config else None,

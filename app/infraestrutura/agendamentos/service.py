@@ -1,6 +1,11 @@
 from datetime import datetime
+import json
+
+import requests
 
 from app.core.email import EmailService
+from app.implantacao.integracoes_service import IntegracaoConfigService
+from app.integracoes.proxmox.client import ProxmoxClient
 from app.repositories.proxmox_agendamento_repository import ProxmoxAgendamentoRepository
 
 
@@ -64,7 +69,7 @@ class ProxmoxAgendamentoService:
 
     @classmethod
     def contexto_form(cls):
-        vms = cls.repository.listar_vms_qemu()
+        vms = [cls._decorar_vm(dict(vm)) for vm in cls.repository.listar_vms_qemu()]
         nodes = cls.repository.listar_nodes()
         clusters = []
         vistos = set()
@@ -86,9 +91,13 @@ class ProxmoxAgendamentoService:
         vm = cls.repository.buscar_inventario_qemu(inventario_id)
         if not vm:
             raise ValueError("VM QEMU não encontrada no inventário ativo do Proxmox.")
+        vm = cls._decorar_vm(dict(vm))
 
-        cpu_atual = int(float(vm.get("cpu_cores") or 0))
-        memoria_atual = int(vm.get("memoria_mb") or 0)
+        topologia = cls.topologia_vm_live(inventario_id)
+        cpu_atual = int(topologia.get("cpu_total") or vm.get("cpu_total") or 0)
+        cpu_sockets = int(topologia.get("sockets") or vm.get("cpu_sockets") or 1)
+        cpu_cores_por_socket = int(topologia.get("cores_por_socket") or vm.get("cpu_cores_por_socket") or cpu_atual or 0)
+        memoria_atual = int(topologia.get("memoria_mb") or vm.get("memoria_mb") or 0)
         cpu_nova = cls._int_opcional(dados.get("cpu_nova"), "CPU nova inválida.")
         memoria_nova_mb = cls._memoria_mb(dados.get("memoria_nova_gb"))
         executar_em = cls._parse_datetime(dados.get("executar_em"))
@@ -126,10 +135,12 @@ class ProxmoxAgendamentoService:
             "vmid": vm.get("vmid"),
             "vm_nome": vm.get("nome"),
             "cpu_original": cpu_atual or None,
+            "cpu_sockets_original": cpu_sockets or 1,
+            "cpu_cores_por_socket_original": cpu_cores_por_socket or None,
             "cpu_nova": cpu_nova,
             "memoria_original_mb": memoria_atual or None,
             "memoria_nova_mb": memoria_nova_mb,
-            "status_original": vm.get("status"),
+            "status_original": topologia.get("status") or vm.get("status"),
             "executar_em": executar_em,
             "desligar_se_necessario": dados.get("desligar_se_necessario") == "on" or dados.get("desligar_se_necessario") in (True, "1", 1),
             "religar_automaticamente": dados.get("religar_automaticamente") == "on" or dados.get("religar_automaticamente") in (True, "1", 1),
@@ -139,6 +150,58 @@ class ProxmoxAgendamentoService:
         agendamento_id = cls.repository.criar(payload)
         cls._enviar_email_cadastro(agendamento_id)
         return agendamento_id
+
+    @classmethod
+    def topologia_vm_live(cls, inventario_id):
+        vm = cls.repository.buscar_inventario_qemu(inventario_id)
+        if not vm:
+            raise ValueError("VM QEMU não encontrada no inventário ativo do Proxmox.")
+        integracao = IntegracaoConfigService.buscar_por_id(vm["integracao_id"])
+        if not integracao or not integracao.get("ativo"):
+            raise ValueError("Integração Proxmox não encontrada ou inativa.")
+        try:
+            segredo = IntegracaoConfigService.revelar_segredo_config(integracao["id"])
+            client = ProxmoxClient(
+                integracao.get("base_url"),
+                IntegracaoConfigService._token_api_nome(integracao),
+                segredo,
+                timeout=integracao.get("timeout_seconds") or 30,
+                verify_ssl=bool(integracao.get("verify_ssl")),
+            )
+            config = client.obter_configuracao(vm["node"], "qemu", vm["vmid"])
+            status = client.obter_status_vm(vm["node"], vm["vmid"])
+            recurso = cls._recurso_live(client, vm)
+        except requests.exceptions.RequestException as erro:
+            raise ValueError(f"Não foi possível validar a topologia da VM no Proxmox: {erro}") from erro
+        sockets = int(config.get("sockets") or 1)
+        cpu_total = int(status.get("cpus") or recurso.get("maxcpu") or 0)
+        cores_config = int(float(config.get("cores") or vm.get("cpu_cores") or 0))
+        cores_por_socket = int(cpu_total / sockets) if sockets and cpu_total and cpu_total % sockets == 0 else cores_config
+        memoria_mb = int(cls._bytes_para_mb(status.get("maxmem") or recurso.get("maxmem")) or config.get("memory") or vm.get("memoria_mb") or 0)
+        return {
+            "vmid": vm.get("vmid"),
+            "nome": vm.get("nome"),
+            "node": vm.get("node"),
+            "status": status.get("status") or vm.get("status"),
+            "sockets": sockets,
+            "cores_por_socket": cores_por_socket,
+            "cpu_total": cpu_total or sockets * cores_por_socket,
+            "memoria_mb": memoria_mb,
+            "memoria_gb": round(memoria_mb / 1024, 2) if memoria_mb else None,
+        }
+
+    @staticmethod
+    def _recurso_live(client, vm):
+        for item in client.listar_vms_containers():
+            if item.get("type") == "qemu" and str(item.get("vmid")) == str(vm.get("vmid")) and item.get("node") == vm.get("node"):
+                return item
+        return {}
+
+    @staticmethod
+    def _bytes_para_mb(valor):
+        if not valor:
+            return None
+        return int(float(valor) / 1024 / 1024)
 
     @classmethod
     def _enviar_email_cadastro(cls, agendamento_id):
@@ -174,7 +237,7 @@ class ProxmoxAgendamentoService:
             f"Node: {agendamento.get('node_nome') or '-'}",
             f"VMID: {agendamento.get('vmid') or '-'}",
             f"VM: {agendamento.get('vm_nome') or '-'}",
-            f"CPU atual: {agendamento.get('cpu_original') or '-'}",
+            f"CPU atual: {cls._cpu_topologia(agendamento.get('cpu_original'), agendamento.get('cpu_sockets_original'), agendamento.get('cpu_cores_por_socket_original')) or '-'}",
             f"CPU total desejada: {agendamento.get('cpu_nova') or 'sem alteração'}",
             f"Memória atual: {round((agendamento.get('memoria_original_mb') or 0) / 1024, 2) if agendamento.get('memoria_original_mb') else '-'} GB",
             f"Memória total desejada: {round((agendamento.get('memoria_nova_mb') or 0) / 1024, 2) if agendamento.get('memoria_nova_mb') else 'sem alteração'} GB",
@@ -191,13 +254,44 @@ class ProxmoxAgendamentoService:
         return cls.repository.cancelar(agendamento_id, usuario_email)
 
     @staticmethod
-    def _decorar(item):
+    def _decorar_vm(vm):
+        config = {}
+        recurso = {}
+        try:
+            raw = json.loads(vm.get("raw_payload") or "{}")
+            config = raw.get("config") or {}
+            recurso = raw.get("resource") or {}
+        except (TypeError, ValueError):
+            config = {}
+            recurso = {}
+        sockets = int(config.get("sockets") or vm.get("cpu_sockets") or 1)
+        cores_por_socket = int(float(config.get("cores") or vm.get("cpu_cores") or 0))
+        cpu_total = int(float(recurso.get("maxcpu") or 0)) or cores_por_socket * max(sockets, 1)
+        if cpu_total and sockets and cpu_total % sockets == 0:
+            cores_por_socket = int(cpu_total / sockets)
+        vm["cpu_sockets"] = max(sockets, 1)
+        vm["cpu_cores_por_socket"] = cores_por_socket or None
+        vm["cpu_total"] = cpu_total or None
+        return vm
+
+    @classmethod
+    def _decorar(cls, item):
         item["status_label"] = STATUS_LABELS.get(item.get("status"), item.get("status"))
         item["status_classe"] = STATUS_CLASSES.get(item.get("status"), "secondary")
         item["memoria_original_gb"] = round((item.get("memoria_original_mb") or 0) / 1024, 2) if item.get("memoria_original_mb") else None
         item["memoria_nova_gb"] = round((item.get("memoria_nova_mb") or 0) / 1024, 2) if item.get("memoria_nova_mb") else None
         item["memoria_final_gb"] = round((item.get("memoria_final_mb") or 0) / 1024, 2) if item.get("memoria_final_mb") else None
+        item["cpu_topologia_original"] = cls._cpu_topologia(item.get("cpu_original"), item.get("cpu_sockets_original"), item.get("cpu_cores_por_socket_original"))
+        item["cpu_topologia_final"] = cls._cpu_topologia(item.get("cpu_final"), item.get("cpu_sockets_final"), item.get("cpu_cores_por_socket_final"))
         return item
+
+    @staticmethod
+    def _cpu_topologia(cpu_total, sockets, cores_por_socket):
+        if not cpu_total:
+            return None
+        if sockets and cores_por_socket:
+            return f"{cpu_total} vCPU ({sockets} socket(s) x {cores_por_socket} core(s))"
+        return f"{cpu_total} vCPU"
 
     @staticmethod
     def _int(valor, mensagem):
