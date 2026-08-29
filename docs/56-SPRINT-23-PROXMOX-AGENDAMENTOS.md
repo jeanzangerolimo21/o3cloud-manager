@@ -10,8 +10,9 @@
 - Cancelamento permitido apenas enquanto o status estiver `AGENDADO`.
 - Execução fora da request web via comando `flask proxmox-agendamentos-processar` ou script `python -m scripts.processar_agendamentos_proxmox`.
 - Worker com claim atômico, revalidação no Proxmox, shutdown gracioso, aplicação de `cores`/`memory`, validação final e start automático quando configurado.
-- E-mail para o usuário criador ao cadastrar o agendamento, quando o worker inicia a execução e ao finalizar com sucesso ou falha.
+- E-mail em HTML e texto para o usuário criador ao cadastrar o agendamento, quando o worker inicia a execução e ao finalizar com sucesso ou falha.
 - Tela de novo agendamento mostra CPU total atual, sockets e cores por socket consultados do Proxmox.
+- E-mails de agendamento incluem resumo, ambiente, topologia de CPU, memória, política de desligamento/religamento, motivo e link de acompanhamento quando `PUBLIC_BASE_URL` estiver configurado.
 
 ## Operação
 

@@ -4,6 +4,7 @@ import json
 import requests
 
 from app.core.email import EmailService
+from app.infraestrutura.agendamentos.emails import ProxmoxAgendamentoEmailBuilder
 from app.implantacao.integracoes_service import IntegracaoConfigService
 from app.integracoes.proxmox.client import ProxmoxClient
 from app.repositories.proxmox_agendamento_repository import ProxmoxAgendamentoRepository
@@ -209,14 +210,9 @@ class ProxmoxAgendamentoService:
         destinatario = (agendamento.get("created_by") or "").strip().lower() if agendamento else ""
         if not destinatario or destinatario == "sistema" or "@" not in destinatario:
             return
-        assunto = f"Agendamento Proxmox #{agendamento_id} criado"
-        corpo = cls._corpo_email_agendamento(
-            agendamento,
-            "Agendamento criado",
-            "Seu agendamento Proxmox foi registrado e será executado pelo worker no horário programado.",
-        )
+        assunto, corpo, corpo_html = ProxmoxAgendamentoEmailBuilder.cadastro(agendamento)
         try:
-            resultado = EmailService.enviar(assunto, corpo, [destinatario])
+            resultado = EmailService.enviar(assunto, corpo, [destinatario], corpo_html=corpo_html)
             if resultado.get("enviado"):
                 cls.repository.registrar_evento(agendamento_id, "AGENDADO", f"E-mail de criação enviado para {destinatario}.")
             else:

@@ -4,6 +4,7 @@ import time
 from decimal import Decimal
 
 from app.core.email import EmailService
+from app.infraestrutura.agendamentos.emails import ProxmoxAgendamentoEmailBuilder
 from app.implantacao.integracoes_service import IntegracaoConfigService
 from app.integracoes.proxmox.client import ProxmoxClient
 from app.repositories.proxmox_agendamento_repository import ProxmoxAgendamentoRepository
@@ -158,24 +159,9 @@ class ProxmoxAgendamentoExecutor:
         destinatario = (agendamento.get("created_by") or "").strip().lower()
         if not destinatario or destinatario == "sistema" or "@" not in destinatario:
             return
-        assunto = f"Agendamento Proxmox #{agendamento.get('id')} em execução"
-        corpo = "\n".join([
-            "Execução iniciada",
-            "",
-            "O worker iniciou a execução do seu agendamento Proxmox.",
-            "",
-            f"Agendamento: #{agendamento.get('id')}",
-            f"Execução programada: {agendamento.get('executar_em').strftime('%d/%m/%Y %H:%M') if agendamento.get('executar_em') else '-'}",
-            f"Cluster: {agendamento.get('integracao_nome') or agendamento.get('cluster_nome') or '-'}",
-            f"Node: {agendamento.get('node_nome') or '-'}",
-            f"VMID: {agendamento.get('vmid') or '-'}",
-            f"VM: {agendamento.get('vm_nome') or '-'}",
-            f"CPU total desejada: {agendamento.get('cpu_nova') or 'sem alteração'}",
-            f"Memória total desejada: {round((agendamento.get('memoria_nova_mb') or 0) / 1024, 2) if agendamento.get('memoria_nova_mb') else 'sem alteração'} GB",
-            f"Motivo: {agendamento.get('motivo') or '-'}",
-        ])
+        assunto, corpo, corpo_html = ProxmoxAgendamentoEmailBuilder.inicio(agendamento)
         try:
-            resultado = EmailService.enviar(assunto, corpo, [destinatario])
+            resultado = EmailService.enviar(assunto, corpo, [destinatario], corpo_html=corpo_html)
             if resultado.get("enviado"):
                 cls.repository.registrar_evento(agendamento["id"], "VALIDANDO", f"E-mail de início enviado para {destinatario}.")
             else:
@@ -191,27 +177,9 @@ class ProxmoxAgendamentoExecutor:
         if not destinatario or destinatario == "sistema" or "@" not in destinatario:
             return
         status = "CONCLUIDO" if sucesso else "ERRO"
-        assunto_status = "concluído com sucesso" if sucesso else "falhou"
-        assunto = f"Agendamento Proxmox #{agendamento.get('id')} {assunto_status}"
-        linhas = [
-            f"Agendamento {assunto_status}",
-            "",
-            "Resultado da execução do seu agendamento Proxmox.",
-            "",
-            f"Agendamento: #{agendamento.get('id')}",
-            f"Execução programada: {agendamento.get('executar_em').strftime('%d/%m/%Y %H:%M') if agendamento.get('executar_em') else '-'}",
-            f"Cluster: {agendamento.get('integracao_nome') or agendamento.get('cluster_nome') or '-'}",
-            f"Node: {agendamento.get('node_nome') or '-'}",
-            f"VMID: {agendamento.get('vmid') or '-'}",
-            f"VM: {agendamento.get('vm_nome') or '-'}",
-            f"Status final: {agendamento.get('status_final') or agendamento.get('status') or '-'}",
-            f"CPU final: {agendamento.get('cpu_final') or agendamento.get('cpu_nova') or '-'}",
-            f"Memória final: {round((agendamento.get('memoria_final_mb') or agendamento.get('memoria_nova_mb') or 0) / 1024, 2) if (agendamento.get('memoria_final_mb') or agendamento.get('memoria_nova_mb')) else '-'} GB",
-        ]
-        if mensagem_erro or agendamento.get("mensagem_erro"):
-            linhas.extend(["", f"Erro: {mensagem_erro or agendamento.get('mensagem_erro')}"])
+        assunto, corpo, corpo_html = ProxmoxAgendamentoEmailBuilder.final(agendamento, sucesso=sucesso, mensagem_erro=mensagem_erro)
         try:
-            resultado = EmailService.enviar(assunto, "\n".join(linhas), [destinatario])
+            resultado = EmailService.enviar(assunto, corpo, [destinatario], corpo_html=corpo_html)
             if resultado.get("enviado"):
                 cls.repository.registrar_evento(agendamento["id"], status, f"E-mail final enviado para {destinatario}.")
             else:
