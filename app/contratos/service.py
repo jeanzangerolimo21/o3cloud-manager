@@ -667,7 +667,6 @@ class ContratoService:
             f"Adendo: {adendo.get('titulo')}",
             f"Número do adendo: {adendo.get('numero_adendo') or '-'}",
             f"Quantidade adicional: {quantidade}",
-            f"Valor recorrente do adendo: R$ {adendo.get('valor_recorrente') or '0.00'}",
             f"Solicitante: {usuario_email or 'sistema'}",
             "",
             "Providenciar atualização dos usuários adicionais na operação técnica.",

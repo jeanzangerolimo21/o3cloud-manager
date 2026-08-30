@@ -205,6 +205,36 @@ def test_resolver_vinculo_vendedor_omie_por_prefixo_da_planilha():
     assert vinculos["executivo_id"] is None
 
 
+def test_email_adendo_usuarios_nao_expoe_valor_recorrente(monkeypatch):
+    envios = []
+    monkeypatch.setattr(
+        "app.contratos.service.EmailService.enviar",
+        lambda assunto, corpo, destinatarios: envios.append((assunto, corpo, destinatarios)) or {"enviado": True},
+    )
+
+    resultado = ContratoService._enviar_email_adendo_usuarios(
+        {
+            "id": 77,
+            "numero": "CTR-222",
+            "cliente_nome": "Cliente Teste",
+            "cliente_cnpj": "12345678000190",
+        },
+        {
+            "titulo": "Adendo usuarios",
+            "numero_adendo": "AD-001",
+            "valor_recorrente": Decimal("435.00"),
+        },
+        3,
+        "comercial@o3cloud.com.br",
+    )
+
+    assert resultado["enviado"] is True
+    assert envios[0][2] == ["sac@o3cloud.com.br"]
+    assert "Quantidade adicional: 3" in envios[0][1]
+    assert "Valor recorrente" not in envios[0][1]
+    assert "435.00" not in envios[0][1]
+
+
 class OmieOSFake:
     def __init__(self, ordens):
         self.ordens = ordens
