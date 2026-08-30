@@ -529,10 +529,18 @@ class FinanceiroRepository(BaseRepository):
                     c.codigo_vendedor,
                     p.id AS parceiro_premiacao_id,
                     p.nome AS parceiro_premiacao_nome,
-                    pe.id AS executivo_premiacao_id,
-                    pe.nome AS executivo_premiacao_nome,
                     CASE
-                        WHEN p.id IS NOT NULL OR ((COALESCE(TRIM(c.vendedor_nome), '') <> '' OR COALESCE(TRIM(c.projeto_nome), '') <> '') AND pe.id IS NOT NULL) THEN 1
+                        WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' THEN pe_omie.id
+                        ELSE pe_manual.id
+                    END AS executivo_premiacao_id,
+                    CASE
+                        WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' THEN pe_omie.nome
+                        ELSE pe_manual.nome
+                    END AS executivo_premiacao_nome,
+                    CASE
+                        WHEN p.id IS NOT NULL
+                          OR (COALESCE(TRIM(c.projeto_nome), '') <> '' AND pe_omie.id IS NOT NULL)
+                          OR (COALESCE(TRIM(c.projeto_nome), '') = '' AND pe_manual.id IS NOT NULL) THEN 1
                         ELSE 0
                     END AS premiacao_liberada,
                     c.projeto_nome,
@@ -545,7 +553,11 @@ class FinanceiroRepository(BaseRepository):
                     rc.percentual_parceiro,
                     rc.percentual_executivo,
                     CASE WHEN p.id IS NOT NULL THEN rc.percentual_parceiro ELSE 0 END AS percentual_parceiro_aplicado,
-                    CASE WHEN pe.id IS NOT NULL THEN rc.percentual_executivo ELSE 0 END AS percentual_executivo_aplicado,
+                    CASE
+                        WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' AND pe_omie.id IS NOT NULL THEN rc.percentual_executivo
+                        WHEN COALESCE(TRIM(c.projeto_nome), '') = '' AND pe_manual.id IS NOT NULL THEN rc.percentual_executivo
+                        ELSE 0
+                    END AS percentual_executivo_aplicado,
                     rc.vigencia_inicio AS campanha_inicio,
                     rc.vigencia_fim AS campanha_fim,
                     COALESCE(fpp.status_manual, 'ABERTO') AS status_premiacao_manual,
@@ -575,8 +587,16 @@ class FinanceiroRepository(BaseRepository):
                         ELSE 'NAO_LOCALIZADO'
                     END AS status_pagamento,
                     ROUND(({base_valor}) * CASE WHEN p.id IS NOT NULL THEN COALESCE(rc.percentual_parceiro, 0) ELSE 0 END / 100, 2) AS valor_premiacao_parceiro,
-                    ROUND(({base_valor}) * CASE WHEN pe.id IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0) ELSE 0 END / 100, 2) AS valor_premiacao_executivo,
-                    ROUND(({base_valor}) * (CASE WHEN p.id IS NOT NULL THEN COALESCE(rc.percentual_parceiro, 0) ELSE 0 END + CASE WHEN pe.id IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0) ELSE 0 END) / 100, 2) AS valor_comissao_prevista
+                    ROUND(({base_valor}) * CASE
+                        WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' AND pe_omie.id IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0)
+                        WHEN COALESCE(TRIM(c.projeto_nome), '') = '' AND pe_manual.id IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0)
+                        ELSE 0
+                    END / 100, 2) AS valor_premiacao_executivo,
+                    ROUND(({base_valor}) * (CASE WHEN p.id IS NOT NULL THEN COALESCE(rc.percentual_parceiro, 0) ELSE 0 END + CASE
+                        WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' AND pe_omie.id IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0)
+                        WHEN COALESCE(TRIM(c.projeto_nome), '') = '' AND pe_manual.id IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0)
+                        ELSE 0
+                    END) / 100, 2) AS valor_comissao_prevista
                 FROM contratos c
                 INNER JOIN clientes cli ON cli.id = c.cliente_id
                 LEFT JOIN parceiros p ON p.id = c.parceiro_id AND p.ativo = 1 AND COALESCE(p.premiacao_ativa, 0) = 1
@@ -592,11 +612,12 @@ class FinanceiroRepository(BaseRepository):
                     WHERE ativo = 1
                       AND COALESCE(premiacao_ativa, 0) = 1
                     GROUP BY LOWER(TRIM(nome)) COLLATE utf8mb4_unicode_ci
-                ) pe
-                    ON pe.nome_normalizado IN (
-                        LOWER(TRIM(c.vendedor_nome)) COLLATE utf8mb4_unicode_ci,
-                        LOWER(TRIM(c.projeto_nome)) COLLATE utf8mb4_unicode_ci
-                    )
+                ) pe_omie
+                    ON pe_omie.nome_normalizado = LOWER(TRIM(c.projeto_nome)) COLLATE utf8mb4_unicode_ci
+                LEFT JOIN parceiros_executivos pe_manual
+                    ON pe_manual.id = c.executivo_id
+                   AND pe_manual.ativo = 1
+                   AND COALESCE(pe_manual.premiacao_ativa, 0) = 1
                 LEFT JOIN financeiro_premiacoes_pagamento fpp
                     ON fpp.contrato_id = c.id
                    AND fpp.campanha_id = rc.id
@@ -618,7 +639,7 @@ class FinanceiroRepository(BaseRepository):
                 GROUP BY
                     c.id, c.numero, c.codigo_externo, c.inicio_vigencia, c.fim_vigencia,
                     c.valor_servicos_liquido, c.valor_promocional, c.valor_mensal,
-                    c.vendedor_nome, c.codigo_vendedor, p.id, p.nome, pe.id, pe.nome, c.projeto_nome, c.codigo_projeto,
+                    c.vendedor_nome, c.codigo_vendedor, c.executivo_id, p.id, p.nome, pe_omie.id, pe_omie.nome, pe_manual.id, pe_manual.nome, c.projeto_nome, c.codigo_projeto,
                     cli.id, cli.nome_fantasia, cli.razao_social,
                     rc.id, rc.nome, rc.percentual_parceiro, rc.percentual_executivo, rc.vigencia_inicio, rc.vigencia_fim,
                     fpp.status_manual, fpp.updated_at, fpp.updated_by
@@ -669,10 +690,18 @@ class FinanceiroRepository(BaseRepository):
                 COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
                 p.id AS parceiro_premiacao_id,
                 p.nome AS parceiro_premiacao_nome,
-                pe.id AS executivo_premiacao_id,
-                pe.nome AS executivo_premiacao_nome,
                 CASE
-                    WHEN p.id IS NOT NULL OR ((COALESCE(TRIM(c.vendedor_nome), '') <> '' OR COALESCE(TRIM(c.projeto_nome), '') <> '') AND pe.id IS NOT NULL) THEN 1
+                    WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' THEN pe_omie.id
+                    ELSE pe_manual.id
+                END AS executivo_premiacao_id,
+                CASE
+                    WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' THEN pe_omie.nome
+                    ELSE pe_manual.nome
+                END AS executivo_premiacao_nome,
+                CASE
+                    WHEN p.id IS NOT NULL
+                      OR (COALESCE(TRIM(c.projeto_nome), '') <> '' AND pe_omie.id IS NOT NULL)
+                      OR (COALESCE(TRIM(c.projeto_nome), '') = '' AND pe_manual.id IS NOT NULL) THEN 1
                     ELSE 0
                 END AS premiacao_liberada
             FROM contratos c
@@ -687,11 +716,12 @@ class FinanceiroRepository(BaseRepository):
                 WHERE ativo = 1
                   AND COALESCE(premiacao_ativa, 0) = 1
                 GROUP BY LOWER(TRIM(nome)) COLLATE utf8mb4_unicode_ci
-            ) pe
-                ON pe.nome_normalizado IN (
-                    LOWER(TRIM(c.vendedor_nome)) COLLATE utf8mb4_unicode_ci,
-                    LOWER(TRIM(c.projeto_nome)) COLLATE utf8mb4_unicode_ci
-                )
+            ) pe_omie
+                ON pe_omie.nome_normalizado = LOWER(TRIM(c.projeto_nome)) COLLATE utf8mb4_unicode_ci
+            LEFT JOIN parceiros_executivos pe_manual
+                ON pe_manual.id = c.executivo_id
+               AND pe_manual.ativo = 1
+               AND COALESCE(pe_manual.premiacao_ativa, 0) = 1
             WHERE c.id = %s
               AND c.ativo = 1
               AND c.status = 'ATIVO'

@@ -1,3 +1,4 @@
+from app.financeiro.repository import FinanceiroRepository
 from app.financeiro.service import FinanceiroService
 
 
@@ -52,3 +53,15 @@ def test_atualizar_status_premiacao_manual_recusa_status_invalido(monkeypatch):
         assert "inválido" in str(erro)
     else:
         raise AssertionError("deveria recusar status manual inválido")
+
+
+def test_sql_comissoes_usa_executivo_manual_quando_projeto_omie_vazio():
+    sql, _ = FinanceiroRepository._comissoes_sql({})
+
+    assert "pe_omie.nome_normalizado = LOWER(TRIM(c.projeto_nome))" in sql
+    assert "LEFT JOIN parceiros_executivos pe_manual" in sql
+    assert "pe_manual.id = c.executivo_id" in sql
+    assert "WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' THEN pe_omie.id" in sql
+    assert "ELSE pe_manual.id" in sql
+    assert "LOWER(TRIM(c.vendedor_nome)) COLLATE utf8mb4_unicode_ci," not in sql
+
