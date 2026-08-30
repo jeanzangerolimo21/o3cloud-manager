@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-30 - Pagamento de campanhas de premiação
+
+- Criada a tela `Financeiro > Premiações > Pagamento Campanhas` para simular contas a pagar de premiações por campanha e parceiro.
+- A tela considera contratos recebidos no Omie e premiações de adendos, agrupando por campanha, parceiro e executivos vinculados.
+- Vínculo de executivo por `Projeto OMIE` passou a ignorar diferença de maiúsculas/minúsculas e a cair no executivo manual quando o projeto preenchido não localizar cadastro correspondente.
+- O cálculo padrão de pagamento considera somente premiações com status manual `Lançado`; `Aberto` fica fora do contas a pagar e `Pago` fica disponível apenas para conferência por filtro.
+- Adicionados relatório CSV e PDF gerais consolidados com todos os parceiros, além de recibo PDF por parceiro e por executivo com data de recebimento Omie e data de ativação do contrato.
+- PDFs e emails passaram a incluir o logo da O3 Cloud e, quando cadastrado, o logo do parceiro.
+- Corrigida a reativação de adendos ao marcar novamente `Incluir adendos` após uma simulação sem adendos.
+- Adicionado envio de e-mail ao parceiro com corpo editável e anexos de recibo do parceiro e dos executivos vinculados.
+- Serviços de Email passou a aceitar a finalidade `Pagamento de campanhas`, com atalho para cadastrar SMTP usando remetente `contas@o3cloud.com.br`.
+- Procedimento e validações documentados em `docs/57-PAGAMENTO-CAMPANHAS-PREMIACOES-BETA.md`.
+
 ## 2026-08-30 - Ajustes Beta em adendos, premiações, dashboard de contratos e propostas
 
 - E-mail automático de adendo enviado para sac@o3cloud.com.br deixou de incluir o valor recorrente no corpo da mensagem.

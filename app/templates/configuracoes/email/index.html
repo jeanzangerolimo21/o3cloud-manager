@@ -8,7 +8,7 @@
         <tbody>{% for item in configuracoes %}
         <tr>
             <td><strong>{{ item.nome }}</strong><br>{% if item.ativo %}<span class="badge bg-success">Ativo</span>{% else %}<span class="badge bg-light text-dark border">Inativo</span>{% endif %}</td>
-            <td>{% if item.finalidade == 'PESQUISA_SATISFACAO' %}<span class="badge text-bg-primary">Pesquisa de satisfação</span>{% else %}<span class="badge text-bg-secondary">Geral do sistema</span>{% endif %}</td>
+            <td>{% if item.finalidade == 'PESQUISA_SATISFACAO' %}<span class="badge text-bg-primary">Pesquisa de satisfação</span>{% elif item.finalidade == 'PAGAMENTO_CAMPANHAS' %}<span class="badge text-bg-success">Pagamento de campanhas</span>{% else %}<span class="badge text-bg-secondary">Geral do sistema</span>{% endif %}</td>
             <td><span class="badge bg-{{ 'info' if item.provedor=='BREVO' else 'secondary' }}">{{ item.provedor }}</span>{% if item.provedor=='SMTP' %}<br><small>{{ item.smtp_host }}:{{ item.smtp_port }}</small>{% endif %}</td>
             <td>{{ item.brevo_sender_email if item.provedor=='BREVO' else (item.smtp_from or item.smtp_user or '-') }}{% if item.provedor=='BREVO' %}<br><small>{{ item.brevo_sender_name or '-' }}</small>{% endif %}</td>
             <td>{{ item.brevo_daily_limit if item.provedor=='BREVO' else '-' }}</td>

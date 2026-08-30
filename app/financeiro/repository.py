@@ -529,18 +529,10 @@ class FinanceiroRepository(BaseRepository):
                     c.codigo_vendedor,
                     p.id AS parceiro_premiacao_id,
                     p.nome AS parceiro_premiacao_nome,
+                    COALESCE(pe_omie.id, pe_manual.id) AS executivo_premiacao_id,
+                    COALESCE(pe_omie.nome, pe_manual.nome) AS executivo_premiacao_nome,
                     CASE
-                        WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' THEN pe_omie.id
-                        ELSE pe_manual.id
-                    END AS executivo_premiacao_id,
-                    CASE
-                        WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' THEN pe_omie.nome
-                        ELSE pe_manual.nome
-                    END AS executivo_premiacao_nome,
-                    CASE
-                        WHEN p.id IS NOT NULL
-                          OR (COALESCE(TRIM(c.projeto_nome), '') <> '' AND pe_omie.id IS NOT NULL)
-                          OR (COALESCE(TRIM(c.projeto_nome), '') = '' AND pe_manual.id IS NOT NULL) THEN 1
+                        WHEN p.id IS NOT NULL OR pe_omie.id IS NOT NULL OR pe_manual.id IS NOT NULL THEN 1
                         ELSE 0
                     END AS premiacao_liberada,
                     c.projeto_nome,
@@ -553,11 +545,7 @@ class FinanceiroRepository(BaseRepository):
                     rc.percentual_parceiro,
                     rc.percentual_executivo,
                     CASE WHEN p.id IS NOT NULL THEN rc.percentual_parceiro ELSE 0 END AS percentual_parceiro_aplicado,
-                    CASE
-                        WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' AND pe_omie.id IS NOT NULL THEN rc.percentual_executivo
-                        WHEN COALESCE(TRIM(c.projeto_nome), '') = '' AND pe_manual.id IS NOT NULL THEN rc.percentual_executivo
-                        ELSE 0
-                    END AS percentual_executivo_aplicado,
+                    CASE WHEN COALESCE(pe_omie.id, pe_manual.id) IS NOT NULL THEN rc.percentual_executivo ELSE 0 END AS percentual_executivo_aplicado,
                     rc.vigencia_inicio AS campanha_inicio,
                     rc.vigencia_fim AS campanha_fim,
                     COALESCE(fpp.status_manual, 'ABERTO') AS status_premiacao_manual,
@@ -587,16 +575,8 @@ class FinanceiroRepository(BaseRepository):
                         ELSE 'NAO_LOCALIZADO'
                     END AS status_pagamento,
                     ROUND(({base_valor}) * CASE WHEN p.id IS NOT NULL THEN COALESCE(rc.percentual_parceiro, 0) ELSE 0 END / 100, 2) AS valor_premiacao_parceiro,
-                    ROUND(({base_valor}) * CASE
-                        WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' AND pe_omie.id IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0)
-                        WHEN COALESCE(TRIM(c.projeto_nome), '') = '' AND pe_manual.id IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0)
-                        ELSE 0
-                    END / 100, 2) AS valor_premiacao_executivo,
-                    ROUND(({base_valor}) * (CASE WHEN p.id IS NOT NULL THEN COALESCE(rc.percentual_parceiro, 0) ELSE 0 END + CASE
-                        WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' AND pe_omie.id IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0)
-                        WHEN COALESCE(TRIM(c.projeto_nome), '') = '' AND pe_manual.id IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0)
-                        ELSE 0
-                    END) / 100, 2) AS valor_comissao_prevista
+                    ROUND(({base_valor}) * CASE WHEN COALESCE(pe_omie.id, pe_manual.id) IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0) ELSE 0 END / 100, 2) AS valor_premiacao_executivo,
+                    ROUND(({base_valor}) * (CASE WHEN p.id IS NOT NULL THEN COALESCE(rc.percentual_parceiro, 0) ELSE 0 END + CASE WHEN COALESCE(pe_omie.id, pe_manual.id) IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0) ELSE 0 END) / 100, 2) AS valor_comissao_prevista
                 FROM contratos c
                 INNER JOIN clientes cli ON cli.id = c.cliente_id
                 LEFT JOIN parceiros p ON p.id = c.parceiro_id AND p.ativo = 1 AND COALESCE(p.premiacao_ativa, 0) = 1
@@ -605,15 +585,15 @@ class FinanceiroRepository(BaseRepository):
                    AND c.inicio_vigencia BETWEEN rc.vigencia_inicio AND rc.vigencia_fim
                 LEFT JOIN (
                     SELECT
-                        LOWER(TRIM(nome)) COLLATE utf8mb4_unicode_ci AS nome_normalizado,
+                        UPPER(TRIM(nome)) COLLATE utf8mb4_unicode_ci AS nome_normalizado,
                         MIN(id) AS id,
                         MIN(nome) AS nome
                     FROM parceiros_executivos
                     WHERE ativo = 1
                       AND COALESCE(premiacao_ativa, 0) = 1
-                    GROUP BY LOWER(TRIM(nome)) COLLATE utf8mb4_unicode_ci
+                    GROUP BY UPPER(TRIM(nome)) COLLATE utf8mb4_unicode_ci
                 ) pe_omie
-                    ON pe_omie.nome_normalizado = LOWER(TRIM(c.projeto_nome)) COLLATE utf8mb4_unicode_ci
+                    ON pe_omie.nome_normalizado = UPPER(TRIM(c.projeto_nome)) COLLATE utf8mb4_unicode_ci
                 LEFT JOIN parceiros_executivos pe_manual
                     ON pe_manual.id = c.executivo_id
                    AND pe_manual.ativo = 1
@@ -690,18 +670,10 @@ class FinanceiroRepository(BaseRepository):
                 COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
                 p.id AS parceiro_premiacao_id,
                 p.nome AS parceiro_premiacao_nome,
+                COALESCE(pe_omie.id, pe_manual.id) AS executivo_premiacao_id,
+                COALESCE(pe_omie.nome, pe_manual.nome) AS executivo_premiacao_nome,
                 CASE
-                    WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' THEN pe_omie.id
-                    ELSE pe_manual.id
-                END AS executivo_premiacao_id,
-                CASE
-                    WHEN COALESCE(TRIM(c.projeto_nome), '') <> '' THEN pe_omie.nome
-                    ELSE pe_manual.nome
-                END AS executivo_premiacao_nome,
-                CASE
-                    WHEN p.id IS NOT NULL
-                      OR (COALESCE(TRIM(c.projeto_nome), '') <> '' AND pe_omie.id IS NOT NULL)
-                      OR (COALESCE(TRIM(c.projeto_nome), '') = '' AND pe_manual.id IS NOT NULL) THEN 1
+                    WHEN p.id IS NOT NULL OR pe_omie.id IS NOT NULL OR pe_manual.id IS NOT NULL THEN 1
                     ELSE 0
                 END AS premiacao_liberada
             FROM contratos c
@@ -709,15 +681,15 @@ class FinanceiroRepository(BaseRepository):
             LEFT JOIN parceiros p ON p.id = c.parceiro_id AND p.ativo = 1 AND COALESCE(p.premiacao_ativa, 0) = 1
             LEFT JOIN (
                 SELECT
-                    LOWER(TRIM(nome)) COLLATE utf8mb4_unicode_ci AS nome_normalizado,
+                    UPPER(TRIM(nome)) COLLATE utf8mb4_unicode_ci AS nome_normalizado,
                     MIN(id) AS id,
                     MIN(nome) AS nome
                 FROM parceiros_executivos
                 WHERE ativo = 1
                   AND COALESCE(premiacao_ativa, 0) = 1
-                GROUP BY LOWER(TRIM(nome)) COLLATE utf8mb4_unicode_ci
+                GROUP BY UPPER(TRIM(nome)) COLLATE utf8mb4_unicode_ci
             ) pe_omie
-                ON pe_omie.nome_normalizado = LOWER(TRIM(c.projeto_nome)) COLLATE utf8mb4_unicode_ci
+                ON pe_omie.nome_normalizado = UPPER(TRIM(c.projeto_nome)) COLLATE utf8mb4_unicode_ci
             LEFT JOIN parceiros_executivos pe_manual
                 ON pe_manual.id = c.executivo_id
                AND pe_manual.ativo = 1
@@ -762,8 +734,17 @@ class FinanceiroRepository(BaseRepository):
                 pa.updated_at = NOW()
             WHERE pa.ativo = 1
               AND pa.executivo_id IS NULL
-              AND COALESCE(TRIM(c.projeto_nome), '') = ''
-              AND c.executivo_id IS NOT NULL{where_adendo}
+              AND c.executivo_id IS NOT NULL
+              AND (
+                  COALESCE(TRIM(c.projeto_nome), '') = ''
+                  OR NOT EXISTS (
+                      SELECT 1
+                      FROM parceiros_executivos pe_omie
+                      WHERE pe_omie.ativo = 1
+                        AND COALESCE(pe_omie.premiacao_ativa, 0) = 1
+                        AND UPPER(TRIM(pe_omie.nome)) COLLATE utf8mb4_unicode_ci = UPPER(TRIM(c.projeto_nome)) COLLATE utf8mb4_unicode_ci
+                  )
+              ){where_adendo}
         """
         return cls.execute(sql, tuple([usuario_email or "sistema", *params]))
 
@@ -876,6 +857,215 @@ class FinanceiroRepository(BaseRepository):
                 dados.get("status_manual"), dados.get("observacoes"), dados.get("created_by"), dados.get("updated_by"),
             ),
         )
+
+
+    @classmethod
+    def listar_parceiros_pagamento_campanhas(cls):
+        return cls.fetch_all(
+            """
+            SELECT DISTINCT
+                p.id,
+                COALESCE(p.nome_fantasia, p.nome, p.razao_social) AS nome,
+                p.email,
+                p.contato_1_email,
+                p.contato_2_email,
+                p.contato_3_email
+            FROM parceiros p
+            INNER JOIN contratos c ON c.parceiro_id = p.id AND c.ativo = 1
+            WHERE p.ativo = 1
+              AND COALESCE(p.premiacao_ativa, 0) = 1
+            ORDER BY COALESCE(p.nome_fantasia, p.nome, p.razao_social)
+            """
+        )
+
+    @classmethod
+    def listar_pagamento_campanhas_itens(cls, filtros=None, limite=1000):
+        filtros = filtros or {}
+        params = []
+        where = ["base.valor_total_premiacao > 0"]
+
+        campanha_id = filtros.get("campanha_id")
+        if campanha_id:
+            where.append("base.campanha_id = %s")
+            params.append(campanha_id)
+
+        parceiro_id = filtros.get("parceiro_id")
+        if parceiro_id:
+            where.append("base.parceiro_id = %s")
+            params.append(parceiro_id)
+
+        executivo_id = filtros.get("executivo_id")
+        if executivo_id:
+            where.append("base.executivo_id = %s")
+            params.append(executivo_id)
+
+        status_manual = (filtros.get("status_manual") or "A_RECEBER").strip().upper()
+        if status_manual == "A_RECEBER":
+            where.append("base.status_manual = 'LANCADO'")
+        elif status_manual in ("ABERTO", "LANCADO", "PAGO"):
+            where.append("base.status_manual = %s")
+            params.append(status_manual)
+
+        data_de = filtros.get("data_de")
+        if data_de:
+            where.append("base.data_referencia >= %s")
+            params.append(data_de)
+
+        data_ate = filtros.get("data_ate")
+        if data_ate:
+            where.append("base.data_referencia <= %s")
+            params.append(data_ate)
+
+        pesquisa = (filtros.get("q") or "").strip()
+        if pesquisa:
+            like = f"%{pesquisa}%"
+            where.append("""
+                (
+                    COALESCE(base.cliente_nome, '') LIKE %s
+                    OR COALESCE(base.contrato_numero, '') LIKE %s
+                    OR COALESCE(base.parceiro_nome, '') LIKE %s
+                    OR COALESCE(base.executivo_nome, '') LIKE %s
+                    OR COALESCE(base.campanha_nome, '') LIKE %s
+                )
+            """)
+            params.extend([like, like, like, like, like])
+
+        incluir_adendos = str(filtros.get("incluir_adendos", "1")) != "0"
+        selects = [cls._pagamento_campanhas_contratos_sql()]
+        if incluir_adendos:
+            selects.append(cls._pagamento_campanhas_adendos_sql())
+
+        where_sql = " AND ".join(where)
+        params.append(int(limite or 1000))
+        return cls.fetch_all(
+            f"""
+            SELECT *
+            FROM (
+                {' UNION ALL '.join(selects)}
+            ) base
+            WHERE {where_sql}
+            ORDER BY base.campanha_nome ASC, base.parceiro_nome ASC, base.executivo_nome ASC, base.data_referencia ASC, base.contrato_numero ASC
+            LIMIT %s
+            """,
+            tuple(params),
+        )
+
+    @staticmethod
+    def _pagamento_campanhas_contratos_sql():
+        base_valor = "COALESCE(NULLIF(c.valor_servicos_liquido, 0), NULLIF(c.valor_promocional, 0), c.valor_mensal, 0)"
+        return f"""
+            SELECT
+                'CONTRATO' AS origem,
+                c.id AS contrato_id,
+                NULL AS adendo_id,
+                c.numero AS contrato_numero,
+                cli.id AS cliente_id,
+                COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
+                c.inicio_vigencia AS data_ativacao,
+                r.data_recebimento,
+                r.data_recebimento AS data_referencia,
+                rc.id AS campanha_id,
+                rc.nome AS campanha_nome,
+                COALESCE(fpp.status_manual, 'ABERTO') AS status_manual,
+                p.id AS parceiro_id,
+                p.nome AS parceiro_nome,
+                p.email AS parceiro_email,
+                p.contato_1_email AS parceiro_contato_1_email,
+                p.contato_2_email AS parceiro_contato_2_email,
+                p.contato_3_email AS parceiro_contato_3_email,
+                p.logo AS parceiro_logo,
+                COALESCE(pe_omie.id, pe_manual.id) AS executivo_id,
+                COALESCE(pe_omie.nome, pe_manual.nome) AS executivo_nome,
+                COALESCE(pe_omie.email, pe_manual.email) AS executivo_email,
+                {base_valor} AS valor_base,
+                ROUND(({base_valor}) * CASE WHEN p.id IS NOT NULL THEN COALESCE(rc.percentual_parceiro, 0) ELSE 0 END / 100, 2) AS valor_premiacao_parceiro,
+                ROUND(({base_valor}) * CASE WHEN COALESCE(pe_omie.id, pe_manual.id) IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0) ELSE 0 END / 100, 2) AS valor_premiacao_executivo,
+                ROUND(({base_valor}) * (CASE WHEN p.id IS NOT NULL THEN COALESCE(rc.percentual_parceiro, 0) ELSE 0 END + CASE WHEN COALESCE(pe_omie.id, pe_manual.id) IS NOT NULL THEN COALESCE(rc.percentual_executivo, 0) ELSE 0 END) / 100, 2) AS valor_total_premiacao
+            FROM contratos c
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            INNER JOIN regras_campanhas_comissao rc
+                ON rc.ativo = 1
+               AND c.inicio_vigencia BETWEEN rc.vigencia_inicio AND rc.vigencia_fim
+            INNER JOIN financeiro_recebimentos r
+                ON r.id = (
+                    SELECT r1.id
+                    FROM financeiro_recebimentos r1
+                    WHERE r1.contrato_id = c.id
+                      AND r1.cliente_id = cli.id
+                      AND COALESCE(r1.numero_documento_fiscal, '') <> ''
+                    ORDER BY
+                      CASE WHEN COALESCE(TRIM(r1.numero_parcela), '') REGEXP '^[0-9]+$' THEN CAST(r1.numero_parcela AS UNSIGNED) ELSE 999999 END ASC,
+                      r1.data_vencimento IS NULL ASC,
+                      r1.data_vencimento ASC,
+                      r1.id ASC
+                    LIMIT 1
+                )
+            LEFT JOIN parceiros p ON p.id = c.parceiro_id AND p.ativo = 1 AND COALESCE(p.premiacao_ativa, 0) = 1
+            LEFT JOIN (
+                SELECT
+                    UPPER(TRIM(nome)) COLLATE utf8mb4_unicode_ci AS nome_normalizado,
+                    MIN(id) AS id,
+                    MIN(nome) AS nome,
+                    MIN(email) AS email
+                FROM parceiros_executivos
+                WHERE ativo = 1
+                  AND COALESCE(premiacao_ativa, 0) = 1
+                GROUP BY UPPER(TRIM(nome)) COLLATE utf8mb4_unicode_ci
+            ) pe_omie
+                ON pe_omie.nome_normalizado = UPPER(TRIM(c.projeto_nome)) COLLATE utf8mb4_unicode_ci
+            LEFT JOIN parceiros_executivos pe_manual
+                ON pe_manual.id = c.executivo_id
+               AND pe_manual.ativo = 1
+               AND COALESCE(pe_manual.premiacao_ativa, 0) = 1
+            LEFT JOIN financeiro_premiacoes_pagamento fpp
+                ON fpp.contrato_id = c.id
+               AND fpp.campanha_id = rc.id
+            WHERE c.ativo = 1
+              AND c.status = 'ATIVO'
+              AND UPPER(COALESCE(r.situacao, '')) IN ('RECEBIDO', 'PAGO', 'LIQUIDADO')
+              AND COALESCE(r.categoria_excluida, 0) = 0
+              AND (p.id IS NOT NULL OR pe_omie.id IS NOT NULL OR pe_manual.id IS NOT NULL)
+        """
+
+    @staticmethod
+    def _pagamento_campanhas_adendos_sql():
+        return """
+            SELECT
+                'ADENDO' AS origem,
+                pa.contrato_id,
+                pa.adendo_id,
+                c.numero AS contrato_numero,
+                cli.id AS cliente_id,
+                COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
+                c.inicio_vigencia AS data_ativacao,
+                NULL AS data_recebimento,
+                pa.data_lancamento AS data_referencia,
+                rc.id AS campanha_id,
+                rc.nome AS campanha_nome,
+                pa.status_manual,
+                p.id AS parceiro_id,
+                p.nome AS parceiro_nome,
+                p.email AS parceiro_email,
+                p.contato_1_email AS parceiro_contato_1_email,
+                p.contato_2_email AS parceiro_contato_2_email,
+                p.contato_3_email AS parceiro_contato_3_email,
+                p.logo AS parceiro_logo,
+                pe.id AS executivo_id,
+                pe.nome AS executivo_nome,
+                pe.email AS executivo_email,
+                pa.valor_base,
+                pa.valor_premiacao_parceiro,
+                pa.valor_premiacao_executivo,
+                pa.valor_total AS valor_total_premiacao
+            FROM financeiro_premiacoes_adendos pa
+            INNER JOIN contratos_adendos a ON a.id = pa.adendo_id AND a.ativo = 1
+            INNER JOIN contratos c ON c.id = pa.contrato_id AND c.ativo = 1
+            INNER JOIN clientes cli ON cli.id = pa.cliente_id
+            INNER JOIN regras_campanhas_comissao rc ON rc.id = pa.campanha_id AND rc.ativo = 1
+            LEFT JOIN parceiros p ON p.id = pa.parceiro_id AND p.ativo = 1
+            LEFT JOIN parceiros_executivos pe ON pe.id = pa.executivo_id AND pe.ativo = 1
+            WHERE pa.ativo = 1
+        """
 
     @classmethod
     def contratos_para_faturamento(cls):

@@ -7,6 +7,7 @@ from app.repositories.email_config_repository import EmailConfigRepository
 FINALIDADES_EMAIL = {
     "GERAL": "Geral do sistema",
     "PESQUISA_SATISFACAO": "Pesquisa de satisfação",
+    "PAGAMENTO_CAMPANHAS": "Pagamento de campanhas",
 }
 
 

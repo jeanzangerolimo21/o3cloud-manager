@@ -1,0 +1,72 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">Pagamento Campanhas</h2>
+            <p class="text-muted mb-0">Simulação de contas a pagar de premiações já recebidas no Omie e marcadas como Lançado.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.comissoes') }}"><i class="bi bi-arrow-left"></i> Premiações</a>
+            <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.faturamentos') }}"><i class="bi bi-receipt"></i> Faturamento</a>
+            <a class="btn btn-outline-secondary" href="{{ url_for('regras_campanhas.index') }}"><i class="bi bi-percent"></i> Regras Campanhas</a>
+        </div>
+    </div>
+
+    <div class="alert alert-info d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2">
+        <div><i class="bi bi-envelope-gear"></i> O envio usa o serviço de e-mail ativo com finalidade <strong>Pagamento de campanhas</strong>.</div>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('configuracoes.email_novo', finalidade='PAGAMENTO_CAMPANHAS') }}"><i class="bi bi-plus-circle"></i> Cadastrar contas@o3cloud.com.br</a>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4"><div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-lg-2"><label class="form-label">Buscar</label><input class="form-control" name="q" value="{{ filtros.q or '' }}" placeholder="Cliente, contrato..."></div>
+            <div class="col-lg-3"><label class="form-label">Campanha</label><select class="form-select" name="campanha_id"><option value="">Todas</option>{% for campanha in campanhas %}<option value="{{ campanha.id }}" {% if filtros.campanha_id == campanha.id %}selected{% endif %}>{{ campanha.nome }}</option>{% endfor %}</select></div>
+            <div class="col-lg-2"><label class="form-label">Parceiro</label><select class="form-select" name="parceiro_id"><option value="">Todos</option>{% for parceiro in parceiros %}<option value="{{ parceiro.id }}" {% if filtros.parceiro_id == parceiro.id %}selected{% endif %}>{{ parceiro.nome }}</option>{% endfor %}</select></div>
+            <div class="col-lg-2"><label class="form-label">Recebido de</label><input class="form-control" type="date" name="data_de" value="{{ filtros.data_de or '' }}"></div>
+            <div class="col-lg-2"><label class="form-label">Recebido até</label><input class="form-control" type="date" name="data_ate" value="{{ filtros.data_ate or '' }}"></div>
+            <div class="col-lg-1"><label class="form-label">Status</label><select class="form-select" name="status_manual">{% for chave, label in status_options.items() %}<option value="{{ chave }}" {% if filtros.status_manual == chave %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="col-lg-2"><div class="form-check mt-4"><input type="hidden" name="incluir_adendos" value="0"><input class="form-check-input" type="checkbox" name="incluir_adendos" id="incluir_adendos" value="1" {% if filtros.incluir_adendos != '0' %}checked{% endif %}><label class="form-check-label" for="incluir_adendos">Incluir adendos</label></div></div>
+            <div class="col-lg-2 d-grid"><button class="btn btn-primary"><i class="bi bi-search"></i> Simular</button></div>
+            <div class="col-lg-2 d-grid"><a class="btn btn-outline-success" href="{{ url_for('financeiro.exportar_pagamento_campanhas_csv', **filtros) }}"><i class="bi bi-file-earmark-spreadsheet"></i> Relatório CSV</a></div><div class="col-lg-2 d-grid"><a class="btn btn-outline-danger" href="{{ url_for('financeiro.relatorio_pagamento_campanhas_pdf', **filtros) }}"><i class="bi bi-file-earmark-pdf"></i> Relatório PDF</a></div>
+        </form>
+    </div></div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Parceiros</small><h3>{{ resumo.parceiros or 0 }}</h3></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Executivos</small><h3>{{ resumo.executivos or 0 }}</h3></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Itens lançados</small><h3>{{ resumo.itens or 0 }}</h3><small class="text-muted">Aberto não entra no padrão</small></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">Total a pagar</small><h4>{{ resumo.total_premiacao|moeda }}</h4><small class="text-muted">P {{ resumo.total_parceiro|moeda }} · E {{ resumo.total_executivo|moeda }}</small></div></div></div>
+    </div>
+
+    {% for grupo in grupos %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex flex-column flex-xl-row justify-content-between gap-2">
+            <div><strong>{{ grupo.parceiro_nome }}</strong><br><small class="text-muted">{{ grupo.campanha_nome }} · {{ grupo.itens|length }} item(ns) · {{ grupo.emails|join(', ') if grupo.emails else 'sem e-mail cadastrado' }}</small></div>
+            <div class="d-flex flex-wrap gap-2 align-items-start">
+                <span class="badge text-bg-light border fs-6">{{ grupo.total_premiacao|moeda }}</span>
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('financeiro.recibo_pagamento_campanhas_pdf', tipo='parceiro', parceiro_id=grupo.parceiro_id, q=filtros.q, campanha_id=grupo.campanha_id, data_de=filtros.data_de, data_ate=filtros.data_ate, status_manual=filtros.status_manual, incluir_adendos=filtros.incluir_adendos) }}"><i class="bi bi-file-earmark-pdf"></i> Recibo parceiro</a>
+                <button class="btn btn-sm btn-outline-success" type="button" data-bs-toggle="collapse" data-bs-target="#emailParceiro{{ loop.index }}"><i class="bi bi-envelope"></i> E-mail</button>
+            </div>
+        </div>
+        <div class="collapse" id="emailParceiro{{ loop.index }}"><div class="card-body border-bottom bg-light">
+            <form method="POST" action="{{ url_for('financeiro.enviar_email_pagamento_campanha') }}" class="row g-3">
+                <input type="hidden" name="parceiro_id" value="{{ grupo.parceiro_id }}"><input type="hidden" name="q" value="{{ filtros.q or '' }}"><input type="hidden" name="campanha_id" value="{{ grupo.campanha_id or '' }}"><input type="hidden" name="data_de" value="{{ filtros.data_de or '' }}"><input type="hidden" name="data_ate" value="{{ filtros.data_ate or '' }}"><input type="hidden" name="status_manual" value="{{ filtros.status_manual or 'A_RECEBER' }}"><input type="hidden" name="incluir_adendos" value="{{ filtros.incluir_adendos or '1' }}">
+                <div class="col-md-5"><label class="form-label">Assunto</label><input class="form-control" name="assunto" value="Pagamento de campanha - {{ grupo.campanha_nome }}"></div>
+                <div class="col-md-7"><label class="form-label">Destinatários</label><input class="form-control" value="{{ grupo.emails|join(', ') if grupo.emails else 'Parceiro sem e-mail cadastrado' }}" disabled></div>
+                <div class="col-12"><label class="form-label">Corpo do e-mail</label><textarea class="form-control" name="corpo" rows="7">{{ corpo_email_padrao }}</textarea><div class="form-text">Variáveis: {parceiro}, {campanha}, {periodo}, {total}, {total_parceiro}, {total_executivo}</div></div>
+                <div class="col-12 text-end"><button class="btn btn-success" {% if not grupo.emails %}disabled{% endif %}><i class="bi bi-send"></i> Enviar para parceiro</button></div>
+            </form>
+        </div></div>
+        <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+            <thead class="table-light"><tr><th>Executivo</th><th>Contrato</th><th>Cliente</th><th>Origem</th><th>Receb. Omie</th><th>Ativação</th><th>Status</th><th class="text-end">Base</th><th class="text-end">Parceiro</th><th class="text-end">Executivo</th></tr></thead>
+            <tbody>{% for item in grupo.itens %}<tr><td>{{ item.executivo_nome or '-' }}{% if item.executivo_email %}<br><small class="text-muted">{{ item.executivo_email }}</small>{% endif %}</td><td><a class="font-monospace" href="{{ url_for('contratos.view', contrato_id=item.contrato_id) }}">{{ item.contrato_numero }}</a></td><td>{{ item.cliente_nome }}</td><td>{{ item.origem }}</td><td>{{ item.data_recebimento|date_br if item.data_recebimento else '-' }}</td><td>{{ item.data_ativacao|date_br if item.data_ativacao else '-' }}</td><td><span class="badge text-bg-{{ 'success' if item.status_manual == 'PAGO' else 'primary' if item.status_manual == 'LANCADO' else 'secondary' }}">{{ status_options.get(item.status_manual, item.status_manual) }}</span></td><td class="text-end">{{ item.valor_base|moeda }}</td><td class="text-end">{{ item.valor_premiacao_parceiro|moeda }}</td><td class="text-end">{{ item.valor_premiacao_executivo|moeda }}</td></tr>{% endfor %}</tbody>
+        </table></div>
+        {% if grupo.executivos %}<div class="card-footer bg-white"><div class="d-flex flex-wrap gap-2 align-items-center"><span class="text-muted small me-2">Recibos por executivo:</span>{% for executivo in grupo.executivos %}{% if executivo.executivo_id %}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('financeiro.recibo_pagamento_campanhas_pdf', tipo='executivo', parceiro_id=grupo.parceiro_id, executivo_id=executivo.executivo_id, q=filtros.q, campanha_id=grupo.campanha_id, data_de=filtros.data_de, data_ate=filtros.data_ate, status_manual=filtros.status_manual, incluir_adendos=filtros.incluir_adendos) }}"><i class="bi bi-file-earmark-pdf"></i> {{ executivo.executivo_nome }} · {{ executivo.total|moeda }}</a>{% endif %}{% endfor %}</div></div>{% endif %}
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm"><div class="card-body text-center text-muted py-5">Nenhuma premiação lançada para pagamento nos filtros informados.</div></div>
+    {% endfor %}
+</div>
+{% endblock %}

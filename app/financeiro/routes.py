@@ -63,6 +63,84 @@ def comissoes():
     )
 
 
+@financeiro_bp.route("/financeiro/pagamento-campanhas")
+def pagamento_campanhas():
+
+    filtros = FinanceiroService.filtros_pagamento_campanhas(request.args)
+    contexto = FinanceiroService.contexto_pagamento_campanhas(filtros)
+    return render_template("financeiro/pagamento_campanhas.html", **contexto)
+
+
+@financeiro_bp.route("/financeiro/pagamento-campanhas/exportar.csv")
+def exportar_pagamento_campanhas_csv():
+
+    filtros = FinanceiroService.filtros_pagamento_campanhas(request.args)
+    filtros = FinanceiroService.filtros_relatorio_geral_pagamento_campanhas(filtros)
+    conteudo = FinanceiroService.exportar_pagamento_campanhas_csv(filtros)
+    return Response(
+        conteudo,
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=pagamento-campanhas.csv"},
+    )
+
+
+@financeiro_bp.route("/financeiro/pagamento-campanhas/relatorio.pdf")
+def relatorio_pagamento_campanhas_pdf():
+
+    filtros = FinanceiroService.filtros_pagamento_campanhas(request.args)
+    filtros = FinanceiroService.filtros_relatorio_geral_pagamento_campanhas(filtros)
+    try:
+        conteudo = FinanceiroService.gerar_relatorio_pagamento_campanhas_pdf(filtros)
+    except ValueError as erro:
+        flash(str(erro), "warning")
+        return redirect(url_for("financeiro.pagamento_campanhas", **filtros))
+    return Response(
+        conteudo,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=relatorio-pagamento-campanhas.pdf"},
+    )
+
+
+@financeiro_bp.route("/financeiro/pagamento-campanhas/recibo/<tipo>.pdf")
+def recibo_pagamento_campanhas_pdf(tipo):
+
+    if tipo not in ("parceiro", "executivo"):
+        flash("Tipo de recibo inválido.", "danger")
+        return redirect(url_for("financeiro.pagamento_campanhas"))
+    filtros = FinanceiroService.filtros_pagamento_campanhas(request.args)
+    try:
+        conteudo = FinanceiroService.gerar_recibo_pagamento_campanhas_pdf(
+            filtros,
+            tipo=tipo,
+            parceiro_id=request.args.get("parceiro_id", type=int),
+            executivo_id=request.args.get("executivo_id", type=int),
+        )
+    except ValueError as erro:
+        flash(str(erro), "warning")
+        return redirect(url_for("financeiro.pagamento_campanhas", **filtros))
+    return Response(
+        conteudo,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=recibo-{tipo}-campanha.pdf"},
+    )
+
+
+@financeiro_bp.route("/financeiro/pagamento-campanhas/enviar-email", methods=["POST"])
+def enviar_email_pagamento_campanha():
+
+    try:
+        resultado = FinanceiroService.enviar_email_pagamento_campanha(request.form, _email_usuario_logado())
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        flash("E-mail de pagamento enviado para {} com {} anexo(s).".format(
+            ", ".join(resultado.get("destinatarios") or []),
+            resultado.get("anexos") or 0,
+        ), "success")
+    filtros = FinanceiroService.filtros_pagamento_campanhas(request.form)
+    return redirect(url_for("financeiro.pagamento_campanhas", **filtros))
+
+
 @financeiro_bp.route("/financeiro/comissoes/adendos", methods=["POST"])
 def lancar_premiacao_adendo():
 

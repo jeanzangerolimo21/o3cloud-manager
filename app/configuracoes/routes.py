@@ -472,9 +472,12 @@ def email_novo():
             return render_template("configuracoes/email/form.html", config=request.form, modo="novo")
         flash("Serviço de e-mail cadastrado.", "success")
         return redirect(url_for("configuracoes.email_editar", config_id=config_id))
+    finalidade = request.args.get("finalidade") or "GERAL"
+    nome_padrao = "SMTP Pagamento de Campanhas" if finalidade == "PAGAMENTO_CAMPANHAS" else "SMTP Principal"
+    remetente_padrao = "contas@o3cloud.com.br" if finalidade == "PAGAMENTO_CAMPANHAS" else ""
     return render_template(
         "configuracoes/email/form.html",
-        config={"nome": "SMTP Principal", "provedor": "SMTP", "finalidade": request.args.get("finalidade") or "GERAL", "smtp_port": 587, "usar_tls": 1, "ativo": 1, "brevo_api_url": "https://api.brevo.com/v3", "brevo_environment": "production"},
+        config={"nome": nome_padrao, "provedor": "SMTP", "finalidade": finalidade, "smtp_port": 587, "usar_tls": 1, "ativo": 1, "smtp_from": remetente_padrao, "brevo_api_url": "https://api.brevo.com/v3", "brevo_environment": "production"},
         modo="novo",
     )
 
