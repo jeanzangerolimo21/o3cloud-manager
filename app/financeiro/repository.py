@@ -731,6 +731,44 @@ class FinanceiroRepository(BaseRepository):
         )
 
     @classmethod
+    def atualizar_premiacoes_adendos_sem_executivo_por_vinculo_manual(cls, usuario_email="sistema", adendo_id=None):
+        where_adendo = ""
+        params = []
+        if adendo_id:
+            where_adendo = "\n              AND pa.adendo_id = %s"
+            params.append(adendo_id)
+
+        sql = f"""
+            UPDATE financeiro_premiacoes_adendos pa
+            INNER JOIN contratos_adendos a
+                ON a.id = pa.adendo_id
+               AND a.ativo = 1
+            INNER JOIN contratos c
+                ON c.id = pa.contrato_id
+               AND c.ativo = 1
+               AND c.status = 'ATIVO'
+            INNER JOIN parceiros_executivos pe_manual
+                ON pe_manual.id = c.executivo_id
+               AND pe_manual.ativo = 1
+               AND COALESCE(pe_manual.premiacao_ativa, 0) = 1
+            INNER JOIN regras_campanhas_comissao rc
+                ON rc.id = pa.campanha_id
+               AND rc.ativo = 1
+            SET pa.executivo_id = pe_manual.id,
+                pa.percentual_executivo = COALESCE(rc.percentual_executivo, 0),
+                pa.valor_premiacao_executivo = ROUND(pa.valor_base * COALESCE(rc.percentual_executivo, 0) / 100, 2),
+                pa.valor_total = COALESCE(pa.valor_premiacao_parceiro, 0) + ROUND(pa.valor_base * COALESCE(rc.percentual_executivo, 0) / 100, 2),
+                pa.updated_by = %s,
+                pa.updated_at = NOW()
+            WHERE pa.ativo = 1
+              AND pa.executivo_id IS NULL
+              AND COALESCE(TRIM(c.projeto_nome), '') = ''
+              AND c.executivo_id IS NOT NULL{where_adendo}
+        """
+        return cls.execute(sql, tuple([usuario_email or "sistema", *params]))
+
+
+    @classmethod
     def listar_premiacoes_adendos(cls, filtros=None, limite=80):
         where, params = cls._filtros_premiacoes_adendos(filtros)
         params.append(limite)

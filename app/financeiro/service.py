@@ -186,6 +186,11 @@ class FinanceiroService:
 
         return FinanceiroRepository.resumo_premiacoes_adendos(filtros)
 
+    @staticmethod
+    def regularizar_premiacoes_adendos_vinculo_manual(usuario_email="sistema", adendo_id=None):
+
+        return FinanceiroRepository.atualizar_premiacoes_adendos_sem_executivo_por_vinculo_manual(usuario_email, adendo_id)
+
     @classmethod
     def lancar_premiacao_adendo(cls, dados, usuario_email="sistema"):
 
@@ -193,6 +198,7 @@ class FinanceiroService:
         adendo = ContratoAdendoRepository.buscar_por_id(adendo_id)
         if not adendo:
             raise ValueError("Adendo contratual nao encontrado.")
+        cls.regularizar_premiacoes_adendos_vinculo_manual(usuario_email, adendo_id)
         if FinanceiroRepository.buscar_premiacao_adendo(adendo_id):
             raise ValueError("Este adendo ja possui premiacao manual lancada.")
 

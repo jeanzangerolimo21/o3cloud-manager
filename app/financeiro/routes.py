@@ -37,6 +37,7 @@ def dashboard():
 def comissoes():
 
     filtros = FinanceiroService.filtros_comissoes(request.args)
+    FinanceiroService.regularizar_premiacoes_adendos_vinculo_manual(_email_usuario_logado())
     pagina = max(1, request.args.get("page", 1, type=int))
     limite = 50
     resumo = FinanceiroService.resumo_comissoes_contratos(filtros)

@@ -65,3 +65,38 @@ def test_sql_comissoes_usa_executivo_manual_quando_projeto_omie_vazio():
     assert "ELSE pe_manual.id" in sql
     assert "LOWER(TRIM(c.vendedor_nome)) COLLATE utf8mb4_unicode_ci," not in sql
 
+
+def test_regularizar_premiacoes_adendos_vinculo_manual_chama_repositorio(monkeypatch):
+    chamadas = []
+    monkeypatch.setattr(
+        "app.financeiro.service.FinanceiroRepository.atualizar_premiacoes_adendos_sem_executivo_por_vinculo_manual",
+        lambda usuario_email="sistema", adendo_id=None: chamadas.append((usuario_email, adendo_id)) or 4,
+    )
+
+    total = FinanceiroService.regularizar_premiacoes_adendos_vinculo_manual("financeiro@o3cloud.com.br", 99)
+
+    assert total == 4
+    assert chamadas == [("financeiro@o3cloud.com.br", 99)]
+
+
+def test_sql_regularizacao_adendos_atualiza_executivo_e_valores_do_vinculo_manual():
+    sqls = []
+
+    class RepoFake(FinanceiroRepository):
+        @classmethod
+        def execute(cls, sql, params=()):
+            sqls.append((sql, params))
+            return 4
+
+    total = RepoFake.atualizar_premiacoes_adendos_sem_executivo_por_vinculo_manual("financeiro@o3cloud.com.br", 99)
+
+    sql, params = sqls[0]
+    assert total == 4
+    assert "UPDATE financeiro_premiacoes_adendos pa" in sql
+    assert "pe_manual.id = c.executivo_id" in sql
+    assert "pa.executivo_id = pe_manual.id" in sql
+    assert "pa.valor_premiacao_executivo = ROUND(pa.valor_base * COALESCE(rc.percentual_executivo, 0) / 100, 2)" in sql
+    assert "COALESCE(TRIM(c.projeto_nome), '') = ''" in sql
+    assert "AND pa.adendo_id = %s" in sql
+    assert params == ("financeiro@o3cloud.com.br", 99)
+
