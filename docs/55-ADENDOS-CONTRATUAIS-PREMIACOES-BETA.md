@@ -30,6 +30,14 @@ Permitir registrar adendos comerciais de contratos existentes, como upgrades, us
 - No lançamento manual, o usuário informa campanha, valor base, status e observações.
 - Parceiro, executivo, percentuais e valores de premiação são definidos pelo sistema conforme a campanha e os vínculos comerciais elegíveis do contrato.
 
+
+## Atualizacao 30/08/2026
+
+- O e-mail automatico de adendos de usuarios adicionais deixou de informar valor recorrente no corpo enviado para sac@o3cloud.com.br.
+- Premiacoes de contratos e adendos passam a usar o executivo vinculado manualmente quando `Projeto OMIE` estiver vazio.
+- A tela `Financeiro > Contratos > Dashboard` passou a incluir adendos nos totais por periodo usando `data_adendo`, com recorrencia e quantidade separadas entre contrato principal e adendo.
+- Adendos de `USUARIOS_ADICIONAIS` somam `quantidade_usuarios` no total de `Licencas ativas`.
+
 ## Migrations
 
 - `database/migrations/118_create_contratos_adendos.sql`

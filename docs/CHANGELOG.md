@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-30 - Ajustes Beta em adendos, premiações, dashboard de contratos e propostas
+
+- E-mail automático de adendo enviado para sac@o3cloud.com.br deixou de incluir o valor recorrente no corpo da mensagem.
+- Financeiro > Premiações passou a usar o executivo vinculado manualmente ao contrato quando `Projeto OMIE` estiver vazio, inclusive para regularizar premiações de adendos já lançadas sem executivo.
+- Financeiro > Contratos > Dashboard passou a incluir adendos nos totais conforme `data_adendo`, mantendo separação entre contratos principais e adendos na quantidade e na recorrência.
+- Adendos de `USUARIOS_ADICIONAIS` passaram a somar a quantidade adicional em `Licenças ativas` no dashboard de contratos.
+- Propostas passaram a ocultar `Instalação de recursos` por padrão; o valor só aparece na tela, preview, visualização e documento quando o usuário marca explicitamente `Incluir instalação de recursos`.
+- Criada a migration `124_add_incluir_instalacao_recursos_propostas.sql` para persistir a opção de inclusão do valor de instalação de recursos.
+- Procedimento e validações documentados em `docs/56-MELHORIAS-BETA-2026-08-30.md`.
+
 ## 2026-08-29 - Sprint 23 Proxmox Agendamentos
 
 - Agendamentos Proxmox agora exigem backup PBS da VM nas últimas 24 horas antes de permitir salvar upgrade de CPU/memória.

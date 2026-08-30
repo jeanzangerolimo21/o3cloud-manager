@@ -41,10 +41,10 @@
     </form>
 
     <div class="row g-3 mb-4">
-        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Contratos</small><h3>{{ dashboard.resumo.total_contratos or 0 }}</h3></div></div></div>
-        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Total Recorrencia</small><h3>{{ dashboard.resumo.total_recorrencia|moeda }}</h3><small class="text-muted">mensal</small></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Contratos + adendos</small><h3>{{ dashboard.resumo.total_itens_contratos|default(0) }}</h3><small class="text-muted">Contratos {{ dashboard.resumo.total_contratos_principais|default(dashboard.resumo.total_contratos|default(0)) }} · Adendos {{ dashboard.resumo.total_adendos|default(0) }}</small></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Total Recorrencia</small><h3>{{ dashboard.resumo.total_recorrencia|moeda }}</h3><small class="text-muted">Contratos {{ dashboard.resumo.total_recorrencia_contratos|default(0)|moeda }} · Adendos {{ dashboard.resumo.total_recorrencia_adendos|default(0)|moeda }}</small></div></div></div>
         <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Total Setup</small><h3>{{ dashboard.resumo.total_setup|moeda }}</h3><small class="text-muted">implantacao + projeto</small></div></div></div>
-        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Total Usuarios</small><h3>{{ dashboard.resumo.total_usuarios or 0 }}</h3><small class="text-muted">licencas ativas</small></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Total Usuarios</small><h3>{{ dashboard.resumo.total_usuarios|default(0) }}</h3><small class="text-muted">Contratos {{ dashboard.resumo.total_usuarios_contratos|default(dashboard.resumo.total_usuarios|default(0)) }} · Adendos {{ dashboard.resumo.total_usuarios_adendos|default(0) }}</small></div></div></div>
     </div>
 
     <div class="row g-4">
@@ -54,7 +54,7 @@
                 <div class="list-group list-group-flush">
                     {% for item in dashboard.executivos %}
                         <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div><strong>{{ item.nome }}</strong><br><small class="text-muted">{{ item.total_contratos }} contrato(s)</small></div>
+                            <div><strong>{{ item.nome }}</strong><br><small class="text-muted">{{ item.total_contratos }} contrato(s) · {{ item.total_adendos|default(0) }} adendo(s)</small></div>
                             <span>{{ item.total_recorrencia|moeda }}</span>
                         </div>
                     {% else %}
@@ -69,7 +69,7 @@
                 <div class="list-group list-group-flush">
                     {% for item in dashboard.parceiros %}
                         <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div><strong>{{ item.nome }}</strong><br><small class="text-muted">{{ item.total_contratos }} contrato(s)</small></div>
+                            <div><strong>{{ item.nome }}</strong><br><small class="text-muted">{{ item.total_contratos }} contrato(s) · {{ item.total_adendos|default(0) }} adendo(s)</small></div>
                             <span>{{ item.total_recorrencia|moeda }}</span>
                         </div>
                     {% else %}

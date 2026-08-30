@@ -31,7 +31,7 @@
         <tbody>
             <tr><td>Parametrizacao do Sistema</td><td class="text-end">{{ proposta.parametrizacao_sistema|moeda }}</td></tr>
             <tr><td>Setup do Ambiente Cloud</td><td class="text-end">{{ proposta.setup_ambiente_cloud|moeda }}</td></tr>
-            <tr><td>Recursos adicionais de instalacao</td><td class="text-end">{{ proposta.instalacao_servidores|moeda }}</td></tr>
+            {% if proposta.incluir_instalacao_recursos %}<tr><td>Recursos adicionais de instalacao</td><td class="text-end">{{ proposta.instalacao_servidores|moeda }}</td></tr>{% endif %}
             <tr class="total-row"><td>Total de instalacao</td><td class="text-end">{{ proposta.total_instalacao|moeda }}</td></tr>
             <tr class="total-row"><td>Total mensal recorrente</td><td class="text-end">{{ proposta.total_mensal|moeda }}</td></tr>
         </tbody>

@@ -198,8 +198,35 @@ class ContratoRepository(BaseRepository):
         )
         resumo = cursor.fetchone()
 
-        executivos = cls._agrupar(cursor, joins, where_sql, parametros, "COALESCE(exec.nome, 'Sem executivo')")
-        parceiros = cls._agrupar(cursor, joins, where_sql, parametros, "COALESCE(p.nome, 'Sem parceiro')")
+        adendo_joins = """
+            FROM contratos_adendos a
+            INNER JOIN contratos c ON c.id = a.contrato_id
+            INNER JOIN clientes cli ON cli.id = c.cliente_id
+            LEFT JOIN parceiros_executivos exec ON exec.id = c.executivo_id
+            LEFT JOIN parceiros p ON p.id = c.parceiro_id
+        """
+        adendo_where, adendo_parametros = cls._filtros_adendos_dashboard(pesquisa, status, origem, data_de, data_ate)
+        adendo_where_sql = " WHERE " + " AND ".join(adendo_where) if adendo_where else ""
+        cursor.execute(
+            """
+            SELECT
+                COUNT(*) AS total_adendos,
+                COALESCE(SUM(COALESCE(a.valor_recorrente, 0)), 0) AS total_recorrencia_adendos,
+                COALESCE(SUM(CASE WHEN a.tipo = 'USUARIOS_ADICIONAIS' THEN COALESCE(a.quantidade_usuarios, 0) ELSE 0 END), 0) AS total_usuarios_adendos
+            """ + adendo_joins + adendo_where_sql,
+            tuple(adendo_parametros),
+        )
+        resumo_adendos = cursor.fetchone() or {}
+
+        resumo = cls._combinar_resumo_dashboard(resumo, resumo_adendos)
+        executivos = cls._combinar_agrupamento_dashboard(
+            cls._agrupar(cursor, joins, where_sql, parametros, "COALESCE(exec.nome, 'Sem executivo')"),
+            cls._agrupar_adendos(cursor, adendo_joins, adendo_where_sql, adendo_parametros, "COALESCE(exec.nome, 'Sem executivo')"),
+        )
+        parceiros = cls._combinar_agrupamento_dashboard(
+            cls._agrupar(cursor, joins, where_sql, parametros, "COALESCE(p.nome, 'Sem parceiro')"),
+            cls._agrupar_adendos(cursor, adendo_joins, adendo_where_sql, adendo_parametros, "COALESCE(p.nome, 'Sem parceiro')"),
+        )
 
         cls.close(conn, cursor)
         return {
@@ -817,6 +844,95 @@ class ContratoRepository(BaseRepository):
 
         return condicoes, parametros
 
+    @classmethod
+    def _filtros_adendos_dashboard(cls, pesquisa=None, status=None, origem=None, data_de=None, data_ate=None):
+        condicoes = ["a.ativo = 1", "c.ativo = 1"]
+        parametros = []
+
+        if pesquisa:
+            termo = f"%{pesquisa}%"
+            termo_cnpj = f"%{''.join(ch for ch in pesquisa if ch.isdigit())}%" if any(ch.isdigit() for ch in pesquisa) else termo
+            condicoes.append("""
+                (
+                    COALESCE(cli.nome_fantasia, '') LIKE %s
+                    OR COALESCE(cli.razao_social, '') LIKE %s
+                    OR COALESCE(cli.cnpj, '') LIKE %s
+                    OR COALESCE(c.numero, '') LIKE %s
+                    OR COALESCE(exec.nome, '') LIKE %s
+                    OR COALESCE(p.nome, '') LIKE %s
+                    OR COALESCE(a.titulo, '') LIKE %s
+                    OR COALESCE(a.numero_adendo, '') LIKE %s
+                )
+            """)
+            parametros.extend([termo, termo, termo_cnpj, termo, termo, termo, termo, termo])
+
+        if status:
+            condicoes.append("c.status = %s")
+            parametros.append(status)
+
+        if origem:
+            condicoes.append("c.origem = %s")
+            parametros.append(origem)
+
+        if data_de:
+            condicoes.append("COALESCE(a.data_adendo, DATE(a.created_at)) >= %s")
+            parametros.append(data_de)
+
+        if data_ate:
+            condicoes.append("COALESCE(a.data_adendo, DATE(a.created_at)) <= %s")
+            parametros.append(data_ate)
+
+        return condicoes, parametros
+
+    @staticmethod
+    def _combinar_resumo_dashboard(resumo, resumo_adendos):
+        resumo = resumo or {}
+        resumo_adendos = resumo_adendos or {}
+        total_contratos = resumo.get("total_contratos") or 0
+        total_adendos = resumo_adendos.get("total_adendos") or 0
+        total_recorrencia_contratos = resumo.get("total_recorrencia") or 0
+        total_recorrencia_adendos = resumo_adendos.get("total_recorrencia_adendos") or 0
+        total_usuarios_contratos = resumo.get("total_usuarios") or 0
+        total_usuarios_adendos = resumo_adendos.get("total_usuarios_adendos") or 0
+        resumo["total_contratos_principais"] = total_contratos
+        resumo["total_adendos"] = total_adendos
+        resumo["total_itens_contratos"] = total_contratos + total_adendos
+        resumo["total_recorrencia_contratos"] = total_recorrencia_contratos
+        resumo["total_recorrencia_adendos"] = total_recorrencia_adendos
+        resumo["total_recorrencia"] = total_recorrencia_contratos + total_recorrencia_adendos
+        resumo["total_usuarios_contratos"] = total_usuarios_contratos
+        resumo["total_usuarios_adendos"] = total_usuarios_adendos
+        resumo["total_usuarios"] = total_usuarios_contratos + total_usuarios_adendos
+        return resumo
+
+    @staticmethod
+    def _combinar_agrupamento_dashboard(contratos, adendos):
+        por_nome = {}
+        for item in contratos or []:
+            nome = item.get("nome") or "Sem dados"
+            por_nome[nome] = {
+                "nome": nome,
+                "total_contratos": item.get("total_contratos") or 0,
+                "total_adendos": 0,
+                "total_recorrencia_contratos": item.get("total_recorrencia") or 0,
+                "total_recorrencia_adendos": 0,
+            }
+        for item in adendos or []:
+            nome = item.get("nome") or "Sem dados"
+            atual = por_nome.setdefault(nome, {
+                "nome": nome,
+                "total_contratos": 0,
+                "total_adendos": 0,
+                "total_recorrencia_contratos": 0,
+                "total_recorrencia_adendos": 0,
+            })
+            atual["total_adendos"] += item.get("total_adendos") or 0
+            atual["total_recorrencia_adendos"] += item.get("total_recorrencia_adendos") or 0
+        for item in por_nome.values():
+            item["total_itens_contratos"] = item["total_contratos"] + item["total_adendos"]
+            item["total_recorrencia"] = item["total_recorrencia_contratos"] + item["total_recorrencia_adendos"]
+        return sorted(por_nome.values(), key=lambda item: (-item["total_recorrencia"], -item["total_itens_contratos"], item["nome"]))
+
     @staticmethod
     def _agrupar(cursor, joins, where_sql, parametros, campo_nome):
         cursor.execute(
@@ -829,6 +945,23 @@ class ContratoRepository(BaseRepository):
             {where_sql}
             GROUP BY nome
             ORDER BY total_recorrencia DESC, total_contratos DESC, nome
+            """,
+            tuple(parametros),
+        )
+        return cursor.fetchall()
+
+    @staticmethod
+    def _agrupar_adendos(cursor, joins, where_sql, parametros, campo_nome):
+        cursor.execute(
+            f"""
+            SELECT
+                {campo_nome} AS nome,
+                COUNT(*) AS total_adendos,
+                COALESCE(SUM(COALESCE(a.valor_recorrente, 0)), 0) AS total_recorrencia_adendos
+            {joins}
+            {where_sql}
+            GROUP BY nome
+            ORDER BY total_recorrencia_adendos DESC, total_adendos DESC, nome
             """,
             tuple(parametros),
         )

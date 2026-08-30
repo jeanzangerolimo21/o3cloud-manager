@@ -293,6 +293,7 @@ def _coletar_dados_form():
         "executivo_telefone": request.form.get("executivo_telefone"),
         "parametrizacao_sistema": request.form.get("parametrizacao_sistema"),
         "setup_ambiente_cloud": request.form.get("setup_ambiente_cloud"),
+        "incluir_instalacao_recursos": request.form.get("incluir_instalacao_recursos"),
         "instalacao_servidores": request.form.get("instalacao_servidores"),
         "total_mensal": request.form.get("total_mensal"),
         "total_instalacao": request.form.get("total_instalacao"),
