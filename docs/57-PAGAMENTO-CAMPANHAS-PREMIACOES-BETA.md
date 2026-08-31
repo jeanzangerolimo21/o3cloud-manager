@@ -79,6 +79,9 @@ Os recibos incluem:
 A tela permite abrir um formulario de envio por parceiro, com:
 
 - Assunto editavel.
+- Campo `Destinatarios` editavel, preenchido inicialmente com os e-mails cadastrados do parceiro/Omie.
+- Inclusao manual de destinatarios extras separados por virgula, ponto e virgula ou espaco.
+- Mesclagem no backend entre destinatarios cadastrados e extras, com normalizacao, remocao de duplicados e validacao de formato.
 - Corpo de e-mail editavel.
 - Variaveis aceitas: `{parceiro}`, `{campanha}`, `{periodo}`, `{total}`, `{total_parceiro}`, `{total_executivo}`.
 - Anexo automatico do recibo do parceiro.
@@ -129,4 +132,5 @@ Tambem foi validada consulta real local da nova tela, com 2 itens lançados para
 6. Usar o filtro `Pago` apenas para conferencia de itens ja pagos.
 7. Gerar relatorio CSV/PDF.
 8. Gerar recibo de parceiro e recibo de executivo.
-9. Editar o corpo do e-mail e enviar para o parceiro com anexos.
+9. Editar destinatarios e corpo do e-mail, mantendo os e-mails cadastrados e adicionando um destinatario extra de teste.
+10. Enviar para o parceiro com anexos e confirmar que a mensagem de sucesso lista todos os destinatarios enviados.

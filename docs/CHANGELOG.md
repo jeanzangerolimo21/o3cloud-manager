@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-31 - Ajustes Beta em Proxmox, navegacao e Pagamento Campanhas
+
+- Corrigido o sincronismo de inventario Proxmox que falhava com `Not all parameters were used in the SQL statement`, ajustando o `INSERT` de `proxmox_vm_inventory` para gravar `raw_payload` com a quantidade correta de parametros.
+- `Voltar Inicio` passou a usar retorno inteligente no navegador, preservando a ultima tela operacional/listagem visitada com filtros e query string, sem ficar preso em telas de novo, edicao ou detalhe.
+- Botoes locais `Voltar` em telas de visualizacao/formulario foram alinhados ao mesmo retorno inteligente, mantendo o `href` original como fallback.
+- `Parceiros > Executivos` recebeu botao de retorno explicito para a listagem geral de parceiros, inclusive quando a tela estiver filtrada por parceiro.
+- `Financeiro > Premiacoes > Pagamento Campanhas` passou a permitir editar os destinatarios do e-mail, mantendo os e-mails vindos do cadastro/Omie e permitindo adicionar outros manualmente.
+- Destinatarios extras de Pagamento Campanhas sao mesclados no backend, com normalizacao, remocao de duplicados e validacao de formato antes do envio.
+- Procedimento e validacoes documentados em `docs/59-MELHORIAS-BETA-2026-08-31.md`.
+
 ## 2026-08-31 - Sugestao automatica em Faixas de Rede
 
 - Implantacao > Faixas de Rede passou a sugerir automaticamente a proxima faixa ao clicar em `Cadastrar manualmente`, usando a ultima faixa ativa cadastrada como referencia.

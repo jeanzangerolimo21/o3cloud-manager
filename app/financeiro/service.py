@@ -2,6 +2,7 @@ import base64
 import csv
 import io
 import mimetypes
+import re
 import tempfile
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -142,9 +143,9 @@ class FinanceiroService:
         if not itens:
             raise ValueError("Nenhuma premiação encontrada para o parceiro e filtros informados.")
         grupo = cls._agrupar_pagamentos_campanhas(itens)[0]
-        destinatarios = grupo.get("emails") or []
+        destinatarios = cls._destinatarios_pagamento_campanha(grupo.get("emails") or [], dados.get("destinatarios"))
         if not destinatarios:
-            raise ValueError("Parceiro sem e-mail cadastrado para envio.")
+            raise ValueError("Informe pelo menos um destinatário para envio.")
         assunto = cls._texto(dados.get("assunto")) or f"Pagamento de campanha - {grupo.get('campanha_nome') or 'O3 Cloud'}"
         corpo = cls._aplicar_variaveis_email_pagamento(cls._texto(dados.get("corpo")) or cls.corpo_email_pagamento_campanha(), grupo, filtros)
         anexos_temp = []
@@ -370,6 +371,23 @@ class FinanceiroService:
             return Path(arquivo.name), nome
         finally:
             arquivo.close()
+
+    @classmethod
+    def _destinatarios_pagamento_campanha(cls, emails_cadastrados, destinatarios_form):
+        emails = []
+        for email in list(emails_cadastrados or []) + cls._emails_texto(destinatarios_form):
+            email = (email or "").strip().lower()
+            if not email:
+                continue
+            if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+                raise ValueError(f"E-mail inválido nos destinatários: {email}")
+            if email not in emails:
+                emails.append(email)
+        return emails
+
+    @staticmethod
+    def _emails_texto(valor):
+        return [item.strip() for item in re.split(r"[,;\s]+", str(valor or "")) if item.strip()]
 
     @staticmethod
     def _emails_parceiro(item):
