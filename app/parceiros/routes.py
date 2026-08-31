@@ -254,10 +254,16 @@ def listar_executivos(parceiro_id=None):
         page_title = f"Executivos de {parceiro.get('nome_fantasia') or parceiro.get('nome') or parceiro.get('razao_social')}"
         page_description = "Cadastro de executivos de vendas vinculados ao parceiro."
         page_button_url = url_for("parceiros.novo_executivo", parceiro_id=parceiro_id)
+        page_secondary_button_url = url_for("parceiros.index")
+        page_secondary_button_text = "Voltar Parceiros"
+        page_secondary_button_icon = "bi-arrow-left"
     else:
         page_title = "Executivos"
         page_description = "Cadastro de executivos de vendas."
         page_button_url = url_for("parceiros.novo_executivo")
+        page_secondary_button_url = url_for("parceiros.index")
+        page_secondary_button_text = "Parceiros"
+        page_secondary_button_icon = "bi-arrow-left"
 
     return render_template(
         "parceiros/executivos/index.html",
@@ -275,6 +281,9 @@ def listar_executivos(parceiro_id=None):
         page_button_text="Novo Executivo",
         page_button_icon="bi-plus-circle",
         page_button_url=page_button_url,
+        page_secondary_button_url=page_secondary_button_url,
+        page_secondary_button_text=page_secondary_button_text,
+        page_secondary_button_icon=page_secondary_button_icon,
         pode_excluir_executivo=_pode_excluir_executivo(),
     )
 

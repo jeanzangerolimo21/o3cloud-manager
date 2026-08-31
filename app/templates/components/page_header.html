@@ -39,7 +39,7 @@
         <a
             href="{{ page_button_url }}"
             class="btn btn-primary"
-            {% if page_button_text == "Voltar" %}onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }"{% endif %}>
+            {% if page_button_text == "Voltar" %}data-smart-back="1"{% endif %}>
 
             <i class="bi {{ page_button_icon }}"></i>
 

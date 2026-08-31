@@ -103,7 +103,7 @@
 
 {% block view_actions %}
 
-<a href="{{ url_for('catalogo.listar_faixas') }}" class="btn btn-secondary" onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }">
+<a href="{{ url_for('catalogo.listar_faixas') }}" class="btn btn-secondary" data-smart-back="1">
     <i class="bi bi-arrow-left"></i>
     Voltar
 </a>

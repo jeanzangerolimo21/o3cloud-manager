@@ -11,7 +11,7 @@
             <h3 class="mb-0">{{ 'Editar Vinculos do Contrato Omie' if edicao_omie else ('Editar Contrato' if modo == 'editar' else 'Novo Contrato') }}</h3>
             <small class="text-muted">Gestao pos-assinatura</small>
         </div>
-        <a href="{{ url_for('contratos.index') }}" class="btn btn-outline-secondary" onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }"><i class="bi bi-arrow-left"></i> Voltar</a>
+        <a href="{{ url_for('contratos.index') }}" class="btn btn-outline-secondary" data-smart-back="1"><i class="bi bi-arrow-left"></i> Voltar</a>
     </div>
 
     <form method="POST" enctype="multipart/form-data" class="card border-0 shadow-sm">

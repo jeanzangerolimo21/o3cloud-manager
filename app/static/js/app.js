@@ -96,7 +96,7 @@
     }
 
     document.addEventListener("click", function (event) {
-        if (event.target.closest(".sidebar-menu a, .global-back-button, a[onclick*=\"history.back\"]")) {
+        if (event.target.closest(".sidebar-menu a, .global-back-button, [data-smart-back]")) {
             saveScrollPosition();
         }
     }, true);
@@ -155,4 +155,101 @@
             savePageScrollPosition();
         }
     }, true);
+})();
+
+
+(function () {
+    const globalKey = "o3cloud.lastReturnUrl";
+    const scopedPrefix = "o3cloud.lastReturnUrl:";
+    const fallbackUrl = "/";
+    const transientSegments = new Set(["novo", "editar", "importar"]);
+
+    function currentUrl() {
+        return window.location.pathname + window.location.search;
+    }
+
+    function isSafeInternalUrl(url) {
+        return typeof url === "string" && url.charAt(0) === "/" && url.substring(0, 2) !== "//";
+    }
+
+    function isNumericSegment(value) {
+        return /^\d+$/.test(value || "");
+    }
+
+    function pathSegments(path) {
+        return String(path || "").split("/").filter(Boolean);
+    }
+
+    function isTransientPath(path) {
+        const segments = pathSegments(path);
+        if (!segments.length) {
+            return false;
+        }
+        if (isNumericSegment(segments[segments.length - 1])) {
+            return true;
+        }
+        return segments.some(function (segment) {
+            return transientSegments.has(segment);
+        });
+    }
+
+    function scopeFromPath(path) {
+        const segments = pathSegments(path);
+        if (!segments.length) {
+            return fallbackUrl;
+        }
+        if (segments[0] === "implantacao" && segments[1] === "cofre-senhas") {
+            return "/implantacao/cofre-senhas";
+        }
+        if (segments[1] && !isNumericSegment(segments[1]) && !transientSegments.has(segments[1])) {
+            return "/" + segments[0] + "/" + segments[1];
+        }
+        return "/" + segments[0];
+    }
+
+    function readStoredReturnUrl(scope, fallback) {
+        try {
+            const scoped = sessionStorage.getItem(scopedPrefix + scope);
+            if (isSafeInternalUrl(scoped) && scoped !== currentUrl()) {
+                return scoped;
+            }
+            const global = sessionStorage.getItem(globalKey);
+            if (isSafeInternalUrl(global) && global !== currentUrl()) {
+                return global;
+            }
+        } catch (error) {
+            // Keep the normal link fallback when sessionStorage is unavailable.
+        }
+        return isSafeInternalUrl(fallback) ? fallback : fallbackUrl;
+    }
+
+    function rememberCurrentPage() {
+        const path = window.location.pathname;
+        if (path === fallbackUrl || isTransientPath(path)) {
+            return;
+        }
+        const url = currentUrl();
+        const scope = scopeFromPath(path);
+        try {
+            sessionStorage.setItem(globalKey, url);
+            sessionStorage.setItem(scopedPrefix + scope, url);
+        } catch (error) {
+            // Navigation remains available through link hrefs.
+        }
+    }
+
+    rememberCurrentPage();
+
+    document.addEventListener("click", function (event) {
+        const button = event.target.closest("[data-smart-back]");
+        if (!button) {
+            return;
+        }
+        const target = readStoredReturnUrl(scopeFromPath(window.location.pathname), button.getAttribute("href"));
+        if (!isSafeInternalUrl(target)) {
+            return;
+        }
+        event.preventDefault();
+        window.location.assign(target);
+    });
 })();
