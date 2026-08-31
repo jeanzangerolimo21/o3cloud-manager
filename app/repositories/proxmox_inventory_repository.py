@@ -409,7 +409,7 @@ class ProxmoxInventoryRepository(BaseRepository):
                         uuid, integracao_id, node, vmid, tipo, nome, status, cpu_cores, cpu_sockets,
                         memoria_mb, disco_gb, discos_qtd, interfaces_qtd, ips, tags, template,
                         uptime_seconds, raw_payload, ativo, ultimo_sync_em
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, NOW())
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, NOW())
                     ON DUPLICATE KEY UPDATE
                         tipo=VALUES(tipo), nome=VALUES(nome), status=VALUES(status),
                         cpu_cores=VALUES(cpu_cores), cpu_sockets=VALUES(cpu_sockets),
