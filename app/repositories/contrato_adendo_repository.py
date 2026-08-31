@@ -10,6 +10,8 @@ class ContratoAdendoRepository(BaseRepository):
             SELECT a.*,
                    COALESCE(p.valor_total, 0) AS premiacao_valor_total,
                    p.status_manual AS premiacao_status,
+                   p.data_recebimento_omie AS premiacao_data_recebimento_omie,
+                   p.id AS premiacao_id,
                    rc.nome AS premiacao_campanha_nome
             FROM contratos_adendos a
             LEFT JOIN financeiro_premiacoes_adendos p ON p.adendo_id = a.id AND p.ativo = 1

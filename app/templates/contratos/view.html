@@ -187,7 +187,16 @@
                             </td>
                             <td>
                                 {% if adendo.premiacao_status %}
-                                    <span class="badge text-bg-success">{{ status_premiacao_manual_options.get(adendo.premiacao_status, adendo.premiacao_status) }}</span><br><small class="text-muted">{{ adendo.premiacao_valor_total|moeda }}{% if adendo.premiacao_campanha_nome %} · {{ adendo.premiacao_campanha_nome }}{% endif %}</small>
+                                    <div class="js-status-premiacao-adendo" data-update-url="{{ url_for('financeiro.atualizar_status_premiacao_adendo', adendo_id=adendo.id) }}">
+                                        <select class="form-select form-select-sm js-status-premiacao-adendo-status" aria-label="Status de pagamento da premiação do adendo">
+                                            {% for chave, label in status_premiacao_manual_options.items() %}
+                                            <option value="{{ chave }}" {% if adendo.premiacao_status == chave %}selected{% endif %}>{{ label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <input class="form-control form-control-sm mt-1 js-status-premiacao-adendo-data" type="date" value="{{ adendo.premiacao_data_recebimento_omie or '' }}" aria-label="Recebido Omie">
+                                        <small class="text-muted d-block mt-1">{{ adendo.premiacao_valor_total|moeda }}{% if adendo.premiacao_campanha_nome %} · {{ adendo.premiacao_campanha_nome }}{% endif %}</small>
+                                        <small class="text-muted js-status-premiacao-adendo-feedback d-block mt-1">Receb. Omie {{ adendo.premiacao_data_recebimento_omie|date_br if adendo.premiacao_data_recebimento_omie else '-' }}</small>
+                                    </div>
                                 {% else %}
                                     <form method="POST" action="{{ url_for('financeiro.lancar_premiacao_adendo') }}" class="row g-1">
                                         <input type="hidden" name="contrato_id" value="{{ contrato.id }}">
@@ -209,6 +218,7 @@
                                                 {% endfor %}
                                             </select>
                                         </div>
+                                        <div class="col-12"><input class="form-control form-control-sm" type="date" name="data_recebimento_omie" aria-label="Recebido Omie"></div>
                                         <div class="col-12"><input class="form-control form-control-sm" name="observacoes" placeholder="Observações"></div>
                                         <div class="col-12 d-grid"><button class="btn btn-sm btn-outline-success" {% if not campanhas_premiacao_adendo %}disabled{% endif %}><i class="bi bi-cash-coin"></i> Calcular e lançar</button></div>
                                     </form>
@@ -349,6 +359,65 @@
     </div>
 </div>
 {% endif %}
+
+<script>
+(function () {
+    document.querySelectorAll('.js-status-premiacao-adendo').forEach(function (root) {
+        const select = root.querySelector('.js-status-premiacao-adendo-status');
+        const row = root.closest('tr');
+        const dataInput = root.querySelector('.js-status-premiacao-adendo-data') || (row ? row.querySelector('.js-status-premiacao-adendo-data') : null);
+        const feedback = root.querySelector('.js-status-premiacao-adendo-feedback');
+        if (!select || !root.dataset.updateUrl) { return; }
+        let statusAnterior = select.value;
+        let dataAnterior = dataInput ? dataInput.value : '';
+
+        function setFeedback(texto, classe) {
+            if (!feedback) { return; }
+            feedback.textContent = texto;
+            feedback.className = 'js-status-premiacao-adendo-feedback d-block mt-1 small ' + classe;
+        }
+
+        function salvar() {
+            select.disabled = true;
+            if (dataInput) { dataInput.disabled = true; }
+            setFeedback('Salvando...', 'text-muted');
+            fetch(root.dataset.updateUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({status: select.value, data_recebimento_omie: dataInput ? dataInput.value : null})
+            })
+                .then(function (response) {
+                    return response.json().then(function (payload) {
+                        return {ok: response.ok && payload.ok, payload: payload};
+                    });
+                })
+                .then(function (result) {
+                    if (!result.ok) {
+                        throw new Error(result.payload.erro || 'Não foi possível atualizar o adendo.');
+                    }
+                    statusAnterior = result.payload.status || select.value;
+                    dataAnterior = result.payload.data_recebimento_omie || '';
+                    select.value = statusAnterior;
+                    if (dataInput) { dataInput.value = dataAnterior; }
+                    setFeedback('Salvo automaticamente', 'text-success');
+                })
+                .catch(function (erro) {
+                    select.value = statusAnterior;
+                    if (dataInput) { dataInput.value = dataAnterior; }
+                    setFeedback(erro.message, 'text-danger');
+                })
+                .finally(function () {
+                    select.disabled = false;
+                    if (dataInput) { dataInput.disabled = false; }
+                });
+        }
+
+        select.addEventListener('change', salvar);
+        if (dataInput) { dataInput.addEventListener('change', salvar); }
+    });
+})();
+</script>
 
 {% if contrato.origem == 'OMIE' %}
 <script>

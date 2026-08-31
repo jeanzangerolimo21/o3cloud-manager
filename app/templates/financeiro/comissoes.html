@@ -186,7 +186,7 @@
         <div class="table-responsive">
             <table class="table table-sm align-middle mb-0">
                 <thead class="table-light">
-                    <tr><th>Adendo</th><th>Contrato</th><th>Cliente</th><th>Premiado</th><th>Status</th><th class="text-end">Base</th><th class="text-end">Premiação</th></tr>
+                    <tr><th>Adendo</th><th>Contrato</th><th>Cliente</th><th>Premiado</th><th>Status</th><th>Receb. Omie</th><th class="text-end">Base</th><th class="text-end">Premiação</th></tr>
                 </thead>
                 <tbody>
                     {% for item in premiacoes_adendos %}
@@ -195,16 +195,26 @@
                         <td><a class="font-monospace" href="{{ url_for('contratos.view', contrato_id=item.contrato_id) }}">{{ item.contrato_numero }}</a></td>
                         <td>{{ item.cliente_nome or '-' }}</td>
                         <td>{% if item.parceiro_nome %}<span class="d-block">Parceiro: {{ item.parceiro_nome }} · {{ ('%.2f'|format(item.percentual_parceiro or 0)).replace('.', ',') }}%</span>{% endif %}{% if item.executivo_nome %}<span class="d-block">Executivo: {{ item.executivo_nome }} · {{ ('%.2f'|format(item.percentual_executivo or 0)).replace('.', ',') }}%</span>{% endif %}</td>
-                        <td><span class="badge text-bg-secondary">{{ status_premiacao_manual_options.get(item.status_manual, item.status_manual) }}</span></td>
+                        <td>
+                            <div class="js-status-premiacao-adendo" data-update-url="{{ url_for('financeiro.atualizar_status_premiacao_adendo', adendo_id=item.adendo_id) }}">
+                                <select class="form-select form-select-sm js-status-premiacao-adendo-status" aria-label="Status de pagamento da premiação do adendo">
+                                    {% for chave, label in status_premiacao_manual_options.items() %}
+                                    <option value="{{ chave }}" {% if item.status_manual == chave %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted js-status-premiacao-adendo-feedback d-block mt-1">Atualizado</small>
+                            </div>
+                        </td>
+                        <td><input class="form-control form-control-sm js-status-premiacao-adendo-data" type="date" value="{{ item.data_recebimento_omie or '' }}" aria-label="Recebido Omie"></td>
                         <td class="text-end">{{ item.valor_base|moeda }}</td>
                         <td class="text-end"><strong>{{ item.valor_total|moeda }}</strong><br><small class="text-muted">P {{ item.valor_premiacao_parceiro|moeda }} · E {{ item.valor_premiacao_executivo|moeda }}</small></td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="7" class="text-muted">Nenhuma premiação manual de adendo lançada.</td></tr>
+                    <tr><td colspan="8" class="text-muted">Nenhuma premiação manual de adendo lançada.</td></tr>
                     {% endfor %}
                 </tbody>
                 {% if resumo_premiacoes_adendos.total %}
-                <tfoot><tr class="table-light"><td colspan="5"><strong>Total</strong></td><td class="text-end">{{ resumo_premiacoes_adendos.valor_base|moeda }}</td><td class="text-end">{{ resumo_premiacoes_adendos.valor_total|moeda }}</td></tr></tfoot>
+                <tfoot><tr class="table-light"><td colspan="6"><strong>Total</strong></td><td class="text-end">{{ resumo_premiacoes_adendos.valor_base|moeda }}</td><td class="text-end">{{ resumo_premiacoes_adendos.valor_total|moeda }}</td></tr></tfoot>
                 {% endif %}
             </table>
         </div>
@@ -253,6 +263,61 @@ document.querySelectorAll('.js-status-premiacao').forEach(function (select) {
                 select.disabled = false;
             });
     });
+});
+
+document.querySelectorAll('.js-status-premiacao-adendo').forEach(function (root) {
+    const select = root.querySelector('.js-status-premiacao-adendo-status');
+    const row = root.closest('tr');
+    const dataInput = row ? row.querySelector('.js-status-premiacao-adendo-data') : null;
+    const feedback = root.querySelector('.js-status-premiacao-adendo-feedback');
+    if (!select || !root.dataset.updateUrl) { return; }
+    let statusAnterior = select.value;
+    let dataAnterior = dataInput ? dataInput.value : '';
+
+    function setFeedback(texto, classe) {
+        if (!feedback) { return; }
+        feedback.textContent = texto;
+        feedback.className = 'js-status-premiacao-adendo-feedback d-block mt-1 small ' + classe;
+    }
+
+    function salvar() {
+        select.disabled = true;
+        if (dataInput) { dataInput.disabled = true; }
+        setFeedback('Salvando...', 'text-muted');
+        fetch(root.dataset.updateUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({status: select.value, data_recebimento_omie: dataInput ? dataInput.value : null})
+        })
+            .then(function (response) {
+                return response.json().then(function (payload) {
+                    return {ok: response.ok && payload.ok, payload: payload};
+                });
+            })
+            .then(function (result) {
+                if (!result.ok) {
+                    throw new Error(result.payload.erro || 'Não foi possível atualizar o adendo.');
+                }
+                statusAnterior = result.payload.status || select.value;
+                dataAnterior = result.payload.data_recebimento_omie || '';
+                select.value = statusAnterior;
+                if (dataInput) { dataInput.value = dataAnterior; }
+                setFeedback('Salvo automaticamente', 'text-success');
+            })
+            .catch(function (erro) {
+                select.value = statusAnterior;
+                if (dataInput) { dataInput.value = dataAnterior; }
+                setFeedback(erro.message, 'text-danger');
+            })
+            .finally(function () {
+                select.disabled = false;
+                if (dataInput) { dataInput.disabled = false; }
+            });
+    }
+
+    select.addEventListener('change', salvar);
+    if (dataInput) { dataInput.addEventListener('change', salvar); }
 });
 </script>
 {% endblock %}

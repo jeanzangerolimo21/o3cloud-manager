@@ -844,20 +844,41 @@ class FinanceiroRepository(BaseRepository):
         return cls.execute_insert(
             """
             INSERT INTO financeiro_premiacoes_adendos (
-                uuid, adendo_id, contrato_id, cliente_id, campanha_id, parceiro_id, executivo_id, descricao, data_lancamento,
+                uuid, adendo_id, contrato_id, cliente_id, campanha_id, parceiro_id, executivo_id, descricao, data_lancamento, data_recebimento_omie,
                 valor_base, percentual_parceiro, percentual_executivo, valor_premiacao_parceiro,
                 valor_premiacao_executivo, valor_total, status_manual, observacoes, created_by, updated_by
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 cls.generate_uuid(), dados.get("adendo_id"), dados.get("contrato_id"), dados.get("cliente_id"),
                 dados.get("campanha_id"), dados.get("parceiro_id"), dados.get("executivo_id"), dados.get("descricao"), dados.get("data_lancamento"),
+                dados.get("data_recebimento_omie"),
                 dados.get("valor_base"), dados.get("percentual_parceiro"), dados.get("percentual_executivo"),
                 dados.get("valor_premiacao_parceiro"), dados.get("valor_premiacao_executivo"), dados.get("valor_total"),
                 dados.get("status_manual"), dados.get("observacoes"), dados.get("created_by"), dados.get("updated_by"),
             ),
         )
 
+
+    @classmethod
+    def atualizar_status_premiacao_adendo(cls, adendo_id, status_manual, data_recebimento_omie=None, usuario_email=None):
+        return cls.execute(
+            """
+            UPDATE financeiro_premiacoes_adendos
+            SET status_manual = %s,
+                data_recebimento_omie = %s,
+                updated_by = %s,
+                updated_at = NOW()
+            WHERE adendo_id = %s
+              AND ativo = 1
+            """,
+            (
+                status_manual,
+                data_recebimento_omie,
+                usuario_email or "sistema",
+                adendo_id,
+            ),
+        )
 
     @classmethod
     def listar_parceiros_pagamento_campanhas(cls):
@@ -1038,8 +1059,8 @@ class FinanceiroRepository(BaseRepository):
                 cli.id AS cliente_id,
                 COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
                 c.inicio_vigencia AS data_ativacao,
-                NULL AS data_recebimento,
-                pa.data_lancamento AS data_referencia,
+                pa.data_recebimento_omie AS data_recebimento,
+                COALESCE(pa.data_recebimento_omie, pa.data_lancamento) AS data_referencia,
                 rc.id AS campanha_id,
                 rc.nome AS campanha_nome,
                 pa.status_manual,

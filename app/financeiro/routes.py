@@ -174,6 +174,22 @@ def atualizar_status_premiacao(contrato_id):
     return jsonify({"ok": True, **resultado})
 
 
+@financeiro_bp.route("/financeiro/comissoes/adendos/<int:adendo_id>/status-premiacao", methods=["POST"])
+def atualizar_status_premiacao_adendo(adendo_id):
+
+    dados = request.get_json(silent=True) or request.form
+    try:
+        resultado = FinanceiroService.atualizar_status_premiacao_adendo(
+            adendo_id,
+            dados.get("status"),
+            dados.get("data_recebimento_omie"),
+            _email_usuario_logado(),
+        )
+    except ValueError as erro:
+        return jsonify({"ok": False, "erro": str(erro)}), 400
+    return jsonify({"ok": True, **resultado})
+
+
 @financeiro_bp.route("/financeiro/comissoes/<int:contrato_id>/calcular", methods=["GET", "POST"])
 def calcular_comissao(contrato_id):
 

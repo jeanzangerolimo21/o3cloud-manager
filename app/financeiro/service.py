@@ -552,7 +552,7 @@ class FinanceiroService:
 
         contrato_id = cls._inteiro(contrato_id)
         campanha_id = cls._inteiro(campanha_id)
-        status_manual = cls._texto(status_manual).upper()
+        status_manual = (cls._texto(status_manual) or "").upper()
         if not contrato_id or not campanha_id:
             raise ValueError("Contrato e campanha são obrigatórios para atualizar a premiação.")
         if status_manual not in cls.STATUS_PREMIACAO_MANUAL:
@@ -627,6 +627,7 @@ class FinanceiroService:
             "executivo_id": executivo_id,
             "descricao": descricao[:255],
             "data_lancamento": cls._texto(dados.get("data_lancamento")) or date.today().isoformat(),
+            "data_recebimento_omie": cls._normalizar_data_opcional(dados.get("data_recebimento_omie")),
             "valor_base": valor_base,
             "percentual_parceiro": percentual_parceiro,
             "percentual_executivo": percentual_executivo,
@@ -639,6 +640,25 @@ class FinanceiroService:
             "updated_by": usuario_email,
         }
         return FinanceiroRepository.inserir_premiacao_adendo(payload)
+
+    @classmethod
+    def atualizar_status_premiacao_adendo(cls, adendo_id, status_manual, data_recebimento_omie=None, usuario_email="sistema"):
+
+        adendo_id = cls._inteiro(adendo_id)
+        status_manual = (cls._texto(status_manual) or "").upper()
+        if not adendo_id:
+            raise ValueError("Adendo é obrigatório para atualizar a premiação.")
+        if status_manual not in cls.STATUS_PREMIACAO_MANUAL:
+            raise ValueError("Status de premiação inválido.")
+        if not FinanceiroRepository.buscar_premiacao_adendo(adendo_id):
+            raise ValueError("Premiação manual do adendo não encontrada.")
+        data_recebimento_omie = cls._normalizar_data_opcional(data_recebimento_omie)
+        FinanceiroRepository.atualizar_status_premiacao_adendo(adendo_id, status_manual, data_recebimento_omie, usuario_email)
+        return {
+            "status": status_manual,
+            "label": cls.STATUS_PREMIACAO_MANUAL[status_manual],
+            "data_recebimento_omie": data_recebimento_omie,
+        }
 
     @staticmethod
     def contratos_para_faturamento():
@@ -950,6 +970,17 @@ class FinanceiroService:
             except ValueError:
                 pass
         raise ValueError("Competencia invalida. Use AAAA-MM, AAAA-MM-DD, MM/AAAA ou DD/MM/AAAA.")
+
+    @staticmethod
+    def _normalizar_data_opcional(valor):
+
+        texto = str(valor or "").strip()
+        if not texto:
+            return None
+        try:
+            return datetime.strptime(texto, "%Y-%m-%d").date().isoformat()
+        except ValueError:
+            raise ValueError("Data inválida. Use AAAA-MM-DD.")
 
     @staticmethod
     def _texto(valor):
