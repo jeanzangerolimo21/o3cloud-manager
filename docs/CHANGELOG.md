@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-31 - Sugestao automatica em Faixas de Rede
+
+- Implantacao > Faixas de Rede passou a sugerir automaticamente a proxima faixa ao clicar em `Cadastrar manualmente`, usando a ultima faixa ativa cadastrada como referencia.
+- A sugestao calcula a mascara pela quantidade de servidores, preenchendo `/29`, `/28` ou `/27` conforme a capacidade necessaria.
+- O formulario de nova faixa passa a receber `FW - LAN` e `PVE` com IPs sequenciais da nova rede.
+- `FW - WAN` passa a sugerir o proximo IPv4 a partir do cadastro anterior, quando o valor anterior for um IP valido.
+- O intervalo principal de portas passa a ser sugerido em sequencia fixa de 6 portas, por exemplo `1601-1606` depois de uma ultima porta `1600`.
+- Corrigido banco local que estava sem a tabela `implantacao_faixas_rede_portas`, criada pela migration existente `113_create_implantacao_faixas_rede_portas.sql`.
+- Procedimento e validacoes documentados em `docs/58-FAIXAS-REDE-SUGESTAO-AUTOMATICA-BETA.md`.
+
 ## 2026-08-30 - Pagamento de campanhas de premiação
 
 - Criada a tela `Financeiro > Premiações > Pagamento Campanhas` para simular contas a pagar de premiações por campanha e parceiro.

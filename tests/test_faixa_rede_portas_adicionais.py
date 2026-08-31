@@ -10,7 +10,7 @@ def _dados(**extra):
     dados = {
         "rede": "10.10.10.0/29",
         "quantidade_servidores": "5",
-        "fw_wan": "200.200.200.1",
+        "fw_wan": "10.100.100.120",
         "fw_lan": "10.10.10.1",
         "cliente_id": "10",
         "vpn": "vpn-01",
@@ -55,3 +55,50 @@ def test_normalizar_faixa_rede_recusa_ranges_sobrepostos(monkeypatch):
         assert "sobrepõem" in str(erro)
     else:
         raise AssertionError("deveria recusar ranges sobrepostos")
+
+
+def test_sugerir_proxima_por_ultima_usa_proxima_rede_contigua(monkeypatch):
+    monkeypatch.setattr(
+        "app.implantacao.faixas_rede_service.FaixaRedeRepository.ultima_ativa_cadastrada",
+        lambda: {"rede": "10.200.101.192/29", "fw_wan": "10.100.100.120", "porta_fim": 10010},
+    )
+    monkeypatch.setattr(
+        "app.implantacao.faixas_rede_service.FaixaRedeRepository.listar_ativas",
+        lambda: [{"rede": "10.200.101.192/29"}],
+    )
+
+    sugestao = FaixaRedeService.sugerir_proxima_por_ultima("5")
+
+    assert sugestao["rede"] == "10.200.101.200/29"
+    assert sugestao["mascara"] == 29
+    assert sugestao["quantidade_servidores"] == 5
+    assert sugestao["fw_lan"] == "10.200.101.201"
+    assert sugestao["pve"] == "10.200.101.202, 10.200.101.203, 10.200.101.204, 10.200.101.205, 10.200.101.206"
+    assert sugestao["fw_wan"] == "10.100.100.121"
+    assert sugestao["porta_inicio"] == 10011
+    assert sugestao["porta_fim"] == 10016
+
+
+def test_sugerir_proxima_por_ultima_respeita_quantidade_maior(monkeypatch):
+    monkeypatch.setattr(
+        "app.implantacao.faixas_rede_service.FaixaRedeRepository.ultima_ativa_cadastrada",
+        lambda: {"rede": "10.200.101.192/29", "fw_wan": "10.100.100.120", "porta_fim": 10010},
+    )
+    monkeypatch.setattr(
+        "app.implantacao.faixas_rede_service.FaixaRedeRepository.listar_ativas",
+        lambda: [{"rede": "10.200.101.192/29"}],
+    )
+
+    sugestao = FaixaRedeService.sugerir_proxima_por_ultima("8")
+
+    assert sugestao["rede"] == "10.200.101.208/28"
+    assert sugestao["mascara"] == 28
+    assert sugestao["quantidade_servidores"] == 8
+    assert sugestao["fw_lan"] == "10.200.101.209"
+    assert sugestao["porta_inicio"] == 10011
+    assert sugestao["porta_fim"] == 10016
+
+
+def test_proximo_ipv4_recusa_valor_invalido():
+    assert FaixaRedeService._proximo_ipv4("fw-01") == ""
+    assert FaixaRedeService._proximo_ipv4("") == ""

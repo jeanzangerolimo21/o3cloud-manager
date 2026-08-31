@@ -57,6 +57,28 @@ class FaixaRedeRepository(BaseRepository):
         )
 
     @classmethod
+    def ultima_ativa_cadastrada(cls):
+        return cls.fetch_one(
+            """
+            SELECT fr.rede,
+                   fr.fw_wan,
+                   GREATEST(
+                       COALESCE(fr.porta_fim, 0),
+                       COALESCE(extras.maior_porta_fim, 0)
+                   ) AS porta_fim
+            FROM implantacao_faixas_rede fr
+            LEFT JOIN (
+                SELECT faixa_rede_id, MAX(porta_fim) AS maior_porta_fim
+                FROM implantacao_faixas_rede_portas
+                GROUP BY faixa_rede_id
+            ) extras ON extras.faixa_rede_id = fr.id
+            WHERE fr.ativo = 1
+            ORDER BY fr.id DESC
+            LIMIT 1
+            """
+        )
+
+    @classmethod
     def buscar_por_id(cls, faixa_id):
         return cls.fetch_one("SELECT * FROM implantacao_faixas_rede WHERE id = %s", (faixa_id,))
 

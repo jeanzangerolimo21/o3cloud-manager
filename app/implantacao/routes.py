@@ -142,12 +142,20 @@ def faixas_rede():
 @implantacao_bp.route("/faixas-rede/novo", methods=["GET", "POST"])
 def nova_faixa_rede():
     clientes = ClienteService.listar_para_importacao()
+    sugestao_automatica = None
+    if request.method == "GET" and not request.args.get("rede"):
+        try:
+            sugestao_automatica = FaixaRedeService.sugerir_proxima_por_ultima(request.args.get("quantidade_servidores"))
+        except ValueError as erro:
+            flash(str(erro), "warning")
     faixa = {
-        "rede": request.args.get("rede"),
-        "quantidade_servidores": request.args.get("quantidade_servidores"),
-        "fw_wan": request.args.get("fw_wan"),
-        "fw_lan": request.args.get("fw_lan"),
-        "pve": request.args.get("pve"),
+        "rede": request.args.get("rede") or (sugestao_automatica or {}).get("rede"),
+        "quantidade_servidores": request.args.get("quantidade_servidores") or (sugestao_automatica or {}).get("quantidade_servidores"),
+        "fw_wan": request.args.get("fw_wan") or (sugestao_automatica or {}).get("fw_wan"),
+        "fw_lan": request.args.get("fw_lan") or (sugestao_automatica or {}).get("fw_lan"),
+        "pve": request.args.get("pve") or (sugestao_automatica or {}).get("pve"),
+        "porta_inicio": request.args.get("porta_inicio") or (sugestao_automatica or {}).get("porta_inicio"),
+        "porta_fim": request.args.get("porta_fim") or (sugestao_automatica or {}).get("porta_fim"),
         "ativo": 1,
     }
     if request.method == "POST":

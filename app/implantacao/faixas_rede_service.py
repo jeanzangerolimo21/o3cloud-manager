@@ -81,6 +81,46 @@ class FaixaRedeService:
                 return cls._sugestao(candidata, quantidade)
         raise ValueError("Nenhuma faixa disponível encontrada dentro da rede base informada.")
 
+    @classmethod
+    def sugerir_proxima_por_ultima(cls, quantidade_servidores=None):
+        quantidade = cls._inteiro(quantidade_servidores) or 5
+        mascara = cls.mascara_por_servidores(quantidade)
+        ultima = cls.repository.ultima_ativa_cadastrada()
+        if not ultima or not ultima.get("rede"):
+            return None
+        try:
+            rede_atual = ipaddress.ip_network(ultima.get("rede"), strict=False)
+        except ValueError as erro:
+            raise ValueError("A última faixa cadastrada está inválida para gerar sugestão.") from erro
+        if rede_atual.version != 4:
+            raise ValueError("A última faixa cadastrada não é IPv4.")
+
+        proximo_ip = ipaddress.ip_address(int(rede_atual.network_address) + rede_atual.num_addresses)
+        candidata = ipaddress.ip_network(f"{proximo_ip}/{mascara}", strict=False)
+        ocupadas = cls._redes_ocupadas()
+        while any(candidata.overlaps(ocupada) for ocupada in ocupadas):
+            proximo_ip = ipaddress.ip_address(int(candidata.network_address) + candidata.num_addresses)
+            candidata = ipaddress.ip_network(f"{proximo_ip}/{mascara}", strict=False)
+        sugestao = cls._sugestao(candidata, quantidade)
+        sugestao.update(cls._sugestao_portas(ultima, quantidade))
+        return sugestao
+
+    @staticmethod
+    def _sugestao_portas(ultima, quantidade):
+        porta_fim = FaixaRedeService._inteiro((ultima or {}).get("porta_fim"))
+        fw_wan = FaixaRedeService._proximo_ipv4((ultima or {}).get("fw_wan"))
+        if porta_fim <= 0:
+            return {"fw_wan": fw_wan}
+        porta_inicio = porta_fim + 1
+        nova_porta_fim = porta_inicio + 5
+        if nova_porta_fim > 65535:
+            return {"fw_wan": fw_wan}
+        return {
+            "fw_wan": fw_wan,
+            "porta_inicio": porta_inicio,
+            "porta_fim": nova_porta_fim,
+        }
+
     @staticmethod
     def mascara_por_servidores(quantidade_servidores):
         quantidade = int(quantidade_servidores or 0)
@@ -269,6 +309,19 @@ class FaixaRedeService:
             "pve": ", ".join(pve_hosts),
             "hosts_uteis": max(rede.num_addresses - 2, 0),
         }
+
+    @staticmethod
+    def _proximo_ipv4(valor):
+        texto = str(valor or "").strip()
+        if not texto:
+            return ""
+        try:
+            ip = ipaddress.ip_address(texto)
+        except ValueError:
+            return ""
+        if ip.version != 4 or int(ip) >= int(ipaddress.ip_address("255.255.255.255")):
+            return ""
+        return str(ipaddress.ip_address(int(ip) + 1))
 
     @staticmethod
     def _normalizar_rede(valor):
