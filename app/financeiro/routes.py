@@ -279,7 +279,7 @@ def reajustes_contratuais_sincronizar_omie():
 @financeiro_bp.route("/financeiro/reajustes-contratuais/verificar", methods=["POST"])
 def reajustes_contratuais_verificar():
 
-    resultado = ReajusteContratoService.processar_alertas(_email_usuario_logado())
+    resultado = ReajusteContratoService.processar_alertas(_email_usuario_logado(), forcar_relatorio_email=True)
     flash(
         "Verificacao concluida: {} alerta(s) registrado(s), {} e-mail(s) enviado(s).".format(
             resultado.get("criados", 0), resultado.get("emails", 0)

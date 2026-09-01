@@ -3,8 +3,8 @@
 ## 2026-09-01 - Email consolidado em reajustes contratuais
 
 - `Financeiro > Reajustes Contratuais > Verificar agora` passou a enviar um unico e-mail por execucao com CSV anexo.
-- O arquivo consolida contratos vencidos e contratos a vencer nos proximos 30 dias, evitando multiplos envios SMTP e reduzindo risco de timeout no Flask.
-- A deduplicacao por contrato/aniversario foi preservada em `contratos_reajustes_alertas`; `email_enviado_em` e marcado apos o envio consolidado bem-sucedido.
+- O arquivo consolida contratos vencidos, contratos a vencer nos proximos 30 dias e contratos sem reajuste detectado, evitando multiplos envios SMTP e reduzindo risco de timeout no Flask.
+- A rotina automatica preserva a deduplicacao por contrato/aniversario em `contratos_reajustes_alertas`; o botao manual forca o relatorio atual mesmo quando os alertas ja existiam.
 - Procedimento e validacoes documentados em `docs/61-REAJUSTES-CONTRATUAIS-EMAIL-CONSOLIDADO-BETA.md`.
 
 ## 2026-09-01 - Email de faturamento da implantacao

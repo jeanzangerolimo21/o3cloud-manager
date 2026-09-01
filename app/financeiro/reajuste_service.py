@@ -121,7 +121,7 @@ class ReajusteContratoService:
         return config_id
 
     @classmethod
-    def processar_alertas(cls, usuario_email="sistema", hoje=None):
+    def processar_alertas(cls, usuario_email="sistema", hoje=None, forcar_relatorio_email=False):
         hoje = hoje or date.today()
         config = cls.configuracao()
         if not config.get("ativo"):
@@ -130,13 +130,18 @@ class ReajusteContratoService:
         emails = 0
         mensagens = []
         alertas_email = []
+        relatorio_email = []
         for contrato in cls.repository.listar_contratos_monitoramento({}, limit=2000):
             cls.registrar_historico_valor_se_necessario(contrato.get("id"), contrato, origem="MONITORAMENTO")
             item = cls.analisar_contrato(contrato, hoje=hoje, config=config)
             if item.get("carteira") != "ATIVA":
                 continue
             antecedencia = cls.antecedencia_alerta(item, config)
+            if cls._incluir_relatorio_reajuste(item):
+                relatorio_email.append({"item": item, "antecedencia": antecedencia})
             if antecedencia is None:
+                if item.get("situacao") == "SEM_REAJUSTE_DETECTADO":
+                    mensagens.append(f"{item.get('contrato_numero')}: {cls.STATUS_LABELS.get(item.get('situacao'), item.get('situacao'))}")
                 continue
             existente = cls.repository.alerta_existente(contrato.get("id"), item.get("proximo_aniversario"), antecedencia)
             if not existente:
@@ -145,16 +150,18 @@ class ReajusteContratoService:
             if config.get("enviar_email") and not (existente or {}).get("email_enviado_em"):
                 alertas_email.append({"item": item, "antecedencia": antecedencia})
             mensagens.append(f"{item.get('contrato_numero')}: {cls.STATUS_LABELS.get(item.get('situacao'), item.get('situacao'))}")
-        if alertas_email:
-            emails = cls._enviar_email_alertas_lote(alertas_email, config, hoje)
-            if emails:
-                for alerta in alertas_email:
-                    item = alerta["item"]
-                    cls.repository.marcar_email_alerta(
-                        item.get("contrato_id"),
-                        item.get("proximo_aniversario"),
-                        alerta.get("antecedencia"),
-                    )
+        if config.get("enviar_email"):
+            envios_email = relatorio_email if forcar_relatorio_email else alertas_email
+            if envios_email:
+                emails = cls._enviar_email_alertas_lote(envios_email, config, hoje)
+                if emails:
+                    for alerta in alertas_email:
+                        item = alerta["item"]
+                        cls.repository.marcar_email_alerta(
+                            item.get("contrato_id"),
+                            item.get("proximo_aniversario"),
+                            alerta.get("antecedencia"),
+                        )
         return {"criados": criados, "emails": emails, "mensagens": mensagens}
 
     @classmethod
@@ -595,14 +602,22 @@ class ReajusteContratoService:
         return True
 
     @classmethod
+    def _incluir_relatorio_reajuste(cls, item):
+        if item.get("situacao") in ("REAJUSTE_VENCIDO", "SEM_REAJUSTE_DETECTADO"):
+            return True
+        dias = item.get("dias_para_reajuste")
+        return dias is not None and 0 < dias <= 30
+
+    @classmethod
     def _enviar_email_alertas_lote(cls, alertas, config, hoje=None):
         usuarios = [u for u in cls.repository.usuarios_notificacao(config.get("id")) if u.get("receber_email")]
         destinatarios = [u.get("email") for u in usuarios]
         if not destinatarios:
             return 0
         hoje = hoje or date.today()
-        vencidos = [a["item"] for a in alertas if (a["item"].get("dias_para_reajuste") or 0) <= 0]
+        vencidos = [a["item"] for a in alertas if a["item"].get("situacao") == "REAJUSTE_VENCIDO"]
         proximos = [a["item"] for a in alertas if 0 < (a["item"].get("dias_para_reajuste") or 0) <= 30]
+        sem_reajuste = [a["item"] for a in alertas if a["item"].get("situacao") == "SEM_REAJUSTE_DETECTADO"]
         caminho = cls._gerar_csv_alertas_reajuste(alertas)
         try:
             assunto = f"[O3Cloud Manager] Reajustes contratuais - {len(vencidos)} vencido(s), {len(proximos)} nos proximos 30 dias"
@@ -612,6 +627,7 @@ class ReajusteContratoService:
                 f"Data da verificacao: {hoje}",
                 f"Contratos vencidos: {len(vencidos)}",
                 f"Contratos a vencer nos proximos 30 dias: {len(proximos)}",
+                f"Contratos sem reajuste detectado: {len(sem_reajuste)}",
                 f"Total no arquivo: {len(alertas)}",
                 "",
                 "O detalhamento esta no arquivo CSV anexo.",
@@ -656,7 +672,12 @@ class ReajusteContratoService:
             for alerta in sorted(alertas, key=lambda a: ((a["item"].get("dias_para_reajuste") or 0), a["item"].get("cliente_nome") or "")):
                 item = alerta["item"]
                 dias = item.get("dias_para_reajuste")
-                grupo = "Vencidos" if dias is not None and dias <= 0 else "Proximos 30 dias"
+                if item.get("situacao") == "SEM_REAJUSTE_DETECTADO":
+                    grupo = "Sem reajuste detectado"
+                elif item.get("situacao") == "REAJUSTE_VENCIDO" or (dias is not None and dias <= 0):
+                    grupo = "Vencidos"
+                else:
+                    grupo = "Proximos 30 dias"
                 writer.writerow([
                     grupo,
                     item.get("contrato_numero") or "-",

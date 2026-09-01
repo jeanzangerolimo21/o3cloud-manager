@@ -18,10 +18,11 @@ O CSV separa os contratos por grupo:
 
 - `Vencidos`
 - `Proximos 30 dias`
+- `Sem reajuste detectado`
 
 O arquivo inclui contrato, cliente, inicio da vigencia, proximo aniversario, dias restantes, situacao, valor atual, valor INPC estimado, prejuizo estimado, vendedor e link do contrato.
 
-A deduplicacao operacional foi preservada: cada contrato continua registrando seu alerta em `contratos_reajustes_alertas`, mas o campo `email_enviado_em` passa a ser marcado depois do envio consolidado bem-sucedido.
+A deduplicacao operacional foi preservada para a rotina automatica: cada contrato continua registrando seu alerta em `contratos_reajustes_alertas`, mas o campo `email_enviado_em` passa a ser marcado depois do envio consolidado bem-sucedido. No botao manual `Verificar agora`, o sistema forca o relatorio consolidado dos itens criticos atuais mesmo quando os alertas ja tinham sido registrados em execucoes anteriores.
 
 ## Arquivos alterados
 
@@ -41,7 +42,7 @@ python3 -B -m py_compile app/financeiro/reajuste_service.py app/financeiro/route
 venv/bin/python -B -m pytest tests/test_reajuste_contrato_service.py
 ```
 
-Resultado: 16 testes passaram.
+Resultado: 17 testes passaram.
 
 ## Validacao pos-atualizacao
 
@@ -50,7 +51,7 @@ Resultado: 16 testes passaram.
 3. Abrir `Financeiro > Reajustes Contratuais`.
 4. Clicar em `Verificar agora`.
 5. Confirmar que os destinatarios configurados recebem apenas um e-mail da execucao.
-6. Confirmar que o anexo CSV contem os contratos vencidos e os contratos a vencer nos proximos 30 dias.
+6. Confirmar que o anexo CSV contem os contratos vencidos, os contratos a vencer nos proximos 30 dias e os contratos sem reajuste detectado.
 
 ## Atualizacao Beta
 

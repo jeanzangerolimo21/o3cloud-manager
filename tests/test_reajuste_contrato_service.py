@@ -317,3 +317,44 @@ def test_processar_alertas_envia_email_unico_com_csv_consolidado(monkeypatch):
     assert "Vencidos;2025/001;Cliente Vencido" in envios[0][4]
     assert "Proximos 30 dias;2025/002;Cliente Proximo" in envios[0][4]
     assert all(alerta["email_enviado_em"] for alerta in RepoReajustesFake.alertas.values())
+
+
+def test_processar_alertas_manual_envia_relatorio_mesmo_com_alerta_ja_enviado(monkeypatch):
+    RepoReajustesFake.config = {
+        "id": 1,
+        "ativo": 1,
+        "alerta_30_dias": 1,
+        "alerta_15_dias": 1,
+        "alerta_7_dias": 1,
+        "enviar_email": 1,
+    }
+    RepoReajustesFake.usuarios = [
+        {"id": 3, "nome": "Financeiro", "email": "financeiro@example.com", "receber_email": 1},
+    ]
+    contrato = _contrato(id=1, numero="2025/001", inicio_vigencia=date(2025, 9, 20), cliente_nome="Cliente Proximo")
+    RepoReajustesFake.contratos = [contrato]
+    aniversario = ReajusteContratoService.analisar_contrato(contrato, hoje=date(2026, 9, 1))["proximo_aniversario"]
+    RepoReajustesFake.alertas[(1, aniversario, 30)] = {
+        "contrato_id": 1,
+        "aniversario_referencia": aniversario,
+        "antecedencia_dias": 30,
+        "status": "REAJUSTE_PROXIMO",
+        "email_enviado_em": datetime(2026, 8, 31),
+    }
+    envios = []
+
+    def fake_enviar(assunto, corpo, destinatarios, corpo_html=None, finalidade="GERAL", anexos=None):
+        with open(anexos[0]["caminho"], encoding="utf-8") as arquivo:
+            envios.append(arquivo.read())
+        return {"enviado": True, "destinatarios": destinatarios}
+
+    monkeypatch.setattr("app.financeiro.reajuste_service.EmailService.enviar", fake_enviar)
+
+    resultado_cron = ReajusteContratoService.processar_alertas(hoje=date(2026, 9, 1))
+    resultado_manual = ReajusteContratoService.processar_alertas(hoje=date(2026, 9, 1), forcar_relatorio_email=True)
+
+    assert resultado_cron["emails"] == 0
+    assert resultado_manual["criados"] == 0
+    assert resultado_manual["emails"] == 1
+    assert len(envios) == 1
+    assert "Proximos 30 dias;2025/001;Cliente Proximo" in envios[0]
