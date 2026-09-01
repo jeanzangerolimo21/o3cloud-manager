@@ -313,7 +313,10 @@ def test_processar_alertas_envia_email_unico_com_csv_consolidado(monkeypatch):
     assert resultado["criados"] == 2
     assert resultado["emails"] == 1
     assert len(envios) == 1
-    assert "1 vencido(s), 1 nos proximos 30 dias" in envios[0][0]
+    assert envios[0][2] == ["financeiro@example.com"]
+    assert "1 vencido(s), 1 proximos, 0 sem reajuste detectado" in envios[0][0]
+    assert "Prejuizo atual estimado dos vencidos/sem reajuste: R$" in envios[0][1]
+    assert "Valor corrigido INPC;Diferenca mensal INPC;Prejuizo atual estimado" in envios[0][4]
     assert "Vencidos;2025/001;Cliente Vencido" in envios[0][4]
     assert "Proximos 30 dias;2025/002;Cliente Proximo" in envios[0][4]
     assert all(alerta["email_enviado_em"] for alerta in RepoReajustesFake.alertas.values())
@@ -358,3 +361,44 @@ def test_processar_alertas_manual_envia_relatorio_mesmo_com_alerta_ja_enviado(mo
     assert resultado_manual["emails"] == 1
     assert len(envios) == 1
     assert "Proximos 30 dias;2025/001;Cliente Proximo" in envios[0]
+
+
+
+def test_relatorio_manual_inclui_sem_reajuste_detectado_com_inpc_e_prejuizo(monkeypatch):
+    RepoReajustesFake.config = {
+        "id": 1,
+        "ativo": 1,
+        "alerta_30_dias": 1,
+        "alerta_15_dias": 1,
+        "alerta_7_dias": 1,
+        "enviar_email": 1,
+    }
+    RepoReajustesFake.usuarios = [
+        {"id": 3, "nome": "Financeiro", "email": "financeiro@example.com", "receber_email": 1},
+    ]
+    RepoReajustesFake.contratos = [
+        _contrato(id=1, numero="2020/001", inicio_vigencia=date(2020, 3, 1), valor_mensal=Decimal("541.94"), cliente_nome="Cliente Sem Reajuste"),
+    ]
+    RepoReajustesFake.faturamentos = {
+        1: {"valor_original": Decimal("541.94"), "data_recebimento": date(2026, 3, 1)},
+    }
+    envios = []
+
+    def fake_enviar(assunto, corpo, destinatarios, corpo_html=None, finalidade="GERAL", anexos=None):
+        with open(anexos[0]["caminho"], encoding="utf-8") as arquivo:
+            conteudo = arquivo.read()
+        envios.append((assunto, corpo, destinatarios, conteudo))
+        return {"enviado": True, "destinatarios": destinatarios}
+
+    monkeypatch.setattr("app.financeiro.reajuste_service.EmailService.enviar", fake_enviar)
+
+    resultado = ReajusteContratoService.processar_alertas(hoje=date(2026, 9, 1), forcar_relatorio_email=True)
+
+    assert resultado["emails"] == 1
+    assert envios[0][2] == ["financeiro@example.com"]
+    assert "1 sem reajuste detectado" in envios[0][0]
+    assert "Contratos sem reajuste detectado: 1" in envios[0][1]
+    assert "Cliente Sem Reajuste | reajuste em 2027-03-01" in envios[0][1]
+    assert "Sem reajuste detectado;2020/001;Cliente Sem Reajuste" in envios[0][3]
+    assert "Data aplicacao reajuste" in envios[0][3]
+    assert "Valor corrigido INPC;Diferenca mensal INPC;Prejuizo atual estimado" in envios[0][3]

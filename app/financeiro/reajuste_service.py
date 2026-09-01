@@ -618,21 +618,28 @@ class ReajusteContratoService:
         vencidos = [a["item"] for a in alertas if a["item"].get("situacao") == "REAJUSTE_VENCIDO"]
         proximos = [a["item"] for a in alertas if 0 < (a["item"].get("dias_para_reajuste") or 0) <= 30]
         sem_reajuste = [a["item"] for a in alertas if a["item"].get("situacao") == "SEM_REAJUSTE_DETECTADO"]
+        impacto_vencido = vencidos + sem_reajuste
+        prejuizo_vencido = sum((cls._decimal(item.get("prejuizo_estimado")) or Decimal("0.00")) for item in impacto_vencido)
+        linhas_corpo = [
+            "Verificacao de reajustes contratuais concluida.",
+            "",
+            f"Data da verificacao: {hoje}",
+            f"Contratos vencidos: {len(vencidos)}",
+            f"Contratos a vencer nos proximos 30 dias: {len(proximos)}",
+            f"Contratos sem reajuste detectado: {len(sem_reajuste)}",
+            f"Prejuizo atual estimado dos vencidos/sem reajuste: {cls._formatar_moeda(prejuizo_vencido)}",
+            f"Total no arquivo: {len(alertas)}",
+            "",
+            "Resumo dos clientes:",
+            *cls._linhas_resumo_alertas(alertas),
+            "",
+            "O detalhamento completo esta no arquivo CSV anexo.",
+            "O monitoramento apenas alerta para analise humana; nao aplica reajustes automaticamente.",
+        ]
         caminho = cls._gerar_csv_alertas_reajuste(alertas)
         try:
-            assunto = f"[O3Cloud Manager] Reajustes contratuais - {len(vencidos)} vencido(s), {len(proximos)} nos proximos 30 dias"
-            corpo = "\n".join([
-                "Verificacao de reajustes contratuais concluida.",
-                "",
-                f"Data da verificacao: {hoje}",
-                f"Contratos vencidos: {len(vencidos)}",
-                f"Contratos a vencer nos proximos 30 dias: {len(proximos)}",
-                f"Contratos sem reajuste detectado: {len(sem_reajuste)}",
-                f"Total no arquivo: {len(alertas)}",
-                "",
-                "O detalhamento esta no arquivo CSV anexo.",
-                "O monitoramento apenas alerta para analise humana; nao aplica reajustes automaticamente.",
-            ])
+            assunto = f"[O3Cloud Manager] Reajustes contratuais - {len(vencidos)} vencido(s), {len(proximos)} proximos, {len(sem_reajuste)} sem reajuste detectado"
+            corpo = "\n".join(linhas_corpo)
             resultado = EmailService.enviar(
                 assunto,
                 corpo,
@@ -651,6 +658,37 @@ class ReajusteContratoService:
                 pass
 
     @classmethod
+    def _linhas_resumo_alertas(cls, alertas, limite=20):
+        linhas = []
+        ordenados = sorted(alertas, key=lambda a: ((a["item"].get("dias_para_reajuste") or 0), a["item"].get("cliente_nome") or ""))
+        for alerta in ordenados[:limite]:
+            item = alerta["item"]
+            cliente = item.get("cliente_nome") or item.get("cliente_razao_social") or "-"
+            data_reajuste = item.get("proximo_aniversario") or "-"
+            linhas.append(
+                "- {} | reajuste em {} | valor atual {} | corrigido INPC {} | prejuizo {}".format(
+                    cliente,
+                    data_reajuste,
+                    cls._formatar_moeda(item.get("valor_atual")),
+                    cls._formatar_moeda(item.get("valor_inpc_estimado")),
+                    cls._formatar_moeda(item.get("prejuizo_estimado")),
+                )
+            )
+        restantes = len(alertas) - limite
+        if restantes > 0:
+            linhas.append(f"- Mais {restantes} contrato(s) no CSV anexo.")
+        return linhas or ["- Nenhum contrato critico localizado."]
+
+    @classmethod
+    def _diferenca_mensal_inpc(cls, item):
+        valor_inpc = cls._decimal(item.get("valor_inpc_estimado"))
+        valor_atual = cls._decimal(item.get("valor_atual"))
+        if valor_inpc is None or valor_atual is None:
+            return None
+        diferenca = valor_inpc - valor_atual
+        return diferenca if diferenca > 0 else Decimal("0.00")
+
+    @classmethod
     def _gerar_csv_alertas_reajuste(cls, alertas):
         arquivo = tempfile.NamedTemporaryFile("w", newline="", encoding="utf-8", suffix=".csv", delete=False)
         with arquivo:
@@ -660,12 +698,13 @@ class ReajusteContratoService:
                 "Contrato",
                 "Cliente",
                 "Inicio da vigencia",
-                "Proximo aniversario",
+                "Data aplicacao reajuste",
                 "Dias restantes",
                 "Situacao",
                 "Valor atual",
-                "Valor INPC estimado",
-                "Prejuizo estimado",
+                "Valor corrigido INPC",
+                "Diferenca mensal INPC",
+                "Prejuizo atual estimado",
                 "Vendedor",
                 "Link",
             ])
@@ -688,6 +727,7 @@ class ReajusteContratoService:
                     item.get("situacao_label") or cls.STATUS_LABELS.get(item.get("situacao"), item.get("situacao")) or "-",
                     cls._formatar_decimal(item.get("valor_atual")),
                     cls._formatar_decimal(item.get("valor_inpc_estimado")),
+                    cls._formatar_decimal(cls._diferenca_mensal_inpc(item)),
                     cls._formatar_decimal(item.get("prejuizo_estimado")),
                     item.get("vendedor_nome") or item.get("codigo_vendedor") or "-",
                     cls._link_contrato(item.get("contrato_id")),
@@ -740,6 +780,19 @@ class ReajusteContratoService:
             "valor_descontos": ReajusteContratoService._decimal(dados.get("valor_descontos")),
             "valor_servicos_liquido": ReajusteContratoService._decimal(dados.get("valor_servicos_liquido")),
         }
+
+    @staticmethod
+    def _formatar_moeda(valor):
+        decimal = ReajusteContratoService._decimal(valor)
+        if decimal is None:
+            return "-"
+        sinal = "-" if decimal < 0 else ""
+        inteiro, centavos = f"{abs(decimal):.2f}".split(".")
+        partes = []
+        while inteiro:
+            partes.append(inteiro[-3:])
+            inteiro = inteiro[:-3]
+        return f"{sinal}R$ {'.'.join(reversed(partes))},{centavos}"
 
     @staticmethod
     def _formatar_decimal(valor):
