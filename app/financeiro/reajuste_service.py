@@ -1,3 +1,6 @@
+import csv
+import os
+import tempfile
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 
@@ -126,6 +129,7 @@ class ReajusteContratoService:
         criados = 0
         emails = 0
         mensagens = []
+        alertas_email = []
         for contrato in cls.repository.listar_contratos_monitoramento({}, limit=2000):
             cls.registrar_historico_valor_se_necessario(contrato.get("id"), contrato, origem="MONITORAMENTO")
             item = cls.analisar_contrato(contrato, hoje=hoje, config=config)
@@ -139,11 +143,18 @@ class ReajusteContratoService:
                 cls.repository.inserir_alerta(contrato.get("id"), item.get("proximo_aniversario"), antecedencia, item.get("situacao"))
                 criados += 1
             if config.get("enviar_email") and not (existente or {}).get("email_enviado_em"):
-                enviados = cls._enviar_email_alerta(item, antecedencia, config)
-                if enviados:
-                    cls.repository.marcar_email_alerta(contrato.get("id"), item.get("proximo_aniversario"), antecedencia)
-                    emails += enviados
+                alertas_email.append({"item": item, "antecedencia": antecedencia})
             mensagens.append(f"{item.get('contrato_numero')}: {cls.STATUS_LABELS.get(item.get('situacao'), item.get('situacao'))}")
+        if alertas_email:
+            emails = cls._enviar_email_alertas_lote(alertas_email, config, hoje)
+            if emails:
+                for alerta in alertas_email:
+                    item = alerta["item"]
+                    cls.repository.marcar_email_alerta(
+                        item.get("contrato_id"),
+                        item.get("proximo_aniversario"),
+                        alerta.get("antecedencia"),
+                    )
         return {"criados": criados, "emails": emails, "mensagens": mensagens}
 
     @classmethod
@@ -584,25 +595,83 @@ class ReajusteContratoService:
         return True
 
     @classmethod
-    def _enviar_email_alerta(cls, item, antecedencia, config):
+    def _enviar_email_alertas_lote(cls, alertas, config, hoje=None):
         usuarios = [u for u in cls.repository.usuarios_notificacao(config.get("id")) if u.get("receber_email")]
         destinatarios = [u.get("email") for u in usuarios]
         if not destinatarios:
             return 0
-        assunto = f"[O3Cloud Manager] Reajuste contratual em {item.get('dias_para_reajuste')} dias - {item.get('cliente_nome') or item.get('cliente_razao_social') or '-'}"
-        link = cls._link_contrato(item.get("contrato_id"))
-        corpo = "\n".join([
-            f"Cliente: {item.get('cliente_nome') or item.get('cliente_razao_social') or '-'}",
-            f"Contrato: {item.get('contrato_numero') or '-'}",
-            f"Inicio da vigencia: {item.get('inicio_vigencia') or '-'}",
-            f"Proximo aniversario: {item.get('proximo_aniversario') or '-'}",
-            f"Dias restantes: {item.get('dias_para_reajuste')}",
-            f"Valor atual: {item.get('valor_atual') or '-'}",
-            f"Vendedor: {item.get('vendedor_nome') or item.get('codigo_vendedor') or '-'}",
-            f"Link: {link}",
-        ])
-        resultado = EmailService.enviar(assunto, corpo, destinatarios)
-        return len(resultado.get("destinatarios") or destinatarios) if resultado.get("enviado") else 0
+        hoje = hoje or date.today()
+        vencidos = [a["item"] for a in alertas if (a["item"].get("dias_para_reajuste") or 0) <= 0]
+        proximos = [a["item"] for a in alertas if 0 < (a["item"].get("dias_para_reajuste") or 0) <= 30]
+        caminho = cls._gerar_csv_alertas_reajuste(alertas)
+        try:
+            assunto = f"[O3Cloud Manager] Reajustes contratuais - {len(vencidos)} vencido(s), {len(proximos)} nos proximos 30 dias"
+            corpo = "\n".join([
+                "Verificacao de reajustes contratuais concluida.",
+                "",
+                f"Data da verificacao: {hoje}",
+                f"Contratos vencidos: {len(vencidos)}",
+                f"Contratos a vencer nos proximos 30 dias: {len(proximos)}",
+                f"Total no arquivo: {len(alertas)}",
+                "",
+                "O detalhamento esta no arquivo CSV anexo.",
+                "O monitoramento apenas alerta para analise humana; nao aplica reajustes automaticamente.",
+            ])
+            resultado = EmailService.enviar(
+                assunto,
+                corpo,
+                destinatarios,
+                anexos=[{
+                    "nome": f"reajustes-contratuais-{hoje}.csv",
+                    "caminho": caminho,
+                    "mime_type": "text/csv",
+                }],
+            )
+            return 1 if resultado.get("enviado") else 0
+        finally:
+            try:
+                os.unlink(caminho)
+            except OSError:
+                pass
+
+    @classmethod
+    def _gerar_csv_alertas_reajuste(cls, alertas):
+        arquivo = tempfile.NamedTemporaryFile("w", newline="", encoding="utf-8", suffix=".csv", delete=False)
+        with arquivo:
+            writer = csv.writer(arquivo, delimiter=";")
+            writer.writerow([
+                "Grupo",
+                "Contrato",
+                "Cliente",
+                "Inicio da vigencia",
+                "Proximo aniversario",
+                "Dias restantes",
+                "Situacao",
+                "Valor atual",
+                "Valor INPC estimado",
+                "Prejuizo estimado",
+                "Vendedor",
+                "Link",
+            ])
+            for alerta in sorted(alertas, key=lambda a: ((a["item"].get("dias_para_reajuste") or 0), a["item"].get("cliente_nome") or "")):
+                item = alerta["item"]
+                dias = item.get("dias_para_reajuste")
+                grupo = "Vencidos" if dias is not None and dias <= 0 else "Proximos 30 dias"
+                writer.writerow([
+                    grupo,
+                    item.get("contrato_numero") or "-",
+                    item.get("cliente_nome") or item.get("cliente_razao_social") or "-",
+                    item.get("inicio_vigencia") or "-",
+                    item.get("proximo_aniversario") or "-",
+                    dias if dias is not None else "-",
+                    item.get("situacao_label") or cls.STATUS_LABELS.get(item.get("situacao"), item.get("situacao")) or "-",
+                    cls._formatar_decimal(item.get("valor_atual")),
+                    cls._formatar_decimal(item.get("valor_inpc_estimado")),
+                    cls._formatar_decimal(item.get("prejuizo_estimado")),
+                    item.get("vendedor_nome") or item.get("codigo_vendedor") or "-",
+                    cls._link_contrato(item.get("contrato_id")),
+                ])
+        return arquivo.name
 
     @staticmethod
     def _link_contrato(contrato_id):
@@ -650,6 +719,13 @@ class ReajusteContratoService:
             "valor_descontos": ReajusteContratoService._decimal(dados.get("valor_descontos")),
             "valor_servicos_liquido": ReajusteContratoService._decimal(dados.get("valor_servicos_liquido")),
         }
+
+    @staticmethod
+    def _formatar_decimal(valor):
+        if valor in (None, ""):
+            return "-"
+        decimal = ReajusteContratoService._decimal(valor)
+        return str(decimal) if decimal is not None else "-"
 
     @staticmethod
     def _decimal(valor):

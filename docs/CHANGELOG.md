@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-01 - Email consolidado em reajustes contratuais
+
+- `Financeiro > Reajustes Contratuais > Verificar agora` passou a enviar um unico e-mail por execucao com CSV anexo.
+- O arquivo consolida contratos vencidos e contratos a vencer nos proximos 30 dias, evitando multiplos envios SMTP e reduzindo risco de timeout no Flask.
+- A deduplicacao por contrato/aniversario foi preservada em `contratos_reajustes_alertas`; `email_enviado_em` e marcado apos o envio consolidado bem-sucedido.
+- Procedimento e validacoes documentados em `docs/61-REAJUSTES-CONTRATUAIS-EMAIL-CONSOLIDADO-BETA.md`.
+
 ## 2026-09-01 - Email de faturamento da implantacao
 
 - Notificacao financeira de implantacao finalizada passou a ser enviada para `faturamento@o3cloud.com.br`.

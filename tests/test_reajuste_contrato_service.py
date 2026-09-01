@@ -276,3 +276,44 @@ def test_processar_alertas_nao_duplica_mesmo_aniversario():
     assert primeiro["criados"] == 1
     assert segundo["criados"] == 0
     assert len(RepoReajustesFake.alertas) == 1
+
+
+def test_processar_alertas_envia_email_unico_com_csv_consolidado(monkeypatch):
+    RepoReajustesFake.config = {
+        "id": 1,
+        "ativo": 1,
+        "alerta_30_dias": 1,
+        "alerta_15_dias": 1,
+        "alerta_7_dias": 1,
+        "enviar_email": 1,
+    }
+    RepoReajustesFake.usuarios = [
+        {"id": 3, "nome": "Financeiro", "email": "financeiro@example.com", "receber_email": 1},
+    ]
+    RepoReajustesFake.contratos = [
+        _contrato(id=1, numero="2025/001", inicio_vigencia=date(2025, 9, 1), cliente_nome="Cliente Vencido"),
+        _contrato(id=2, numero="2025/002", inicio_vigencia=date(2025, 9, 20), cliente_nome="Cliente Proximo"),
+    ]
+    RepoReajustesFake.historicos = {
+        1: [{"detectado_em": datetime(2026, 3, 1), "valor_mensal": Decimal("1000.00")}],
+    }
+    envios = []
+
+    def fake_enviar(assunto, corpo, destinatarios, corpo_html=None, finalidade="GERAL", anexos=None):
+        anexo = anexos[0]
+        with open(anexo["caminho"], encoding="utf-8") as arquivo:
+            conteudo = arquivo.read()
+        envios.append((assunto, corpo, destinatarios, anexo, conteudo))
+        return {"enviado": True, "destinatarios": destinatarios}
+
+    monkeypatch.setattr("app.financeiro.reajuste_service.EmailService.enviar", fake_enviar)
+
+    resultado = ReajusteContratoService.processar_alertas(hoje=date(2026, 9, 1))
+
+    assert resultado["criados"] == 2
+    assert resultado["emails"] == 1
+    assert len(envios) == 1
+    assert "1 vencido(s), 1 nos proximos 30 dias" in envios[0][0]
+    assert "Vencidos;2025/001;Cliente Vencido" in envios[0][4]
+    assert "Proximos 30 dias;2025/002;Cliente Proximo" in envios[0][4]
+    assert all(alerta["email_enviado_em"] for alerta in RepoReajustesFake.alertas.values())
