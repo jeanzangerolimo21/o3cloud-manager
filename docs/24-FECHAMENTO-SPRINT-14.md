@@ -49,7 +49,7 @@ Motivos:
 ## Telas Operacionais
 
 - Kanban de Implantacao recebeu ajustes de largura, altura util, rolagem horizontal interna e quebra de texto.
-- Movimentacao para Finalizado passou a notificar contas@o3cloud.com.br para liberacao de faturamento.
+- Movimentacao para Finalizado notifica faturamento@o3cloud.com.br para liberacao de faturamento.
 - Telas de Faturamentos, Produtos por Cliente e Custos de Produtos passaram a explicitar leitura pre-Beta, carga homologada futura e ausencia de margem definitiva.
 
 ## Integracoes Tecnicas

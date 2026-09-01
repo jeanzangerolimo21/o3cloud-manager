@@ -15,6 +15,8 @@ from app.repositories.implantacao_workflow_repository import ImplantacaoWorkflow
 
 application_logger = get_logger("application")
 
+EMAIL_FINANCEIRO_IMPLANTACAO = "faturamento@o3cloud.com.br"
+
 STATUS_IMPLANTACAO = {
     "AGUARDANDO_INICIO": "Aguardando início",
     "EM_PLANEJAMENTO": "Em planejamento",
@@ -266,7 +268,7 @@ class ImplantacaoService:
 
         resultado = cls._notificar_financeiro_implantacao_finalizada_segura(implantacao)
         cls._log_envio_financeiro(implantacao_id, resultado, origem="reenvio_manual")
-        comentario = "Notificação financeira reenviada manualmente para contas@o3cloud.com.br."
+        comentario = f"Notificação financeira reenviada manualmente para {EMAIL_FINANCEIRO_IMPLANTACAO}."
         if not resultado.get("enviado"):
             motivo = resultado.get("motivo") or "falha_envio"
             comentario = f"{comentario} Resultado: não enviado ({motivo})."
@@ -851,7 +853,7 @@ class ImplantacaoService:
             "",
             implantador,
         ])
-        return EmailService.enviar(assunto, corpo, ["contas@o3cloud.com.br"])
+        return EmailService.enviar(assunto, corpo, [EMAIL_FINANCEIRO_IMPLANTACAO])
 
     @classmethod
     def _notificar_financeiro_implantacao_finalizada_segura(cls, implantacao):
@@ -859,21 +861,23 @@ class ImplantacaoService:
             return cls._notificar_financeiro_implantacao_finalizada(implantacao)
         except Exception as erro:
             application_logger.exception(
-                "Falha ao enviar notificacao financeira de implantacao %s para contas@o3cloud.com.br",
+                "Falha ao enviar notificacao financeira de implantacao %s para %s",
                 implantacao.get("id"),
+                EMAIL_FINANCEIRO_IMPLANTACAO,
                 extra={"operation": "IMPLANTACAO_EMAIL_FINANCEIRO"},
             )
             return {
                 "enviado": False,
                 "motivo": str(erro)[:500],
-                "destinatarios": ["contas@o3cloud.com.br"],
+                "destinatarios": [EMAIL_FINANCEIRO_IMPLANTACAO],
             }
 
     @staticmethod
     def _log_envio_financeiro(implantacao_id, resultado, origem):
         application_logger.info(
-            "Notificacao financeira de implantacao %s para contas@o3cloud.com.br: enviado=%s motivo=%s origem=%s",
+            "Notificacao financeira de implantacao %s para %s: enviado=%s motivo=%s origem=%s",
             implantacao_id,
+            EMAIL_FINANCEIRO_IMPLANTACAO,
             bool(resultado.get("enviado")),
             resultado.get("motivo") or "-",
             origem,

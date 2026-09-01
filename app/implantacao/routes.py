@@ -13,6 +13,7 @@ from urllib.parse import urljoin
 
 from app.core.auditoria import registrar_evento
 from app.implantacao.service import ImplantacaoService
+from app.implantacao.service import EMAIL_FINANCEIRO_IMPLANTACAO
 from app.repositories.contrato_item_repository import ContratoItemRepository
 from app.implantacao.service import KANBAN_COLUNAS
 from app.implantacao.service import KANBAN_LABELS
@@ -843,6 +844,7 @@ def visualizar(implantacao_id):
         checklist_modelos=CHECKLIST_MODELOS,
         autor_comentario_padrao=session.get("usuario_nome") or _email_usuario_logado(),
         kanban_labels=ImplantacaoService.kanban_labels(),
+        financeiro_email=EMAIL_FINANCEIRO_IMPLANTACAO,
         implantacoes_principais=ImplantacaoService.listar_principais_para_vinculo(),
     )
 
@@ -946,7 +948,7 @@ def notificar_financeiro(implantacao_id):
         flash(f"Falha ao enviar notificação financeira: {erro}", "danger")
     else:
         if resultado.get("enviado"):
-            flash("Notificação financeira enviada para contas@o3cloud.com.br.", "success")
+            flash(f"Notificação financeira enviada para {EMAIL_FINANCEIRO_IMPLANTACAO}.", "success")
         else:
             motivo = resultado.get("motivo") or "falha_envio"
             flash(f"Notificação financeira não enviada: {motivo}.", "warning")

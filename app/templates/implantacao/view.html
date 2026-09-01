@@ -124,7 +124,7 @@
                 <div class="col-md-4">
                     <strong>Etapa</strong><br>{{ kanban_labels.get(implantacao.etapa_kanban, implantacao.etapa_kanban or '-') }}
                     {% if implantacao.etapa_kanban == 'FINALIZADO' %}
-                    <form method="POST" action="{{ url_for('implantacao.notificar_financeiro', implantacao_id=implantacao.id) }}" class="mt-2" onsubmit="return confirm('Enviar notificação financeira para contas@o3cloud.com.br?');">
+                    <form method="POST" action="{{ url_for('implantacao.notificar_financeiro', implantacao_id=implantacao.id) }}" class="mt-2" onsubmit="return confirm('Enviar notificação financeira para {{ financeiro_email }}?');">
                         <button class="btn btn-sm btn-outline-primary"><i class="bi bi-envelope-paper"></i> Notificar financeiro</button>
                     </form>
                     {% endif %}

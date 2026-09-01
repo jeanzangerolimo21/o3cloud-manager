@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-01 - Email de faturamento da implantacao
+
+- Notificacao financeira de implantacao finalizada passou a ser enviada para `faturamento@o3cloud.com.br`.
+- A troca cobre o envio automatico ao mover a implantacao para `Finalizado` no Kanban e o reenvio manual pelo botao `Notificar financeiro`.
+- Endereco de destino centralizado em `EMAIL_FINANCEIRO_IMPLANTACAO`, refletido tambem em historico, logs, flash de sucesso e confirmacao do botao.
+- Procedimento e validacoes documentados em `docs/60-EMAIL-FATURAMENTO-IMPLANTACAO-BETA.md`.
+
 ## 2026-08-31 - Ajustes Beta em Proxmox, navegacao e Pagamento Campanhas
 
 - Corrigido o sincronismo de inventario Proxmox que falhava com `Not all parameters were used in the SQL statement`, ajustando o `INSERT` de `proxmox_vm_inventory` para gravar `raw_payload` com a quantidade correta de parametros.
@@ -668,7 +675,7 @@ O formato é baseado no Keep a Changelog e adaptado às necessidades do O3Cloud 
 - Visualizacao de Contratos recebeu diagnostico pre-Beta com classificacao de fluxo valido, pendencia de cadastro e pendencia operacional.
 - Visualizacao de Implantacao recebeu diagnostico pre-Beta operacional sem executar automacoes destrutivas.
 - Kanban de Implantacao teve colunas ampliadas, altura util ajustada para exibir pelo menos cinco cards por coluna, rolagem horizontal interna e quebra de texto reforcada para evitar sobreposicao.
-- Kanban de Implantacao passou a enviar e-mail para contas@o3cloud.com.br quando um card e movido para Finalizado, informando conclusao e liberacao para faturamento.
+- Kanban de Implantacao envia e-mail para faturamento@o3cloud.com.br quando um card e movido para Finalizado, informando conclusao e liberacao para faturamento.
 - Telas de Faturamentos, Produtos por Cliente e Custos de Produtos passaram a reforcar leitura pre-Beta, carga homologada e ausencia de margem/rentabilidade definitiva antes da validacao oficial.
 - Tela de Integracoes Tecnicas passou a exibir diagnostico pre-Beta para Proxmox, PBS, Zabbix, FreeIPA e TrueNAS.
 - Adicionada migration 034 para historico de validacoes de integracoes tecnicas, registrando resultado, mensagem, usuario e data.
