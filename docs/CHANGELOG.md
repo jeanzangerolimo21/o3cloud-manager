@@ -1555,3 +1555,10 @@ Homologação de Servidores e consolidação da base de Dimensionamento.
 - Conclusao de assinatura ClickSign atualiza campos ClickSign do contrato e tira contratos assinados de `AGUARDANDO_ASSINATURA`.
 - Sincronismo ClickSign passa a reconciliar propostas ja assinadas com contratos desalinhados, atualizando assinatura e rastreabilidade do contrato.
 - Documentacao adicionada em `docs/62-CLICKSIGN-CONTRATO-RASTREABILIDADE-BETA.md`.
+
+## 2026-09-02 - Proxmox Agendamentos
+
+- Novo Agendamento Proxmox passa a aceitar upgrade apenas de memoria, mantendo CPU em branco como sem alteracao.
+- Mensagens de validacao deixam claro quando o bloqueio e por tentativa de downgrade de CPU ou memoria.
+- Tela de novo agendamento ajusta minimos de CPU/memoria conforme a VM selecionada para evitar downgrade acidental.
+- Documentacao adicionada em `docs/63-PROXMOX-AGENDAMENTO-MEMORIA-BETA.md`.

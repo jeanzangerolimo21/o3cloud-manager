@@ -122,9 +122,9 @@ class ProxmoxAgendamentoService:
         if cpu_nova is None and memoria_nova_mb is None:
             raise ValueError("Os novos valores são iguais aos atuais.")
         if cpu_nova is not None and cpu_atual and cpu_nova < cpu_atual:
-            raise ValueError("Esta primeira versão permite apenas upgrade de CPU.")
+            raise ValueError("CPU total desejada é menor que a CPU atual. O agendamento permite apenas aumento de CPU ou manter CPU sem alteração.")
         if memoria_nova_mb is not None and memoria_atual and memoria_nova_mb < memoria_atual:
-            raise ValueError("Esta primeira versão permite apenas upgrade de memória.")
+            raise ValueError("Memória total desejada é menor que a memória atual. O agendamento permite apenas aumento de memória ou manter memória sem alteração.")
         cls._validar_backup_pbs_recente(vm)
         if cls.repository.existe_ativo_vm(vm["integracao_id"], vm["node"], vm["vmid"]):
             raise ValueError("Já existe um agendamento ativo para esta VM.")

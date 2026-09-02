@@ -24,8 +24,8 @@
                     <div class="col-md-3"><label class="form-label">Memória atual</label><input class="form-control" id="memoria-atual" readonly></div>
                     <div class="col-md-3"><label class="form-label">Status atual</label><input class="form-control" id="status-atual" readonly></div>
                     <div class="col-md-3"><label class="form-label">Executar em</label><input class="form-control" type="datetime-local" name="executar_em" value="{{ form.executar_em or '' }}" required></div>
-                    <div class="col-md-3"><label class="form-label">CPU total desejada</label><input class="form-control" type="number" min="1" step="1" name="cpu_nova" value="{{ form.cpu_nova or '' }}"><div class="form-text">Informe o total final de vCPU. Se o total não dividir pelos sockets atuais, o executor ajusta para 1 socket.</div></div>
-                    <div class="col-md-3"><label class="form-label">Memória total desejada (GB)</label><input class="form-control" type="number" min="0.5" step="0.5" name="memoria_nova_gb" value="{{ form.memoria_nova_gb or '' }}"><div class="form-text">Informe o total final em GB, não a quantidade a adicionar.</div></div>
+                    <div class="col-md-3"><label class="form-label">CPU total desejada</label><input class="form-control" type="number" min="1" step="1" name="cpu_nova" id="cpu-nova" value="{{ form.cpu_nova or '' }}"><div class="form-text">Informe o total final de vCPU. Se o total não dividir pelos sockets atuais, o executor ajusta para 1 socket.</div></div>
+                    <div class="col-md-3"><label class="form-label">Memória total desejada (GB)</label><input class="form-control" type="number" min="0.5" step="0.5" name="memoria_nova_gb" id="memoria-nova" value="{{ form.memoria_nova_gb or '' }}"><div class="form-text">Informe o total final em GB, não a quantidade a adicionar.</div></div>
                     <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="desligar_se_necessario" id="desligar" checked><label class="form-check-label" for="desligar">Desligar se necessário</label></div></div>
                     <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="religar_automaticamente" id="religar" checked><label class="form-check-label" for="religar">Religar automaticamente</label></div></div>
                     <div class="col-12"><label class="form-label">Motivo</label><textarea class="form-control" name="motivo" rows="4" required>{{ form.motivo or '' }}</textarea></div>
@@ -48,6 +48,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const socketsAtual = document.getElementById('sockets-atual');
     const memoriaAtual = document.getElementById('memoria-atual');
     const statusAtual = document.getElementById('status-atual');
+    const cpuNova = document.getElementById('cpu-nova');
+    const memoriaNova = document.getElementById('memoria-nova');
 
     function filtrar() {
         const cluster = clusterSelect.value;
@@ -69,12 +71,16 @@ document.addEventListener('DOMContentLoaded', function () {
             socketsAtual.value = '';
             memoriaAtual.value = '';
             statusAtual.value = '';
+            cpuNova.min = '1';
+            memoriaNova.min = '0.5';
             return;
         }
         cpuAtual.value = (selected.dataset.cpu || '-') + ' vCPU';
         socketsAtual.value = (selected.dataset.sockets || '1') + ' socket(s) x ' + (selected.dataset.coresSocket || '-') + ' core(s)';
         memoriaAtual.value = selected.dataset.memoria ? (Math.round((Number(selected.dataset.memoria) / 1024) * 10) / 10) + ' GB' : '';
         statusAtual.value = selected.dataset.status || '-';
+        if (selected.dataset.cpu) cpuNova.min = selected.dataset.cpu;
+        if (selected.dataset.memoria) memoriaNova.min = String(Math.ceil((Number(selected.dataset.memoria) / 1024) * 2) / 2);
         try {
             const response = await fetch(`/infraestrutura/agendamentos/vm/${selected.value}/topologia`);
             const data = await response.json();
@@ -84,6 +90,8 @@ document.addEventListener('DOMContentLoaded', function () {
             socketsAtual.value = topologia.sockets + ' socket(s) x ' + topologia.cores_por_socket + ' core(s)';
             memoriaAtual.value = topologia.memoria_gb ? topologia.memoria_gb + ' GB' : memoriaAtual.value;
             statusAtual.value = topologia.status || statusAtual.value;
+            if (topologia.cpu_total) cpuNova.min = String(topologia.cpu_total);
+            if (topologia.memoria_gb) memoriaNova.min = String(Math.ceil(Number(topologia.memoria_gb) * 2) / 2);
         } catch (error) {
             return;
         }
