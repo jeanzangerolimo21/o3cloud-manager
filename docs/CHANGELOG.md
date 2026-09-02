@@ -1547,3 +1547,10 @@ Homologação de Servidores e consolidação da base de Dimensionamento.
 - Licencas O3Web passaram a usar selecao pesquisavel de cliente no cadastro.
 - Faixas de Rede passaram a aceitar ranges adicionais de portas, com validacao de sobreposicao e conflito por FW - WAN.
 - Documentacao detalhada adicionada em `docs/52-MELHORIAS-BETA-2026-08-26.md`.
+
+## 2026-09-02
+
+- ClickSign passa a usar configuracao ativa do banco para envio/sincronizacao de propostas, mantendo `.env` como fallback.
+- Rastreabilidade comercial passa a exibir assinatura ClickSign no contrato, nao na proposta.
+- Conclusao de assinatura ClickSign atualiza campos ClickSign do contrato e tira contratos assinados de `AGUARDANDO_ASSINATURA`.
+- Documentacao adicionada em `docs/62-CLICKSIGN-CONTRATO-RASTREABILIDADE-BETA.md`.

@@ -738,7 +738,7 @@ class ContratoRepository(BaseRepository):
         cls.close(conn, cursor)
 
     @classmethod
-    def atualizar_arquivo_assinado(cls, contrato_id, arquivo, arquivo_original, assinado_em=None):
+    def atualizar_arquivo_assinado(cls, contrato_id, arquivo, arquivo_original, assinado_em=None, envelope_id=None, enviado_em=None):
         conn = cls.connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -747,10 +747,17 @@ class ContratoRepository(BaseRepository):
             SET arquivo_assinado=%s,
                 arquivo_assinado_original=%s,
                 clicksign_status='ASSINADO',
-                clicksign_assinado_em=COALESCE(%s, NOW())
+                clicksign_document_key=COALESCE(%s, clicksign_document_key),
+                clicksign_envelope_id=COALESCE(%s, clicksign_envelope_id),
+                clicksign_enviado_em=COALESCE(%s, clicksign_enviado_em),
+                clicksign_assinado_em=COALESCE(%s, NOW()),
+                status=CASE
+                    WHEN status IN ('RASCUNHO', 'ENVIADO_CLICKSIGN', 'AGUARDANDO_ASSINATURA') THEN 'CONCLUIDO'
+                    ELSE status
+                END
             WHERE id=%s AND ativo=1
             """,
-            (arquivo, arquivo_original, assinado_em, contrato_id),
+            (arquivo, arquivo_original, arquivo, envelope_id, enviado_em, assinado_em, contrato_id),
         )
         conn.commit()
         cls.close(conn, cursor)

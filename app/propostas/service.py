@@ -594,11 +594,25 @@ class PropostaService:
         data_assinatura = extrair_data_assinatura_pdf(StorageService.BASE_STORAGE / StorageService.CONTRATOS / documento)
         contrato = ContratoRepository.buscar_por_proposta_id(proposta.get("id"))
         if contrato:
-            ContratoRepository.atualizar_arquivo_assinado(contrato["id"], documento, documento, data_assinatura)
+            ContratoRepository.atualizar_arquivo_assinado(
+                contrato["id"],
+                documento,
+                documento,
+                data_assinatura,
+                envelope_id=proposta.get("clicksign_envelope_id"),
+                enviado_em=proposta.get("clicksign_sent_at"),
+            )
             return contrato["id"]
         dados = cls._dados_contrato_da_proposta(proposta, documento)
         contrato_id = ContratoRepository.inserir_manual(dados)
-        ContratoRepository.atualizar_arquivo_assinado(contrato_id, documento, documento, data_assinatura)
+        ContratoRepository.atualizar_arquivo_assinado(
+            contrato_id,
+            documento,
+            documento,
+            data_assinatura,
+            envelope_id=proposta.get("clicksign_envelope_id"),
+            enviado_em=proposta.get("clicksign_sent_at"),
+        )
         return contrato_id
 
     @classmethod

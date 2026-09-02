@@ -104,6 +104,22 @@ class IntegracaoConfigRepository(BaseRepository):
         )
 
     @classmethod
+    def buscar_ativa_por_tipo(cls, tipo):
+        return cls.fetch_one(
+            """
+            SELECT *
+            FROM implantacao_integracoes_config
+            WHERE tipo = %s AND ativo = 1
+            ORDER BY
+                CASE WHEN ultimo_teste_status = 'OK' THEN 0 ELSE 1 END,
+                updated_at DESC,
+                id DESC
+            LIMIT 1
+            """,
+            (tipo,),
+        )
+
+    @classmethod
     def inserir(cls, dados):
         return cls.execute_insert(
             """

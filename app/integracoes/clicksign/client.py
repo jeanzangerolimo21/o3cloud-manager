@@ -7,6 +7,10 @@ from urllib.parse import urlparse
 
 import requests
 from dotenv import load_dotenv
+from flask import has_app_context
+
+from app.implantacao.cofre_senhas_service import CofreSenhaService
+from app.repositories.integracao_config_repository import IntegracaoConfigRepository
 
 load_dotenv()
 
@@ -19,11 +23,14 @@ class ClicksignClient:
     DEFAULT_BASE_URL = "https://sandbox.clicksign.com/api/v3"
 
     def __init__(self):
-        self.access_token = (os.getenv("CLICKSIGN_ACCESS_TOKEN") or "").strip()
-        configured_url = (os.getenv("CLICKSIGN_API_URL") or "").strip()
+        config = self._configuracao_banco()
+        self.access_token = (config.get("access_token") or os.getenv("CLICKSIGN_ACCESS_TOKEN") or "").strip()
+        configured_url = (config.get("base_url") or os.getenv("CLICKSIGN_API_URL") or "").strip()
         self.base_url = self._base_url(configured_url)
+        self.timeout = self._timeout(config.get("timeout_seconds"))
+        self.verify_ssl = config.get("verify_ssl", True)
         if not self.access_token:
-            raise ClicksignError("CLICKSIGN_ACCESS_TOKEN nao configurado no .env.")
+            raise ClicksignError("Token Clicksign nao configurado no painel de integrações ou no .env.")
 
     def enviar_contrato(self, *, nome_envelope, caminho_documento, nome_documento, signatario=None, signatarios=None):
         caminho = Path(caminho_documento)
@@ -182,7 +189,8 @@ class ClicksignClient:
         }
         params = kwargs.pop("params", {}) or {}
         params.setdefault("access_token", self.access_token)
-        response = requests.request(method, url, headers=headers, params=params, timeout=60, **kwargs)
+        kwargs.setdefault("verify", self.verify_ssl)
+        response = requests.request(method, url, headers=headers, params=params, timeout=self.timeout, **kwargs)
         if response.status_code >= 400:
             raise ClicksignError(self._mensagem_erro(response))
         if not response.text:
@@ -208,6 +216,32 @@ class ClicksignClient:
                 },
             }
         }
+
+    @classmethod
+    def _configuracao_banco(cls):
+        if not has_app_context():
+            return {}
+        integracao = IntegracaoConfigRepository.buscar_ativa_por_tipo("clicksign")
+        if not integracao or not integracao.get("segredo_encrypted"):
+            return {}
+        try:
+            token = CofreSenhaService._decrypt(integracao.get("segredo_encrypted"))
+        except ValueError as erro:
+            raise ClicksignError("Nao foi possivel descriptografar o token Clicksign cadastrado no painel.") from erro
+        return {
+            "access_token": token,
+            "base_url": integracao.get("base_url"),
+            "timeout_seconds": integracao.get("timeout_seconds"),
+            "verify_ssl": bool(integracao.get("verify_ssl")),
+        }
+
+    @staticmethod
+    def _timeout(valor):
+        try:
+            timeout = int(valor or 60)
+        except (TypeError, ValueError):
+            timeout = 60
+        return max(5, min(timeout, 120))
 
     @classmethod
     def _base_url(cls, configured_url):

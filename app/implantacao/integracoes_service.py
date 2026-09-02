@@ -275,7 +275,7 @@ class IntegracaoConfigService:
         tipo = integracao.get("tipo")
         if tipo in ("freeipa", "ldap", "ad"):
             return "OK", "Configuração estrutural de autenticação válida. Sincronismo e autenticação externa serão tratados pela etapa de Usuários e Acessos."
-        if tipo not in ("proxmox", "pbs", "zabbix", "truenas"):
+        if tipo not in ("proxmox", "pbs", "zabbix", "truenas", "clicksign"):
             return "OK", "Configuração estrutural válida. Validação real ainda não implementada para este tipo."
         try:
             segredo = cls.revelar_segredo_config(integracao.get("id"))
@@ -290,6 +290,8 @@ class IntegracaoConfigService:
                 return cls._testar_zabbix(integracao, segredo)
             if tipo == "truenas":
                 return cls._testar_truenas(integracao, segredo)
+            if tipo == "clicksign":
+                return cls._testar_clicksign(integracao, segredo)
         except requests.exceptions.SSLError:
             integration_logger.exception("Integration SSL validation failed", extra={"service": tipo, "operation": "VALIDATE"})
             return "ERRO", "Falha na validação SSL do certificado. Ajuste a CA confiável ou desative Verificar SSL para este endpoint interno."
@@ -387,6 +389,41 @@ class IntegracaoConfigService:
         response.raise_for_status()
         hostname = (response.json() or {}).get("hostname") or "ok"
         return "OK", f"Conexão TrueNAS validada em modo leitura. Hostname: {hostname}."
+
+    @classmethod
+    def _testar_clicksign(cls, integracao, segredo):
+        base_url = (integracao.get("base_url") or "").rstrip("/")
+        response = requests.get(
+            f"{base_url}/envelopes",
+            headers={
+                "Authorization": segredo,
+                "Accept": "application/vnd.api+json",
+                "Content-Type": "application/vnd.api+json",
+            },
+            params={"access_token": segredo},
+            timeout=cls._timeout(integracao),
+            verify=cls._verify_ssl(integracao),
+        )
+        if response.status_code in (401, 403):
+            return "ERRO", f"Clicksign recusou autenticação/permissão: {cls._mensagem_http_json(response)}"
+        response.raise_for_status()
+        return "OK", "Conexão Clicksign validada em modo leitura."
+
+    @staticmethod
+    def _mensagem_http_json(response):
+        try:
+            payload = response.json()
+        except ValueError:
+            return (response.text or f"HTTP {response.status_code}")[:180]
+        erros = payload.get("errors") if isinstance(payload, dict) else None
+        if not erros:
+            return str(payload)[:180]
+        partes = []
+        for erro in erros:
+            titulo = erro.get("title") or "Erro"
+            detalhe = erro.get("detail") or erro.get("code") or ""
+            partes.append(f"{titulo}: {detalhe}".strip())
+        return "; ".join(partes)[:180]
 
     @staticmethod
     def _token_api_nome(integracao):

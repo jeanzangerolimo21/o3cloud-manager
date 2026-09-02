@@ -22,8 +22,6 @@
                     {% if rastreabilidade.proposta %}
                     <div class="text-muted small mb-1">{{ rastreabilidade.proposta.titulo or "-" }}</div>
                     <div class="small mb-2"><strong>Cliente:</strong> {{ rastreabilidade.proposta.cliente_nome or rastreabilidade.proposta_cliente_nome or "-" }}</div>
-                    <div class="small mb-2">ClickSign: <span class="badge bg-secondary">{{ clicksign_status_options.get(rastreabilidade.proposta.clicksign_status, rastreabilidade.proposta.clicksign_status) if clicksign_status_options is defined else rastreabilidade.proposta.clicksign_status }}</span></div>
-                    {% if rastreabilidade.proposta.clicksign_envelope_id %}<div class="small text-muted mb-2">Envelope: {{ rastreabilidade.proposta.clicksign_envelope_id }}</div>{% endif %}
                     <a class="btn btn-sm btn-outline-primary" href="{{ url_for('propostas.visualizar', proposta_id=rastreabilidade.proposta.id) }}"><i class="bi bi-file-earmark-richtext"></i> Abrir Proposta</a>
                     {% else %}
                     <div class="text-muted small">Contrato direto, sem proposta vinculada no O3Cloud Manager.</div>
@@ -46,6 +44,9 @@
                     {% if rastreabilidade.contrato %}
                     <div class="small text-muted mb-2">Origem: {{ rastreabilidade.contrato.origem or "-" }}{% if rastreabilidade.contrato.codigo_externo %} | Omie: {{ rastreabilidade.contrato.codigo_externo }}{% endif %}</div>
                     <div class="small text-muted mb-2">Fechamento: {{ rastreabilidade.contrato.data_fechamento|date_br if rastreabilidade.contrato.data_fechamento else "-" }}</div>
+                    <div class="small mb-2">ClickSign: <span class="badge bg-secondary">{{ clicksign_status_options.get(rastreabilidade.contrato.clicksign_status, rastreabilidade.contrato.clicksign_status) if clicksign_status_options is defined else rastreabilidade.contrato.clicksign_status }}</span></div>
+                    {% if rastreabilidade.contrato.clicksign_envelope_id %}<div class="small text-muted mb-2">Envelope: {{ rastreabilidade.contrato.clicksign_envelope_id }}</div>{% endif %}
+                    {% if rastreabilidade.contrato.clicksign_assinado_em %}<div class="small text-muted mb-2">Assinado em: {{ rastreabilidade.contrato.clicksign_assinado_em|datetime_br }}</div>{% endif %}
                     {% if pode_acessar('contratos') %}
                     <a class="btn btn-sm btn-outline-primary" href="{{ url_for('contratos.view', contrato_id=rastreabilidade.contrato.id) }}"><i class="bi bi-file-earmark-check"></i> Abrir Contrato</a>
                     {% endif %}
