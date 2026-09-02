@@ -1553,4 +1553,5 @@ Homologação de Servidores e consolidação da base de Dimensionamento.
 - ClickSign passa a usar configuracao ativa do banco para envio/sincronizacao de propostas, mantendo `.env` como fallback.
 - Rastreabilidade comercial passa a exibir assinatura ClickSign no contrato, nao na proposta.
 - Conclusao de assinatura ClickSign atualiza campos ClickSign do contrato e tira contratos assinados de `AGUARDANDO_ASSINATURA`.
+- Sincronismo ClickSign passa a reconciliar propostas ja assinadas com contratos desalinhados, atualizando assinatura e rastreabilidade do contrato.
 - Documentacao adicionada em `docs/62-CLICKSIGN-CONTRATO-RASTREABILIDADE-BETA.md`.

@@ -361,8 +361,72 @@ class PropostaService:
             "clicksign_last_sync_at": agora,
             "clicksign_eventos": json.dumps(eventos, ensure_ascii=False),
         }
+        if novo_status == "ASSINADO":
+            proposta_contrato = dict(proposta)
+            proposta_contrato["clicksign_document_key"] = arquivo_assinado
+            proposta_contrato["clicksign_envelope_id"] = envelope_id
+            proposta_contrato["clicksign_sent_at"] = proposta.get("clicksign_sent_at")
+            proposta_contrato["clicksign_signed_at"] = data_assinatura_pdf or agora
+            contrato_id = cls.concluir_contrato_clicksign(proposta_contrato)
+            atualizacao["clicksign_completed_at"] = agora
+            eventos[-1]["descricao"] += f" Contrato #{contrato_id} atualizado como assinado."
+            atualizacao["clicksign_eventos"] = json.dumps(eventos, ensure_ascii=False)
         cls.repository.atualizar_clicksign(proposta.get("id"), atualizacao)
         return cls.buscar_por_id(proposta.get("id"))
+
+    @classmethod
+    def reconciliar_clicksign_assinado(cls, proposta, usuario_email=None):
+        status = (proposta.get("clicksign_status") or "").upper()
+        if status not in ("ASSINADO", "CONCLUIDO"):
+            return proposta
+        arquivo_assinado = cls._arquivo_assinado_clicksign(proposta)
+        if not arquivo_assinado:
+            raise ValueError("Proposta assinada na ClickSign sem PDF assinado registrado para reconciliar o contrato.")
+        caminho = StorageService.BASE_STORAGE / StorageService.CONTRATOS / arquivo_assinado
+        if not caminho.exists():
+            raise ValueError(f"PDF assinado nao encontrado em storage/contratos/{arquivo_assinado}.")
+        agora = datetime.now()
+        data_assinatura_pdf = extrair_data_assinatura_pdf(caminho)
+        proposta_contrato = dict(proposta)
+        proposta_contrato["clicksign_document_key"] = arquivo_assinado
+        proposta_contrato["clicksign_signed_at"] = data_assinatura_pdf or proposta.get("clicksign_signed_at") or agora
+        contrato_id = cls.concluir_contrato_clicksign(proposta_contrato)
+        eventos = list(proposta.get("clicksign_eventos") or [])
+        eventos.append({
+            "status": status,
+            "descricao": f"Contrato #{contrato_id} reconciliado com assinatura ClickSign ja registrada.",
+            "autor": usuario_email or "sistema",
+            "data": agora.isoformat(timespec="seconds"),
+            "clicksign": {
+                "envelope_id": proposta.get("clicksign_envelope_id"),
+                "arquivo_assinado": arquivo_assinado,
+                "reconciliado": True,
+            },
+        })
+        cls.repository.atualizar_clicksign(proposta.get("id"), {
+            "clicksign_status": status,
+            "clicksign_document_key": arquivo_assinado,
+            "clicksign_document_url": f"/propostas/{proposta.get('id')}/contrato",
+            "clicksign_envelope_id": proposta.get("clicksign_envelope_id"),
+            "clicksign_sent_at": proposta.get("clicksign_sent_at"),
+            "clicksign_signed_at": proposta_contrato["clicksign_signed_at"],
+            "clicksign_completed_at": proposta.get("clicksign_completed_at") or agora,
+            "clicksign_last_sync_at": agora,
+            "clicksign_eventos": json.dumps(eventos, ensure_ascii=False),
+        })
+        return cls.buscar_por_id(proposta.get("id"))
+
+    @staticmethod
+    def _arquivo_assinado_clicksign(proposta):
+        documento = proposta.get("clicksign_document_key")
+        if documento and str(documento).lower().endswith(".pdf") and "assinado" in str(documento).lower():
+            return documento
+        for evento in reversed(proposta.get("clicksign_eventos") or []):
+            clicksign = evento.get("clicksign") or {}
+            arquivo = clicksign.get("arquivo_assinado")
+            if arquivo:
+                return arquivo
+        return None
 
     @classmethod
     def _baixar_contrato_assinado_clicksign(cls, proposta, client, envelope_id):
@@ -430,12 +494,21 @@ class PropostaService:
     @classmethod
     def sincronizar_clicksign_pendentes(cls, usuario_email="sistema"):
         resultados = []
-        for item in cls.repository.listar_clicksign_pendentes():
+        itens = list(cls.repository.listar_clicksign_pendentes())
+        ids = {item.get("id") for item in itens}
+        for item in cls.repository.listar_clicksign_assinados_desalinhados():
+            if item.get("id") not in ids:
+                itens.append(item)
+                ids.add(item.get("id"))
+        for item in itens:
             proposta = cls.buscar_por_id(item.get("id"))
             if not proposta:
                 continue
             try:
-                atualizada = cls.sincronizar_status_clicksign(proposta, usuario_email)
+                if (proposta.get("clicksign_status") or "").upper() in ("ASSINADO", "CONCLUIDO"):
+                    atualizada = cls.reconciliar_clicksign_assinado(proposta, usuario_email)
+                else:
+                    atualizada = cls.sincronizar_status_clicksign(proposta, usuario_email)
                 resultados.append({
                     "id": item.get("id"),
                     "codigo_proposta": item.get("codigo_proposta"),

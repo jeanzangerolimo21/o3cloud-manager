@@ -15,6 +15,7 @@ O envio para assinatura pela ClickSign usa o documento contratual gerado a parti
 - Ao concluir assinatura ClickSign, o contrato recebe `clicksign_status`, `clicksign_document_key`, `clicksign_envelope_id`, `clicksign_enviado_em` e `clicksign_assinado_em`.
 - Contratos assinados que ainda estejam em `RASCUNHO`, `ENVIADO_CLICKSIGN` ou `AGUARDANDO_ASSINATURA` passam para `CONCLUIDO`.
 - O script `scripts/sync_clicksign_propostas.py` passou a criar contexto Flask para carregar configuracoes do banco.
+- O sincronismo ClickSign passa a reconciliar propostas ja assinadas com contratos inexistentes ou desalinhados, atualizando a rastreabilidade do contrato sem reenviar documentos.
 
 ## Atualizacao do Beta
 
@@ -22,7 +23,8 @@ O envio para assinatura pela ClickSign usa o documento contratual gerado a parti
 2. Reiniciar ou recarregar o Gunicorn do O3Cloud Manager.
 3. Validar no painel de integracoes que existe uma configuracao ativa do tipo `clicksign` com URL base, usuario e token.
 4. Usar o botao de teste da integracao ClickSign para confirmar `Conexao Clicksign validada em modo leitura.`
-5. Sincronizar a proposta pendente ou testar o envio/conclusao de um novo contrato.
+5. Sincronizar a proposta pendente ou executar `venv/bin/python -B scripts/sync_clicksign_propostas.py` para reconciliar contratos ja assinados.
+6. Testar o envio/conclusao de um novo contrato.
 
 ## Correcao pontual de registros ja assinados
 

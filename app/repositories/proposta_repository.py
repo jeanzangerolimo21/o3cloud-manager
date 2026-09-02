@@ -459,6 +459,29 @@ class PropostaRepository(BaseRepository):
         return propostas
 
     @classmethod
+    def listar_clicksign_assinados_desalinhados(cls):
+        conn = cls.connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            f"""
+            SELECT p.id, p.codigo_proposta, p.clicksign_status, p.clicksign_envelope_id
+            FROM {cls.TABLE} p
+            LEFT JOIN contratos c ON c.proposta_id = p.id AND c.ativo = 1
+            WHERE p.ativo = 1
+              AND p.clicksign_status IN ('ASSINADO', 'CONCLUIDO')
+              AND (
+                    c.id IS NULL
+                    OR COALESCE(c.clicksign_status, 'NAO_ENVIADO') <> 'ASSINADO'
+                    OR c.status IN ('RASCUNHO', 'ENVIADO_CLICKSIGN', 'AGUARDANDO_ASSINATURA')
+                  )
+            ORDER BY COALESCE(p.clicksign_signed_at, p.clicksign_completed_at, p.updated_at) ASC, p.id ASC
+            """
+        )
+        propostas = cursor.fetchall()
+        cls.close(conn, cursor)
+        return propostas
+
+    @classmethod
     def atualizar_clicksign(cls, proposta_id, dados):
         limpar_envelope = dados.get("limpar_clicksign_envelope") is True
         sql = f"""
