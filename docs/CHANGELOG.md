@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-02 - Permissao para excluir anexos do Cofre de Senhas
+
+- Usuarios com `cofre_senhas` em nivel `EDICAO` agora podem excluir anexos de credenciais do cofre, mesmo sem perfil administrativo de exclusao.
+- A liberacao e pontual para `implantacao.excluir_anexo_senha_cofre`; excluir credenciais, pastas e demais registros continua restrito aos perfis com permissao administrativa de exclusao.
+- Adicionados testes para Operacoes com edicao no cofre, Operacoes somente leitura e bloqueio de exclusao da credencial inteira.
+- Procedimento e validacoes documentados em `docs/65-COFRE-SENHAS-ANEXOS-PERMISSAO-BETA.md`.
+
 ## 2026-09-02 - Cron dos agendamentos Proxmox no Beta
 
 - `deployment/update-beta.sh` passou a reinstalar `deployment/o3cloud-manager.cron` em `/etc/cron.d/o3cloud-manager` durante a atualizacao do Beta.

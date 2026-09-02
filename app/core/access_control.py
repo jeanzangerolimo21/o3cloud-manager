@@ -6,6 +6,9 @@ ADMINISTRATIVO_GESTOR = "ADMINISTRATIVO_GESTOR"
 ADMINISTRATIVO_COLABORADOR = "ADMINISTRATIVO_COLABORADOR"
 PERFIS_COM_EXCLUSAO = frozenset(("ADMIN", "DIRETORIA", "ADMINISTRATIVO_GESTOR"))
 MARCADORES_ENDPOINT_EXCLUSAO = ("excluir", "desativar", "inativar", "remover")
+ENDPOINTS_EXCLUSAO_COM_EDICAO = frozenset((
+    "implantacao.excluir_anexo_senha_cofre",
+))
 
 from app.repositories.auth_repository import AuthRepository
 
@@ -380,11 +383,12 @@ def pode_acessar_endpoint(menu_key, endpoint, method):
             return False
         if endpoint in permitidos_especiais:
             return True
-    if endpoint_requer_exclusao(endpoint) and not pode_excluir():
-        return False
     nivel = permissoes_niveis_usuario_atual().get(menu_key)
     if not nivel:
         return False
+    if endpoint_requer_exclusao(endpoint) and not pode_excluir():
+        if endpoint not in ENDPOINTS_EXCLUSAO_COM_EDICAO or nivel != "EDICAO":
+            return False
     if nivel == "EDICAO":
         return True
     return not endpoint_requer_edicao(endpoint, method)

@@ -74,6 +74,49 @@ def test_aso_tem_permissao_independente_do_administrativo(monkeypatch):
         assert access_control.pode_acessar_endpoint("administrativo_aso", "administrativo.aso", "GET") is False
 
 
+def test_cofre_senhas_edicao_pode_excluir_anexo_sem_perfil_admin(monkeypatch):
+    class RepoOperacoesCofre(RepoPermissoesFake):
+        permissoes = [
+            {"menu_key": "cofre_senhas", "nivel_acesso": "EDICAO"},
+        ]
+
+    monkeypatch.setattr(access_control, "AuthRepository", RepoOperacoesCofre)
+
+    with _app().test_request_context("/"):
+        session["usuario_email"] = "operacao@example.com"
+        session["usuario_perfil"] = "OPERACOES"
+
+        assert access_control.pode_acessar_endpoint(
+            "cofre_senhas",
+            "implantacao.excluir_anexo_senha_cofre",
+            "POST",
+        ) is True
+        assert access_control.pode_acessar_endpoint(
+            "cofre_senhas",
+            "implantacao.excluir_senha_cofre",
+            "POST",
+        ) is False
+
+
+def test_cofre_senhas_leitura_nao_pode_excluir_anexo(monkeypatch):
+    class RepoOperacoesCofreLeitura(RepoPermissoesFake):
+        permissoes = [
+            {"menu_key": "cofre_senhas", "nivel_acesso": "LEITURA"},
+        ]
+
+    monkeypatch.setattr(access_control, "AuthRepository", RepoOperacoesCofreLeitura)
+
+    with _app().test_request_context("/"):
+        session["usuario_email"] = "operacao@example.com"
+        session["usuario_perfil"] = "OPERACOES"
+
+        assert access_control.pode_acessar_endpoint(
+            "cofre_senhas",
+            "implantacao.excluir_anexo_senha_cofre",
+            "POST",
+        ) is False
+
+
 def test_configuracoes_operacionais_nao_exigem_admin_na_rota(monkeypatch):
     from app.configuracoes import routes as configuracoes_routes
 
