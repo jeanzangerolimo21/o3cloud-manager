@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-02 - Cron dos agendamentos Proxmox no Beta
+
+- `deployment/update-beta.sh` passou a reinstalar `deployment/o3cloud-manager.cron` em `/etc/cron.d/o3cloud-manager` durante a atualizacao do Beta.
+- O cron versionado contem o worker `proxmox-agendamentos-processar` a cada minuto, necessario para executar upgrades Proxmox agendados sem intervencao manual.
+- Documentado o diagnostico em que a execucao manual conclui o agendamento, mas o cron instalado no servidor esta desatualizado ou sem a linha do Proxmox.
+- Procedimento e validacoes documentados em `docs/64-PROXMOX-AGENDAMENTOS-CRON-BETA.md`.
+
 ## 2026-09-01 - Email consolidado em reajustes contratuais
 
 - `Financeiro > Reajustes Contratuais > Verificar agora` passou a enviar um unico e-mail por execucao com CSV anexo.

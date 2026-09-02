@@ -103,6 +103,10 @@ run_app "$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.txt"
 log "Aplicando migrations."
 APP_DIR="$APP_DIR" bash "$APP_DIR/deployment/apply-migrations.sh"
 
+log "Atualizando cron operacional."
+install -o root -g root -m 0644 "$APP_DIR/deployment/o3cloud-manager.cron" /etc/cron.d/o3cloud-manager
+systemctl reload cron 2>/dev/null || systemctl restart cron 2>/dev/null || true
+
 log "Ajustando permissoes operacionais."
 mkdir -p "$APP_DIR/storage" "$APP_DIR/logs" "$APP_DIR/backups"
 chown -R "$APP_USER:$APP_USER" "$APP_DIR/storage" "$APP_DIR/logs" "$APP_DIR/backups"
