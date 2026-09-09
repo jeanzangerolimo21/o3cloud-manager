@@ -821,6 +821,7 @@ class FinanceiroService:
         return {
             "q": FinanceiroService._texto(dados.get("q")),
             "node": FinanceiroService._texto(dados.get("node")),
+            "status_contrato": FinanceiroService._texto(dados.get("status_contrato")) or "ATIVO",
         }
 
     @staticmethod

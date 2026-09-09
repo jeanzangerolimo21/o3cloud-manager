@@ -14,6 +14,8 @@ class FinanceiroRepository(BaseRepository):
         params_nodes = []
         where_detalhes = ["n.ativo = 1", "i.tipo = 'proxmox'", "i.ativo = 1"]
         params_detalhes = []
+        where_ambientes = ["n.ativo = 1", "i.tipo = 'proxmox'", "i.ativo = 1", "p.ativo = 1", "a.ativo = 1"]
+        params_ambientes = []
 
         node = (filtros.get("node") or "").strip()
         if node:
@@ -21,6 +23,19 @@ class FinanceiroRepository(BaseRepository):
             params_nodes.append(node)
             where_detalhes.append("n.node = %s")
             params_detalhes.append(node)
+            where_ambientes.append("n.node = %s")
+            params_ambientes.append(node)
+
+        status_contrato = (filtros.get("status_contrato") or "ATIVO").strip().upper()
+        status_opcoes = {
+            "ATIVO": {"label": "Contratos ativos", "receita_label": "Receita mensal"},
+            "ENCAMINHADO_PROJETO": {"label": "Encaminhados para projeto", "receita_label": "Receita mensal prevista"},
+            "TODOS": {"label": "Contratos ativos e encaminhados", "receita_label": "Receita mensal total"},
+        }
+        if status_contrato not in status_opcoes:
+            status_contrato = "ATIVO"
+        status_params = ["ATIVO", "ENCAMINHADO_PROJETO"] if status_contrato == "TODOS" else [status_contrato]
+        status_placeholders = ", ".join(["%s"] * len(status_params))
 
         pesquisa = (filtros.get("q") or "").strip()
         if pesquisa:
@@ -62,6 +77,17 @@ class FinanceiroRepository(BaseRepository):
                 )
             """)
             params_detalhes.extend([termo, termo, termo, termo, termo, termo])
+            where_ambientes.append("""
+                (
+                    n.node LIKE %s
+                    OR i.nome LIKE %s
+                    OR i.base_url LIKE %s
+                    OR a.nome LIKE %s
+                    OR c.numero LIKE %s
+                    OR COALESCE(cli.nome_fantasia, cli.razao_social, '') LIKE %s
+                )
+            """)
+            params_ambientes.extend([termo, termo, termo, termo, termo, termo])
 
         nodes = cls.fetch_all(
             f"""
@@ -118,7 +144,7 @@ class FinanceiroRepository(BaseRepository):
                         INNER JOIN ambiente_proxmox_recursos apr ON apr.proxmox_inventory_id = p.id
                         INNER JOIN ambientes a ON a.id = apr.ambiente_id AND a.ativo = 1
                         INNER JOIN ambiente_contratos act ON act.ambiente_id = a.id
-                        INNER JOIN contratos c ON c.id = act.contrato_id AND c.ativo = 1 AND c.status = 'ATIVO'
+                        INNER JOIN contratos c ON c.id = act.contrato_id AND c.ativo = 1 AND c.status IN ({status_placeholders})
                         WHERE p.ativo = 1
                     ) base
                     GROUP BY base.integracao_id, base.node
@@ -127,7 +153,7 @@ class FinanceiroRepository(BaseRepository):
             WHERE {' AND '.join(where_nodes)}
             ORDER BY receita_mensal DESC, n.node ASC
             """,
-            tuple(params_nodes),
+            tuple(status_params + params_nodes),
         )
 
         detalhes = cls.fetch_all(
@@ -155,7 +181,7 @@ class FinanceiroRepository(BaseRepository):
             LEFT JOIN ambiente_clientes ac ON ac.ambiente_id = a.id
             LEFT JOIN clientes cli_amb ON cli_amb.id = ac.cliente_id
             INNER JOIN ambiente_contratos act ON act.ambiente_id = a.id
-            INNER JOIN contratos c ON c.id = act.contrato_id AND c.ativo = 1 AND c.status = 'ATIVO'
+            INNER JOIN contratos c ON c.id = act.contrato_id AND c.ativo = 1 AND c.status IN ({status_placeholders})
             INNER JOIN clientes cli ON cli.id = c.cliente_id
             WHERE {' AND '.join(where_detalhes)}
             GROUP BY n.integracao_id, i.nome, n.node, a.id, a.nome, a.ambiente_tipo,
@@ -163,7 +189,7 @@ class FinanceiroRepository(BaseRepository):
             ORDER BY n.node ASC, receita_mensal DESC, a.nome ASC, c.numero ASC
             LIMIT 300
             """,
-            tuple(params_detalhes),
+            tuple(status_params + params_detalhes),
         )
 
         nodes_select = cls.fetch_all(
@@ -178,12 +204,32 @@ class FinanceiroRepository(BaseRepository):
             """
         )
 
+        resumo_ambientes = cls.fetch_one(
+            f"""
+            SELECT COUNT(DISTINCT a.id) AS ambientes_total
+            FROM proxmox_node_inventory n
+            INNER JOIN implantacao_integracoes_config i ON i.id = n.integracao_id
+            INNER JOIN proxmox_vm_inventory p ON p.integracao_id = n.integracao_id AND p.node = n.node
+            INNER JOIN ambiente_proxmox_recursos apr ON apr.proxmox_inventory_id = p.id
+            INNER JOIN ambientes a ON a.id = apr.ambiente_id
+            LEFT JOIN ambiente_clientes ac ON ac.ambiente_id = a.id
+            LEFT JOIN clientes cli ON cli.id = ac.cliente_id
+            LEFT JOIN ambiente_contratos act ON act.ambiente_id = a.id
+            LEFT JOIN contratos c ON c.id = act.contrato_id
+            WHERE {" AND ".join(where_ambientes)}
+            """,
+            tuple(params_ambientes),
+        )
+
         receita_total = sum(item.get("receita_mensal") or 0 for item in nodes)
         recursos_total = sum(item.get("recursos_total") or 0 for item in nodes)
-        ambientes_total = len({item.get("ambiente_id") for item in detalhes if item.get("ambiente_id")})
+        ambientes_total = (resumo_ambientes or {}).get("ambientes_total") or 0
         contratos_total = len({item.get("contrato_id") for item in detalhes if item.get("contrato_id")})
 
         return {
+            "status_contrato": status_contrato,
+            "status_contrato_label": status_opcoes[status_contrato]["label"],
+            "receita_label": status_opcoes[status_contrato]["receita_label"],
             "resumo": {
                 "nodes_total": len(nodes),
                 "nodes_com_receita": len([item for item in nodes if (item.get("receita_mensal") or 0) > 0]),
