@@ -362,6 +362,7 @@ class ImplantacaoService:
         implantacao["historico"] = cls._historico_com_anexos(implantacao_id)
         implantacao["vinculadas"] = cls.repository.listar_vinculadas(implantacao_id)
         implantacao["emails_adicionais_lista"] = cls._parse_emails(implantacao.get("emails_adicionais"))
+        implantacao["destinatarios_interacoes"] = cls._destinatarios_interacoes(implantacao)
         return implantacao
 
     @classmethod
@@ -513,6 +514,15 @@ class ImplantacaoService:
         autor = (dados.get("autor") or "").strip() or None
         enviar_email = str(dados.get("enviar_email") or "").lower() in ("1", "true", "on", "sim")
         anexar_no_email = enviar_email and str(dados.get("anexar_arquivos_email") or "").lower() in ("1", "true", "on", "sim")
+        destinatarios = None
+        if enviar_email and dados.get("destinatarios_email_informados"):
+            selecionados = dados.getlist("destinatarios_email") if hasattr(dados, "getlist") else dados.get("destinatarios_email", [])
+            if isinstance(selecionados, str):
+                selecionados = [selecionados]
+            permitidos = {item["email"] for item in cls._destinatarios_interacoes(implantacao)}
+            destinatarios = [email for email in cls._parse_emails("\n".join(selecionados or [])) if email in permitidos]
+            if not destinatarios:
+                raise ValueError("Selecione ao menos um destinatário para enviar o comentário por e-mail.")
         arquivos = arquivos or []
         cls._validar_anexos_comentario(arquivos)
         historico_id = cls._registrar_historico(
@@ -525,7 +535,13 @@ class ImplantacaoService:
         anexos_salvos = cls._salvar_anexos_comentario(implantacao_id, historico_id, arquivos or [])
         email = None
         if enviar_email:
-            email = cls._notificar_comentario(implantacao, comentario, autor, anexos_salvos if anexar_no_email else [])
+            email = cls._notificar_comentario(
+                implantacao,
+                comentario,
+                autor,
+                anexos_salvos if anexar_no_email else [],
+                destinatarios=destinatarios,
+            )
             cls.repository.atualizar_email_historico(
                 historico_id,
                 bool(email and email.get("enviado")),
@@ -812,7 +828,7 @@ class ImplantacaoService:
 
 
     @classmethod
-    def _notificar_comentario(cls, implantacao, comentario, autor=None, anexos=None):
+    def _notificar_comentario(cls, implantacao, comentario, autor=None, anexos=None, destinatarios=None):
         assunto = f"Comentário na implantação - {implantacao.get('cliente_nome') or implantacao.get('titulo') or implantacao.get('id')}"
         corpo = "\n".join([
             f"Projeto: {implantacao.get('titulo') or '-'}",
@@ -823,7 +839,12 @@ class ImplantacaoService:
             "",
             comentario,
         ])
-        return EmailService.enviar(assunto, corpo, cls._destinatarios_implantacao(implantacao), anexos=anexos or [])
+        return EmailService.enviar(
+            assunto,
+            corpo,
+            destinatarios if destinatarios is not None else cls._destinatarios_implantacao(implantacao),
+            anexos=anexos or [],
+        )
 
     @classmethod
     def _notificar_financeiro_implantacao_finalizada(cls, implantacao):
@@ -960,15 +981,26 @@ class ImplantacaoService:
 
     @classmethod
     def _destinatarios_implantacao(cls, implantacao):
-        destinatarios = [
-            implantacao.get("implantador_email"),
-            implantacao.get("executivo_email"),
-            implantacao.get("parceiro_email"),
-            implantacao.get("contato_email"),
-            implantacao.get("cliente_email"),
+        return [item["email"] for item in cls._destinatarios_interacoes(implantacao)]
+
+    @classmethod
+    def _destinatarios_interacoes(cls, implantacao):
+        fontes = [
+            (implantacao.get("implantador_email"), "Implantador"),
+            (implantacao.get("executivo_email"), "Executivo comercial"),
+            (implantacao.get("parceiro_email"), "Parceiro"),
+            (implantacao.get("contato_email"), "Contato do contrato"),
+            (implantacao.get("cliente_email"), "Cadastro do cliente"),
         ]
-        destinatarios.extend(cls._parse_emails(implantacao.get("emails_adicionais")))
-        return destinatarios
+        fontes.extend((email, "Adicional do projeto") for email in cls._parse_emails(implantacao.get("emails_adicionais")))
+        destinatarios = {}
+        for valor, origem in fontes:
+            for email in cls._parse_emails(valor):
+                if email not in destinatarios:
+                    destinatarios[email] = {"email": email, "origens": []}
+                if origem not in destinatarios[email]["origens"]:
+                    destinatarios[email]["origens"].append(origem)
+        return list(destinatarios.values())
 
     @staticmethod
     def _normalizar_emails_texto(valor):
