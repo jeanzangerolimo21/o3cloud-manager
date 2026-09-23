@@ -40,6 +40,7 @@ class FaixaRedeService:
         payload = cls._normalizar(dados)
         if cls.repository.buscar_por_rede(payload["rede"]):
             raise ValueError("Faixa de rede já cadastrada.")
+        cls._validar_fw_wan_unico(payload.get("fw_wan"))
         cls._validar_conflito_portas(payload)
         return cls.repository.inserir(payload)
 
@@ -51,6 +52,7 @@ class FaixaRedeService:
         existente = cls.repository.buscar_por_rede(payload["rede"])
         if existente and int(existente.get("id")) != int(faixa_id):
             raise ValueError("Faixa de rede já cadastrada em outro registro.")
+        cls._validar_fw_wan_unico(payload.get("fw_wan"), ignorar_id=faixa_id)
         cls._validar_conflito_portas(payload, ignorar_id=faixa_id)
         cls.repository.atualizar(faixa_id, payload)
 
@@ -211,6 +213,12 @@ class FaixaRedeService:
                 f"{conflito.get('rede')}{conflito_range} do cliente {conflito.get('cliente_nome')} "
                 f"no mesmo FW - WAN ({conflito.get('fw_wan')})."
             )
+
+    @classmethod
+    def _validar_fw_wan_unico(cls, fw_wan, ignorar_id=None):
+        existente = cls.repository.buscar_por_fw_wan(fw_wan, ignorar_id=ignorar_id)
+        if existente:
+            raise ValueError(f"O IP FW - WAN {fw_wan} já está cadastrado em outra faixa de rede.")
 
     @classmethod
     def _normalizar_portas_adicionais(cls, dados):

@@ -18,7 +18,10 @@ class FaixaRedeRepository(BaseRepository):
         where, params = cls._filtros(pesquisa, ativo)
         sql += where
         sql += """
-            ORDER BY INET_ATON(SUBSTRING_INDEX(fr.rede, '/', 1)) ASC, fr.id DESC
+            ORDER BY
+                fr.fw_wan IS NULL ASC,
+                INET_ATON(fr.fw_wan) ASC,
+                fr.id DESC
             LIMIT %s OFFSET %s
         """
         params.extend([limit, offset])
@@ -85,6 +88,17 @@ class FaixaRedeRepository(BaseRepository):
     @classmethod
     def buscar_por_rede(cls, rede):
         return cls.fetch_one("SELECT * FROM implantacao_faixas_rede WHERE rede = %s LIMIT 1", (rede,))
+
+    @classmethod
+    def buscar_por_fw_wan(cls, fw_wan, ignorar_id=None):
+        if not fw_wan:
+            return None
+        sql = "SELECT * FROM implantacao_faixas_rede WHERE fw_wan = %s"
+        params = [fw_wan]
+        if ignorar_id is not None:
+            sql += " AND id <> %s"
+            params.append(ignorar_id)
+        return cls.fetch_one(sql + " LIMIT 1", tuple(params))
 
     @classmethod
     def buscar_conflito_portas(cls, fw_wan, porta_inicio, porta_fim, ignorar_id=None):
