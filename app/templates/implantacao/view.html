@@ -233,7 +233,7 @@
                         <div class="border rounded p-3 d-flex flex-wrap gap-3" id="destinatarios_email_lista">
                             {% for destinatario in implantacao.destinatarios_interacoes %}
                             <div class="form-check">
-                                <input class="form-check-input destinatario-email" type="checkbox" name="destinatarios_email" value="{{ destinatario.email }}" id="destinatario_email_{{ loop.index }}" checked disabled>
+                                <input class="form-check-input destinatario-email" type="checkbox" name="destinatarios_email" value="{{ destinatario.email }}" id="destinatario_email_{{ loop.index }}"{% if destinatario.selecionado %} checked{% endif %} disabled>
                                 <label class="form-check-label" for="destinatario_email_{{ loop.index }}">
                                     {{ destinatario.email }} <small class="text-muted">— {{ destinatario.origens|join(', ') }}</small>
                                 </label>

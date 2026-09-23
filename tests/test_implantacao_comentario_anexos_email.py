@@ -21,9 +21,15 @@ def _patch_fluxo(monkeypatch, notificacoes, atualizacoes):
     )
 
     class RepoFake:
+        preferencias = []
+
         @classmethod
         def atualizar_email_historico(cls, historico_id, email_enviado=False, email_resultado=None):
             atualizacoes.append((historico_id, email_enviado, email_resultado))
+
+        @classmethod
+        def atualizar_emails_excluidos_interacoes(cls, implantacao_id, emails_excluidos):
+            cls.preferencias.append((implantacao_id, emails_excluidos))
 
     monkeypatch.setattr(ImplantacaoService, "repository", RepoFake)
 
@@ -99,6 +105,23 @@ def test_comentario_envia_somente_para_destinatarios_selecionados(monkeypatch):
     )
 
     assert notificacoes[0]["destinatarios"] == ["tecnico@cliente.com", "projetos@o3cloud.com.br"]
+    assert ImplantacaoService.repository.preferencias == [(7, "financeiro@cliente.com")]
+
+
+def test_destinatario_desmarcado_permanece_desmarcado_nos_proximos_comentarios():
+    implantacao = {
+        **IMPLANTACAO,
+        "cliente_email": "financeiro@cliente.com",
+        "contato_email": "tecnico@cliente.com",
+        "emails_excluidos_interacoes": "financeiro@cliente.com",
+    }
+
+    destinatarios = ImplantacaoService._destinatarios_interacoes(implantacao)
+
+    assert destinatarios == [
+        {"email": "tecnico@cliente.com", "origens": ["Contato do contrato"], "selecionado": True},
+        {"email": "financeiro@cliente.com", "origens": ["Cadastro do cliente"], "selecionado": False},
+    ]
 
 
 def test_comentario_rejeita_destinatario_que_nao_pertence_ao_projeto(monkeypatch):

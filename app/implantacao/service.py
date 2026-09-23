@@ -535,6 +535,13 @@ class ImplantacaoService:
         anexos_salvos = cls._salvar_anexos_comentario(implantacao_id, historico_id, arquivos or [])
         email = None
         if enviar_email:
+            if destinatarios is not None:
+                todos_destinatarios = [item["email"] for item in cls._destinatarios_interacoes(implantacao)]
+                excluidos = [email for email in todos_destinatarios if email not in destinatarios]
+                cls.repository.atualizar_emails_excluidos_interacoes(
+                    implantacao_id,
+                    "\n".join(excluidos) if excluidos else None,
+                )
             email = cls._notificar_comentario(
                 implantacao,
                 comentario,
@@ -985,6 +992,7 @@ class ImplantacaoService:
 
     @classmethod
     def _destinatarios_interacoes(cls, implantacao):
+        excluidos = set(cls._parse_emails(implantacao.get("emails_excluidos_interacoes")))
         fontes = [
             (implantacao.get("implantador_email"), "Implantador"),
             (implantacao.get("executivo_email"), "Executivo comercial"),
@@ -997,7 +1005,11 @@ class ImplantacaoService:
         for valor, origem in fontes:
             for email in cls._parse_emails(valor):
                 if email not in destinatarios:
-                    destinatarios[email] = {"email": email, "origens": []}
+                    destinatarios[email] = {
+                        "email": email,
+                        "origens": [],
+                        "selecionado": email not in excluidos,
+                    }
                 if origem not in destinatarios[email]["origens"]:
                     destinatarios[email]["origens"].append(origem)
         return list(destinatarios.values())

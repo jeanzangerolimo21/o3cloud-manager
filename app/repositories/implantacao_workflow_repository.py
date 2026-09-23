@@ -401,6 +401,17 @@ class ImplantacaoWorkflowRepository(BaseRepository):
         )
 
     @classmethod
+    def atualizar_emails_excluidos_interacoes(cls, implantacao_id, emails_excluidos):
+        return cls.execute(
+            """
+            UPDATE implantacoes
+            SET emails_excluidos_interacoes=%s
+            WHERE id=%s AND ativo=1
+            """,
+            (emails_excluidos, implantacao_id),
+        )
+
+    @classmethod
     def atualizar_percentual(cls, implantacao_id):
         return cls.execute(
             """
