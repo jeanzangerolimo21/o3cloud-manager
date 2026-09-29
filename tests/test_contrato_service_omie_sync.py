@@ -15,10 +15,8 @@ class ClienteRepoFake:
 
 class ContratoRepoFake:
     contrato_por_codigo = {}
-    omie_ativo = None
     atualizados = []
     inseridos = []
-    duplicados_desativados = []
     ausentes = []
     contrato_por_id = {
         77: {
@@ -50,10 +48,6 @@ class ContratoRepoFake:
         return None
 
     @classmethod
-    def buscar_omie_ativo_por_cliente(cls, cliente_id):
-        return cls.omie_ativo
-
-    @classmethod
     def atualizar_sync(cls, contrato_id, dados):
         cls.atualizados.append((contrato_id, dados.copy()))
 
@@ -61,11 +55,6 @@ class ContratoRepoFake:
     def inserir(cls, dados):
         cls.inseridos.append(dados.copy())
         return 99
-
-    @classmethod
-    def desativar_omie_ativos_por_cliente(cls, cliente_id, manter_id):
-        cls.duplicados_desativados.append((cliente_id, manter_id))
-        return 1
 
     @classmethod
     def desativar_omie_ativos_ausentes(cls, codigos_externos):
@@ -113,10 +102,8 @@ def setup_function():
     reajuste_mod.ReajusteContratoService = ReajusteFake
 
     ContratoRepoFake.contrato_por_codigo = {}
-    ContratoRepoFake.omie_ativo = None
     ContratoRepoFake.atualizados = []
     ContratoRepoFake.inseridos = []
-    ContratoRepoFake.duplicados_desativados = []
     ContratoRepoFake.ausentes = []
     ContratoRepoFake.contrato_por_id = {
         77: {
@@ -133,19 +120,35 @@ def setup_function():
     ReajusteFake.historicos = []
 
 
-def test_sincronizar_contrato_reaproveita_omie_ativo_do_mesmo_cliente():
-    ContratoRepoFake.omie_ativo = {"id": 55, "cliente_id": 10, "codigo_externo": 111}
+def test_sincronizar_contrato_insere_outro_contrato_omie_do_mesmo_cliente():
+    ContratoRepoFake.contrato_por_codigo[111] = {
+        "id": 54,
+        "cliente_id": 10,
+        "codigo_externo": 111,
+    }
 
     resultado = ContratoService.sincronizar_contrato(_contrato_omie(codigo=222))
 
-    assert resultado["status"] == "UPDATE"
-    assert resultado["duplicados_desativados"] == 1
-    assert not ContratoRepoFake.inseridos
-    assert ContratoRepoFake.atualizados[0][0] == 55
-    assert ContratoRepoFake.atualizados[0][1]["codigo_externo"] == 222
-    assert ContratoRepoFake.duplicados_desativados == [(10, 55)]
-    assert ReajusteFake.historicos[0][0] == 55
+    assert resultado == {"status": "INSERT", "numero": "CTR-222"}
+    assert not ContratoRepoFake.atualizados
+    assert ContratoRepoFake.inseridos[0]["cliente_id"] == 10
+    assert ContratoRepoFake.inseridos[0]["codigo_externo"] == 222
+    assert ReajusteFake.historicos[0][0] == 99
     assert ReajusteFake.historicos[0][2] == "OMIE"
+
+
+def test_sincronizar_contrato_atualiza_apenas_o_mesmo_codigo_omie():
+    ContratoRepoFake.contrato_por_codigo[222] = {
+        "id": 55,
+        "cliente_id": 10,
+        "codigo_externo": 222,
+    }
+
+    resultado = ContratoService.sincronizar_contrato(_contrato_omie(codigo=222))
+
+    assert resultado == {"status": "UPDATE", "numero": "CTR-222"}
+    assert ContratoRepoFake.atualizados[0][0] == 55
+    assert not ContratoRepoFake.inseridos
 
 
 def test_desativar_contratos_omie_ausentes_repassa_codigos_vistos():
