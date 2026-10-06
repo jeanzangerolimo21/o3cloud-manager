@@ -90,7 +90,15 @@ class AtualizacaoSistemaService:
         try:
             tags_remotas = cls._tags_remotas(estado.get("remoto"))
             github_repo = cls._github_repo_from_remote(estado.get("remoto"))
-            github_releases = cls._github_releases(github_repo) if github_repo else []
+            github_releases = []
+            github_erro = None
+            if github_repo:
+                try:
+                    github_releases = cls._github_releases(github_repo)
+                except ValueError as erro:
+                    # Tags Git continuam sendo uma fonte válida para repositórios
+                    # privados sem token de acesso à API configurado.
+                    github_erro = str(erro)[:300]
             releases_por_canal = {
                 nome: cls._filtrar_releases_canal(github_releases, nome)
                 for nome in cls.CANAIS
@@ -109,6 +117,7 @@ class AtualizacaoSistemaService:
                 "release_recomendada": release_recomendada,
                 "github_repo": github_repo,
                 "github_releases": github_releases[:20],
+                "github_erro": github_erro,
                 "github_releases_por_canal": {k: v[:8] for k, v in releases_por_canal.items()},
                 "github_release_recomendada": github_release_recomendada,
                 "estado": {

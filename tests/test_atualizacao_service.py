@@ -125,6 +125,34 @@ def test_canal_de_producao_ignora_pre_releases():
     assert AtualizacaoSistemaService._normalizar_canal("beta") == "production"
 
 
+def test_verificacao_usa_tags_quando_api_de_releases_indisponivel(monkeypatch):
+    chamadas = []
+
+    class RepoFake:
+        generate_uuid = staticmethod(lambda: "uuid-teste")
+        execute_insert = staticmethod(lambda sql, params: 42)
+
+        @staticmethod
+        def execute(sql, params):
+            chamadas.append(params)
+            return True
+
+    monkeypatch.setattr(AtualizacaoSistemaService, "repository", RepoFake)
+    monkeypatch.setattr(AtualizacaoSistemaService, "estado_instalado", classmethod(lambda cls: {
+        "branch": "main", "commit": "abc", "commit_curto": "abc", "tag_atual": None,
+        "ultima_tag": None, "remoto": "git@github.com:owner/repo.git", "worktree_limpa": True,
+        "divergencia": {"status": "Atualizado"},
+    }))
+    monkeypatch.setattr(AtualizacaoSistemaService, "_tags_remotas", classmethod(lambda cls, remoto: ["v1.0.0"]))
+    monkeypatch.setattr(AtualizacaoSistemaService, "_github_releases", classmethod(lambda cls, repo: (_ for _ in ()).throw(ValueError("sem token"))))
+
+    resultado = AtualizacaoSistemaService.verificar_atualizacoes("admin@example.com")
+
+    assert "Atualização disponível: v1.0.0" in resultado
+    assert chamadas[0][3] == "v1.0.0"
+    assert '"github_erro": "sem token"' in chamadas[0][7]
+
+
 
 def test_github_repo_from_remote_parseia_ssh_e_https():
     assert AtualizacaoSistemaService._github_repo_from_remote("git@github.com:owner/repo.git") == "owner/repo"

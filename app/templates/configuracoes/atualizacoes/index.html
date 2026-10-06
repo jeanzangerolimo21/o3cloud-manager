@@ -124,6 +124,7 @@
           <div class="small">Tags encontradas: {{ ultima_verificacao.releases_encontradas }}</div>
           <div class="small">GitHub Releases: {{ ultima_verificacao.github_releases_encontradas or 0 }}</div>
           {% if ultima_verificacao.github_repo %}<div class="small text-muted">Repo: {{ ultima_verificacao.github_repo }}</div>{% endif %}
+          {% if ultima_payload.github_erro %}<div class="small text-warning mt-1">A API de Releases não pôde ser consultada; usando tags Git estáveis.</div>{% endif %}
           {% if alvo_atualizacao %}
           <div class="alert alert-success py-2 mt-3 mb-0"><i class="bi bi-check-circle"></i> Atualização disponível para aplicar: <strong>{{ alvo_atualizacao }}</strong></div>
           {% else %}
