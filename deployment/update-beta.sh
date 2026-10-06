@@ -6,7 +6,7 @@ set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/o3cloud-manager}"
 APP_USER="${APP_USER:-o3cloud}"
-BRANCH="${UPDATE_BRANCH:-${BRANCH:-beta}}"
+BRANCH="${UPDATE_BRANCH:-${BRANCH:-main}}"
 REMOTE="${UPDATE_REMOTE:-origin}"
 SERVICE_NAME="${SERVICE_NAME:-o3cloud-manager.service}"
 BACKUP_DIR="${BACKUP_DIR:-$APP_DIR/backups}"
@@ -14,8 +14,8 @@ LOG_DIR="${LOG_DIR:-$APP_DIR/logs}"
 LOCK_DIR="${LOCK_DIR:-/tmp/o3cloud-manager-update.lock}"
 SKIP_BACKUP="${SKIP_BACKUP:-0}"
 
-log() { printf '[update-beta] %s\n' "$*"; }
-fail() { printf '[update-beta] ERRO: %s\n' "$*" >&2; exit 1; }
+log() { printf '[update-system] %s\n' "$*"; }
+fail() { printf '[update-system] ERRO: %s\n' "$*" >&2; exit 1; }
 
 [ "$(id -u)" = "0" ] || fail "Execute como root. Pela tela, instale o runner sudoers com deployment/install-update-runner.sh."
 [ -d "$APP_DIR/.git" ] || fail "Repositorio Git nao encontrado em $APP_DIR."
@@ -23,7 +23,7 @@ fail() { printf '[update-beta] ERRO: %s\n' "$*" >&2; exit 1; }
 
 mkdir -p "$LOG_DIR" "$BACKUP_DIR"
 chown -R "$APP_USER:$APP_USER" "$LOG_DIR" "$BACKUP_DIR"
-LOG_FILE="$LOG_DIR/update-beta-$(date +%Y%m%d-%H%M%S).log"
+LOG_FILE="$LOG_DIR/update-system-$(date +%Y%m%d-%H%M%S).log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then

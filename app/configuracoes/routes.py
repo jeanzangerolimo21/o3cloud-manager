@@ -406,7 +406,7 @@ def atualizacoes_index():
 def atualizacoes_verificar():
     _exigir_admin()
     try:
-        resultado = AtualizacaoSistemaService.verificar_atualizacoes(_email_usuario_logado(), request.form.get("canal") or "beta")
+        resultado = AtualizacaoSistemaService.verificar_atualizacoes(_email_usuario_logado(), request.form.get("canal") or "production")
     except ValueError as erro:
         flash(str(erro), "danger")
     else:
@@ -421,7 +421,7 @@ def atualizacoes_executar():
         resultado = AtualizacaoSistemaService.executar_atualizacao(
             _email_usuario_logado(),
             request.form.get("confirmacao"),
-            request.form.get("canal") or request.form.get("branch") or "beta",
+            request.form.get("canal") or request.form.get("branch") or "production",
         )
     except ValueError as erro:
         flash(str(erro), "danger")

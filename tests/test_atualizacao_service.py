@@ -98,24 +98,31 @@ def test_verificar_atualizacoes_registra_historico(monkeypatch):
         "estado_instalado",
         classmethod(
             lambda cls: {
-                "branch": "beta",
+                "branch": "main",
                 "commit": "abcdef123456",
                 "commit_curto": "abcdef1",
-                "tag_atual": "v0.9.0-beta.1",
+                "tag_atual": "v1.0.0",
                 "remoto": "origin",
                 "worktree_limpa": True,
                 "divergencia": {"status": "Atualizado"},
             }
         ),
     )
-    monkeypatch.setattr(AtualizacaoSistemaService, "_tags_remotas", classmethod(lambda cls, remoto: ["v0.9.0-beta.2", "v0.9.0-beta.1"]))
+    monkeypatch.setattr(AtualizacaoSistemaService, "_tags_remotas", classmethod(lambda cls, remoto: ["v1.1.0", "v1.0.0", "v1.1.0-rc.1"]))
 
     resultado = AtualizacaoSistemaService.verificar_atualizacoes("admin@example.com")
 
     assert "ATUALIZAÇÕES: OK" in resultado
     assert chamadas[0][0] == "insert"
     assert chamadas[1][0] == "update"
-    assert chamadas[1][1][3] == "v0.9.0-beta.2"
+    assert chamadas[1][1][3] == "v1.1.0"
+
+
+def test_canal_de_producao_ignora_pre_releases():
+    tags = ["v1.2.0-beta.1", "v1.1.0", "v1.1.0-rc.1", "v1.0.0"]
+
+    assert AtualizacaoSistemaService._filtrar_tags_canal(tags, "production") == ["v1.1.0", "v1.0.0"]
+    assert AtualizacaoSistemaService._normalizar_canal("beta") == "production"
 
 
 

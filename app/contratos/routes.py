@@ -374,7 +374,6 @@ def view(contrato_id):
         campanhas_premiacao_adendo=FinanceiroService.listar_campanhas_comissao(),
         status_premiacao_manual_options=FinanceiroService.status_premiacao_manual_options(),
         rastreabilidade=ImplantacaoService.rastreabilidade_por_contrato(contrato_id),
-        diagnostico_pre_beta=ContratoService.diagnostico_pre_beta(contrato, implantacao),
         reajuste=ReajusteContratoService.detalhe_contrato(contrato),
         reajuste_status_labels=ReajusteContratoService.STATUS_LABELS,
         reajuste_status_classes=ReajusteContratoService.STATUS_CLASSES,

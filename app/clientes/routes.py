@@ -164,9 +164,7 @@ def visualizar(id):
 
         cliente=cliente,
 
-        implantacao=implantacao,
-
-        diagnostico_pre_beta=ClienteService.diagnostico_pre_beta(cliente, implantacao)
+        implantacao=implantacao
 
     )
 @clientes_bp.route("/<int:id>/editar", methods=["GET", "POST"])

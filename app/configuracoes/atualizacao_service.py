@@ -13,8 +13,7 @@ class AtualizacaoSistemaService:
     REPO_DIR = Path(__file__).resolve().parents[2]
     repository = BaseRepository
     CANAIS = {
-        "beta": {"label": "Beta", "branch": "beta", "prerelease": True},
-        "production": {"label": "Production", "branch": "main", "prerelease": False},
+        "production": {"label": "Produção", "branch": "main", "prerelease": False},
     }
 
     @classmethod
@@ -32,7 +31,7 @@ class AtualizacaoSistemaService:
 
 
     @classmethod
-    def executar_atualizacao(cls, usuario_email, confirmacao, canal="beta"):
+    def executar_atualizacao(cls, usuario_email, confirmacao, canal="production"):
         if (confirmacao or "").strip() != "ATUALIZAR":
             raise ValueError("Digite ATUALIZAR para confirmar a atualização do sistema.")
         estado = cls.estado_instalado()
@@ -40,7 +39,9 @@ class AtualizacaoSistemaService:
             raise ValueError("Worktree com alterações locais. Faça commit/stash antes de atualizar.")
         canal = cls._normalizar_canal(canal)
         branch = cls.CANAIS[canal]["branch"]
-        runner = Path(os.getenv("UPDATE_RUNNER_PATH") or "/usr/local/sbin/o3cloud-update-beta")
+        runner = Path(os.getenv("UPDATE_RUNNER_PATH") or "/usr/local/sbin/o3cloud-update-system")
+        if not runner.exists():
+            runner = Path("/usr/local/sbin/o3cloud-update-beta")
         if not runner.exists():
             runner = cls.REPO_DIR / "deployment" / "update-beta.sh"
         if not runner.exists():
@@ -65,10 +66,10 @@ class AtualizacaoSistemaService:
             raise ValueError("sudo não encontrado no servidor.") from erro
         except OSError as erro:
             raise ValueError(f"Falha ao iniciar runner de atualização: {erro}") from erro
-        return f"ATUALIZAÇÃO: iniciada em segundo plano para {cls.CANAIS[canal]['label']} ({branch}). Acompanhe em logs/update-beta-*.log e aguarde o healthcheck após o restart."
+        return f"ATUALIZAÇÃO: iniciada em segundo plano para {cls.CANAIS[canal]['label']} ({branch}). Acompanhe em logs/update-system-*.log e aguarde o healthcheck após o restart."
 
     @classmethod
-    def verificar_atualizacoes(cls, usuario_email, canal="beta"):
+    def verificar_atualizacoes(cls, usuario_email, canal="production"):
         canal = cls._normalizar_canal(canal)
         estado = cls.estado_instalado()
         execucao_id = cls.repository.execute_insert(
@@ -270,8 +271,15 @@ class AtualizacaoSistemaService:
 
     @classmethod
     def _normalizar_canal(cls, canal):
-        canal = (canal or "beta").strip().lower()
-        aliases = {"main": "production", "prod": "production", "producao": "production", "produção": "production"}
+        canal = (canal or "production").strip().lower()
+        aliases = {
+            "main": "production",
+            "prod": "production",
+            "producao": "production",
+            "produção": "production",
+            # Compatibilidade com formulários/históricos anteriores à versão 1.0.
+            "beta": "production",
+        }
         canal = aliases.get(canal, canal)
         if canal not in cls.CANAIS:
             raise ValueError("Canal de atualização não permitido.")
@@ -289,12 +297,10 @@ class AtualizacaoSistemaService:
     @classmethod
     def _filtrar_tags_canal(cls, tags, canal):
         canal = cls._normalizar_canal(canal)
-        if canal == "beta":
-            return [tag for tag in tags if "beta" in tag.lower()]
         return [tag for tag in tags if not re.search(r"(alpha|beta|rc)", tag, re.IGNORECASE)]
 
     @classmethod
-    def _github_release_recomendada(cls, releases, estado, canal="beta"):
+    def _github_release_recomendada(cls, releases, estado, canal="production"):
         atual = estado.get("tag_atual") or estado.get("ultima_tag")
         for release in cls._filtrar_releases_canal(releases, canal):
             tag = release.get("tag")
@@ -393,7 +399,7 @@ class AtualizacaoSistemaService:
         return [
             {"nome": "Backup recente válido", "status": "Obrigatório", "detalhe": "A execução de update pela tela ficará bloqueada sem backup OK recente."},
             {"nome": "Worktree limpa", "status": "OK" if estado.get("worktree_limpa") else "Atenção", "detalhe": "Há alterações locais" if not estado.get("worktree_limpa") else "Sem alterações locais."},
-            {"nome": "Branch/Tag permitida", "status": "Planejado", "detalhe": "Beta deverá usar branch beta ou tags v0.9.x-beta.x."},
+            {"nome": "Canal de produção", "status": "OK", "detalhe": "Atualizações usam a branch main e somente releases estáveis."},
             {"nome": "Healthcheck", "status": "Disponível", "detalhe": "deployment/healthcheck.sh já valida serviço, banco e HTTP."},
         ]
 

@@ -1328,7 +1328,6 @@ class FinanceiroRepository(BaseRepository):
         )
         return {
             "resumo": resumo or {},
-            "pre_beta": cls._pre_beta(filtros),
             "propostas_status": cls._propostas_status(filtros),
             "contratos_status": cls._contratos_status(filtros),
             "implantacoes_status": cls._implantacoes_status(filtros),

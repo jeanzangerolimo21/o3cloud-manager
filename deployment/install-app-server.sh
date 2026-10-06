@@ -7,7 +7,7 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/opt/o3cloud-manager}"
 APP_USER="${APP_USER:-o3cloud}"
 REPO_URL="${REPO_URL:-https://github.com/jeanzangerolimo21/o3cloud-manager.git}"
-BRANCH="${BRANCH:-beta}"
+BRANCH="${BRANCH:-main}"
 DB_HOST="${DB_HOST:-}"
 DB_PORT="${DB_PORT:-3306}"
 DB_NAME="${DB_NAME:-o3cloud_manager}"

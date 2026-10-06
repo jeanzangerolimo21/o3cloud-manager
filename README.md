@@ -140,23 +140,11 @@ Todos os direitos reservados.
 
 Versão atual:
 
-**v2.0.0-alpha**
+**v1.0.0**
 
 ### Concluído
 
-- Arquitetura
-- Banco de Dados
-- Documentação
-- Estrutura do Projeto
-
-### Em Desenvolvimento
-
-- Backend Flask
-- Dashboard
-- Integrações
-
-### Roadmap
-
-- Sprint 4 — Interface Web
-- Sprint 5 — Integrações
-- Sprint 6 — Indicadores Executivos
+- Release estável de produção
+- Backend Flask e interface web
+- Integrações de negócio e infraestrutura
+- Atualizações controladas por releases estáveis na branch `main`

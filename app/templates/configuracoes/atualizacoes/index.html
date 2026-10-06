@@ -9,19 +9,16 @@
   </div>
 
   {% set ultima_payload = ultima_verificacao.payload if ultima_verificacao and ultima_verificacao.payload else {} %}
-  {% set canal_verificado = ultima_payload.canal or 'beta' %}
+  {% set canal_verificado = 'production' %}
   {% set alvo_atualizacao = ultima_verificacao.github_release_recomendada or ultima_verificacao.release_recomendada if ultima_verificacao and ultima_verificacao.status == 'OK' else None %}
 
   <div class="d-flex justify-content-end gap-2 mb-4 flex-wrap">
-    <form method="post" action="{{ url_for('configuracoes.atualizacoes_verificar') }}" class="d-flex gap-2" onsubmit="return confirm('Consultar GitHub para o canal selecionado? Nenhuma atualização será instalada.');">
-      <select class="form-select" name="canal" aria-label="Canal de atualização">
-        <option value="beta" {% if canal_verificado == 'beta' %}selected{% endif %}>Beta</option>
-        <option value="production" {% if canal_verificado == 'production' %}selected{% endif %}>Production</option>
-      </select>
+    <form method="post" action="{{ url_for('configuracoes.atualizacoes_verificar') }}" class="d-flex gap-2" onsubmit="return confirm('Consultar releases estáveis no GitHub? Nenhuma atualização será instalada.');">
+      <input type="hidden" name="canal" value="production">
       <button class="btn btn-outline-primary"><i class="bi bi-search"></i> Verificar atualizações</button>
     </form>
     {% if alvo_atualizacao %}
-    <form method="post" action="{{ url_for('configuracoes.atualizacoes_executar') }}" class="d-flex gap-2" onsubmit="return confirm('Aplicar {{ alvo_atualizacao }} no canal {{ ultima_payload.canal_label or canal_verificado }}? O serviço será reiniciado.');">
+    <form method="post" action="{{ url_for('configuracoes.atualizacoes_executar') }}" class="d-flex gap-2" onsubmit="return confirm('Aplicar {{ alvo_atualizacao }} em produção? O serviço será reiniciado.');">
       <input type="hidden" name="canal" value="{{ canal_verificado }}">
       <input class="form-control" name="confirmacao" placeholder="ATUALIZAR" required style="max-width: 150px;">
       <button class="btn btn-danger"><i class="bi bi-cloud-arrow-down"></i> Aplicar {{ alvo_atualizacao }}</button>

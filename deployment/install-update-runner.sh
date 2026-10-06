@@ -6,8 +6,8 @@ set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/o3cloud-manager}"
 APP_USER="${APP_USER:-o3cloud}"
-RUNNER_PATH="${RUNNER_PATH:-/usr/local/sbin/o3cloud-update-beta}"
-SUDOERS_PATH="${SUDOERS_PATH:-/etc/sudoers.d/o3cloud-update-beta}"
+RUNNER_PATH="${RUNNER_PATH:-/usr/local/sbin/o3cloud-update-system}"
+SUDOERS_PATH="${SUDOERS_PATH:-/etc/sudoers.d/o3cloud-update-system}"
 
 log() { printf '[update-runner] %s\n' "$*"; }
 fail() { printf '[update-runner] ERRO: %s\n' "$*" >&2; exit 1; }
