@@ -101,17 +101,32 @@ class SincronismosAgendadosService:
             raise ValueError("Frequencia de sincronismo invalida.")
         horario = cls._normalizar_horario(dados.get("horario_execucao"))
         ativo = 1 if dados.get("ativo") else 0
+        proxima_execucao = cls._proxima_execucao(ativo, frequencia, horario)
         cls.repository.execute(
             """
-            UPDATE config_sincronismos_agendados
-               SET ativo=%s,
-                   frequencia_minutos=%s,
-                   horario_execucao=%s,
-                   proxima_execucao_em=%s,
-                   updated_by=%s
-             WHERE tipo=%s
+            INSERT INTO config_sincronismos_agendados (
+                uuid, tipo, nome, ativo, frequencia_minutos,
+                horario_execucao, proxima_execucao_em, updated_by
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                nome=VALUES(nome),
+                ativo=VALUES(ativo),
+                frequencia_minutos=VALUES(frequencia_minutos),
+                horario_execucao=VALUES(horario_execucao),
+                proxima_execucao_em=VALUES(proxima_execucao_em),
+                updated_by=VALUES(updated_by)
             """,
-            (ativo, frequencia, horario, cls._proxima_execucao(ativo, frequencia, horario), usuario_email, tipo),
+            (
+                cls.repository.generate_uuid(),
+                tipo,
+                cls.TIPOS[tipo]["nome"],
+                ativo,
+                frequencia,
+                horario,
+                proxima_execucao,
+                usuario_email,
+            ),
         )
 
     @classmethod
@@ -126,6 +141,7 @@ class SincronismosAgendadosService:
     @classmethod
     def executar_manual_por_tipo(cls, tipo, usuario_email):
         tipo = cls._normalizar_tipo(tipo)
+        cls._criar_agendamento_se_ausente(tipo)
         agendamento = cls._buscar_por_tipo(tipo)
         if not agendamento:
             raise ValueError("Agendamento nao encontrado.")
@@ -196,6 +212,18 @@ class SincronismosAgendadosService:
     @classmethod
     def _buscar_por_tipo(cls, tipo):
         return cls.repository.fetch_one("SELECT * FROM config_sincronismos_agendados WHERE tipo=%s", (tipo,))
+
+    @classmethod
+    def _criar_agendamento_se_ausente(cls, tipo):
+        definicao = cls.TIPOS[tipo]
+        cls.repository.execute(
+            """
+            INSERT INTO config_sincronismos_agendados (uuid, tipo, nome, ativo, frequencia_minutos)
+            VALUES (%s, %s, %s, 0, 1440)
+            ON DUPLICATE KEY UPDATE nome=VALUES(nome)
+            """,
+            (cls.repository.generate_uuid(), tipo, definicao["nome"]),
+        )
 
     @classmethod
     def _executar(cls, agendamento, usuario_email, manual=False):
