@@ -91,12 +91,11 @@ def test_iniciar_por_adendo_reutiliza_implantacao_existente(monkeypatch):
 def test_migration_remove_unicidade_por_contrato_e_cria_vinculo_adendo():
     sql = open("database/migrations/136_implantacao_por_adendo.sql", encoding="utf-8").read()
 
-    assert "DROP INDEX uk_implantacoes_contrato_ativo" in sql
-    assert "ADD COLUMN adendo_id" in sql
-    assert "uk_implantacoes_adendo_ativo" in sql
-    assert "uk_implantacoes_contrato_principal_ativo" in sql
-    assert "GENERATED ALWAYS" in sql
-    assert "ADD COLUMN valor_setup" in sql
+    assert "DROP INDEX IF EXISTS uk_implantacoes_contrato_ativo" in sql
+    assert "ADD COLUMN IF NOT EXISTS adendo_id" in sql
+    assert "uk_implantacoes_adendo (adendo_id)" in sql
+    assert "GENERATED ALWAYS" not in sql
+    assert "ADD COLUMN IF NOT EXISTS valor_setup" in sql
 
 
 def test_repository_insere_origem_e_adendo(monkeypatch):

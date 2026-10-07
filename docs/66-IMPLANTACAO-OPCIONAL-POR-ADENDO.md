@@ -36,7 +36,8 @@ Permitir que um adendo de contrato ativo origine, por ação manual, uma nova im
 - `contratos_adendos.valor_setup`: setup específico do adendo.
 - `implantacoes.adendo_id`: vínculo opcional com o adendo.
 - `implantacoes.origem`: `CONTRATO` ou `ADENDO`.
-- Colunas geradas e índices únicos preservam uma implantação principal ativa por contrato e uma implantação ativa por adendo, sem bloquear o histórico inativo.
+- Índice único em `adendo_id` impede a criação de mais de uma implantação para o mesmo adendo; a regra da implantação principal permanece protegida pelo serviço.
+- A migration é compatível com MariaDB sem suporte à expressão originalmente proposta em coluna gerada e pode ser retomada após execução parcial.
 
 ## Critérios de aceite
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-07 - Correção de compatibilidade da migration 136
+
+- Removido o uso de colunas geradas incompatíveis com a versão do MariaDB da produção.
+- A migration passou a aceitar retomada segura quando `valor_setup` já tiver sido criado por uma tentativa parcial.
+- A unicidade da implantação por adendo passou a ser garantida diretamente pelo índice de `adendo_id`.
+
 ## 2026-10-07 - Implantação opcional por adendo
 
 - Adendos de contratos ativos passaram a permitir criação manual de uma implantação na fila do Kanban, sem alterar o status do contrato principal ou enviar mudanças ao Omie.
