@@ -59,6 +59,7 @@ log "Consultando remoto $REMOTE/$BRANCH."
 git_app fetch "$REMOTE" "$BRANCH" --tags
 commit_atual="$(git_app rev-parse HEAD)"
 commit_alvo="$(git_app rev-parse "$REMOTE/$BRANCH")"
+branch_atual="$(git_app rev-parse --abbrev-ref HEAD)"
 log "Commit atual: $commit_atual"
 log "Commit alvo:  $commit_alvo"
 
@@ -89,7 +90,7 @@ EOF
   chown "$APP_USER:$APP_USER" "$backup_file"
 fi
 
-if [ "$commit_atual" != "$commit_alvo" ]; then
+if [ "$commit_atual" != "$commit_alvo" ] || [ "$branch_atual" != "$BRANCH" ]; then
   log "Atualizando codigo com fast-forward."
   git_app checkout "$BRANCH"
   git_app pull --ff-only "$REMOTE" "$BRANCH"

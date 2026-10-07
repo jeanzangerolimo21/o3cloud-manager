@@ -153,6 +153,27 @@ def test_verificacao_usa_tags_quando_api_de_releases_indisponivel(monkeypatch):
     assert '"github_erro": "sem token"' in chamadas[0][7]
 
 
+def test_verificacao_recomenda_migracao_de_beta_para_main_no_mesmo_tag(monkeypatch):
+    chamadas = []
+
+    class RepoFake:
+        generate_uuid = staticmethod(lambda: "uuid-teste")
+        execute_insert = staticmethod(lambda sql, params: 42)
+        execute = staticmethod(lambda sql, params: chamadas.append(params) or True)
+
+    monkeypatch.setattr(AtualizacaoSistemaService, "repository", RepoFake)
+    monkeypatch.setattr(AtualizacaoSistemaService, "estado_instalado", classmethod(lambda cls: {
+        "branch": "beta", "commit": "abc", "commit_curto": "abc", "tag_atual": "v1.0.0",
+        "ultima_tag": "v1.0.0", "remoto": "origin", "worktree_limpa": True,
+        "divergencia": {"status": "Atualizado"},
+    }))
+    monkeypatch.setattr(AtualizacaoSistemaService, "_tags_remotas", classmethod(lambda cls, remoto: ["v1.0.0"]))
+
+    AtualizacaoSistemaService.verificar_atualizacoes("admin@example.com")
+
+    assert chamadas[0][3] == "v1.0.0"
+
+
 
 def test_github_repo_from_remote_parseia_ssh_e_https():
     assert AtualizacaoSistemaService._github_repo_from_remote("git@github.com:owner/repo.git") == "owner/repo"

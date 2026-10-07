@@ -103,17 +103,19 @@ class AtualizacaoSistemaService:
                 nome: cls._filtrar_releases_canal(github_releases, nome)
                 for nome in cls.CANAIS
             }
-            release_recomendada = cls._release_recomendada(
-                cls._filtrar_tags_canal(tags_remotas, canal),
-                estado,
-            )
+            tags_canal = cls._filtrar_tags_canal(tags_remotas, canal)
+            release_recomendada = cls._release_recomendada(tags_canal, estado)
+            if not release_recomendada and estado.get("branch") != cls.CANAIS[canal]["branch"]:
+                # Permite promover um checkout legado para main mesmo quando
+                # ambas as branches já apontam para o mesmo commit/tag.
+                release_recomendada = tags_canal[0] if tags_canal else cls.CANAIS[canal]["branch"]
             github_release_recomendada = cls._github_release_recomendada(github_releases, estado, canal)
             payload = {
                 "canal": canal,
                 "canal_label": cls.CANAIS[canal]["label"],
                 "branch_alvo": cls.CANAIS[canal]["branch"],
                 "tags_remotas": tags_remotas[:30],
-                "tags_canal": cls._filtrar_tags_canal(tags_remotas, canal)[:20],
+                "tags_canal": tags_canal[:20],
                 "release_recomendada": release_recomendada,
                 "github_repo": github_repo,
                 "github_releases": github_releases[:20],
