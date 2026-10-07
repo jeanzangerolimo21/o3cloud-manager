@@ -473,6 +473,7 @@ class PropostaRepository(BaseRepository):
                     c.id IS NULL
                     OR COALESCE(c.clicksign_status, 'NAO_ENVIADO') <> 'ASSINADO'
                     OR c.status IN ('RASCUNHO', 'ENVIADO_CLICKSIGN', 'AGUARDANDO_ASSINATURA')
+                    OR COALESCE(c.arquivo_assinado, '') <> COALESCE(p.clicksign_document_key, '')
                   )
             ORDER BY COALESCE(p.clicksign_signed_at, p.clicksign_completed_at, p.updated_at) ASC, p.id ASC
             """

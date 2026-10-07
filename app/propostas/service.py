@@ -660,9 +660,23 @@ class PropostaService:
 
     @classmethod
     def concluir_contrato_clicksign(cls, proposta):
+        dados_clicksign = {
+            chave: proposta.get(chave)
+            for chave in (
+                "clicksign_document_key",
+                "clicksign_envelope_id",
+                "clicksign_sent_at",
+                "clicksign_signed_at",
+            )
+            if proposta.get(chave) is not None
+        }
         proposta = cls.buscar_por_id(proposta.get("id")) if proposta.get("id") else proposta
         if not proposta:
             raise ValueError("Proposta não encontrada.")
+        # A sincronização baixa o PDF assinado antes de persistir a proposta.
+        # Preserve esses valores para não voltar ao documento original recarregado
+        # do banco ao atualizar/criar o contrato.
+        proposta.update(dados_clicksign)
         documento = proposta.get("clicksign_document_key") or cls.gerar_contrato_clicksign(proposta)["nome"]
         data_assinatura = extrair_data_assinatura_pdf(StorageService.BASE_STORAGE / StorageService.CONTRATOS / documento)
         contrato = ContratoRepository.buscar_por_proposta_id(proposta.get("id"))
