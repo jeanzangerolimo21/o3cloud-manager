@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-07 - CNPJ do cliente nos recibos de campanhas
+
+- Os recibos PDF de pagamento de campanha para parceiro e executivo passaram a exibir o CNPJ formatado abaixo do nome do cliente.
+- A identificação foi incluída para premiações originadas tanto de contratos quanto de adendos, sem alterar os cálculos do recibo.
+
 ## 2026-10-07 - Correção de compatibilidade da migration 136
 
 - Removido o uso de colunas geradas incompatíveis com a versão do MariaDB da produção.

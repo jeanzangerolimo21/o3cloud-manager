@@ -17,7 +17,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from app.core.email import EmailService
-from app.core.filters import date_br, moeda
+from app.core.filters import cnpj_br, date_br, moeda
 from app.financeiro.repository import FinanceiroRepository
 from app.repositories.contrato_adendo_repository import ContratoAdendoRepository
 
@@ -291,11 +291,13 @@ class FinanceiroService:
                 elementos.append(Paragraph("Parceiros", styles["Heading3"]))
                 elementos.append(Table(logos, colWidths=[80, 390], hAlign="LEFT"))
                 elementos.append(Spacer(1, 8))
-        dados = [["Contrato", "Cliente", "Receb. Omie", "Ativação", "Base", "Parceiro", "Executivo"]]
+        dados = [["Contrato", "Cliente / CNPJ", "Receb. Omie", "Ativação", "Base", "Parceiro", "Executivo"]]
         for item in itens:
+            cliente = cls._pdf_text(item.get("cliente_nome") or "-")
+            cnpj = cnpj_br(item.get("cliente_cnpj")) if item.get("cliente_cnpj") else "CNPJ não informado"
             dados.append([
                 item.get("contrato_numero") or "-",
-                Paragraph(cls._pdf_text(item.get("cliente_nome") or "-"), styles["BodyText"]),
+                Paragraph(f"{cliente}<br/><font size='7' color='#64748b'>CNPJ: {cls._pdf_text(cnpj)}</font>", styles["BodyText"]),
                 date_br(item.get("data_recebimento")) if item.get("data_recebimento") else "-",
                 date_br(item.get("data_ativacao")) if item.get("data_ativacao") else "-",
                 moeda(item.get("valor_base") or 0),

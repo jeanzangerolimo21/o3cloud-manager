@@ -154,6 +154,7 @@ def test_gerar_relatorio_pagamento_campanhas_pdf(monkeypatch):
         "contrato_id": 1,
         "contrato_numero": "2026/001",
         "cliente_nome": "Cliente & Teste",
+        "cliente_cnpj": "12345678000190",
         "data_recebimento": "2026-08-30",
         "data_ativacao": "2026-08-01",
         "campanha_id": 7,
@@ -188,6 +189,14 @@ def test_sql_pagamento_campanhas_usa_projeto_omie_case_insensitive_e_fallback_ma
     assert "COALESCE(pe_omie.id, pe_manual.id) AS executivo_id" in sql
     assert "COALESCE(pe_omie.nome, pe_manual.nome) AS executivo_nome" in sql
     assert "CASE WHEN COALESCE(pe_omie.id, pe_manual.id) IS NOT NULL" in sql
+
+
+def test_sql_pagamento_campanhas_inclui_cnpj_cliente_em_contratos_e_adendos():
+    sql_contratos = FinanceiroRepository._pagamento_campanhas_contratos_sql()
+    sql_adendos = FinanceiroRepository._pagamento_campanhas_adendos_sql()
+
+    assert "cli.cnpj AS cliente_cnpj" in sql_contratos
+    assert "cli.cnpj AS cliente_cnpj" in sql_adendos
 
 
 def test_relatorios_gerais_ignoram_filtros_de_entidade():
