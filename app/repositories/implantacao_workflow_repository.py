@@ -26,6 +26,8 @@ class ImplantacaoWorkflowRepository(BaseRepository):
                 i.id,
                 i.uuid,
                 i.contrato_id,
+                i.adendo_id,
+                i.origem,
                 i.cliente_id,
                 i.implantacao_principal_id,
                 i.titulo,
@@ -55,6 +57,9 @@ class ImplantacaoWorkflowRepository(BaseRepository):
                 END AS prazo_situacao,
                 c.numero AS contrato_numero,
                 c.status AS contrato_status,
+                a.titulo AS adendo_titulo,
+                a.numero_adendo,
+                a.valor_setup AS adendo_valor_setup,
                 COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
                 cli.cnpj AS cliente_cnpj,
                 exec.nome AS executivo_nome,
@@ -68,6 +73,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             FROM implantacoes i
             INNER JOIN clientes cli ON cli.id = i.cliente_id
             INNER JOIN contratos c ON c.id = i.contrato_id
+            LEFT JOIN contratos_adendos a ON a.id = i.adendo_id
             LEFT JOIN parceiros_executivos exec ON exec.id = i.executivo_id
             LEFT JOIN parceiros p ON p.id = i.parceiro_id
             LEFT JOIN implantacoes principal ON principal.id = i.implantacao_principal_id
@@ -110,6 +116,10 @@ class ImplantacaoWorkflowRepository(BaseRepository):
                 c.numero AS contrato_numero,
                 c.status AS contrato_status,
                 c.descricao AS contrato_descricao,
+                a.titulo AS adendo_titulo,
+                a.numero_adendo,
+                a.valor_setup AS adendo_valor_setup,
+                a.observacoes AS adendo_observacoes,
                 prop.codigo_proposta,
                 prop.titulo AS proposta_titulo,
                 prop.detalhes_negociacao AS proposta_escopo,
@@ -124,6 +134,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             FROM implantacoes i
             INNER JOIN clientes cli ON cli.id = i.cliente_id
             INNER JOIN contratos c ON c.id = i.contrato_id
+            LEFT JOIN contratos_adendos a ON a.id = i.adendo_id
             LEFT JOIN crm_propostas prop ON prop.id = i.proposta_id
             LEFT JOIN parceiros_executivos exec ON exec.id = i.executivo_id
             LEFT JOIN parceiros p ON p.id = i.parceiro_id
@@ -164,6 +175,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             ) checklist ON checklist.implantacao_id = i.id
             WHERE i.cliente_id = %s
               AND i.ativo = 1
+              AND i.adendo_id IS NULL
               AND c.ativo = 1
             ORDER BY FIELD(i.status, 'EM_EXECUCAO', 'EM_VALIDACAO', 'AGUARDANDO_INICIO', 'EM_PLANEJAMENTO', 'PAUSADA', 'ENTREGUE', 'CANCELADA'),
                      COALESCE(i.data_prevista_entrega, '2999-12-31') ASC,
@@ -180,10 +192,17 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             """
             SELECT *
             FROM implantacoes
-            WHERE contrato_id = %s AND ativo = 1
+            WHERE contrato_id = %s AND ativo = 1 AND adendo_id IS NULL
             LIMIT 1
             """,
             (contrato_id,),
+        )
+
+    @classmethod
+    def buscar_por_adendo_id(cls, adendo_id):
+        return cls.fetch_one(
+            "SELECT * FROM implantacoes WHERE adendo_id=%s AND ativo=1 LIMIT 1",
+            (adendo_id,),
         )
 
     @classmethod
@@ -212,6 +231,8 @@ class ImplantacaoWorkflowRepository(BaseRepository):
                AND duplicada.ativo = 1
                AND manter.implantacao_principal_id IS NULL
                AND duplicada.implantacao_principal_id IS NULL
+               AND manter.adendo_id IS NULL
+               AND duplicada.adendo_id IS NULL
                AND (
                     manter.id > duplicada.id
                     OR (manter.contrato_id = duplicada.contrato_id AND manter.id > duplicada.id)
@@ -307,12 +328,12 @@ class ImplantacaoWorkflowRepository(BaseRepository):
         return cls.execute_insert(
             """
             INSERT INTO implantacoes (
-                uuid, contrato_id, cliente_id, proposta_id, executivo_id, parceiro_id,
+                uuid, contrato_id, adendo_id, origem, cliente_id, proposta_id, executivo_id, parceiro_id,
                 titulo, status, etapa_kanban, prioridade, responsavel, implantador_nome,
                 implantador_email, emails_adicionais, data_prevista_inicio, data_prevista_entrega,
                 observacoes, provisionamento_status, provisionamento_notas, ativo
             ) VALUES (
-                %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s,
                 %s, %s, %s, 1
@@ -321,6 +342,8 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             (
                 cls.generate_uuid(),
                 dados.get("contrato_id"),
+                dados.get("adendo_id"),
+                dados.get("origem") or "CONTRATO",
                 dados.get("cliente_id"),
                 dados.get("proposta_id"),
                 dados.get("executivo_id"),
@@ -745,6 +768,8 @@ class ImplantacaoWorkflowRepository(BaseRepository):
             SELECT
                 i.id,
                 i.contrato_id,
+                i.adendo_id,
+                i.origem,
                 i.implantacao_principal_id,
                 i.titulo,
                 i.etapa_kanban,
@@ -757,6 +782,9 @@ class ImplantacaoWorkflowRepository(BaseRepository):
                 i.updated_at,
                 c.numero AS contrato_numero,
                 c.contato_email,
+                a.titulo AS adendo_titulo,
+                a.numero_adendo,
+                a.valor_setup AS adendo_valor_setup,
                 COALESCE(cli.nome_fantasia, cli.razao_social) AS cliente_nome,
                 cli.cnpj AS cliente_cnpj,
                 cli.email AS cliente_email,
@@ -766,6 +794,7 @@ class ImplantacaoWorkflowRepository(BaseRepository):
                 p.email AS parceiro_email
             FROM implantacoes i
             INNER JOIN contratos c ON c.id = i.contrato_id
+            LEFT JOIN contratos_adendos a ON a.id = i.adendo_id
             INNER JOIN clientes cli ON cli.id = i.cliente_id
             LEFT JOIN parceiros_executivos exec ON exec.id = i.executivo_id
             LEFT JOIN parceiros p ON p.id = i.parceiro_id

@@ -288,6 +288,27 @@ def editar_adendo(contrato_id, adendo_id):
     return redirect(url_for("contratos.view", contrato_id=contrato_id))
 
 
+@contratos_bp.route("/<int:contrato_id>/adendos/<int:adendo_id>/iniciar-implantacao", methods=["POST"])
+def iniciar_implantacao_adendo(contrato_id, adendo_id):
+    adendo = ContratoService.buscar_adendo(adendo_id)
+    if not adendo or int(adendo.get("contrato_id") or 0) != int(contrato_id):
+        flash("Adendo não encontrado para este contrato.", "danger")
+        return redirect(url_for("contratos.view", contrato_id=contrato_id))
+    try:
+        implantacao_id, criada = ImplantacaoService.iniciar_por_adendo(adendo_id, request.form)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+        return redirect(url_for("contratos.view", contrato_id=contrato_id))
+    registrar_evento(
+        "ADENDO_IMPLANTACAO_INICIADA",
+        "implantacoes",
+        implantacao_id,
+        {"contrato_id": contrato_id, "adendo_id": adendo_id, "criada": criada},
+    )
+    flash("Implantação do adendo criada na fila." if criada else "Este adendo já possui implantação ativa.", "success" if criada else "info")
+    return redirect(url_for("implantacao.visualizar", implantacao_id=implantacao_id))
+
+
 @contratos_bp.route("/<int:contrato_id>/adendos/<int:adendo_id>/anexos", methods=["POST"])
 def anexar_adendo(contrato_id, adendo_id):
     try:

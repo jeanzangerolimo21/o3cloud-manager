@@ -141,6 +141,7 @@
                 <div class="col-md-2"><label class="form-label">PDFs</label><input class="form-control" type="file" name="arquivos" accept="application/pdf,.pdf" multiple></div>
                 <div class="col-md-2"><label class="form-label">Recorrente</label><input class="form-control" inputmode="decimal" name="valor_recorrente" value="0,00"></div>
                 <div class="col-md-2"><label class="form-label">Pontual</label><input class="form-control" inputmode="decimal" name="valor_pontual" value="0,00"></div>
+                <div class="col-md-2"><label class="form-label">Setup implantação</label><input class="form-control" inputmode="decimal" name="valor_setup" value="0,00"></div>
                 <div class="col-md-6"><label class="form-label">Observações</label><input class="form-control" name="observacoes"></div>
                 <div class="col-md-2 d-grid"><button class="btn btn-outline-primary"><i class="bi bi-plus-circle"></i> Adicionar</button></div>
             </form>
@@ -167,13 +168,14 @@
                                         <div class="col-md-2"><label class="form-label small">Usuários</label><input class="form-control form-control-sm" type="number" min="0" name="quantidade_usuarios" value="{{ adendo.quantidade_usuarios or '' }}"></div>
                                         <div class="col-md-3"><label class="form-label small">Recorrente</label><input class="form-control form-control-sm" inputmode="decimal" name="valor_recorrente" value="{{ adendo.valor_recorrente or '0,00' }}"></div>
                                         <div class="col-md-3"><label class="form-label small">Pontual</label><input class="form-control form-control-sm" inputmode="decimal" name="valor_pontual" value="{{ adendo.valor_pontual or '0,00' }}"></div>
+                                        <div class="col-md-3"><label class="form-label small">Setup implantação</label><input class="form-control form-control-sm" inputmode="decimal" name="valor_setup" value="{{ adendo.valor_setup or '0,00' }}"></div>
                                         <div class="col-md-4"><label class="form-label small">Observações</label><input class="form-control form-control-sm" name="observacoes" value="{{ adendo.observacoes or '' }}"></div>
                                         <div class="col-12 d-flex justify-content-end gap-2"><button class="btn btn-sm btn-primary"><i class="bi bi-check2"></i> Salvar</button></div>
                                     </form>
                                 </div>
                             </td>
                             <td>{{ adendo.data_adendo|date_br if adendo.data_adendo else '-' }}</td>
-                            <td class="text-end">Rec. {{ adendo.valor_recorrente|moeda }}<br><small class="text-muted">Pontual {{ adendo.valor_pontual|moeda }}</small></td>
+                            <td class="text-end">Rec. {{ adendo.valor_recorrente|moeda }}<br><small class="text-muted">Pontual {{ adendo.valor_pontual|moeda }}</small>{% if adendo.valor_setup %}<br><small class="text-primary">Setup {{ adendo.valor_setup|moeda }}</small>{% endif %}</td>
                             <td>
                                 {% for anexo in adendo.anexos %}
                                     <div><a href="{{ url_for('contratos.abrir_anexo_adendo', anexo_id=anexo.id) }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf"></i> {{ anexo.arquivo_original }}</a></div>
@@ -225,6 +227,24 @@
                                 {% endif %}
                             </td>
                             <td class="text-end">
+                                {% if adendo.implantacao_id %}
+                                <a class="btn btn-sm btn-outline-success mb-1" href="{{ url_for('implantacao.visualizar', implantacao_id=adendo.implantacao_id) }}" title="Ver implantação do adendo"><i class="bi bi-kanban"></i> Ver implantação</a>
+                                {% else %}
+                                <button class="btn btn-sm btn-outline-success mb-1" type="button" data-bs-toggle="collapse" data-bs-target="#implantar-adendo-{{ adendo.id }}" title="Criar implantação"><i class="bi bi-kanban"></i> Criar implantação</button>
+                                <div class="collapse text-start mb-2" id="implantar-adendo-{{ adendo.id }}">
+                                    <form method="POST" action="{{ url_for('contratos.iniciar_implantacao_adendo', contrato_id=contrato.id, adendo_id=adendo.id) }}" class="border rounded p-2 bg-light" onsubmit="return confirm('Criar uma nova implantação na fila para este adendo?');">
+                                        <label class="form-label small">Título</label>
+                                        <input class="form-control form-control-sm mb-1" name="titulo" value="Implantação de adendo - {{ adendo.titulo }}" required>
+                                        <div class="row g-1 mb-1">
+                                            <div class="col-6"><label class="form-label small">Prioridade</label><select class="form-select form-select-sm" name="prioridade"><option value="NORMAL">Normal</option><option value="ALTA">Alta</option><option value="CRITICA">Crítica</option><option value="BAIXA">Baixa</option></select></div>
+                                            <div class="col-6"><label class="form-label small">Entrega prevista</label><input class="form-control form-control-sm" type="date" name="data_prevista_entrega"></div>
+                                        </div>
+                                        <label class="form-label small">Escopo/observações</label>
+                                        <textarea class="form-control form-control-sm mb-2" name="observacoes" rows="3">{{ adendo.observacoes or '' }}</textarea>
+                                        <button class="btn btn-sm btn-success w-100"><i class="bi bi-plus-circle"></i> Enviar para a fila</button>
+                                    </form>
+                                </div>
+                                {% endif %}
                                 <div class="d-flex justify-content-end gap-1">
                                     <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#editar-adendo-{{ adendo.id }}" aria-expanded="false" aria-controls="editar-adendo-{{ adendo.id }}" title="Editar adendo"><i class="bi bi-pencil"></i></button>
                                     <form method="POST" action="{{ url_for('contratos.excluir_adendo', contrato_id=contrato.id, adendo_id=adendo.id) }}" onsubmit="return confirm('Inativar este adendo?');">

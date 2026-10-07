@@ -9,6 +9,7 @@ from app.ambientes.implantador_service import ImplantadorService
 from app.parceiros.executivo_service import ParceiroExecutivoService
 from app.parceiros.service import ParceiroService
 from app.repositories.contrato_repository import ContratoRepository
+from app.repositories.contrato_adendo_repository import ContratoAdendoRepository
 from app.financeiro.inadimplencias_service import InadimplenciaService
 from app.repositories.implantacao_workflow_repository import ImplantacaoWorkflowRepository
 
@@ -436,6 +437,45 @@ class ImplantacaoService:
         if existente:
             return existente.get("id"), False
         return cls.criar({"contrato_id": contrato_id, "etapa_kanban": "FILA"}), True
+
+    @classmethod
+    def iniciar_por_adendo(cls, adendo_id, dados=None):
+        adendo = ContratoAdendoRepository.buscar_por_id(adendo_id)
+        if not adendo:
+            raise ValueError("Adendo não encontrado.")
+        existente = cls.repository.buscar_por_adendo_id(adendo_id)
+        if existente:
+            return existente.get("id"), False
+        contrato = ContratoRepository.buscar_por_id(adendo.get("contrato_id"))
+        if not contrato or not contrato.get("ativo"):
+            raise ValueError("O contrato principal do adendo não está ativo.")
+        InadimplenciaService.validar_operacao_cliente(contrato.get("cliente_id"))
+        dados = dados or {}
+        titulo_padrao = "Implantação de adendo - {} - {}".format(
+            adendo.get("cliente_nome") or contrato.get("cliente_nome") or "Cliente",
+            adendo.get("titulo"),
+        )
+        entrada = {
+            **dados,
+            "titulo": (dados.get("titulo") or titulo_padrao).strip(),
+            "etapa_kanban": "FILA",
+            "status": "AGUARDANDO_INICIO",
+            "observacoes": dados.get("observacoes") or adendo.get("observacoes"),
+            "provisionamento_notas": dados.get("provisionamento_notas") or (
+                f"Setup do adendo: {adendo.get('valor_setup') or 0}."
+            ),
+        }
+        payload = cls._normalizar(entrada, contrato=contrato)
+        payload.update({"adendo_id": adendo_id, "origem": "ADENDO"})
+        implantacao_id = cls.repository.inserir(payload)
+        cls._criar_checklist_padrao(implantacao_id)
+        cls.repository.atualizar_percentual(implantacao_id)
+        cls._registrar_historico(
+            implantacao_id,
+            tipo="ORIGEM",
+            comentario=f"Implantação criada manualmente pelo adendo #{adendo_id} - {adendo.get('titulo')}.",
+        )
+        return implantacao_id, True
 
     @classmethod
     def listar_contratos_elegiveis(cls):

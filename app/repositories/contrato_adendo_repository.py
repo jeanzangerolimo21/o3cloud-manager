@@ -12,10 +12,14 @@ class ContratoAdendoRepository(BaseRepository):
                    p.status_manual AS premiacao_status,
                    p.data_recebimento_omie AS premiacao_data_recebimento_omie,
                    p.id AS premiacao_id,
-                   rc.nome AS premiacao_campanha_nome
+                   rc.nome AS premiacao_campanha_nome,
+                   imp.id AS implantacao_id,
+                   imp.status AS implantacao_status,
+                   imp.etapa_kanban AS implantacao_etapa
             FROM contratos_adendos a
             LEFT JOIN financeiro_premiacoes_adendos p ON p.adendo_id = a.id AND p.ativo = 1
             LEFT JOIN regras_campanhas_comissao rc ON rc.id = p.campanha_id
+            LEFT JOIN implantacoes imp ON imp.adendo_id = a.id AND imp.ativo = 1
             WHERE a.contrato_id = %s
               AND a.ativo = 1
             ORDER BY COALESCE(a.data_adendo, a.created_at) DESC, a.id DESC
@@ -64,13 +68,13 @@ class ContratoAdendoRepository(BaseRepository):
             """
             INSERT INTO contratos_adendos (
                 uuid, contrato_id, cliente_id, tipo, titulo, numero_adendo, data_adendo,
-                valor_recorrente, valor_pontual, quantidade_usuarios, observacoes, created_by, updated_by
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                valor_recorrente, valor_pontual, valor_setup, quantidade_usuarios, observacoes, created_by, updated_by
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 cls.generate_uuid(), dados.get("contrato_id"), dados.get("cliente_id"), dados.get("tipo"),
                 dados.get("titulo"), dados.get("numero_adendo"), dados.get("data_adendo"),
-                dados.get("valor_recorrente"), dados.get("valor_pontual"), dados.get("quantidade_usuarios"),
+                dados.get("valor_recorrente"), dados.get("valor_pontual"), dados.get("valor_setup"), dados.get("quantidade_usuarios"),
                 dados.get("observacoes"), dados.get("created_by"), dados.get("updated_by"),
             ),
         )
@@ -86,6 +90,7 @@ class ContratoAdendoRepository(BaseRepository):
                 data_adendo=%s,
                 valor_recorrente=%s,
                 valor_pontual=%s,
+                valor_setup=%s,
                 quantidade_usuarios=%s,
                 observacoes=%s,
                 updated_by=%s
@@ -95,7 +100,7 @@ class ContratoAdendoRepository(BaseRepository):
             """,
             (
                 dados.get("tipo"), dados.get("titulo"), dados.get("numero_adendo"), dados.get("data_adendo"),
-                dados.get("valor_recorrente"), dados.get("valor_pontual"), dados.get("quantidade_usuarios"),
+                dados.get("valor_recorrente"), dados.get("valor_pontual"), dados.get("valor_setup"), dados.get("quantidade_usuarios"),
                 dados.get("observacoes"), dados.get("updated_by"), adendo_id, dados.get("contrato_id"),
             ),
         )

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-07 - Implantação opcional por adendo
+
+- Adendos de contratos ativos passaram a permitir criação manual de uma implantação na fila do Kanban, sem alterar o status do contrato principal ou enviar mudanças ao Omie.
+- Cada implantação mantém vínculo com o adendo, exibe sua origem, número, título e valor de setup e impede duplicidade ativa.
+- A tela do contrato oferece `Criar implantação` ou `Ver implantação` em cada adendo.
+- Adendos vinculados a uma implantação não podem ser inativados enquanto o vínculo estiver ativo.
+- Migration `136_implantacao_por_adendo.sql` e especificação `docs/66-IMPLANTACAO-OPCIONAL-POR-ADENDO.md` adicionadas.
+
 ## 2026-09-02 - Permissao para excluir anexos do Cofre de Senhas
 
 - Usuarios com `cofre_senhas` em nivel `EDICAO` agora podem excluir anexos de credenciais do cofre, mesmo sem perfil administrativo de exclusao.

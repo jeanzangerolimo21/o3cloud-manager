@@ -10,6 +10,14 @@
     {% set page_button_text = "Editar" %}
     {% include "components/page_header.html" %}
 
+    {% if implantacao.origem == 'ADENDO' %}
+    <div class="alert alert-primary d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div><strong><i class="bi bi-file-earmark-plus"></i> Implantação originada por adendo</strong><br>
+        Adendo {{ implantacao.numero_adendo or ('#' ~ implantacao.adendo_id) }} — {{ implantacao.adendo_titulo }}{% if implantacao.adendo_valor_setup %}<br>Setup: {{ implantacao.adendo_valor_setup|moeda }}{% endif %}</div>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('contratos.view', contrato_id=implantacao.contrato_id) }}">Ver contrato e adendo</a>
+    </div>
+    {% endif %}
+
     {% if pode_excluir() %}
     <div class="d-flex justify-content-end mb-3">
         <form method="POST" action="{{ url_for('implantacao.excluir', implantacao_id=implantacao.id) }}" onsubmit="return confirm('Excluir esta implantação? Esta ação remove o card da fila e mantém o histórico inativo.');">

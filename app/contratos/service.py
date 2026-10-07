@@ -616,6 +616,10 @@ class ContratoService:
         return ContratoAdendoRepository.listar_por_contrato(contrato_id)
 
     @classmethod
+    def buscar_adendo(cls, adendo_id):
+        return ContratoAdendoRepository.buscar_por_id(adendo_id)
+
+    @classmethod
     def criar_adendo(cls, contrato_id, dados, arquivos=None, usuario_email="sistema"):
         contrato = ContratoRepository.buscar_por_id(contrato_id)
         if not contrato:
@@ -737,6 +741,9 @@ class ContratoService:
         adendo = ContratoAdendoRepository.buscar_por_id(adendo_id)
         if not adendo:
             raise ValueError("Adendo nao encontrado.")
+        from app.repositories.implantacao_workflow_repository import ImplantacaoWorkflowRepository
+        if ImplantacaoWorkflowRepository.buscar_por_adendo_id(adendo_id):
+            raise ValueError("Adendo com implantação vinculada não pode ser inativado.")
         ContratoAdendoRepository.excluir(adendo_id, usuario_email)
         return adendo
 
@@ -750,7 +757,8 @@ class ContratoService:
             raise ValueError("Informe o titulo do adendo.")
         valor_recorrente = cls._decimal(dados.get("valor_recorrente")) or Decimal("0.00")
         valor_pontual = cls._decimal(dados.get("valor_pontual")) or Decimal("0.00")
-        if valor_recorrente < 0 or valor_pontual < 0:
+        valor_setup = cls._decimal(dados.get("valor_setup")) or Decimal("0.00")
+        if valor_recorrente < 0 or valor_pontual < 0 or valor_setup < 0:
             raise ValueError("Valores do adendo nao podem ser negativos.")
         quantidade_usuarios = cls._inteiro_ou_none(dados.get("quantidade_usuarios"))
         return {
@@ -760,6 +768,7 @@ class ContratoService:
             "data_adendo": (dados.get("data_adendo") or "").strip() or None,
             "valor_recorrente": valor_recorrente,
             "valor_pontual": valor_pontual,
+            "valor_setup": valor_setup,
             "quantidade_usuarios": quantidade_usuarios,
             "observacoes": (dados.get("observacoes") or "").strip() or None,
         }

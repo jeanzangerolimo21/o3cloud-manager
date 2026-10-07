@@ -75,9 +75,12 @@ body.dark-mode .kanban-shell::-webkit-scrollbar-thumb:hover { background: #6b728
                         </div>
                         <div class="kanban-card-title" title="{{ card.cliente_nome or card.titulo }}">{{ card.cliente_nome or card.titulo }}</div>
                         <div class="kanban-meta">
+                            {% if card.origem == 'ADENDO' %}<div class="mb-1"><span class="badge text-bg-primary"><i class="bi bi-file-earmark-plus"></i> Implantação de adendo</span></div>{% endif %}
                             <div><i class="bi bi-building"></i> {{ card.cliente_cnpj|cnpj_br if card.cliente_cnpj else 'CNPJ não vinculado' }}</div>
                             <div>{{ card.parceiro_nome or card.executivo_nome or 'Sem parceiro' }}</div>
                             <div class="kanban-meta-line" title="{{ card.titulo }}">{{ card.titulo }}</div>
+                            {% if card.adendo_titulo %}<div class="kanban-meta-line" title="{{ card.adendo_titulo }}">Adendo: {{ card.numero_adendo or card.adendo_id }} · {{ card.adendo_titulo }}</div>{% endif %}
+                            {% if card.adendo_valor_setup %}<div><i class="bi bi-cash-coin"></i> Setup {{ card.adendo_valor_setup|moeda }}</div>{% endif %}
                             {% if card.data_prevista_entrega %}
                             <div><i class="bi bi-calendar-event"></i> {{ card.data_prevista_entrega|date_br }}</div>
                             {% endif %}
