@@ -1,0 +1,87 @@
+{% extends "layout/base.html" %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div><h2>Novo cancelamento</h2><p class="text-muted mb-0">Selecione um ou mais contratos ativos do mesmo cliente.</p></div>
+        <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.cancelamentos') }}"><i class="bi bi-arrow-left"></i> Voltar</a>
+    </div>
+    <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> O cadastro enviará uma solicitação para <strong>sac@o3cloud.com.br</strong>. Nenhum servidor será removido automaticamente.</div>
+    <form method="post" class="card border-0 shadow-sm" id="cancelamentoForm">
+        <div class="card-body"><div class="row g-3">
+            <div class="col-12">
+                <label class="form-label" for="contrato_busca">Contratos ativos</label>
+                <div class="position-relative"><input class="form-control" id="contrato_busca" autocomplete="off" placeholder="Digite contrato, cliente ou CNPJ"><div class="list-group position-absolute w-100 shadow-sm d-none" id="contrato_resultados" style="z-index:1050;max-height:280px;overflow-y:auto"></div></div>
+                <div class="form-text">Depois do primeiro contrato, somente contratos do mesmo cliente poderão ser adicionados.</div>
+                <div class="mt-3 d-flex flex-column gap-2" id="contratos_selecionados"></div>
+            </div>
+            <div class="col-md-7"><label class="form-label">Motivo do cancelamento</label><input class="form-control" name="motivo" maxlength="255" required value="{{ cancelamento.motivo or '' }}"></div>
+            <div class="col-md-5"><label class="form-label">Desligar servidor a partir de</label><input class="form-control" type="datetime-local" name="data_desligamento" required value="{{ cancelamento.data_desligamento or '' }}"></div>
+            <div class="col-md-4"><label class="form-label">Monitoramento</label><textarea class="form-control" name="detalhes_monitoramento" rows="4" placeholder="Zabbix, itens, hosts ou outras orientações">{{ cancelamento.detalhes_monitoramento or '' }}</textarea></div>
+            <div class="col-md-4"><label class="form-label">Backup</label><textarea class="form-control" name="detalhes_backup" rows="4" placeholder="PBS, NAS, retenção ou outras orientações">{{ cancelamento.detalhes_backup or '' }}</textarea></div>
+            <div class="col-md-4"><label class="form-label">Remoção do ambiente</label><textarea class="form-control" name="detalhes_ambiente" rows="4" placeholder="Servidores, VMs, recursos ou outras orientações">{{ cancelamento.detalhes_ambiente or '' }}</textarea></div>
+            <div class="col-12"><label class="form-label">Observações relevantes</label><textarea class="form-control" name="observacoes" rows="4" placeholder="Qualquer informação adicional será incluída no corpo do e-mail">{{ cancelamento.observacoes or '' }}</textarea></div>
+        </div></div>
+        <div class="card-footer bg-white text-end"><button class="btn btn-danger"><i class="bi bi-send"></i> Registrar e enviar ao SAC</button></div>
+    </form>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    let contratos = {{ contratos|tojson }} || [];
+    const idsIniciais = {{ selecionados|tojson }}.map(String);
+    const selecionados = new Map();
+    const busca = document.getElementById('contrato_busca');
+    const resultados = document.getElementById('contrato_resultados');
+    const lista = document.getElementById('contratos_selecionados');
+    const form = document.getElementById('cancelamentoForm');
+    let debounceId = null;
+
+    function digitos(valor) { return String(valor || '').replace(/\D/g, ''); }
+    function cnpj(valor) { const d=digitos(valor); return d.length===14 ? `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}` : (valor || 'CNPJ não informado'); }
+    function label(item) { return `Contrato ${item.numero || item.id} - ${item.cliente_nome || item.cliente_razao_social || 'Cliente'} - ${cnpj(item.cliente_cnpj)}`; }
+    function clienteAtual() { const primeiro=selecionados.values().next(); return primeiro.done ? null : String(primeiro.value.cliente_id); }
+
+    function renderSelecionados() {
+        lista.innerHTML = '';
+        selecionados.forEach(function (item) {
+            const row=document.createElement('div'); row.className='border rounded p-2 d-flex justify-content-between align-items-center gap-2';
+            const texto=document.createElement('div');
+            const titulo=document.createElement('strong'); titulo.textContent=item.numero || item.id;
+            const cliente=document.createTextNode(` — ${item.cliente_nome || item.cliente_razao_social || 'Cliente'}`);
+            const quebra=document.createElement('br');
+            const documento=document.createElement('small'); documento.className='text-muted'; documento.textContent=cnpj(item.cliente_cnpj);
+            texto.append(titulo, cliente, quebra, documento);
+            const hidden=document.createElement('input'); hidden.type='hidden'; hidden.name='contrato_ids'; hidden.value=item.id;
+            const remover=document.createElement('button'); remover.type='button'; remover.className='btn btn-sm btn-outline-danger'; remover.innerHTML='<i class="bi bi-x-lg"></i>'; remover.addEventListener('click', function(){ selecionados.delete(String(item.id)); renderSelecionados(); });
+            row.append(texto, hidden, remover); lista.appendChild(row);
+        });
+        if (!selecionados.size) lista.innerHTML='<div class="text-muted border rounded p-3">Nenhum contrato selecionado.</div>';
+    }
+
+    function renderResultados(itens) {
+        resultados.innerHTML=''; const cliente=clienteAtual();
+        itens.slice(0,15).forEach(function(item){
+            const botao=document.createElement('button'); botao.type='button'; botao.className='list-group-item list-group-item-action';
+            const outroCliente=cliente && String(item.cliente_id)!==cliente;
+            const indisponivel=item.cancelamento_ativo || selecionados.has(String(item.id)) || outroCliente;
+            botao.disabled=indisponivel;
+            botao.textContent=label(item) + (item.cancelamento_ativo ? ` (cancelamento #${item.cancelamento_id})` : outroCliente ? ' (outro cliente)' : selecionados.has(String(item.id)) ? ' (selecionado)' : '');
+            botao.addEventListener('click', function(){ selecionados.set(String(item.id), item); busca.value=''; resultados.classList.add('d-none'); renderSelecionados(); });
+            resultados.appendChild(botao);
+        });
+        if (!itens.length) resultados.innerHTML='<div class="list-group-item text-muted">Nenhum contrato ativo encontrado.</div>';
+        resultados.classList.remove('d-none');
+    }
+
+    function buscar(termo) {
+        const url=new URL("{{ url_for('financeiro.pesquisar_contratos_cancelamento') }}", window.location.origin); if(termo) url.searchParams.set('q',termo);
+        fetch(url,{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():Promise.reject()).then(p=>{ contratos=p.contratos||[]; renderResultados(contratos); }).catch(()=>renderResultados(contratos));
+    }
+    busca.addEventListener('input', function(){ clearTimeout(debounceId); const termo=busca.value.trim(); debounceId=setTimeout(()=>buscar(termo),250); });
+    busca.addEventListener('focus', function(){ renderResultados(contratos); });
+    document.addEventListener('click', function(e){ if(!resultados.contains(e.target)&&e.target!==busca) resultados.classList.add('d-none'); });
+    form.addEventListener('submit', function(e){ if(!selecionados.size){ e.preventDefault(); busca.setCustomValidity('Selecione ao menos um contrato ativo.'); busca.reportValidity(); } });
+    contratos.filter(item=>idsIniciais.includes(String(item.id))).forEach(item=>selecionados.set(String(item.id),item));
+    renderSelecionados();
+});
+</script>
+{% endblock %}

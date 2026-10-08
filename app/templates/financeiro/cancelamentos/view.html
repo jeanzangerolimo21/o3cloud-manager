@@ -1,0 +1,31 @@
+{% extends "layout/base.html" %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div><h2>{{ cancelamento.cliente_nome }}</h2><p class="text-muted mb-0">Cancelamento #{{ cancelamento.id }} · {{ cancelamento.cliente_cnpj|cnpj_br }}</p></div>
+        <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.cancelamentos') }}"><i class="bi bi-arrow-left"></i> Voltar</a>
+    </div>
+    <div class="alert alert-danger"><strong>DESLIGAMENTO PROGRAMADO</strong><br>{{ cancelamento.data_desligamento|datetime_br }}</div>
+    <div class="row g-4">
+        <div class="col-lg-8"><div class="card border-0 shadow-sm"><div class="card-body"><dl class="row mb-0">
+            <dt class="col-sm-4">Cliente</dt><dd class="col-sm-8">{{ cancelamento.cliente_nome }}<br><small class="text-muted">{{ cancelamento.cliente_razao_social }} · {{ cancelamento.cliente_cnpj|cnpj_br }}</small></dd>
+            <dt class="col-sm-4">Contratos ativos selecionados</dt><dd class="col-sm-8">{% for contrato in cancelamento.contratos %}<span class="badge text-bg-light border me-1">{{ contrato.numero or contrato.id }} · {{ contrato.status }}</span>{% else %}-{% endfor %}</dd>
+            <dt class="col-sm-4">Motivo</dt><dd class="col-sm-8">{{ cancelamento.motivo }}</dd>
+            <dt class="col-sm-4">Monitoramento</dt><dd class="col-sm-8">{{ cancelamento.detalhes_monitoramento or 'Remover todas as rotinas vinculadas.' }}</dd>
+            <dt class="col-sm-4">Backup</dt><dd class="col-sm-8">{{ cancelamento.detalhes_backup or 'Remover todas as rotinas, observando a retenção interna.' }}</dd>
+            <dt class="col-sm-4">Remoção do ambiente</dt><dd class="col-sm-8">{{ cancelamento.detalhes_ambiente or 'Validar os recursos antes da remoção definitiva.' }}</dd>
+            <dt class="col-sm-4">Observações</dt><dd class="col-sm-8" style="white-space:pre-line">{{ cancelamento.observacoes or '-' }}</dd>
+            <dt class="col-sm-4">Solicitado por</dt><dd class="col-sm-8">{{ cancelamento.solicitado_por_nome or cancelamento.solicitado_por_email or '-' }} em {{ cancelamento.created_at|datetime_br }}</dd>
+        </dl></div></div>
+        {% if cancelamento.ambientes %}<div class="card border-0 shadow-sm mt-4"><div class="card-header bg-white"><strong>Ambientes localizados</strong></div><div class="list-group list-group-flush">{% for ambiente in cancelamento.ambientes %}<div class="list-group-item"><strong>{{ ambiente.nome or ('Ambiente #' ~ ambiente.id) }}</strong><br><small class="text-muted">{{ ambiente.ambiente_tipo or '-' }} · {{ ambiente.situacao or '-' }} · {{ ambiente.prefixo_proxmox or 'sem prefixo' }}</small></div>{% endfor %}</div></div>{% endif %}
+        </div>
+        <div class="col-lg-4"><div class="card border-0 shadow-sm"><div class="card-header bg-white"><strong>Envio ao SAC</strong></div><div class="card-body">
+            <p><strong>Destinatário:</strong><br>{{ cancelamento.destinatario_email }}</p>
+            <p><strong>Status:</strong><br>{% if cancelamento.email_enviado %}<span class="badge bg-success">Enviado</span> em {{ cancelamento.email_enviado_em|datetime_br }}{% else %}<span class="badge bg-warning text-dark">Pendente/erro</span>{% endif %}</p>
+            <p><strong>Tentativas:</strong> {{ cancelamento.email_tentativas }}</p>
+            {% if cancelamento.erro_email %}<div class="alert alert-warning small">{{ cancelamento.erro_email }}</div>{% endif %}
+            {% if pode_editar('cancelamentos') %}<form method="post" action="{{ url_for('financeiro.reenviar_cancelamento', cancelamento_id=cancelamento.id) }}"><button class="btn btn-outline-primary w-100"><i class="bi bi-envelope-arrow-up"></i> Reenviar solicitação</button></form>{% endif %}
+        </div></div></div>
+    </div>
+</div>
+{% endblock %}

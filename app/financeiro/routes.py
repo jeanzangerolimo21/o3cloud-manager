@@ -12,6 +12,8 @@ from flask import session
 from flask import url_for
 
 from app.configuracoes.sincronismos_service import SincronismosAgendadosService
+from app.core.auditoria import registrar_evento
+from app.financeiro.cancelamentos_service import CancelamentoService
 from app.financeiro.inadimplencias_service import InadimplenciaService
 from app.financeiro.reajuste_service import ReajusteContratoService
 from app.financeiro.service import FinanceiroService
@@ -452,6 +454,94 @@ def liberar_inadimplencia(inadimplencia_id):
     else:
         flash("Pendência financeira liberada.", "success")
     return redirect(url_for("financeiro.visualizar_inadimplencia", inadimplencia_id=inadimplencia_id))
+
+
+@financeiro_bp.route("/financeiro/cancelamentos")
+def cancelamentos():
+    pagina = max(1, request.args.get("page", 1, type=int))
+    filtros = {
+        "q": request.args.get("q"),
+        "email_status": request.args.get("email_status"),
+        "data_de": request.args.get("data_de"),
+        "data_ate": request.args.get("data_ate"),
+    }
+    itens, total = CancelamentoService.listar(filtros, pagina)
+    return render_template(
+        "financeiro/cancelamentos/index.html",
+        cancelamentos=itens,
+        total=total,
+        pagina=pagina,
+        total_paginas=(total + 49) // 50,
+        filtros=filtros,
+    )
+
+
+@financeiro_bp.route("/financeiro/cancelamentos/novo", methods=["GET", "POST"])
+def novo_cancelamento():
+    if request.method == "POST":
+        try:
+            resultado = CancelamentoService.registrar(
+                request.form,
+                usuario_id=session.get("usuario_id"),
+                usuario_email=_email_usuario_logado(),
+            )
+        except ValueError as erro:
+            flash(str(erro), "danger")
+        else:
+            registrar_evento(
+                "CANCELAMENTO_CLIENTE_REGISTRADO",
+                "financeiro_cancelamentos",
+                resultado["id"],
+                {"contrato_ids": request.form.getlist("contrato_ids"), "email_enviado": bool(resultado["email"].get("enviado"))},
+            )
+            if resultado["email"].get("enviado"):
+                flash("Cancelamento registrado e enviado para sac@o3cloud.com.br.", "success")
+            else:
+                flash("Cancelamento registrado, mas o e-mail não foi enviado. Verifique o detalhe para reenviar.", "warning")
+            return redirect(url_for("financeiro.visualizar_cancelamento", cancelamento_id=resultado["id"]))
+    pesquisa = request.args.get("q") or request.form.get("q")
+    return render_template(
+        "financeiro/cancelamentos/form.html",
+        cancelamento=request.form if request.method == "POST" else {},
+        selecionados=request.form.getlist("contrato_ids") if request.method == "POST" else [],
+        pesquisa=pesquisa,
+        **CancelamentoService.contexto_form(pesquisa),
+    )
+
+
+@financeiro_bp.route("/financeiro/cancelamentos/contratos")
+def pesquisar_contratos_cancelamento():
+    pesquisa = (request.args.get("q") or "").strip()
+    return jsonify({"contratos": CancelamentoService.contratos_para_busca(pesquisa)})
+
+
+@financeiro_bp.route("/financeiro/cancelamentos/<int:cancelamento_id>")
+def visualizar_cancelamento(cancelamento_id):
+    cancelamento = CancelamentoService.buscar_por_id(cancelamento_id)
+    if not cancelamento:
+        flash("Cancelamento não encontrado.", "danger")
+        return redirect(url_for("financeiro.cancelamentos"))
+    return render_template("financeiro/cancelamentos/view.html", cancelamento=cancelamento)
+
+
+@financeiro_bp.route("/financeiro/cancelamentos/<int:cancelamento_id>/reenviar", methods=["POST"])
+def reenviar_cancelamento(cancelamento_id):
+    try:
+        resultado = CancelamentoService.reenviar(cancelamento_id)
+    except ValueError as erro:
+        flash(str(erro), "danger")
+    else:
+        registrar_evento(
+            "CANCELAMENTO_CLIENTE_EMAIL_REENVIADO",
+            "financeiro_cancelamentos",
+            cancelamento_id,
+            {"email_enviado": bool(resultado.get("enviado"))},
+        )
+        if resultado.get("enviado"):
+            flash("Solicitação reenviada para sac@o3cloud.com.br.", "success")
+        else:
+            flash(f"E-mail não enviado: {resultado.get('motivo') or resultado.get('erro') or 'falha não informada'}.", "warning")
+    return redirect(url_for("financeiro.visualizar_cancelamento", cancelamento_id=cancelamento_id))
 
 
 @financeiro_bp.route("/dashboard/executivo")

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-08 - Solicitações de cancelamento de clientes
+
+- Novo menu `Financeiro > Cancelamentos`, posicionado abaixo de `Inadimplentes`.
+- O formulário permite selecionar um ou mais contratos ativos do mesmo cliente e informar data/hora de desligamento, motivo, orientações de monitoramento, backup, remoção do ambiente e observações.
+- A solicitação é enviada para `sac@o3cloud.com.br` com cliente e CNPJ no assunto e todos os contratos selecionados no corpo.
+- Falhas SMTP preservam o registro, exibem o motivo e permitem reenvio pela tela de detalhes.
+- A migration `137_create_financeiro_cancelamentos.sql` cria o registro, a relação de múltiplos contratos e as permissões para Diretoria e Financeiro.
+- Especificação funcional disponível em `docs/67-CANCELAMENTOS-CLIENTES.md`.
+
 ## 2026-10-07 - CNPJ do cliente nos recibos de campanhas
 
 - Os recibos PDF de pagamento de campanha para parceiro e executivo passaram a exibir o CNPJ formatado abaixo do nome do cliente.

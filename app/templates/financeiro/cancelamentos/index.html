@@ -1,0 +1,28 @@
+{% extends "layout/base.html" %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div><h2><i class="bi bi-x-octagon text-danger"></i> Cancelamentos</h2><p class="text-muted mb-0">Solicitações de desligamento e remoção operacional de ambientes de clientes.</p></div>
+        {% if pode_editar('cancelamentos') %}<a class="btn btn-danger" href="{{ url_for('financeiro.novo_cancelamento') }}"><i class="bi bi-plus-circle"></i> Novo cancelamento</a>{% endif %}
+    </div>
+    <form method="get" class="card border-0 shadow-sm mb-3"><div class="card-body"><div class="row g-2 align-items-end">
+        <div class="col-md-4"><label class="form-label">Buscar</label><input class="form-control" name="q" value="{{ filtros.q or '' }}" placeholder="Cliente, CNPJ ou contrato"></div>
+        <div class="col-md-2"><label class="form-label">E-mail</label><select class="form-select" name="email_status"><option value="">Todos</option><option value="ENVIADO" {% if filtros.email_status == 'ENVIADO' %}selected{% endif %}>Enviado</option><option value="ERRO" {% if filtros.email_status == 'ERRO' %}selected{% endif %}>Pendente/erro</option></select></div>
+        <div class="col-md-2"><label class="form-label">Desligamento de</label><input class="form-control" type="date" name="data_de" value="{{ filtros.data_de or '' }}"></div>
+        <div class="col-md-2"><label class="form-label">Desligamento até</label><input class="form-control" type="date" name="data_ate" value="{{ filtros.data_ate or '' }}"></div>
+        <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-search"></i> Filtrar</button></div>
+    </div></div></form>
+    <div class="mb-3 text-muted">{{ total }} registro(s) encontrado(s)</div>
+    <div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Cliente</th><th>Contratos</th><th>Desligamento</th><th>Solicitado por</th><th>E-mail SAC</th><th class="text-end">Ações</th></tr></thead>
+        <tbody>{% for item in cancelamentos %}<tr>
+            <td><strong>{{ item.cliente_nome }}</strong><br><small class="text-muted">{{ item.cliente_cnpj|cnpj_br }}</small></td>
+            <td>{{ item.contratos_numeros or '-' }}<br><small class="text-muted">{{ item.total_contratos }} contrato(s)</small></td>
+            <td><strong>{{ item.data_desligamento|datetime_br }}</strong></td>
+            <td>{{ item.solicitado_por_nome or item.solicitado_por_email or '-' }}<br><small class="text-muted">{{ item.created_at|datetime_br }}</small></td>
+            <td>{% if item.email_enviado %}<span class="badge bg-success">Enviado</span>{% else %}<span class="badge bg-warning text-dark">Pendente/erro</span>{% endif %}<br><small class="text-muted">{{ item.email_tentativas }} tentativa(s)</small></td>
+            <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('financeiro.visualizar_cancelamento', cancelamento_id=item.id) }}" title="Visualizar"><i class="bi bi-eye"></i></a></td>
+        </tr>{% else %}<tr><td colspan="6" class="text-center text-muted py-4">Nenhum cancelamento registrado.</td></tr>{% endfor %}</tbody>
+    </table></div></div>
+</div>
+{% endblock %}
