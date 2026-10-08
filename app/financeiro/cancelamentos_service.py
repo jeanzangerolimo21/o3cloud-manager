@@ -43,9 +43,13 @@ class CancelamentoService:
         clientes = {contrato["cliente_id"] for contrato in contratos}
         if len(clientes) != 1:
             raise ValueError("Selecione somente contratos pertencentes ao mesmo cliente.")
-        inativos = [contrato.get("numero") for contrato in contratos if contrato.get("status") != "ATIVO"]
+        status_permitidos = {"ATIVO", "ENCAMINHADO_PROJETO"}
+        inativos = [contrato.get("numero") for contrato in contratos if contrato.get("status") not in status_permitidos]
         if inativos:
-            raise ValueError(f"Somente contratos ativos podem ser cancelados: {', '.join(inativos)}.")
+            raise ValueError(
+                "Somente contratos ativos ou encaminhados para projeto podem ser cancelados: "
+                f"{', '.join(inativos)}."
+            )
         existentes = cls.repository.buscar_ativos_por_contratos(payload["contrato_ids"])
         if existentes:
             ids = sorted({str(item["id"]) for item in existentes})
@@ -145,7 +149,7 @@ Esta mensagem registra uma solicitação operacional. Nenhum recurso foi removid
             if contrato_id and contrato_id not in contrato_ids:
                 contrato_ids.append(contrato_id)
         if not contrato_ids:
-            raise ValueError("Selecione ao menos um contrato ativo.")
+            raise ValueError("Selecione ao menos um contrato ativo ou encaminhado para projeto.")
         motivo = (dados.get("motivo") or "").strip()
         if not motivo:
             raise ValueError("Informe o motivo do cancelamento.")

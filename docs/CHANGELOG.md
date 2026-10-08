@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-08 - Cancelamento de contratos em implantação
+
+- A busca e a validação de cancelamentos passaram a aceitar contratos nos status `ATIVO` e `ENCAMINHADO_PROJETO`.
+- Contratos ainda em implantação podem ser selecionados individualmente ou junto de outros contratos elegíveis do mesmo cliente.
+
 ## 2026-10-08 - Solicitações de cancelamento de clientes
 
 - Novo menu `Financeiro > Cancelamentos`, posicionado abaixo de `Inadimplentes`.

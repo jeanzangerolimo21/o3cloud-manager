@@ -7,7 +7,7 @@ Criar, abaixo de `Financeiro > Inadimplentes`, um fluxo rastreável para solicit
 ## Fluxo funcional
 
 1. O usuário acessa `Financeiro > Cancelamentos` e seleciona `Novo cancelamento`.
-2. Seleciona um ou mais contratos ativos por número, cliente, razão social ou CNPJ.
+2. Seleciona um ou mais contratos com status `ATIVO` ou `ENCAMINHADO_PROJETO` por número, cliente, razão social ou CNPJ.
 3. Todos os contratos selecionados devem pertencer ao mesmo cliente.
 4. Informa obrigatoriamente o motivo e a data/hora a partir da qual o servidor deverá ser desligado.
 5. Confirma as providências de monitoramento, backup e remoção total do ambiente e pode complementar cada uma com detalhes técnicos.
@@ -19,7 +19,7 @@ Criar, abaixo de `Financeiro > Inadimplentes`, um fluxo rastreável para solicit
 ## Conteúdo do e-mail
 
 - Assunto: `Cancelamento - <cliente> - <CNPJ>`.
-- Cliente, razão social, CNPJ e a relação de contratos ativos selecionados.
+- Cliente, razão social, CNPJ e a relação de contratos elegíveis selecionados.
 - Motivo e observações do cancelamento.
 - Data e hora programadas para o desligamento.
 - Responsável pela solicitação.
@@ -46,7 +46,7 @@ Criar, abaixo de `Financeiro > Inadimplentes`, um fluxo rastreável para solicit
 ## Critérios de aceite
 
 - Menu `Cancelamentos` visível abaixo de `Inadimplentes` para usuários autorizados.
-- Busca de contratos ativos por cliente, CNPJ ou número, com seleção múltipla para o mesmo cliente.
+- Busca de contratos ativos ou encaminhados para projeto por cliente, CNPJ ou número, com seleção múltipla para o mesmo cliente.
 - Data/hora de desligamento e motivo obrigatórios.
 - Registro persistido mesmo se o SMTP falhar.
 - Observações relevantes reproduzidas no corpo do e-mail.

@@ -71,7 +71,7 @@ class CancelamentoRepository(BaseRepository):
     @classmethod
     def contratos_para_select(cls, pesquisa=None, limit=100):
         params = []
-        where = ["c.ativo=1", "c.status='ATIVO'"]
+        where = ["c.ativo=1", "c.status IN ('ATIVO', 'ENCAMINHADO_PROJETO')"]
         if pesquisa:
             termo = f"%{pesquisa.strip()}%"
             cnpj = "".join(ch for ch in pesquisa if ch.isalnum()).upper()

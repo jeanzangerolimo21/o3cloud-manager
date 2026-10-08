@@ -2,14 +2,14 @@
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-        <div><h2>Novo cancelamento</h2><p class="text-muted mb-0">Selecione um ou mais contratos ativos do mesmo cliente.</p></div>
+        <div><h2>Novo cancelamento</h2><p class="text-muted mb-0">Selecione contratos ativos ou encaminhados para projeto do mesmo cliente.</p></div>
         <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.cancelamentos') }}"><i class="bi bi-arrow-left"></i> Voltar</a>
     </div>
     <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> O cadastro enviará uma solicitação para <strong>sac@o3cloud.com.br</strong>. Nenhum servidor será removido automaticamente.</div>
     <form method="post" class="card border-0 shadow-sm" id="cancelamentoForm">
         <div class="card-body"><div class="row g-3">
             <div class="col-12">
-                <label class="form-label" for="contrato_busca">Contratos ativos</label>
+                <label class="form-label" for="contrato_busca">Contratos elegíveis</label>
                 <div class="position-relative"><input class="form-control" id="contrato_busca" autocomplete="off" placeholder="Digite contrato, cliente ou CNPJ"><div class="list-group position-absolute w-100 shadow-sm d-none" id="contrato_resultados" style="z-index:1050;max-height:280px;overflow-y:auto"></div></div>
                 <div class="form-text">Depois do primeiro contrato, somente contratos do mesmo cliente poderão ser adicionados.</div>
                 <div class="mt-3 d-flex flex-column gap-2" id="contratos_selecionados"></div>
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function () {
             botao.addEventListener('click', function(){ selecionados.set(String(item.id), item); busca.value=''; resultados.classList.add('d-none'); renderSelecionados(); });
             resultados.appendChild(botao);
         });
-        if (!itens.length) resultados.innerHTML='<div class="list-group-item text-muted">Nenhum contrato ativo encontrado.</div>';
+        if (!itens.length) resultados.innerHTML='<div class="list-group-item text-muted">Nenhum contrato ativo ou encaminhado para projeto encontrado.</div>';
         resultados.classList.remove('d-none');
     }
 
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
     busca.addEventListener('input', function(){ clearTimeout(debounceId); const termo=busca.value.trim(); debounceId=setTimeout(()=>buscar(termo),250); });
     busca.addEventListener('focus', function(){ renderResultados(contratos); });
     document.addEventListener('click', function(e){ if(!resultados.contains(e.target)&&e.target!==busca) resultados.classList.add('d-none'); });
-    form.addEventListener('submit', function(e){ if(!selecionados.size){ e.preventDefault(); busca.setCustomValidity('Selecione ao menos um contrato ativo.'); busca.reportValidity(); } });
+    form.addEventListener('submit', function(e){ if(!selecionados.size){ e.preventDefault(); busca.setCustomValidity('Selecione ao menos um contrato elegível.'); busca.reportValidity(); } });
     contratos.filter(item=>idsIniciais.includes(String(item.id))).forEach(item=>selecionados.set(String(item.id),item));
     renderSelecionados();
 });

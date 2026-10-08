@@ -16,7 +16,7 @@ class DadosMultiplos(dict):
 def _contratos():
     return [
         {"id": 10, "numero": "2026/010", "status": "ATIVO", "cliente_id": 7},
-        {"id": 11, "numero": "2026/011", "status": "ATIVO", "cliente_id": 7},
+        {"id": 11, "numero": "2026/011", "status": "ENCAMINHADO_PROJETO", "cliente_id": 7},
     ]
 
 
@@ -113,12 +113,12 @@ def test_migration_cria_relacao_multiplos_contratos():
     assert "'cancelamentos'" in sql
 
 
-def test_consulta_disponibiliza_somente_contratos_ativos():
+def test_consulta_disponibiliza_contratos_ativos_e_encaminhados_para_projeto():
     sql = CancelamentoRepository.contratos_para_select.__func__.__code__.co_consts
     texto = " ".join(item for item in sql if isinstance(item, str))
 
     assert "c.ativo=1" in texto
-    assert "c.status='ATIVO'" in texto
+    assert "c.status IN ('ATIVO', 'ENCAMINHADO_PROJETO')" in texto
 
 
 def test_menu_e_endpoints_usam_permissao_cancelamentos():
