@@ -373,15 +373,30 @@ class ClienteRepository(BaseRepository):
     @classmethod
     def upsert_omie(cls, dados):
 
-        cliente = cls.buscar_por_codigo_externo(
-            dados.get("codigo_externo")
-        )
+        cliente_codigo = cls.buscar_por_codigo_externo(dados.get("codigo_externo"))
+        cliente_cnpj = None
+        if dados.get("cnpj"):
+            cliente_cnpj = cls.buscar_por_cnpj(dados.get("cnpj"))
 
-        if not cliente and dados.get("cnpj"):
-
-            cliente = cls.buscar_por_cnpj(
-                dados.get("cnpj")
+        # O codigo do cliente pode ter sido associado anteriormente a outro
+        # cadastro (por exemplo, antes de um cadastro manual com o mesmo CNPJ
+        # ser conciliado). Nesse caso, atualizar o registro encontrado pelo
+        # codigo causaria a violacao de uk_clientes_cnpj. O CNPJ e a identidade
+        # local unica: promovemos seu registro para OMIE e retiramos o codigo
+        # obsoleto do outro cadastro.
+        if (
+            cliente_codigo
+            and cliente_cnpj
+            and cliente_codigo["id"] != cliente_cnpj["id"]
+        ):
+            cls.conciliar_omie(
+                cliente_codigo["id"],
+                cliente_cnpj["id"],
+                dados,
             )
+            return "UPDATE"
+        else:
+            cliente = cliente_codigo or cliente_cnpj
 
         if cliente:
 
@@ -395,6 +410,50 @@ class ClienteRepository(BaseRepository):
         cls.inserir(dados)
 
         return "INSERT"
+
+    @classmethod
+    def conciliar_omie(cls, cliente_codigo_id, cliente_cnpj_id, dados):
+        conn = cls.connection()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+                UPDATE clientes
+                SET codigo_externo=NULL
+                WHERE id=%s
+            """, (cliente_codigo_id,))
+            cursor.execute("""
+                UPDATE clientes
+                SET
+                    codigo_externo=%s,
+                    origem=%s,
+                    nome_fantasia=%s,
+                    razao_social=%s,
+                    cnpj=%s,
+                    email=%s,
+                    telefone=%s,
+                    cidade=%s,
+                    estado=%s,
+                    synced_at=NOW()
+                WHERE id=%s
+            """, (
+                dados.get("codigo_externo"),
+                dados.get("origem"),
+                dados.get("nome_fantasia"),
+                dados.get("razao_social"),
+                dados.get("cnpj"),
+                dados.get("email"),
+                dados.get("telefone"),
+                dados.get("cidade"),
+                dados.get("estado"),
+                cliente_cnpj_id,
+            ))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cls.close(conn, cursor)
 
     @classmethod
     def excluir(cls, cliente_id):
