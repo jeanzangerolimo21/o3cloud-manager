@@ -1,9 +1,12 @@
 from flask import Blueprint
+from flask import current_app
 from flask import render_template
 from flask import flash
 from flask import request
 from flask import redirect
 from flask import url_for
+from flask import jsonify
+from app.clientes.cnpj_service import CnpjService
 from app.clientes.implantacao_service import ImplantacaoService
 from app.clientes.service import ClienteService
 from app.integracoes.omie.sync import OmieSync
@@ -134,6 +137,20 @@ def novo():
         "clientes/form.html"
 
     )
+
+
+@clientes_bp.route("/consulta-cnpj")
+def consultar_cnpj():
+    try:
+        dados = CnpjService.consultar(request.args.get("cnpj"))
+    except ValueError as erro:
+        return jsonify({"ok": False, "erro": str(erro)}), 400
+    except LookupError as erro:
+        return jsonify({"ok": False, "erro": str(erro)}), 404
+    except RuntimeError as erro:
+        current_app.logger.warning("Falha na consulta de CNPJ: %s", erro)
+        return jsonify({"ok": False, "erro": str(erro)}), 502
+    return jsonify({"ok": True, **dados})
 
 @clientes_bp.route("/excluir-em-massa", methods=["POST"])
 def excluir_em_massa():
