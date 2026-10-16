@@ -34,7 +34,10 @@ class JsonFormatter(logging.Formatter):
             payload["user_agent"] = (request.headers.get("User-Agent") or "")[:255]
             if session.get("usuario_id"):
                 payload["usuario_id"] = session.get("usuario_id")
-        for key in ("operation", "service", "repository", "status_code", "duration_ms", "exception_type"):
+        for key in (
+            "operation", "service", "repository", "status_code", "duration_ms", "exception_type",
+            "recipient", "target_user_id", "actor_email", "smtp_origin", "failure_reason",
+        ):
             value = getattr(record, key, None)
             if value is not None:
                 payload[key] = value
@@ -70,6 +73,7 @@ def configure_logging():
         "integrations": ("integrations.log", logging.INFO),
         "security": ("security.log", logging.INFO),
         "jobs": ("jobs.log", logging.INFO),
+        "emails": ("emails.log", logging.INFO),
     }
     for category, (filename, level) in files.items():
         logger = get_logger(category)

@@ -15,9 +15,14 @@ from werkzeug.security import generate_password_hash
 
 from app.core.access_control import MENU_PERMISSOES
 from app.core.email import EmailService
+from app.core.logging_config import get_logger
 from app.core.storage import StorageService
 from app.implantacao.cofre_senhas_service import CofreSenhaService
 from app.repositories.auth_repository import AuthRepository
+
+
+email_logger = get_logger("emails")
+
 
 class AuthConfigService:
     repository = AuthRepository
@@ -611,14 +616,54 @@ class AuthConfigService:
             f"{link}\n\n"
             "Caso você não reconheça este convite, ignore esta mensagem."
         )
+        log_context = {
+            "service": "AUTH_INVITATION",
+            "recipient": usuario.get("email"),
+            "target_user_id": usuario_id,
+            "actor_email": usuario_email or "sistema",
+        }
+        email_logger.info(
+            "Tentativa de envio de convite iniciada",
+            extra={**log_context, "operation": "CONVITE_EMAIL_TENTATIVA"},
+        )
         try:
             resultado = EmailService.enviar(assunto, corpo, [usuario.get("email")])
         except Exception as erro:
+            motivo = cls._mensagem_segura(erro)
             resultado = {
                 "enviado": False,
-                "motivo": cls._mensagem_segura(erro),
+                "motivo": motivo,
                 "destinatarios": [usuario.get("email")],
             }
+            email_logger.exception(
+                "Falha no envio de convite",
+                extra={
+                    **log_context,
+                    "operation": "CONVITE_EMAIL_FALHA",
+                    "exception_type": type(erro).__name__,
+                    "failure_reason": motivo,
+                },
+            )
+        else:
+            if resultado.get("enviado"):
+                email_logger.info(
+                    "Convite aceito pelo servidor SMTP",
+                    extra={
+                        **log_context,
+                        "operation": "CONVITE_EMAIL_ACEITO_SMTP",
+                        "smtp_origin": resultado.get("origem_config"),
+                    },
+                )
+            else:
+                email_logger.warning(
+                    "Convite nao enviado",
+                    extra={
+                        **log_context,
+                        "operation": "CONVITE_EMAIL_FALHA",
+                        "smtp_origin": resultado.get("origem_config"),
+                        "failure_reason": resultado.get("motivo") or "motivo_nao_informado",
+                    },
+                )
         cls._auditar(usuario_email, "CONVITE_ENVIADO", "auth_usuarios", usuario_id, usuario.get("email"))
         return {"link": link, "email": usuario.get("email"), "email_resultado": resultado}
 
