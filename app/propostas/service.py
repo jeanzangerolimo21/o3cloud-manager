@@ -107,11 +107,12 @@ class PropostaService:
     @classmethod
     def listar_contexto_form(cls, executivo_email=None):
         executivos = ParceiroExecutivoService.listar_todos_ativos()
+        contatos_ativos = ContatoService.listar_todos_ativos()
         return {
             "oportunidades": OportunidadeRepository.listar_todos_ativos(),
             "clientes": ClienteService.listar_para_importacao(),
-            "contatos": ContatoService.listar_todos_ativos("COMERCIAL"),
-            "representantes_legais": ContatoService.listar_todos_ativos("REPRESENTANTE_LEGAL"),
+            "contatos": cls._filtrar_contatos_por_tipos(contatos_ativos, "COMERCIAL", "REPRESENTANTE_LEGAL"),
+            "representantes_legais": cls._filtrar_contatos_por_tipos(contatos_ativos, "REPRESENTANTE_LEGAL"),
             "executivos": executivos,
             "produtos_fechados": cls.listar_produtos_fechados(),
             "licencas_catalogo": PrecoCatalogoRepository.listar_licenciamento(),
@@ -121,6 +122,14 @@ class PropostaService:
             "clicksign_status_options": STATUS_CLICKSIGN,
             "condicoes_pagamento_options": CONDICOES_PAGAMENTO,
         }
+
+    @staticmethod
+    def _filtrar_contatos_por_tipos(contatos, *tipos):
+        tipos_aceitos = {str(tipo).strip().upper() for tipo in tipos}
+        return [
+            contato for contato in contatos
+            if (contato.get("tipo_contato") or "").strip().upper() in tipos_aceitos
+        ]
 
     @classmethod
     def listar_produtos_fechados(cls):

@@ -127,7 +127,7 @@
                                     {% for contato in contatos %}
                                     {% set contato_selecionado = proposta.contato_id and proposta.contato_id|string == contato.id|string %}
                                     {% if contato_selecionado %}{% set contato_ns.encontrado = true %}{% endif %}
-                                    <option value="{{ contato.id }}" {% if contato_selecionado %}selected{% endif %}>{{ contato.nome }}{% if contato.empresa %} • {{ contato.empresa }}{% endif %}</option>
+                                    <option value="{{ contato.id }}" {% if contato_selecionado %}selected{% endif %}>{{ contato.nome }}{% if contato.empresa %} • {{ contato.empresa }}{% endif %}{% if contato.tipo_contato == 'REPRESENTANTE_LEGAL' %} • Representante Legal{% endif %}</option>
                                     {% endfor %}
                                     {% if proposta.contato_id and not contato_ns.encontrado %}
                                     <option value="{{ proposta.contato_id }}" selected>{{ proposta.contato_nome or ('Contato #' ~ proposta.contato_id) }}</option>
