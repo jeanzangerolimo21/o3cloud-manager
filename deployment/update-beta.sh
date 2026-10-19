@@ -26,10 +26,48 @@ chown -R "$APP_USER:$APP_USER" "$LOG_DIR" "$BACKUP_DIR"
 LOG_FILE="$LOG_DIR/update-system-$(date +%Y%m%d-%H%M%S).log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
-if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-  fail "Ja existe uma atualizacao em andamento ($LOCK_DIR)."
-fi
-cleanup() { rmdir "$LOCK_DIR" 2>/dev/null || true; }
+LOCK_PID_FILE="$LOCK_DIR/pid"
+
+processo_de_atualizacao_ativo() {
+  local lock_pid="$1"
+  local cmdline=""
+  [[ "$lock_pid" =~ ^[0-9]+$ ]] || return 1
+  kill -0 "$lock_pid" 2>/dev/null || return 1
+  if [ -r "/proc/$lock_pid/cmdline" ]; then
+    cmdline="$(tr '\0' ' ' < "/proc/$lock_pid/cmdline")"
+    [[ "$cmdline" == *"update-beta.sh"* ]] || return 1
+  fi
+  return 0
+}
+
+adquirir_lock() {
+  local lock_pid=""
+  if mkdir "$LOCK_DIR" 2>/dev/null; then
+    printf '%s\n' "$$" > "$LOCK_PID_FILE"
+    return 0
+  fi
+
+  if [ -r "$LOCK_PID_FILE" ]; then
+    read -r lock_pid < "$LOCK_PID_FILE" || true
+  fi
+  if processo_de_atualizacao_ativo "$lock_pid"; then
+    fail "Ja existe uma atualizacao em andamento (PID $lock_pid, lock $LOCK_DIR)."
+  fi
+
+  log "Lock orfao encontrado em $LOCK_DIR; removendo automaticamente."
+  rm -f "$LOCK_PID_FILE"
+  if ! rmdir "$LOCK_DIR" 2>/dev/null; then
+    fail "Lock orfao nao pode ser removido com seguranca: $LOCK_DIR."
+  fi
+  mkdir "$LOCK_DIR" || fail "Nao foi possivel adquirir o lock de atualizacao."
+  printf '%s\n' "$$" > "$LOCK_PID_FILE"
+}
+
+adquirir_lock
+cleanup() {
+  rm -f "$LOCK_PID_FILE"
+  rmdir "$LOCK_DIR" 2>/dev/null || true
+}
 trap cleanup EXIT
 
 cd "$APP_DIR"
