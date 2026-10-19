@@ -141,6 +141,17 @@
                     <div class="proposal-extra-block proposal-additional-info"><strong>INFORMAÇÕES ADICIONAIS:</strong><p class="mb-1">Setup: {{ proposta.setup_dias }} dias após a entrega do ambiente.</p><p class="mb-1">Mensalidade: {{ proposta.mensalidade_dias }} dias após a entrega do ambiente.</p><p class="mb-1">Prazo contratual: {{ proposta.prazo_contratual_meses }} meses.</p></div>
                     {% if proposta.arquivo %}<div class="proposal-extra-block mt-4 no-print"><strong>Anexo da proposta</strong><div class="mt-2"><a href="/storage/propostas/{{ proposta.arquivo }}" target="_blank">Abrir arquivo anexado</a></div></div>{% endif %}
                 </section>
+                <section class="proposal-section mt-4">
+                    <div class="proposal-extra-block">
+                        <strong>Condição de pagamento:</strong> {{ proposta.condicao_pagamento or 'Não informada' }}
+                        {% if proposta.parcelas_pagamento %}
+                        <table class="proposal-table small mt-3">
+                            <thead><tr><th>Parcela</th><th>Prazo</th><th class="text-end">Valor</th></tr></thead>
+                            <tbody>{% for parcela in proposta.parcelas_pagamento %}<tr><td>{{ parcela.numero }}</td><td>{{ parcela.vencimento }}</td><td class="text-end">{{ parcela.valor|moeda }}</td></tr>{% endfor %}</tbody>
+                        </table>
+                        {% endif %}
+                    </div>
+                </section>
                 {% if proposta.detalhes_negociacao or proposta.condicoes_comerciais or proposta.observacoes %}
                 <section class="proposal-section proposal-complements mt-4">
                     <h2>3. Complementos</h2>

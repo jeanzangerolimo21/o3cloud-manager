@@ -279,6 +279,7 @@ def _coletar_dados_form():
         "setup_dias": request.form.get("setup_dias"),
         "mensalidade_dias": request.form.get("mensalidade_dias"),
         "prazo_contratual_meses": request.form.get("prazo_contratual_meses"),
+        "condicao_pagamento": request.form.get("condicao_pagamento"),
         "detalhes_negociacao": request.form.get("detalhes_negociacao"),
         "condicoes_comerciais": request.form.get("condicoes_comerciais"),
         "observacoes": request.form.get("observacoes"),

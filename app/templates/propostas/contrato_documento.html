@@ -50,6 +50,9 @@
     <h2>Condicoes Comerciais</h2>
     <div class="terms">Setup: {{ proposta.setup_dias }} dias apos a entrega do ambiente.
 Mensalidade: {{ proposta.mensalidade_dias }} dias apos a entrega do ambiente.
+Condicao de pagamento: {{ proposta.condicao_pagamento or 'Nao informada' }}.
+{% for parcela in proposta.parcelas_pagamento %}Parcela {{ parcela.numero }} ({{ parcela.vencimento }}): {{ parcela.valor|moeda }}.
+{% endfor %}
 Prazo contratual: {{ proposta.prazo_contratual_meses }} meses.
 {% if proposta.detalhes_negociacao %}
 Negociacao:

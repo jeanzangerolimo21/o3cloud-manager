@@ -257,7 +257,7 @@ class PropostaRepository(BaseRepository):
                 uuid, oportunidade_id, cliente_id, contato_id, representante_legal_id, parceiro_id, executivo_responsavel_id,
                 codigo_proposta, cliente_nome, contato_nome, contato_email, contato_telefone,
                 executivo_nome, executivo_email, executivo_telefone, titulo, versao, status, validade,
-                setup_dias, mensalidade_dias, prazo_contratual_meses, detalhes_negociacao,
+                setup_dias, mensalidade_dias, prazo_contratual_meses, condicao_pagamento, detalhes_negociacao,
                 valor_total, total_mensal, parametrizacao_sistema, setup_ambiente_cloud, incluir_instalacao_recursos, instalacao_servidores, total_instalacao,
                 condicoes_comerciais, observacoes, itens_snapshot, licencas_snapshot, servidores_snapshot,
                 comentarios_comerciais, semaforo_fechamento, arquivo, ativo
@@ -265,14 +265,14 @@ class PropostaRepository(BaseRepository):
             VALUES
             (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
         """
         return cls.execute_insert(sql, (
             cls.generate_uuid(), dados.get('oportunidade_id'), dados.get('cliente_id'), dados.get('contato_id'), dados.get('representante_legal_id'), dados.get('parceiro_id'), dados.get('executivo_responsavel_id'),
             dados.get('codigo_proposta'), dados.get('cliente_nome'), dados.get('contato_nome'), dados.get('contato_email'), dados.get('contato_telefone'),
             dados.get('executivo_nome'), dados.get('executivo_email'), dados.get('executivo_telefone'), dados['titulo'], dados['versao'], dados['status'], dados.get('validade'),
-            dados.get('setup_dias'), dados.get('mensalidade_dias'), dados.get('prazo_contratual_meses'), dados.get('detalhes_negociacao'),
+            dados.get('setup_dias'), dados.get('mensalidade_dias'), dados.get('prazo_contratual_meses'), dados.get('condicao_pagamento'), dados.get('detalhes_negociacao'),
             dados.get('valor_total'), dados.get('total_mensal'), dados.get('parametrizacao_sistema'), dados.get('setup_ambiente_cloud'), cls.bool_to_int(dados.get('incluir_instalacao_recursos', False)), dados.get('instalacao_servidores'), dados.get('total_instalacao'),
             dados.get('condicoes_comerciais'), dados.get('observacoes'), dados.get('itens_snapshot'), dados.get('licencas_snapshot'), dados.get('servidores_snapshot'),
             dados.get('comentarios_comerciais'), dados.get('semaforo_fechamento'), dados.get('arquivo'), cls.bool_to_int(dados.get('ativo', True)),
@@ -303,6 +303,7 @@ class PropostaRepository(BaseRepository):
                 setup_dias = %s,
                 mensalidade_dias = %s,
                 prazo_contratual_meses = %s,
+                condicao_pagamento = %s,
                 detalhes_negociacao = %s,
                 valor_total = %s,
                 total_mensal = %s,
@@ -326,7 +327,7 @@ class PropostaRepository(BaseRepository):
             dados.get('oportunidade_id'), dados.get('cliente_id'), dados.get('contato_id'), dados.get('representante_legal_id'), dados.get('parceiro_id'), dados.get('executivo_responsavel_id'),
             dados.get('codigo_proposta'), dados.get('cliente_nome'), dados.get('contato_nome'), dados.get('contato_email'), dados.get('contato_telefone'),
             dados.get('executivo_nome'), dados.get('executivo_email'), dados.get('executivo_telefone'), dados['titulo'], dados['versao'], dados['status'], dados.get('validade'),
-            dados.get('setup_dias'), dados.get('mensalidade_dias'), dados.get('prazo_contratual_meses'), dados.get('detalhes_negociacao'),
+            dados.get('setup_dias'), dados.get('mensalidade_dias'), dados.get('prazo_contratual_meses'), dados.get('condicao_pagamento'), dados.get('detalhes_negociacao'),
             dados.get('valor_total'), dados.get('total_mensal'), dados.get('parametrizacao_sistema'), dados.get('setup_ambiente_cloud'), cls.bool_to_int(dados.get('incluir_instalacao_recursos', False)), dados.get('instalacao_servidores'), dados.get('total_instalacao'),
             dados.get('condicoes_comerciais'), dados.get('observacoes'), dados.get('itens_snapshot'), dados.get('licencas_snapshot'), dados.get('servidores_snapshot'),
             dados.get('comentarios_comerciais'), dados.get('semaforo_fechamento'), dados.get('arquivo'), cls.bool_to_int(dados.get('ativo', True)), proposta_id,

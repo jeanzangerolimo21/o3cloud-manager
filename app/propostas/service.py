@@ -52,6 +52,18 @@ STATUS_CLICKSIGN = {
     "ERRO": "Erro",
 }
 
+CONDICOES_PAGAMENTO = (
+    "À vista",
+    "7 / 21 / 35 dias",
+    "7 / 14 / 21 dias",
+    "7 / 28 / 42 / 57 dias",
+    "7 / 14 / 21 / 28 / 35 dias",
+    "Entrada + 30",
+    "Entrada + 2x",
+    "Entrada + 3x",
+    "Entrada + 4x",
+)
+
 ACAO_CLICKSIGN = {
     "preparar": "DOCUMENTO_GERADO",
     "enviar": "ENVIADO",
@@ -107,6 +119,7 @@ class PropostaService:
             "executivo_padrao_id": cls.identificar_executivo_padrao(executivo_email, executivos),
             "codigo_sugerido": cls.gerar_codigo_proposta(),
             "clicksign_status_options": STATUS_CLICKSIGN,
+            "condicoes_pagamento_options": CONDICOES_PAGAMENTO,
         }
 
     @classmethod
@@ -992,13 +1005,23 @@ class PropostaService:
         linhas = str(valor or "").splitlines() or [""]
         return "<text:line-break/>".join(escape(linha) for linha in linhas)
 
-    @staticmethod
-    def _detalhes_adicionais_contrato(proposta):
+    @classmethod
+    def _detalhes_adicionais_contrato(cls, proposta):
         partes = [
             proposta.get("detalhes_negociacao"),
             proposta.get("condicoes_comerciais"),
             proposta.get("observacoes"),
         ]
+        condicao = proposta.get("condicao_pagamento")
+        parcelas = proposta.get("parcelas_pagamento") or cls.calcular_parcelas_pagamento(
+            condicao, proposta.get("total_instalacao")
+        )
+        if condicao:
+            resumo = "; ".join(
+                f"parcela {item['numero']} ({item['vencimento']}): R$ {cls._string_decimal(item['valor'])}"
+                for item in parcelas
+            )
+            partes.append(f"Condição de pagamento: {condicao}. {resumo}")
         texto = " | ".join(str(parte).strip() for parte in partes if parte and str(parte).strip())
         return texto or "Não informado"
 
@@ -1059,6 +1082,7 @@ class PropostaService:
             "setup_dias": dados.get("setup_dias") or 7,
             "mensalidade_dias": dados.get("mensalidade_dias") or 30,
             "prazo_contratual_meses": dados.get("prazo_contratual_meses") or 24,
+            "condicao_pagamento": dados.get("condicao_pagamento") or "",
             "detalhes_negociacao": dados.get("detalhes_negociacao") or "",
             "condicoes_comerciais": dados.get("condicoes_comerciais") or "",
             "observacoes": dados.get("observacoes") or "",
@@ -1113,6 +1137,7 @@ class PropostaService:
         dados["setup_dias"] = cls._normalizar_inteiro(dados.get("setup_dias"), 7)
         dados["mensalidade_dias"] = cls._normalizar_inteiro(dados.get("mensalidade_dias"), 30)
         dados["prazo_contratual_meses"] = cls._normalizar_inteiro(dados.get("prazo_contratual_meses"), 24)
+        dados["condicao_pagamento"] = (dados.get("condicao_pagamento") or "").strip()
         for campo in ("detalhes_negociacao", "condicoes_comerciais", "observacoes", "comentarios_comerciais", "cliente_nome", "contato_nome", "contato_telefone", "executivo_nome", "executivo_telefone"):
             dados[campo] = (dados.get(campo) or "").strip()
         dados["semaforo_fechamento"] = (dados.get("semaforo_fechamento") or cls._semaforo_padrao(dados.get("status"))).strip().upper()
@@ -1168,6 +1193,8 @@ class PropostaService:
             raise ValueError("Adicione ao menos uma licença ou um servidor na proposta.")
         if dados["prazo_contratual_meses"] <= 0:
             raise ValueError("Prazo contratual deve ser maior que zero.")
+        if dados.get("condicao_pagamento") and dados["condicao_pagamento"] not in CONDICOES_PAGAMENTO:
+            raise ValueError("Condição de pagamento inválida.")
         for campo in ("total_mensal", "parametrizacao_sistema", "setup_ambiente_cloud", "instalacao_servidores", "total_instalacao", "valor_total"):
             if dados[campo] is not None and dados[campo] < 0:
                 raise ValueError("Os valores da proposta não podem ser negativos.")
@@ -1227,6 +1254,9 @@ class PropostaService:
         proposta["total_setup"] = proposta["parametrizacao_sistema"] + proposta["setup_ambiente_cloud"]
         proposta["total_instalacao"] = proposta["instalacao_servidores"] + proposta["parametrizacao_sistema"] + proposta["setup_ambiente_cloud"]
         proposta["valor_total"] = proposta["total_mensal"] + proposta["total_instalacao"]
+        proposta["parcelas_pagamento"] = cls.calcular_parcelas_pagamento(
+            proposta.get("condicao_pagamento"), proposta["total_instalacao"]
+        )
         proposta["status_label"] = STATUS_PROPOSTA.get(proposta.get("status"), proposta.get("status"))
         proposta["semaforo_fechamento"] = (proposta.get("semaforo_fechamento") or cls._semaforo_padrao(proposta.get("status"))).upper()
         proposta["semaforo_fechamento_label"] = {"FRIO": "Frio", "MORNO": "Morno", "QUENTE": "Quente"}.get(proposta["semaforo_fechamento"], proposta["semaforo_fechamento"])
@@ -1242,6 +1272,33 @@ class PropostaService:
         cls._enriquecer_contato(proposta)
         cls._enriquecer_representante_legal(proposta)
         return proposta
+
+    @classmethod
+    def calcular_parcelas_pagamento(cls, condicao, valor):
+        condicao = (condicao or "").strip()
+        total = (cls._decimal(valor) or Decimal("0.00")).quantize(Decimal("0.01"))
+        if not condicao:
+            return []
+        if condicao == "À vista":
+            vencimentos = ["À vista"]
+        elif condicao == "Entrada + 30":
+            vencimentos = ["Entrada", "30 dias"]
+        elif condicao.startswith("Entrada + ") and condicao.endswith("x"):
+            quantidade = int(condicao.removeprefix("Entrada + ").removesuffix("x"))
+            vencimentos = ["Entrada"] + [f"{numero * 30} dias" for numero in range(1, quantidade + 1)]
+        else:
+            vencimentos = [f"{dias} dias" for dias in re.findall(r"\d+", condicao)]
+        if not vencimentos:
+            return []
+        valor_base, resto = divmod(int(total * 100), len(vencimentos))
+        return [
+            {
+                "numero": indice,
+                "vencimento": vencimento,
+                "valor": (Decimal(valor_base + (resto if indice == len(vencimentos) else 0)) / Decimal("100")).quantize(Decimal("0.01")),
+            }
+            for indice, vencimento in enumerate(vencimentos, start=1)
+        ]
 
     @classmethod
     def _herdar_relacionamentos(cls, dados):
@@ -1546,6 +1603,11 @@ class PropostaService:
             f"TOTAL MENSAL	R$ {cls._string_decimal(proposta.get('total_mensal'))}",
             f"Setup: {proposta.get('setup_dias')} dias após a entrega do ambiente.",
             f"Mensalidade: {proposta.get('mensalidade_dias')} dias após a entrega do ambiente.",
+            f"Condição de pagamento: {proposta.get('condicao_pagamento') or 'Não informada'}.",
+            *[
+                f"Parcela {parcela.get('numero')} ({parcela.get('vencimento')}): R$ {cls._string_decimal(parcela.get('valor'))}"
+                for parcela in proposta.get("parcelas_pagamento", [])
+            ],
             f"Prazo contratual: {proposta.get('prazo_contratual_meses')} meses.",
         ])
         return linhas
