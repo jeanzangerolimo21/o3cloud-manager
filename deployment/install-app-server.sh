@@ -95,6 +95,7 @@ EMAIL_MARKETING_LOGO_URL=${EMAIL_MARKETING_LOGO_URL:-https://o3cloud.com.br/wp-c
 EMAIL_MARKETING_PUBLIC_BASE_URL=${EMAIL_MARKETING_PUBLIC_BASE_URL:-$PUBLIC_BASE_URL}
 TRUST_PROXY=1
 PROXY_FIX_HOPS=1
+LOGIN_MAX_IP_ATTEMPTS=100
 COFRE_COMPARTILHAMENTO_TTL_MINUTOS=5
 EOF
 chown "$APP_USER:$APP_USER" .env
@@ -128,16 +129,16 @@ server {
         proxy_pass http://127.0.0.1:5000/storage/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
     }
 
     location / {
         proxy_pass http://127.0.0.1:5000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
         proxy_read_timeout 300;
     }
 }

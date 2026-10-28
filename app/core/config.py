@@ -48,6 +48,7 @@ class Config:
 
     PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
     SECURITY_CONTACT_EMAIL = os.getenv("SECURITY_CONTACT_EMAIL", "contato@o3cloud.com.br")
+    LOGIN_MAX_IP_ATTEMPTS = int(os.getenv("LOGIN_MAX_IP_ATTEMPTS", "100"))
     TRUST_PROXY = os.getenv("TRUST_PROXY", "0") != "0"
     PROXY_FIX_HOPS = int(os.getenv("PROXY_FIX_HOPS", "1"))
     COFRE_COMPARTILHAMENTO_TTL_MINUTOS = int(os.getenv("COFRE_COMPARTILHAMENTO_TTL_MINUTOS", "5"))

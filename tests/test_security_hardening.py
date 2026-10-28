@@ -55,6 +55,25 @@ def test_limite_de_login_bloqueia_combinacao_usuario_ip(monkeypatch):
         AuthConfigService._validar_limite_login("user@example.com", "192.0.2.10")
 
 
+def test_servico_gunicorn_escuta_apenas_no_loopback():
+    unidade = (ROOT / "deployment/o3cloud-manager.service").read_text()
+    assert "--bind 127.0.0.1:5000" in unidade
+    assert "--bind 0.0.0.0:5000" not in unidade
+
+
+def test_instalador_local_preserva_https_na_cadeia_de_proxy():
+    instalador = (ROOT / "deployment/install-app-server.sh").read_text()
+    assert instalador.count("proxy_set_header X-Forwarded-Proto https;") == 2
+    assert instalador.count("proxy_set_header X-Forwarded-For $http_x_forwarded_for;") == 2
+
+
+def test_ajuste_do_proxy_local_valida_e_mantem_backup():
+    script = (ROOT / "deployment/configure-local-nginx-proxy.sh").read_text()
+    assert "nginx -t" in script
+    assert "cp -a" in script
+    assert "systemctl reload nginx" in script
+
+
 def test_diagnostico_nao_imprime_valores_dos_segredos():
     script = (ROOT / "deployment/security-diagnostic.sh").read_text()
 

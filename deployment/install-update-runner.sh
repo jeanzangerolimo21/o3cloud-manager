@@ -8,13 +8,19 @@ APP_DIR="${APP_DIR:-/opt/o3cloud-manager}"
 APP_USER="${APP_USER:-o3cloud}"
 RUNNER_PATH="${RUNNER_PATH:-/usr/local/sbin/o3cloud-update-system}"
 SUDOERS_PATH="${SUDOERS_PATH:-/etc/sudoers.d/o3cloud-update-system}"
+SERVICE_UNIT_PATH="${SERVICE_UNIT_PATH:-/etc/systemd/system/o3cloud-manager.service}"
 
 log() { printf '[update-runner] %s\n' "$*"; }
 fail() { printf '[update-runner] ERRO: %s\n' "$*" >&2; exit 1; }
 
 [ "$(id -u)" = "0" ] || fail "Execute como root."
 [ -f "$APP_DIR/deployment/update-beta.sh" ] || fail "Script $APP_DIR/deployment/update-beta.sh nao encontrado."
+[ -f "$APP_DIR/deployment/o3cloud-manager.service" ] || fail "Unidade systemd da aplicacao nao encontrada."
 id "$APP_USER" >/dev/null 2>&1 || fail "Usuario $APP_USER nao existe."
+
+install -o root -g root -m 0644 "$APP_DIR/deployment/o3cloud-manager.service" "$SERVICE_UNIT_PATH"
+systemctl daemon-reload
+log "Unidade systemd atualizada em $SERVICE_UNIT_PATH."
 
 cat >"$RUNNER_PATH" <<EOF
 #!/usr/bin/env bash

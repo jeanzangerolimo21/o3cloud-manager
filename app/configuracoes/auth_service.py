@@ -5,6 +5,7 @@ import secrets
 import socket
 import struct
 import time
+import os
 from datetime import datetime, timedelta
 from html import escape
 from urllib.parse import quote
@@ -35,7 +36,9 @@ class AuthConfigService:
     MFA_TRUSTED_DEVICE_DAYS = 30
     MFA_MAX_ATTEMPTS = 5
     LOGIN_WINDOW_MINUTES = 15
-    LOGIN_MAX_IP_ATTEMPTS = 20
+    # Um limite amplo evita bloqueio coletivo quando varios usuarios chegam pelo
+    # mesmo proxy. O limite estrito continua sendo aplicado por usuario + IP.
+    LOGIN_MAX_IP_ATTEMPTS = int(os.getenv("LOGIN_MAX_IP_ATTEMPTS", "100"))
     LOGIN_MAX_USER_IP_ATTEMPTS = 5
     RESET_MAX_IP_ATTEMPTS = 5
     TOTP_ISSUER = "O3Cloud Manager"
@@ -116,9 +119,13 @@ class AuthConfigService:
             raise ValueError("Muitas tentativas de acesso. Aguarde 15 minutos e tente novamente.")
 
     @classmethod
-    def validar_limite_reset_senha(cls, ip_origem, user_agent=None):
+    def validar_limite_reset_senha(cls, ip_origem, user_agent=None, identificador=None):
         total = cls.repository.contar_eventos_seguranca(
-            "RESET_SENHA_SOLICITADO", cls.LOGIN_WINDOW_MINUTES, ip_origem=ip_origem
+            "RESET_SENHA_SOLICITADO",
+            cls.LOGIN_WINDOW_MINUTES,
+            ip_origem=ip_origem,
+            usuario_email=(cls._texto(identificador) or "").lower() or None,
+            combinar=True,
         )
         if total >= cls.RESET_MAX_IP_ATTEMPTS:
             cls._auditar(

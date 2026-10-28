@@ -131,10 +131,11 @@ def create_app():
     @app.route("/.well-known/security.txt")
     def security_txt():
         contato = app.config.get("SECURITY_CONTACT_EMAIL") or "contato@o3cloud.com.br"
+        base_publica = (app.config.get("PUBLIC_BASE_URL") or request.url_root).rstrip("/")
         conteudo = "\n".join((
             f"Contact: mailto:{contato}",
             "Preferred-Languages: pt-BR, en",
-            f"Canonical: {request.url_root.rstrip('/')}/.well-known/security.txt",
+            f"Canonical: {base_publica}/.well-known/security.txt",
             "Policy: https://o3cloud.com.br/",
             "",
         ))

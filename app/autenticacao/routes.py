@@ -121,10 +121,13 @@ def esqueci_senha():
         endpoint = session.get("usuario_dashboard_principal") or "financeiro.dashboard"
         return redirect(url_for(endpoint))
     if request.method == "POST":
+        identificador = request.form.get("identificador")
         try:
-            AuthConfigService.validar_limite_reset_senha(_ip_origem(), _user_agent())
+            AuthConfigService.validar_limite_reset_senha(
+                _ip_origem(), _user_agent(), identificador
+            )
             resultado = AuthConfigService.solicitar_reset_senha(
-                request.form.get("identificador"),
+                identificador,
                 _ip_origem(),
                 _user_agent(),
             )

@@ -56,6 +56,11 @@ done
 
 section "REDE E FIREWALL"
 ss -lntup 2>/dev/null || ss -lnt 2>/dev/null || true
+if ss -lntH 2>/dev/null | awk '{print $4}' | grep -Eq '(^|\])0\.0\.0\.0:5000$|^\*:5000$|^\[::\]:5000$'; then
+  warn "Gunicorn exposto em todas as interfaces na porta 5000."
+elif ss -lntH 2>/dev/null | awk '{print $4}' | grep -q '127.0.0.1:5000$'; then
+  ok "Gunicorn restrito ao loopback na porta 5000."
+fi
 if command -v ufw >/dev/null 2>&1; then
   ufw status verbose 2>/dev/null || warn "Nao foi possivel consultar UFW sem privilegios."
 elif command -v nft >/dev/null 2>&1; then
@@ -71,7 +76,14 @@ if curl -fsS -D "$headers" -o /dev/null --max-time 20 "$PUBLIC_URL/login"; then
   for header in strict-transport-security content-security-policy x-frame-options x-content-type-options referrer-policy permissions-policy; do
     grep -qi "^${header}:" "$headers" && ok "$header presente." || warn "$header ausente."
   done
-  grep -qi "unsafe-eval" "$headers" && warn "CSP ainda permite unsafe-eval." || ok "CSP nao permite unsafe-eval."
+  csp_count="$(grep -ci '^content-security-policy:' "$headers" || true)"
+  if [ "$csp_count" -gt 1 ]; then
+    warn "$csp_count cabecalhos CSP recebidos; remova a politica generica duplicada do proxy externo."
+  elif grep -qi '^content-security-policy:.*unsafe-eval' "$headers"; then
+    warn "A unica CSP recebida permite unsafe-eval."
+  else
+    ok "CSP unica e sem unsafe-eval."
+  fi
 else
   warn "Nao foi possivel consultar $PUBLIC_URL/login."
 fi
