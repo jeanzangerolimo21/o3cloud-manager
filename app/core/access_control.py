@@ -283,6 +283,7 @@ ENDPOINT_PERMISSOES = {
 PUBLIC_ENDPOINTS = {
     "static",
     "storage",
+    "security_txt",
     "autenticacao.login",
     "autenticacao.login_2fa",
     "autenticacao.reenviar_2fa",

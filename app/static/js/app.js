@@ -1,4 +1,41 @@
 (function () {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (!meta) {
+        return;
+    }
+    const token = meta.getAttribute("content") || "";
+    document.querySelectorAll("form").forEach(function (form) {
+        const method = (form.getAttribute("method") || "GET").toUpperCase();
+        if (method === "GET" || form.querySelector('input[name="csrf_token"]')) {
+            return;
+        }
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "csrf_token";
+        input.value = token;
+        form.appendChild(input);
+    });
+
+    const originalFetch = window.fetch;
+    if (!originalFetch) {
+        return;
+    }
+    window.fetch = function (resource, options) {
+        const requestOptions = Object.assign({}, options || {});
+        const method = (requestOptions.method || (resource instanceof Request ? resource.method : "GET")).toUpperCase();
+        const resourceUrl = typeof resource === "string" || resource instanceof URL ? resource : resource.url;
+        const target = new URL(resourceUrl, window.location.href);
+        if (target.origin === window.location.origin && !["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
+            const headers = new Headers(requestOptions.headers || (resource instanceof Request ? resource.headers : undefined));
+            headers.set("X-CSRFToken", token);
+            headers.set("X-Requested-With", "XMLHttpRequest");
+            requestOptions.headers = headers;
+        }
+        return originalFetch.call(window, resource, requestOptions);
+    };
+})();
+
+(function () {
     const key = "o3cloud.darkMode";
 
     function applyDarkMode(enabled) {

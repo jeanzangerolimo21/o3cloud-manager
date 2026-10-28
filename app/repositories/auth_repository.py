@@ -581,6 +581,25 @@ class AuthRepository(BaseRepository):
         )
 
     @classmethod
+    def contar_eventos_seguranca(cls, acao, minutos, ip_origem=None, usuario_email=None, combinar=False):
+        filtros = ["acao = %s", "created_at >= DATE_SUB(NOW(), INTERVAL %s MINUTE)"]
+        params = [acao, int(minutos)]
+        identificadores = []
+        if ip_origem:
+            identificadores.append("ip_origem = %s")
+            params.append(ip_origem)
+        if usuario_email:
+            identificadores.append("LOWER(usuario_email) = LOWER(%s)")
+            params.append(usuario_email)
+        if identificadores:
+            operador = " AND " if combinar else " OR "
+            filtros.append("(" + operador.join(identificadores) + ")")
+        return cls.scalar(
+            "SELECT COUNT(*) FROM auth_auditoria WHERE " + " AND ".join(filtros),
+            tuple(params),
+        ) or 0
+
+    @classmethod
     def limpar_auditoria_antiga(cls):
         removidos = cls.execute("DELETE FROM auth_auditoria WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)")
         cls.execute("DELETE FROM implantacao_cofre_senhas_auditoria WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)")

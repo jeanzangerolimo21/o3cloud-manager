@@ -34,6 +34,10 @@ class AuthConfigService:
     MFA_CODE_MINUTES = 10
     MFA_TRUSTED_DEVICE_DAYS = 30
     MFA_MAX_ATTEMPTS = 5
+    LOGIN_WINDOW_MINUTES = 15
+    LOGIN_MAX_IP_ATTEMPTS = 20
+    LOGIN_MAX_USER_IP_ATTEMPTS = 5
+    RESET_MAX_IP_ATTEMPTS = 5
     TOTP_ISSUER = "O3Cloud Manager"
     TOTP_INTERVAL_SECONDS = 30
     TOTP_DIGITS = 6
@@ -68,6 +72,7 @@ class AuthConfigService:
     @classmethod
     def autenticar(cls, identificador, senha, ip_origem=None, user_agent=None):
         identificador = (cls._texto(identificador) or "").lower()
+        cls._validar_limite_login(identificador, ip_origem, user_agent)
         usuario = cls.repository.buscar_usuario_por_login(identificador) if identificador else None
         if not usuario:
             cls._auditar(identificador or "desconhecido", "LOGIN_FALHA", "auth_usuarios", detalhes="Usuário não encontrado", ip_origem=ip_origem, user_agent=user_agent)
@@ -84,6 +89,47 @@ class AuthConfigService:
             raise ValueError("Usuário ou senha inválidos.")
         cls._auditar(usuario.get("email") or usuario.get("login"), "LOGIN_SENHA_VALIDADA", "auth_usuarios", usuario.get("id"), "Senha validada", ip_origem, user_agent)
         return usuario
+
+    @classmethod
+    def _validar_limite_login(cls, identificador, ip_origem, user_agent=None):
+        falhas_ip = 0
+        if ip_origem:
+            falhas_ip = cls.repository.contar_eventos_seguranca(
+                "LOGIN_FALHA", cls.LOGIN_WINDOW_MINUTES, ip_origem=ip_origem
+            )
+        falhas_combinadas = cls.repository.contar_eventos_seguranca(
+            "LOGIN_FALHA",
+            cls.LOGIN_WINDOW_MINUTES,
+            ip_origem=ip_origem,
+            usuario_email=identificador,
+            combinar=True,
+        )
+        if falhas_ip >= cls.LOGIN_MAX_IP_ATTEMPTS or falhas_combinadas >= cls.LOGIN_MAX_USER_IP_ATTEMPTS:
+            cls._auditar(
+                identificador or "desconhecido",
+                "LOGIN_BLOQUEADO",
+                "auth_usuarios",
+                detalhes="Limite temporário de tentativas excedido",
+                ip_origem=ip_origem,
+                user_agent=user_agent,
+            )
+            raise ValueError("Muitas tentativas de acesso. Aguarde 15 minutos e tente novamente.")
+
+    @classmethod
+    def validar_limite_reset_senha(cls, ip_origem, user_agent=None):
+        total = cls.repository.contar_eventos_seguranca(
+            "RESET_SENHA_SOLICITADO", cls.LOGIN_WINDOW_MINUTES, ip_origem=ip_origem
+        )
+        if total >= cls.RESET_MAX_IP_ATTEMPTS:
+            cls._auditar(
+                "desconhecido",
+                "RESET_SENHA_BLOQUEADO",
+                "auth_usuarios",
+                detalhes="Limite temporário de solicitações excedido",
+                ip_origem=ip_origem,
+                user_agent=user_agent,
+            )
+            raise ValueError("Muitas solicitações. Aguarde 15 minutos e tente novamente.")
 
     @classmethod
     def concluir_login(cls, usuario, ip_origem=None, user_agent=None, detalhes="Login realizado"):
@@ -285,8 +331,8 @@ class AuthConfigService:
         if not check_password_hash(usuario.get("senha_hash") or "", senha_atual or ""):
             raise ValueError("Senha atual inválida.")
         nova_senha = nova_senha or ""
-        if len(nova_senha) < 8:
-            raise ValueError("A nova senha deve ter pelo menos 8 caracteres.")
+        if len(nova_senha) < 12:
+            raise ValueError("A nova senha deve ter pelo menos 12 caracteres.")
         if nova_senha != (confirmacao or ""):
             raise ValueError("A confirmação de senha não confere.")
         cls.repository.atualizar_senha_usuario(usuario_id, generate_password_hash(nova_senha), usuario.get("email") or usuario.get("login"))
@@ -355,8 +401,8 @@ class AuthConfigService:
         if not reset or not reset.get("valido"):
             raise ValueError("Link de redefinição inválido ou expirado.")
         nova_senha = nova_senha or ""
-        if len(nova_senha) < 8:
-            raise ValueError("A senha deve ter pelo menos 8 caracteres.")
+        if len(nova_senha) < 12:
+            raise ValueError("A senha deve ter pelo menos 12 caracteres.")
         if nova_senha != (confirmacao or ""):
             raise ValueError("A confirmação de senha não confere.")
         usuario_email = reset.get("usuario_email") or reset.get("usuario_login")
@@ -685,8 +731,8 @@ class AuthConfigService:
         if not convite or not convite.get("valido"):
             raise ValueError("Convite inválido ou expirado.")
         senha = senha or ""
-        if len(senha) < 8:
-            raise ValueError("A senha deve ter pelo menos 8 caracteres.")
+        if len(senha) < 12:
+            raise ValueError("A senha deve ter pelo menos 12 caracteres.")
         if senha != (confirmacao or ""):
             raise ValueError("A confirmação de senha não confere.")
         cls.repository.definir_senha(convite["usuario_id"], generate_password_hash(senha))

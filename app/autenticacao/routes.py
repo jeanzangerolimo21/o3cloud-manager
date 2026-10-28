@@ -6,6 +6,7 @@ from flask import render_template
 from flask import request
 from flask import session
 from flask import url_for
+from urllib.parse import urlsplit
 
 from app.configuracoes.auth_service import AuthConfigService
 from app.core.logging_config import get_logger
@@ -42,6 +43,16 @@ def _user_agent():
     return (request.headers.get("User-Agent") or "")[:255]
 
 
+def _destino_interno(valor):
+    valor = (valor or "").strip()
+    if not valor or not valor.startswith("/") or valor.startswith("//") or "\\" in valor:
+        return ""
+    partes = urlsplit(valor)
+    if partes.scheme or partes.netloc:
+        return ""
+    return valor
+
+
 def _abrir_sessao_usuario(usuario):
     session.clear()
     session["usuario_id"] = usuario.get("id")
@@ -64,7 +75,7 @@ def _limpar_2fa_pendente():
 def login():
     if session.get("usuario_email"):
         endpoint = session.get("usuario_dashboard_principal") or "financeiro.dashboard"
-        return redirect(request.args.get("next") or url_for(endpoint))
+        return redirect(_destino_interno(request.args.get("next")) or url_for(endpoint))
     if request.method == "POST":
         identificador = request.form.get("identificador")
         try:
@@ -78,7 +89,7 @@ def login():
             security_logger.warning("Login failed", extra={"operation": "LOGIN_FALHA"})
             flash(str(erro), "danger")
         else:
-            next_url = request.form.get("next") or ""
+            next_url = _destino_interno(request.form.get("next"))
             token_dispositivo = request.cookies.get(AuthConfigService.MFA_COOKIE_NAME)
             if AuthConfigService.exige_2fa(usuario, token_dispositivo):
                 metodo = AuthConfigService.metodo_2fa(usuario)
@@ -101,7 +112,7 @@ def login():
             security_logger.info("Login succeeded", extra={"operation": "LOGIN_SUCESSO"})
             endpoint = _abrir_sessao_usuario(usuario)
             return redirect(next_url or url_for(endpoint))
-    return render_template("autenticacao/login.html", next_url=request.args.get("next") or request.form.get("next") or "")
+    return render_template("autenticacao/login.html", next_url=_destino_interno(request.args.get("next") or request.form.get("next")))
 
 
 @autenticacao_bp.route("/esqueci-senha", methods=["GET", "POST"])
@@ -110,13 +121,18 @@ def esqueci_senha():
         endpoint = session.get("usuario_dashboard_principal") or "financeiro.dashboard"
         return redirect(url_for(endpoint))
     if request.method == "POST":
-        resultado = AuthConfigService.solicitar_reset_senha(
-            request.form.get("identificador"),
-            _ip_origem(),
-            _user_agent(),
-        )
-        flash(resultado.get("mensagem"), "success")
-        return redirect(url_for("autenticacao.login"))
+        try:
+            AuthConfigService.validar_limite_reset_senha(_ip_origem(), _user_agent())
+            resultado = AuthConfigService.solicitar_reset_senha(
+                request.form.get("identificador"),
+                _ip_origem(),
+                _user_agent(),
+            )
+        except ValueError as erro:
+            flash(str(erro), "danger")
+        else:
+            flash(resultado.get("mensagem"), "success")
+            return redirect(url_for("autenticacao.login"))
     return render_template("autenticacao/esqueci_senha.html")
 
 
@@ -161,7 +177,7 @@ def login_2fa():
         except ValueError as erro:
             flash(str(erro), "danger")
         else:
-            next_url = session.get("mfa_next") or ""
+            next_url = _destino_interno(session.get("mfa_next"))
             lembrar = request.form.get("lembrar_dispositivo")
             AuthConfigService.concluir_login(usuario, _ip_origem(), _user_agent(), "Login realizado com 2FA")
             endpoint = _abrir_sessao_usuario(usuario)
@@ -201,7 +217,7 @@ def reenviar_2fa():
     return redirect(url_for("autenticacao.login_2fa"))
 
 
-@autenticacao_bp.route("/logout")
+@autenticacao_bp.route("/logout", methods=["POST"])
 def logout():
     usuario_email = session.get("usuario_email")
     usuario_id = session.get("usuario_id")

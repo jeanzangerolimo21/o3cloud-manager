@@ -38,7 +38,7 @@
                         </button>
                     </li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="{{ url_for('autenticacao.logout') }}"><i class="bi bi-box-arrow-right"></i> Sair</a></li>
+                    <li><form method="POST" action="{{ url_for('autenticacao.logout') }}"><button class="dropdown-item text-danger" type="submit"><i class="bi bi-box-arrow-right"></i> Sair</button></form></li>
                 </ul>
             </div>
         </div>

@@ -4,7 +4,10 @@ from app.core.config import Config
 from app.core.access_control import init_access_control
 from app.core.database import init_db
 from app.core.logging_config import init_request_logging
+from app.core.security import init_security
 from app.core.version import obter_versao_aplicacao
+from flask import Response
+from flask import request
 from flask import send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -14,6 +17,7 @@ def create_app():
 
     app.config.from_object(Config)
     init_request_logging(app)
+    init_security(app)
 
     if app.config.get("TRUST_PROXY"):
         hops = max(1, int(app.config.get("PROXY_FIX_HOPS", 1)))
@@ -123,6 +127,18 @@ def create_app():
             "/opt/o3cloud-manager/storage",
             filename
         )
+
+    @app.route("/.well-known/security.txt")
+    def security_txt():
+        contato = app.config.get("SECURITY_CONTACT_EMAIL") or "contato@o3cloud.com.br"
+        conteudo = "\n".join((
+            f"Contact: mailto:{contato}",
+            "Preferred-Languages: pt-BR, en",
+            f"Canonical: {request.url_root.rstrip('/')}/.well-known/security.txt",
+            "Policy: https://o3cloud.com.br/",
+            "",
+        ))
+        return Response(conteudo, content_type="text/plain; charset=utf-8")
 
 
     #print(app.url_map)
