@@ -35,3 +35,10 @@ def test_sidebar_recolhida_mantem_icones_no_desktop():
     assert 'title="{{ item.label }}"' in sidebar
     assert "width:76px" in estilos
     assert "body.sidebar-collapsed .sidebar-menu a i" in estilos
+
+
+def test_assets_da_sidebar_usam_versao_para_invalidar_cache():
+    layout = (ROOT / "app/templates/layout/base.html").read_text()
+
+    assert "filename='css/style.css', v=app_version" in layout
+    assert "filename='js/app.js', v=app_version" in layout

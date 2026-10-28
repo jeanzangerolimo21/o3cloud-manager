@@ -4,6 +4,7 @@ from app.core.config import Config
 from app.core.access_control import init_access_control
 from app.core.database import init_db
 from app.core.logging_config import init_request_logging
+from app.core.version import obter_versao_aplicacao
 from flask import send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -27,6 +28,7 @@ def create_app():
     app.jinja_env.filters["cnpj_br"] = cnpj_br
     from app.core.filters import telefone_br
     app.jinja_env.filters["telefone_br"] = telefone_br
+    app.jinja_env.globals["app_version"] = obter_versao_aplicacao()
     init_access_control(app)
 
     from app.cli import init_cli

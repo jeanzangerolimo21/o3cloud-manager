@@ -9,6 +9,7 @@ APP_USER="${APP_USER:-o3cloud}"
 BRANCH="${UPDATE_BRANCH:-${BRANCH:-main}}"
 REMOTE="${UPDATE_REMOTE:-origin}"
 SERVICE_NAME="${SERVICE_NAME:-o3cloud-manager.service}"
+RUNNER_PATH="${UPDATE_RUNNER_PATH:-/usr/local/sbin/o3cloud-update-system}"
 BACKUP_DIR="${BACKUP_DIR:-$APP_DIR/backups}"
 LOG_DIR="${LOG_DIR:-$APP_DIR/logs}"
 LOCK_DIR="${LOCK_DIR:-/tmp/o3cloud-manager-update.lock}"
@@ -135,6 +136,9 @@ if [ "$commit_atual" != "$commit_alvo" ] || [ "$branch_atual" != "$BRANCH" ]; th
 else
   log "Codigo ja esta no commit alvo."
 fi
+
+log "Atualizando runner do sistema."
+APP_DIR="$APP_DIR" APP_USER="$APP_USER" RUNNER_PATH="$RUNNER_PATH" bash "$APP_DIR/deployment/install-update-runner.sh"
 
 log "Instalando dependencias Python."
 run_app "$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.txt"

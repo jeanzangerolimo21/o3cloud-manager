@@ -16,12 +16,25 @@ fail() { printf '[update-runner] ERRO: %s\n' "$*" >&2; exit 1; }
 [ -f "$APP_DIR/deployment/update-beta.sh" ] || fail "Script $APP_DIR/deployment/update-beta.sh nao encontrado."
 id "$APP_USER" >/dev/null 2>&1 || fail "Usuario $APP_USER nao existe."
 
-install -o root -g root -m 0750 "$APP_DIR/deployment/update-beta.sh" "$RUNNER_PATH"
+cat >"$RUNNER_PATH" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+UPDATE_SCRIPT="$APP_DIR/deployment/update-beta.sh"
+[ -f "\$UPDATE_SCRIPT" ] || { echo "[update-runner] ERRO: \$UPDATE_SCRIPT nao encontrado." >&2; exit 1; }
+TEMP_SCRIPT="\$(mktemp -t o3cloud-update-runner-XXXXXX.sh)"
+cleanup() { rm -f "\$TEMP_SCRIPT"; }
+trap cleanup EXIT
+cp "\$UPDATE_SCRIPT" "\$TEMP_SCRIPT"
+chmod 0700 "\$TEMP_SCRIPT"
+bash "\$TEMP_SCRIPT" "\$@"
+EOF
+chown root:root "$RUNNER_PATH"
+chmod 0750 "$RUNNER_PATH"
 cat >"$SUDOERS_PATH" <<EOF
 Defaults:$APP_USER !requiretty
 $APP_USER ALL=(root) NOPASSWD: $RUNNER_PATH
 EOF
 chmod 0440 "$SUDOERS_PATH"
 visudo -cf "$SUDOERS_PATH" >/dev/null
-log "Runner instalado em $RUNNER_PATH."
+log "Runner dinamico instalado em $RUNNER_PATH."
 log "Sudoers instalado em $SUDOERS_PATH."
