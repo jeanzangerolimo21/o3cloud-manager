@@ -105,6 +105,97 @@
 })();
 
 (function () {
+    const collapsedKey = "o3cloud.sidebarCollapsed";
+    const mobileQuery = window.matchMedia("(max-width: 991px)");
+    const body = document.body;
+    const sidebar = document.getElementById("appSidebar");
+    const toggles = document.querySelectorAll("[data-sidebar-toggle]");
+
+    if (!sidebar || !toggles.length) {
+        return;
+    }
+
+    function desktopCollapsed() {
+        try {
+            return localStorage.getItem(collapsedKey) === "1";
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function setDesktopCollapsed(collapsed) {
+        try {
+            localStorage.setItem(collapsedKey, collapsed ? "1" : "0");
+        } catch (error) {
+            // O menu continua funcional mesmo sem armazenamento local.
+        }
+    }
+
+    function sidebarVisible() {
+        return mobileQuery.matches
+            ? body.classList.contains("sidebar-mobile-open")
+            : !body.classList.contains("sidebar-collapsed");
+    }
+
+    function updateControls() {
+        const visible = sidebarVisible();
+        toggles.forEach(function (button) {
+            button.setAttribute("aria-expanded", visible ? "true" : "false");
+            button.setAttribute("aria-label", visible ? "Recolher menu lateral" : "Expandir menu lateral");
+        });
+    }
+
+    function closeMobileSidebar() {
+        body.classList.remove("sidebar-mobile-open");
+        updateControls();
+    }
+
+    function applyViewportState() {
+        body.classList.remove("sidebar-mobile-open");
+        body.classList.toggle("sidebar-collapsed", !mobileQuery.matches && desktopCollapsed());
+        updateControls();
+    }
+
+    toggles.forEach(function (button) {
+        button.addEventListener("click", function () {
+            if (mobileQuery.matches) {
+                body.classList.toggle("sidebar-mobile-open");
+            } else {
+                const collapsed = !body.classList.contains("sidebar-collapsed");
+                body.classList.toggle("sidebar-collapsed", collapsed);
+                setDesktopCollapsed(collapsed);
+            }
+            updateControls();
+        });
+    });
+
+    document.addEventListener("click", function (event) {
+        if (event.target.closest("[data-sidebar-close]")) {
+            closeMobileSidebar();
+            return;
+        }
+        if (mobileQuery.matches && event.target.closest(".sidebar-menu a")) {
+            closeMobileSidebar();
+        }
+    });
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && body.classList.contains("sidebar-mobile-open")) {
+            closeMobileSidebar();
+            toggles[0].focus();
+        }
+    });
+
+    if (typeof mobileQuery.addEventListener === "function") {
+        mobileQuery.addEventListener("change", applyViewportState);
+    } else {
+        mobileQuery.addListener(applyViewportState);
+    }
+
+    applyViewportState();
+})();
+
+(function () {
     const prefix = "o3cloud.pageScrollTop:";
 
     function storageKey() {

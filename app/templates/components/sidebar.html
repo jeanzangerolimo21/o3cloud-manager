@@ -73,8 +73,11 @@
     ]},
 ] %}
 
-<div class="sidebar">
-    <div>
+<aside class="sidebar" id="appSidebar" aria-label="Menu principal">
+    <button class="sidebar-close-button" type="button" data-sidebar-close aria-label="Fechar menu">
+        <i class="bi bi-x-lg"></i>
+    </button>
+    <div class="sidebar-body">
         <div class="sidebar-header">
             <img src="{{ url_for('static', filename='img/logo-white.png') }}" class="logo">
             <h3>O3Cloud<br>Manager</h3>
@@ -102,9 +105,9 @@
 
                     {% for item in grupo.itens %}
                         {% if pode_acessar(item.key) %}
-                        <a href="{{ item.url if item.url is defined else url_for(item.endpoint) }}" class="{{ item.classe if item.classe is defined else 'submenu-item' }}">
+                        <a href="{{ item.url if item.url is defined else url_for(item.endpoint) }}" class="{{ item.classe if item.classe is defined else 'submenu-item' }}" title="{{ item.label }}">
                             <i class="bi {{ item.icone }}"></i>
-                            {{ item.label }}
+                            <span class="sidebar-item-label">{{ item.label }}</span>
                         </a>
                         {% endif %}
                     {% endfor %}
@@ -122,4 +125,4 @@
             v1.0
         </small>
     </div>
-</div>
+</aside>
