@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-29 - Releases v1.2.7 a v1.2.11 e hardening de producao
+
+- `v1.2.7`: sidebar responsiva e compacta, mantendo os icones no modo recolhido e melhorando o uso em dispositivos moveis.
+- `v1.2.8`: versao exibida dinamicamente no sidebar, cache busting dos assets e recuperacao segura de lock orfao no atualizador.
+- `v1.2.9`: protecao CSRF global, rate limit de autenticacao, cookies seguros, redirecionamento interno validado, logout por POST, CSP, SRI, `security.txt` e diagnostico de seguranca.
+- `v1.2.10`: Gunicorn restrito a `127.0.0.1:5000`, hardening da cadeia Cloudflare/Nginx, canonical HTTPS independente do proxy e limites de autenticacao adequados a usuarios atras de proxy.
+- `v1.2.11`: `certifi`, `urllib3`, `Werkzeug` e `requests` atualizados para versoes corrigidas; `pip-audit` concluiu sem vulnerabilidades conhecidas.
+- Producao validada com TLS 1.2/1.3, HSTS, SSL estrito por hostname na Cloudflare, CSP unica sem `unsafe-eval`, IP real via Cloudflare/Nginx, upload externo limitado a 10 MB e TOTP habilitado para a conta administrativa.
+- Historico detalhado, roteiro operacional, validacoes e pendencias registrados em `docs/68-RELEASES-1.2.7-A-1.2.11-HARDENING.md`.
+
 ## 2026-10-08 - Cancelamento de contratos em implantação
 
 - A busca e a validação de cancelamentos passaram a aceitar contratos nos status `ATIVO` e `ENCAMINHADO_PROJETO`.

@@ -2,6 +2,10 @@
 
 > Plataforma de Gestão Operacional, Financeira e de Infraestrutura da O3Cloud.
 
+Versao estavel de producao: **v1.2.11**
+
+Historico recente: [`docs/68-RELEASES-1.2.7-A-1.2.11-HARDENING.md`](docs/68-RELEASES-1.2.7-A-1.2.11-HARDENING.md)
+
 ---
 
 ## Sobre o projeto

@@ -1,8 +1,11 @@
 # Nginx externo do O3Cloud Manager
 
-Topologia validada:
+Topologia validada em producao em 29/10/2026:
 
 `Cloudflare -> Nginx externo 10.10.10.2 -> Nginx local 10.10.10.210:80 -> Gunicorn 127.0.0.1:5000`
+
+O Nginx externo possui o IP publico `177.104.183.61`. O MariaDB esta isolado
+em `10.10.10.209` e aceita a aplicacao em `10.10.10.210`.
 
 ## 1. CSP especifica
 
@@ -49,6 +52,20 @@ proxy_set_header X-Forwarded-Proto https;
 O acesso direto ao origin publico deve ser limitado aos enderecos da
 Cloudflare. Isso impede que um cliente externo falsifique os cabecalhos usados
 para auditoria e rate limit.
+
+No virtual host do O3Manager, o limite de upload validado em producao e:
+
+```nginx
+client_max_body_size 10M;
+```
+
+Na Cloudflare, foi criada uma Configuration Rule restrita ao hostname:
+
+```text
+Nome: SSL estrito - O3Manager
+Hostname: o3manager.o3cloud.com.br
+SSL/TLS encryption mode: Strict
+```
 
 ## 3. Validacao
 

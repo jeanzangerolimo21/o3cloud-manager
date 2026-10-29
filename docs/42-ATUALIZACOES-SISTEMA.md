@@ -2,7 +2,7 @@
 
 # Atualizações do Sistema
 
-Status: Implementação inicial em andamento
+Status: Operacional em producao; fluxo consolidado ate `v1.2.11`
 
 ---
 
@@ -50,6 +50,18 @@ v1.0.1
 ```
 
 Cada release deve possuir changelog resumido, migrations relevantes e instruções específicas quando necessário.
+
+Historico recente de producao:
+
+```text
+v1.2.7  sidebar responsiva e compacta
+v1.2.8  versao dinamica, assets e lock do atualizador
+v1.2.9  hardening de autenticacao, CSRF e diagnostico
+v1.2.10 cadeia Cloudflare/Nginx/Gunicorn
+v1.2.11 dependencias Python sem vulnerabilidades conhecidas
+```
+
+Detalhes em `docs/68-RELEASES-1.2.7-A-1.2.11-HARDENING.md`.
 
 ---
 
@@ -119,7 +131,7 @@ Implementação inicial aceita `GITHUB_TOKEN` opcional no ambiente para reposit�
 
 ---
 
-# Fluxo de Atualização Planejado
+# Fluxo de Atualização Operacional
 
 ```text
 1. obter versão atual
@@ -128,13 +140,21 @@ Implementação inicial aceita `GITHUB_TOKEN` opcional no ambiente para reposit�
 4. gerar backup SQL
 5. validar backup
 6. git fetch
-7. checkout da tag
+7. fast-forward controlado da branch oficial `main`
 8. pip install -r requirements.txt
 9. rodar migrations
 10. reiniciar o3cloud-manager.service
 11. executar healthcheck
 12. registrar resultado
 ```
+
+O runner atual tambem:
+
+- remove lock orfao somente quando nao existe atualizacao ativa;
+- reinstala o proprio runner e a unidade systemd versionada;
+- reinstala o cron operacional;
+- bloqueia worktree com alteracoes locais;
+- executa healthcheck depois do restart.
 
 ---
 
