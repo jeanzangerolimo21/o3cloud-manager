@@ -6,6 +6,11 @@ Versao estavel de producao: **v1.2.11**
 
 Historico recente: [`docs/68-RELEASES-1.2.7-A-1.2.11-HARDENING.md`](docs/68-RELEASES-1.2.7-A-1.2.11-HARDENING.md)
 
+Proxima evolucao planejada: integracao nativa do O3Cloud Central ao menu
+Operacoes. A arquitetura aprovada, o modelo de dados, a API, as permissoes e os
+runbooks estao consolidados em
+[`docs/71-ESTRATEGIA-INTEGRACAO-O3CLOUD-CENTRAL.md`](docs/71-ESTRATEGIA-INTEGRACAO-O3CLOUD-CENTRAL.md).
+
 ---
 
 ## Sobre o projeto

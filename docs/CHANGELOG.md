@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-30 - Especificacao do O3Cloud Central integrado
+
+- Aprovada a estrategia para incorporar o O3Cloud Central como modulo Flask
+  nativo no menu Operacoes, reutilizando clientes, ambientes e inventario
+  Proxmox do Manager.
+- Documentados modelo fisico, contrato da API v1, matriz de permissoes,
+  identidade/CA, jobs, supply chain, homologacao, backup e rollback.
+- Fechadas as decisoes de isolamento por cliente, protocolo TCP inicial,
+  systemd timers, tokens por hash, CA ECDSA P-256 e gates de producao.
+- Authenticode foi mantido como requisito para producao Windows; desenvolvimento
+  e homologacao poderao usar artefatos CANDIDATO sem assinatura, com SHA-256 e
+  laboratorio controlado.
+- Documento principal: `docs/71-ESTRATEGIA-INTEGRACAO-O3CLOUD-CENTRAL.md`.
+- Registro final de decisoes: `docs/80-O3CENTRAL-REGISTRO-DECISOES-FECHADAS.md`.
+
 ## 2026-10-29 - Releases v1.2.7 a v1.2.11 e hardening de producao
 
 - `v1.2.7`: sidebar responsiva e compacta, mantendo os icones no modo recolhido e melhorando o uso em dispositivos moveis.
